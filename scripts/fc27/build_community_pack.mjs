@@ -22,6 +22,7 @@ import { ALL_CLUBS, LEAGUES } from '@/data/league';
 import { parseCsv } from './lib/csv.mjs';
 import { toGameRow, buildLeagueMap } from './export_for_game.mjs';
 import { buildPlayer, writeByClub, writeFreeAgents } from '../processFC26.mjs';
+import { extractName } from '../lib/playerName.mjs';
 import { BASELINES } from './lib/paths.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -36,7 +37,7 @@ function main() {
   const byClubMap = new Map();
   const freeAgents = [];
   const seen = new Set();
-  const stats = { routed: 0, free: 0, dupes: 0, noPotential: 0, unknownClub: 0, potentialClamped: 0 };
+  const stats = { routed: 0, free: 0, dupes: 0, noPotential: 0, unknownClub: 0, potentialClamped: 0, doubledNames: 0 };
 
   for (const row of rows) {
     // The game reads `pot` with no fallback, so a player without one would
@@ -48,7 +49,18 @@ function main() {
 
     // toGameRow renames the columns buildPlayer reads (physical -> physic,
     // derived_age -> age, and so on).
-    const player = buildPlayer(toGameRow(row, leagueMap));
+    const gameRow = toGameRow(row, leagueMap);
+    const player = buildPlayer(gameRow);
+
+    // buildPlayer splits the name on the last space, which turns every mononym
+    // into a doubled name — "Rodri Rodri", "Raphinha Raphinha". 206 of those
+    // shipped in the FC26 pack. `extractName` is the splitter the game's own
+    // squad files were built with: it reads EA's long name to recover the real
+    // given name, giving fn "Rodrigo" / ln "Rodri", which is exactly what
+    // src/data/squads carries today.
+    const { fn, ln } = extractName(gameRow.long_name, gameRow.short_name);
+    player.fn = fn;
+    player.ln = ln;
 
     // Potential is carried over from FC26 while EA publishes none, so a player
     // whose FC27 rating rose above last season's ceiling ends up with
@@ -65,6 +77,7 @@ function main() {
     if (!clubId) { freeAgents.push(player); stats.free += 1; continue; }
     if (!clubById.has(clubId)) { stats.unknownClub += 1; freeAgents.push(player); continue; }
 
+    if (player.fn === player.ln) stats.doubledNames += 1;
     if (!byClubMap.has(clubId)) byClubMap.set(clubId, []);
     byClubMap.get(clubId).push(player);
     stats.routed += 1;
@@ -78,6 +91,7 @@ function main() {
   console.log(`free agents            : ${stats.free}`);
   console.log(`dropped (no potential) : ${stats.noPotential}`);
   console.log(`duplicate ids skipped  : ${stats.dupes}`);
+  console.log(`names rendering doubled  : ${stats.doubledNames} (should be near zero)`);
   console.log(`potential raised to ovr: ${stats.potentialClamped} (FC26 ceiling below the FC27 rating)`);
   console.log(`squad size min/median/max: ${squadSizes[0]} / ${squadSizes[Math.floor(squadSizes.length / 2)]} / ${squadSizes[squadSizes.length - 1]}`);
   console.log(`clubs with fewer than 11 players: ${thin.length}`);

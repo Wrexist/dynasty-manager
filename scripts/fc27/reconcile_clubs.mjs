@@ -2,25 +2,34 @@
 /**
  * Resolve every FC27 player to a club and league the GAME ships.
  *
- * Three problems, three data-driven fixes — no string-similarity guessing:
+ * Club NAMES are the least reliable thing in this data. EA writes exonyms
+ * ("FC Bayern München"), abbreviations ("R. Union St.-G."), and placeholders
+ * for clubs it has no licence for — Inter Milan ships as "Lombardia FC", which
+ * no amount of string cleverness will ever match. So names are the LAST resort
+ * here, not the first.
  *
- *  1. EA spells clubs differently ("Spurs", "Red Bulls"). Fixed by voting:
- *     99%+ of players match a baseline player on a stable id, so each matched
- *     player votes for what the baseline calls their club. A squad's worth of
- *     votes names the club with no guessing.
+ * Resolution runs in tiers, strongest evidence first, and every club records
+ * which tier decided it so the report can be audited:
  *
- *  2. EA omits the club entirely for whole competitions — every Eredivisie
- *     player, and everyone under Libertadores/Sudamericana — almost certainly
- *     a licensing limit on the public endpoint. Fixed by backfilling from the
- *     id-matched baseline row, but ONLY when the baseline's league agrees with
- *     EA's league for that player. That guard matters: without it, a player
- *     who moved to another country last summer would be handed his old club.
+ *   1. squad-fingerprint  Whose players are these? The game's own squad files
+ *                         are keyed by club id, so surname overlap identifies
+ *                         the club outright. Lautaro, Bastoni and Barella can
+ *                         only be one team whatever the label says.
+ *   2. player-vote        For each player matched to the baseline on a stable
+ *                         id (gated on nationality), vote for what the
+ *                         baseline calls their club; resolve that name.
+ *   3. fc26-report        The validated fc26Name -> gameClubId map that
+ *                         analyzeFC26 produced and processFC26 already trusts.
+ *   4. exact name         Normalised name equality.
+ *   5. token subset       Confined to one league, unique candidate required.
  *
- *  3. EA brands leagues with sponsors. Handled by leagueAliases.mjs, and by
- *     preferring the matched club's own league over any name at all.
+ * Separately, EA omits the club entirely for whole competitions (every
+ * Eredivisie player; everyone under Libertadores/Sudamericana). Those are
+ * backfilled from the id-matched baseline row, but ONLY when the baseline's
+ * league agrees with EA's — otherwise a player who moved abroad last summer
+ * would be handed his old club.
  *
- * Every value that did not come from FC27 is stamped in `club_source` /
- * `league_source`, so nothing borrowed can be mistaken for FC27 data.
+ * Anything not sourced from FC27 is stamped in `club_source`.
  *
  * Run: npx vite-node scripts/fc27/reconcile_clubs.mjs
  */
@@ -28,41 +37,21 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { LEAGUES, ALL_CLUBS } from '@/data/league';
+import { ALL_SQUAD_TEMPLATES } from '@/data/squads';
+import { cpLeagueSquads } from '@/data/communityPack/cpLeagueSquads';
 import { parseCsv, toCsv } from './lib/csv.mjs';
 import { normClub } from './match_game_clubs.mjs';
 import { LEAGUE_ALIASES } from './leagueAliases.mjs';
+import { buildSquadIndex, fingerprintClub } from './lib/squadFingerprint.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FC27 = join(ROOT, 'data/fc27/FC27_male_players.csv');
 const BASELINE = join(ROOT, 'FC26_20250921.csv');
+const REPORT_JSON = join(ROOT, 'scripts/fc26-report.json');
 const OUT_CSV = join(ROOT, 'data/fc27/FC27_male_players_reconciled.csv');
 const OUT_REPORT = join(ROOT, 'data/fc27/reconciliation.json');
 
 const norm = (s) => normClub(s);
-
-/**
- * Token-subset match, constrained to one league.
- *
- * EA and the game often name the same club at different lengths: "APOEL FC"
- * vs "APOEL Nicosia", "Dinamo Zagreb" vs "GNK Dinamo Zagreb". Once the tokens
- * of one are a subset of the other's, they are the same club — PROVIDED the
- * candidate is unique inside the league. Requiring uniqueness is what stops
- * this from mis-matching a "Manchester" onto two Manchesters, and confining it
- * to one league is what keeps the search small enough for that to hold.
- */
-function tokenSubsetMatch(eaName, candidates) {
-  const want = new Set(norm(eaName).split(' ').filter(Boolean));
-  if (want.size === 0) return null;
-
-  const hits = candidates.filter((club) => {
-    const have = new Set(norm(club.name).split(' ').filter(Boolean));
-    if (have.size === 0) return false;
-    const wantInHave = [...want].every((t) => have.has(t));
-    const haveInWant = [...have].every((t) => want.has(t));
-    return wantInHave || haveInWant;
-  });
-  return hits.length === 1 ? hits[0] : null;
-}
 
 function gameClubIndex() {
   const byName = new Map();
@@ -78,104 +67,187 @@ function gameClubIndex() {
   return byName;
 }
 
+function tokenSubsetMatch(eaName, candidates) {
+  const want = new Set(norm(eaName).split(' ').filter(Boolean));
+  if (want.size === 0) return null;
+  const hits = candidates.filter((club) => {
+    const have = new Set(norm(club.name).split(' ').filter(Boolean));
+    if (have.size === 0) return false;
+    return [...want].every((t) => have.has(t)) || [...have].every((t) => want.has(t));
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
+
 export function main() {
   const rows = parseCsv(readFileSync(FC27, 'utf8'));
   const baseline = parseCsv(readFileSync(BASELINE, 'utf8'));
   const byId = new Map(baseline.map((b) => [String(b.player_id), b]));
   const gameByName = gameClubIndex();
   const gameById = new Map(ALL_CLUBS.map((c) => [c.id, c]));
+  const squadIndex = buildSquadIndex({ ...ALL_SQUAD_TEMPLATES, ...cpLeagueSquads });
 
-  // ── Pass 1: vote EA club name -> baseline club name, gated on nationality ──
-  const votes = new Map();
+  // The validated fc26Name -> gameClubId map processFC26 already trusts.
+  const report = JSON.parse(readFileSync(REPORT_JSON, 'utf8'));
+  const fc26NameToClubId = new Map();
+  for (const e of [...(report.bucketA ?? []), ...(report.bucketB ?? [])]) {
+    if (e.fc26Name && e.gameClubId) fc26NameToClubId.set(norm(e.fc26Name), e.gameClubId);
+  }
+
+  // ── Group the EA clubs, and vote each one's baseline counterpart ─────────
+  const eaClubs = new Map(); // ea name -> { rows[], votes: Map }
   for (const row of rows) {
     const ea = (row.club ?? '').trim();
     if (!ea) continue;
+    if (!eaClubs.has(ea)) eaClubs.set(ea, { rows: [], votes: new Map() });
+    const entry = eaClubs.get(ea);
+    entry.rows.push(row);
     const base = byId.get(String(row.player_id));
     if (!base || norm(row.nationality) !== norm(base.nationality_name)) continue;
-    const baseClub = (base.club_name ?? '').trim();
-    if (!baseClub) continue;
-    if (!votes.has(ea)) votes.set(ea, new Map());
-    const t = votes.get(ea);
-    t.set(baseClub, (t.get(baseClub) ?? 0) + 1);
+    const bc = (base.club_name ?? '').trim();
+    if (bc) entry.votes.set(bc, (entry.votes.get(bc) ?? 0) + 1);
   }
 
-  /** EA club name -> game club, decided by majority vote. */
-  const aliasToGameClub = new Map();
-  for (const [ea, tally] of votes) {
-    const [winner, wv] = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
-    const total = [...tally.values()].reduce((a, b) => a + b, 0);
-    if (wv / total < 0.5) continue;
-    const club = gameByName.get(norm(winner)) ?? gameByName.get(norm(ea));
-    if (club) aliasToGameClub.set(ea, club);
+  /** ea club name -> { club, tier } */
+  const resolvedClub = new Map();
+  const tierCounts = {};
+  const unresolvedClubs = [];
+  const rejectedCrossCountry = [];
+  const leagueCountry = new Map(LEAGUES.map((l) => [l.id, l.country]));
+
+  for (const [ea, entry] of eaClubs) {
+    let club = null;
+    let tier = null;
+    let evidence = 0;
+
+    // 1. squad fingerprint, with a country guard.
+    //
+    // The game's league structure is a season behind FC27, so a fingerprint
+    // landing in a different DIVISION than EA states is usually correct — it
+    // is a club that was promoted or relegated (Ipswich, Southampton, Wrexham,
+    // Luton). A fingerprint landing in a different COUNTRY never is: that is
+    // how "Red Star FC" of Paris matched Red Star Belgrade, and Laval matched
+    // Slavia Sofia, on a handful of coincidental surnames.
+    const fp = fingerprintClub(entry.rows.map((r) => r.last_name), squadIndex);
+    if (fp && gameById.has(fp.clubId)) {
+      const candidate = gameById.get(fp.clubId);
+      const eaLeagueId = LEAGUE_ALIASES[(entry.rows[0].league ?? '').trim()] ?? null;
+      const eaCountry = eaLeagueId ? leagueCountry.get(eaLeagueId) : null;
+      const sameCountry = !eaCountry || eaCountry === leagueCountry.get(candidate.divisionId);
+      if (sameCountry) { club = candidate; tier = 'squad-fingerprint'; evidence = fp.overlap; }
+      else { rejectedCrossCountry.push({ eaClub: ea, matched: candidate.name, overlap: fp.overlap }); }
+    }
+
+    // 2. player vote -> baseline name -> game club
+    if (!club && entry.votes.size) {
+      const [winner, wv] = [...entry.votes.entries()].sort((a, b) => b[1] - a[1])[0];
+      const total = [...entry.votes.values()].reduce((a, b) => a + b, 0);
+      if (wv / total >= 0.5) {
+        const hit = gameByName.get(norm(winner)) ?? gameById.get(fc26NameToClubId.get(norm(winner)));
+        if (hit) { club = hit; tier = 'player-vote'; }
+      }
+    }
+
+    // 3. the validated fc26 report map, on EA's own name
+    if (!club) {
+      const id = fc26NameToClubId.get(norm(ea));
+      if (id && gameById.has(id)) { club = gameById.get(id); tier = 'fc26-report'; }
+    }
+
+    // 4. exact normalised name
+    if (!club) {
+      const hit = gameByName.get(norm(ea));
+      if (hit) { club = hit; tier = 'exact-name'; }
+    }
+
+    // 5. token subset, inside the league EA names
+    if (!club) {
+      const leagueId = LEAGUE_ALIASES[(entry.rows[0].league ?? '').trim()] ?? null;
+      if (leagueId) {
+        const hit = tokenSubsetMatch(ea, ALL_CLUBS.filter((c) => c.divisionId === leagueId));
+        if (hit) { club = hit; tier = 'token-subset'; }
+      }
+    }
+
+    if (club) {
+      resolvedClub.set(ea, { club, tier, evidence });
+    } else {
+      unresolvedClubs.push({ eaClub: ea, players: entry.rows.length, league: entry.rows[0].league ?? '' });
+    }
   }
 
-  // ── Pass 2: resolve each player ─────────────────────────────────────────
-  const stats = {
-    total: rows.length,
-    resolvedFromEaClub: 0,
-    resolvedByTokenMatch: 0,
-    resolvedByBackfill: 0,
-    backfillRejectedLeagueMismatch: 0,
-    unresolved: 0,
-  };
+  // ── One game club, one claimant ─────────────────────────────────────────
+  //
+  // A game club can only be one EA club. Without this, "Atl. Nacional"
+  // (Colombian, filed by EA under Libertadores where no country is known, so
+  // the country guard cannot fire) landed on Tigre alongside the real Tigre,
+  // giving it a 60-man squad; HamKam did the same to Brann. When two EA clubs
+  // claim one game club, the stronger fingerprint keeps it and the other is
+  // dropped rather than silently merged.
+  const claims = new Map();
+  for (const [ea, r] of resolvedClub) {
+    if (!claims.has(r.club.id)) claims.set(r.club.id, []);
+    claims.get(r.club.id).push({ ea, ...r });
+  }
+  const contested = [];
+  for (const [clubId, list] of claims) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => b.evidence - a.evidence);
+    const [winner, ...losers] = list;
+    for (const l of losers) resolvedClub.delete(l.ea);
+    contested.push({
+      gameClubId: clubId,
+      kept: { eaClub: winner.ea, tier: winner.tier, evidence: winner.evidence },
+      dropped: losers.map((l) => ({ eaClub: l.ea, tier: l.tier, evidence: l.evidence })),
+    });
+  }
+
+  for (const r of resolvedClub.values()) tierCounts[r.tier] = (tierCounts[r.tier] ?? 0) + 1;
+
+  // ── Apply to every player ───────────────────────────────────────────────
+  const stats = { fromEaClub: 0, backfilled: 0, backfillRefused: 0, unresolved: 0 };
 
   for (const row of rows) {
-    const ea = (row.club ?? '').trim();
     row.game_club_id = '';
     row.game_club_name = '';
     row.game_league_id = '';
     row.club_source = '';
 
+    const ea = (row.club ?? '').trim();
     if (ea) {
-      let club = aliasToGameClub.get(ea) ?? gameByName.get(norm(ea));
-
-      // Last resort: a token-subset match inside the league EA names, so the
-      // candidate set is one division rather than all 756 clubs.
-      if (!club) {
-        const leagueId = LEAGUE_ALIASES[(row.league ?? '').trim()] ?? null;
-        if (leagueId) {
-          const inLeague = ALL_CLUBS.filter((c) => c.divisionId === leagueId);
-          const hit = tokenSubsetMatch(ea, inLeague);
-          if (hit) { club = hit; stats.resolvedByTokenMatch += 1; }
-        }
-      }
-
+      const club = resolvedClub.get(ea)?.club;
       if (club) {
-        row.game_club_id = club.id;
-        row.game_club_name = club.name;
-        row.game_league_id = club.divisionId;
-        row.club_source = 'fc27';
-        stats.resolvedFromEaClub += 1;
-        continue;
+        Object.assign(row, {
+          game_club_id: club.id, game_club_name: club.name,
+          game_league_id: club.divisionId, club_source: 'fc27',
+        });
+        stats.fromEaClub += 1;
+      } else {
+        stats.unresolved += 1;
       }
-      stats.unresolved += 1;
       continue;
     }
 
-    // No club from EA. Borrow the baseline's, but only if the leagues agree.
+    // EA gave no club: borrow the baseline's, if the leagues agree.
     const base = byId.get(String(row.player_id));
-    if (!base) { stats.unresolved += 1; continue; }
-    const baseClub = (base.club_name ?? '').trim();
+    const baseClub = (base?.club_name ?? '').trim();
     if (!baseClub) { stats.unresolved += 1; continue; }
 
-    const club = gameByName.get(norm(baseClub));
-    const eaLeagueId = LEAGUE_ALIASES[(row.league ?? '').trim()] ?? null;
+    const club = gameByName.get(norm(baseClub)) ?? gameById.get(fc26NameToClubId.get(norm(baseClub)));
     if (!club) { stats.unresolved += 1; continue; }
 
-    // Libertadores/Sudamericana map to null: EA gives no domestic league, so
-    // there is nothing to contradict the baseline and the club stands.
-    const leaguesAgree = eaLeagueId === null || club.divisionId === eaLeagueId;
-    if (!leaguesAgree) { stats.backfillRejectedLeagueMismatch += 1; stats.unresolved += 1; continue; }
+    const eaLeagueId = LEAGUE_ALIASES[(row.league ?? '').trim()] ?? null;
+    if (eaLeagueId !== null && club.divisionId !== eaLeagueId) {
+      stats.backfillRefused += 1; stats.unresolved += 1; continue;
+    }
 
-    row.game_club_id = club.id;
-    row.game_club_name = club.name;
-    row.game_league_id = club.divisionId;
-    row.club_source = 'fc26-backfill';
-    stats.resolvedByBackfill += 1;
+    Object.assign(row, {
+      game_club_id: club.id, game_club_name: club.name,
+      game_league_id: club.divisionId, club_source: 'fc26-backfill',
+    });
+    stats.backfilled += 1;
   }
 
-  const columns = [...new Set(rows.flatMap((r) => Object.keys(r)))];
-  writeFileSync(OUT_CSV, toCsv(columns, rows), 'utf8');
+  writeFileSync(OUT_CSV, toCsv([...new Set(rows.flatMap((r) => Object.keys(r)))], rows), 'utf8');
 
   const covered = new Map();
   for (const r of rows) {
@@ -193,33 +265,45 @@ export function main() {
     };
   }).sort((a, b) => a.pct - b.pct);
 
-  const resolved = stats.resolvedFromEaClub + stats.resolvedByBackfill;
-  const report = {
+  const resolved = stats.fromEaClub + stats.backfilled;
+  const out = {
     generatedAt: new Date().toISOString(),
     ...stats,
     resolved,
     resolvedPct: +(100 * resolved / rows.length).toFixed(1),
-    aliasesDerived: aliasToGameClub.size,
+    clubResolutionTiers: tierCounts,
+    fingerprintRejectedCrossCountry: rejectedCrossCountry,
+    contestedGameClubs: contested,
+    unresolvedClubs: unresolvedClubs.sort((a, b) => b.players - a.players),
     gameClubsCovered: new Set(rows.map((r) => r.game_club_id).filter(Boolean)).size,
     gameClubsTotal: ALL_CLUBS.length,
     leagueCoverage,
   };
   mkdirSync(dirname(OUT_REPORT), { recursive: true });
-  writeFileSync(OUT_REPORT, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  writeFileSync(OUT_REPORT, `${JSON.stringify(out, null, 2)}\n`, 'utf8');
 
-  console.log(`resolved ${resolved}/${rows.length} (${report.resolvedPct}%)`);
-  console.log(`  from EA's own club field : ${stats.resolvedFromEaClub}`);
-  console.log(`    of which by token match: ${stats.resolvedByTokenMatch}`);
-  console.log(`  backfilled from baseline : ${stats.resolvedByBackfill}`);
-  console.log(`  backfill refused (league mismatch): ${stats.backfillRejectedLeagueMismatch}`);
-  console.log(`  unresolved               : ${stats.unresolved}`);
-  console.log(`game clubs covered: ${report.gameClubsCovered}/${report.gameClubsTotal}`);
-  console.log(`\nleague coverage:`);
-  for (const l of leagueCoverage) {
-    console.log(`  ${String(l.pct).padStart(4)}%  ${String(l.clubsMatched).padStart(2)}/${String(l.gameClubs).padEnd(2)}  ${String(l.players).padStart(4)} players  ${l.name} (${l.country})`);
+  console.log(`resolved ${resolved}/${rows.length} (${out.resolvedPct}%)`);
+  console.log(`  from EA's club field: ${stats.fromEaClub}   backfilled: ${stats.backfilled}   refused: ${stats.backfillRefused}   unresolved: ${stats.unresolved}`);
+  console.log(`club resolution by tier: ${JSON.stringify(tierCounts)}`);
+  if (rejectedCrossCountry.length) {
+    console.log(`fingerprints rejected for crossing a country border: ${rejectedCrossCountry.length}`);
+    for (const r of rejectedCrossCountry) console.log(`  ${r.eaClub} !-> ${r.matched} (overlap ${r.overlap})`);
   }
-  console.log(`\nwritten: ${OUT_CSV}`);
-  return report;
+  if (contested.length) {
+    console.log(`contested game clubs resolved to one claimant: ${contested.length}`);
+    for (const c of contested) console.log(`  ${c.gameClubId}: kept "${c.kept.eaClub}" (${c.kept.evidence}), dropped ${c.dropped.map((d) => `"${d.eaClub}" (${d.evidence})`).join(', ')}`);
+  }
+  console.log(`game clubs covered: ${out.gameClubsCovered}/${out.gameClubsTotal}`);
+  console.log(`\nleagues below 100%:`);
+  for (const l of leagueCoverage.filter((l) => l.pct < 100)) {
+    console.log(`  ${String(l.pct).padStart(4)}%  ${String(l.clubsMatched).padStart(2)}/${String(l.gameClubs).padEnd(2)}  ${l.name} (${l.country})`);
+  }
+  console.log(`\nunresolved EA clubs: ${unresolvedClubs.length}`);
+  for (const c of unresolvedClubs.slice(0, 10)) console.log(`  ${String(c.players).padStart(3)}  ${c.eaClub}  [${c.league}]`);
+  return out;
 }
 
+// Run unconditionally: this is a CLI stage and nothing imports it. The
+// import.meta.url / argv[1] guard does not hold under vite-node, which is
+// required here to resolve the '@/' alias and the TS league + squad data.
 main();

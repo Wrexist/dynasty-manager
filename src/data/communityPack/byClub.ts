@@ -188,8 +188,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ísak Bergmann",
-      "ln": "Jóhannesson",
+      "fn": "Ísak",
+      "ln": "Bergmann Jóhannesson",
       "pos": "CM",
       "age": 23,
       "nat": "Iceland",
@@ -450,8 +450,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rav van den",
-      "ln": "Berg",
+      "fn": "Rav",
+      "ln": "van den Berg",
       "pos": "CB",
       "age": 22,
       "nat": "Holland",
@@ -493,8 +493,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 91
     },
     {
-      "fn": "Said El",
-      "ln": "Mala",
+      "fn": "Said",
+      "ln": "El Mala",
       "pos": "CAM",
       "age": 20,
       "nat": "Germany",
@@ -603,8 +603,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Malek El",
-      "ln": "Mala",
+      "fn": "Malek",
+      "ln": "El Mala",
       "pos": "ST",
       "age": 21,
       "nat": "Germany",
@@ -988,8 +988,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Abu Bekir Ömer El",
-      "ln": "Zein",
+      "fn": "Abu",
+      "ln": "Bekir Ömer El Zein",
       "pos": "CM",
       "age": 23,
       "nat": "Germany",
@@ -1171,8 +1171,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Alexander Ahl",
-      "ln": "Holmström",
+      "fn": "Alexander",
+      "ln": "Ahl Holmström",
       "pos": "ST",
       "age": 27,
       "nat": "Sweden",
@@ -1360,8 +1360,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nick Elias",
-      "ln": "Meier",
+      "fn": "Nick",
+      "ln": "Elias Meier",
       "pos": "CAM",
       "age": 20,
       "nat": "Germany",
@@ -1428,8 +1428,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Finn Ole",
-      "ln": "Becker",
+      "fn": "Finn",
+      "ln": "Ole Becker",
       "pos": "CM",
       "age": 26,
       "nat": "Germany",
@@ -1471,8 +1471,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Pape Demba",
-      "ln": "Diop",
+      "fn": "Pape",
+      "ln": "Demba Diop",
       "pos": "CDM",
       "age": 22,
       "nat": "Senegal",
@@ -1912,8 +1912,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Justin von der",
-      "ln": "Hitz",
+      "fn": "Justin",
+      "ln": "von der Hitz",
       "pos": "RB",
       "age": 19,
       "nat": "Germany",
@@ -3364,8 +3364,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sivert Heltne",
-      "ln": "Nilsen",
+      "fn": "Sivert",
+      "ln": "Heltne Nilsen",
       "pos": "CDM",
       "age": 34,
       "nat": "Norway",
@@ -3733,8 +3733,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Kjartan Már",
-      "ln": "Kjartansson",
+      "fn": "Kjartan",
+      "ln": "Már Kjartansson",
       "pos": "CDM",
       "age": 20,
       "nat": "Iceland",
@@ -4148,8 +4148,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Koni De",
-      "ln": "Winter",
+      "fn": "Koni",
+      "ln": "De Winter",
       "pos": "CB",
       "age": 24,
       "nat": "Belgium",
@@ -5619,7 +5619,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Zine",
+      "fn": "Ambrósini",
       "ln": "Zine",
       "pos": "ST",
       "age": 24,
@@ -6413,6 +6413,486 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     }
   ],
+  "aik": [
+    {
+      "fn": "Anton",
+      "ln": "Salétros",
+      "pos": "CM",
+      "age": 30,
+      "nat": "Sweden",
+      "ovr": 73,
+      "pot": 73,
+      "pace": 64,
+      "shooting": 68,
+      "passing": 72,
+      "defending": 66,
+      "physical": 74,
+      "mental": 70,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "219951",
+      "heightCm": 183,
+      "weightKg": 73
+    },
+    {
+      "fn": "Kristoffer",
+      "ln": "Nordfeldt",
+      "pos": "GK",
+      "age": 37,
+      "nat": "Sweden",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 70,
+      "shooting": 70,
+      "passing": 70,
+      "defending": 71,
+      "physical": 69,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "192129",
+      "heightCm": 188,
+      "weightKg": 87
+    },
+    {
+      "fn": "Filip",
+      "ln": "Benković",
+      "pos": "CB",
+      "age": 29,
+      "nat": "Croatia",
+      "ovr": 72,
+      "pot": 74,
+      "pace": 58,
+      "shooting": 44,
+      "passing": 54,
+      "defending": 74,
+      "physical": 81,
+      "mental": 59,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "244269",
+      "heightCm": 194,
+      "weightKg": 91
+    },
+    {
+      "fn": "Sotirios",
+      "ln": "Papagiannopoulos",
+      "pos": "CB",
+      "age": 35,
+      "nat": "Sweden",
+      "ovr": 71,
+      "pot": 71,
+      "pace": 66,
+      "shooting": 39,
+      "passing": 57,
+      "defending": 70,
+      "physical": 85,
+      "mental": 61,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "226583",
+      "heightCm": 187,
+      "weightKg": 88
+    },
+    {
+      "fn": "Áron",
+      "ln": "Csongvai",
+      "pos": "CM",
+      "age": 25,
+      "nat": "Hungary",
+      "ovr": 70,
+      "pot": 76,
+      "pace": 65,
+      "shooting": 63,
+      "passing": 63,
+      "defending": 68,
+      "physical": 73,
+      "mental": 67,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "272566",
+      "heightCm": 186,
+      "weightKg": 72,
+      "altPos": [
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Bersant",
+      "ln": "Celina",
+      "pos": "LW",
+      "age": 29,
+      "nat": "Kosovo",
+      "ovr": 70,
+      "pot": 70,
+      "pace": 81,
+      "shooting": 64,
+      "passing": 64,
+      "defending": 25,
+      "physical": 63,
+      "mental": 66,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "220198",
+      "heightCm": 181,
+      "weightKg": 66,
+      "altPos": [
+        "CM",
+        "LB"
+      ]
+    },
+    {
+      "fn": "Johan",
+      "ln": "Hove",
+      "pos": "CM",
+      "age": 25,
+      "nat": "Norway",
+      "ovr": 69,
+      "pot": 72,
+      "pace": 74,
+      "shooting": 62,
+      "passing": 66,
+      "defending": 61,
+      "physical": 70,
+      "mental": 69,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "234066",
+      "heightCm": 177,
+      "weightKg": 72,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Mads",
+      "ln": "Døhr Thychosen",
+      "pos": "RB",
+      "age": 29,
+      "nat": "Denmark",
+      "ovr": 69,
+      "pot": 69,
+      "pace": 74,
+      "shooting": 57,
+      "passing": 59,
+      "defending": 68,
+      "physical": 87,
+      "mental": 60,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "225273",
+      "heightCm": 178,
+      "weightKg": 75,
+      "altPos": [
+        "CB"
+      ]
+    },
+    {
+      "fn": "Thomas",
+      "ln": "Isherwood",
+      "pos": "CB",
+      "age": 28,
+      "nat": "Sweden",
+      "ovr": 67,
+      "pot": 69,
+      "pace": 43,
+      "shooting": 33,
+      "passing": 46,
+      "defending": 65,
+      "physical": 86,
+      "mental": 51,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "244192",
+      "heightCm": 195,
+      "weightKg": 87,
+      "altPos": [
+        "LB"
+      ]
+    },
+    {
+      "fn": "Eskil",
+      "ln": "Edh",
+      "pos": "LB",
+      "age": 24,
+      "nat": "Norway",
+      "ovr": 66,
+      "pot": 71,
+      "pace": 78,
+      "shooting": 51,
+      "passing": 58,
+      "defending": 58,
+      "physical": 59,
+      "mental": 59,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "262224",
+      "heightCm": 181,
+      "weightKg": 77,
+      "altPos": [
+        "RB"
+      ]
+    },
+    {
+      "fn": "John",
+      "ln": "Guidetti",
+      "pos": "ST",
+      "age": 34,
+      "nat": "Sweden",
+      "ovr": 66,
+      "pot": 66,
+      "pace": 49,
+      "shooting": 69,
+      "passing": 60,
+      "defending": 37,
+      "physical": 71,
+      "mental": 65,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "199602",
+      "heightCm": 185,
+      "weightKg": 80
+    },
+    {
+      "fn": "Dino",
+      "ln": "Beširović",
+      "pos": "CAM",
+      "age": 32,
+      "nat": "Bosnia and Herzegovina",
+      "ovr": 65,
+      "pot": 65,
+      "pace": 64,
+      "shooting": 60,
+      "passing": 63,
+      "defending": 48,
+      "physical": 72,
+      "mental": 61,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "276189",
+      "heightCm": 179,
+      "weightKg": 78,
+      "altPos": [
+        "ST"
+      ]
+    },
+    {
+      "fn": "Martin",
+      "ln": "Ellingsen",
+      "pos": "CDM",
+      "age": 31,
+      "nat": "Norway",
+      "ovr": 65,
+      "pot": 65,
+      "pace": 51,
+      "shooting": 59,
+      "passing": 64,
+      "defending": 66,
+      "physical": 62,
+      "mental": 62,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "240677",
+      "heightCm": 180,
+      "weightKg": 75,
+      "altPos": [
+        "CB",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Kalle",
+      "ln": "Joelsson",
+      "pos": "GK",
+      "age": 28,
+      "nat": "Sweden",
+      "ovr": 63,
+      "pot": 67,
+      "pace": 68,
+      "shooting": 64,
+      "passing": 65,
+      "defending": 63,
+      "physical": 62,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "228355",
+      "heightCm": 183,
+      "weightKg": 74
+    },
+    {
+      "fn": "Erik",
+      "ln": "Flataker",
+      "pos": "ST",
+      "age": 21,
+      "nat": "Norway",
+      "ovr": 63,
+      "pot": 74,
+      "pace": 74,
+      "shooting": 61,
+      "passing": 51,
+      "defending": 18,
+      "physical": 54,
+      "mental": 59,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "79805",
+      "heightCm": 182,
+      "weightKg": 71
+    },
+    {
+      "fn": "Taha",
+      "ln": "Ayari",
+      "pos": "ST",
+      "age": 21,
+      "nat": "Sweden",
+      "ovr": 62,
+      "pot": 74,
+      "pace": 75,
+      "shooting": 52,
+      "passing": 59,
+      "defending": 27,
+      "physical": 38,
+      "mental": 60,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "272514",
+      "heightCm": 177,
+      "weightKg": 70,
+      "altPos": [
+        "LB"
+      ]
+    },
+    {
+      "fn": "Victor",
+      "ln": "Gonçalves Andersson",
+      "pos": "ST",
+      "age": 21,
+      "nat": "Sweden",
+      "ovr": 61,
+      "pot": 74,
+      "pace": 78,
+      "shooting": 59,
+      "passing": 57,
+      "defending": 23,
+      "physical": 55,
+      "mental": 55,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "272656",
+      "heightCm": 174,
+      "weightKg": 67,
+      "altPos": [
+        "LW"
+      ]
+    },
+    {
+      "fn": "Abdihakim",
+      "ln": "Ali",
+      "pos": "CM",
+      "age": 24,
+      "nat": "Sweden",
+      "ovr": 60,
+      "pot": 69,
+      "pace": 64,
+      "shooting": 56,
+      "passing": 54,
+      "defending": 52,
+      "physical": 50,
+      "mental": 57,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "273858",
+      "heightCm": 178,
+      "weightKg": 68,
+      "altPos": [
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Fredrik",
+      "ln": "Nissen",
+      "pos": "CB",
+      "age": 21,
+      "nat": "Sweden",
+      "ovr": 60,
+      "pot": 74,
+      "pace": 69,
+      "shooting": 23,
+      "passing": 44,
+      "defending": 61,
+      "physical": 57,
+      "mental": 54,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "272918",
+      "heightCm": 189,
+      "weightKg": 75
+    },
+    {
+      "fn": "Andreas",
+      "ln": "Redkin",
+      "pos": "CM",
+      "age": 19,
+      "nat": "Sweden",
+      "ovr": 59,
+      "pot": 73,
+      "pace": 66,
+      "shooting": 53,
+      "passing": 52,
+      "defending": 50,
+      "physical": 62,
+      "mental": 57,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "76873",
+      "heightCm": 182,
+      "weightKg": 72
+    },
+    {
+      "fn": "Alexander",
+      "ln": "Fesshaie",
+      "pos": "ST",
+      "age": 22,
+      "nat": "Sweden",
+      "ovr": 59,
+      "pot": 73,
+      "pace": 72,
+      "shooting": 57,
+      "passing": 50,
+      "defending": 26,
+      "physical": 52,
+      "mental": 57,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "272655",
+      "heightCm": 179,
+      "weightKg": 67,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Linus",
+      "ln": "Järeteg",
+      "pos": "LW",
+      "age": 19,
+      "nat": "Sweden",
+      "ovr": 56,
+      "pot": 74,
+      "pace": 58,
+      "shooting": 49,
+      "passing": 53,
+      "defending": 41,
+      "physical": 52,
+      "mental": 55,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "72190",
+      "heightCm": 178,
+      "weightKg": 69
+    }
+  ],
   "ajax": [
     {
       "fn": "Kenneth",
@@ -6747,8 +7227,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Branco van den",
-      "ln": "Boomen",
+      "fn": "Branco",
+      "ln": "van den Boomen",
       "pos": "CM",
       "age": 31,
       "nat": "Holland",
@@ -7027,7 +7507,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Ibañez",
+      "fn": "Roger",
       "ln": "Ibañez",
       "pos": "CB",
       "age": 27,
@@ -7067,7 +7547,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Galeno",
+      "fn": "Wenderson",
       "ln": "Galeno",
       "pos": "LW",
       "age": 28,
@@ -7087,8 +7567,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 62
     },
     {
-      "fn": "Franck Yannick",
-      "ln": "Kessié",
+      "fn": "Franck",
+      "ln": "Yannick Kessié",
       "pos": "CDM",
       "age": 29,
       "nat": "Côte d'Ivoire",
@@ -7174,8 +7654,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Firas Al",
-      "ln": "Birekan",
+      "fn": "Firas",
+      "ln": "Al Birekan",
       "pos": "ST",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -7264,8 +7744,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ziyad Al",
-      "ln": "Johani",
+      "fn": "Ziyad",
+      "ln": "Al Johani",
       "pos": "CDM",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -7288,8 +7768,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Ammar",
+      "fn": "Abdullah",
+      "ln": "Al Ammar",
       "pos": "LB",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -7308,8 +7788,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Abdulelah Al",
-      "ln": "Khaibari",
+      "fn": "Abdulelah",
+      "ln": "Al Khaibari",
       "pos": "LB",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -7348,8 +7828,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 59
     },
     {
-      "fn": "Sumayhan Al",
-      "ln": "Nabit",
+      "fn": "Sumayhan",
+      "ln": "Al Nabit",
       "pos": "LW",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -7368,8 +7848,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Bassam Al",
-      "ln": "Hurayji",
+      "fn": "Bassam",
+      "ln": "Al Hurayji",
       "pos": "RB",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -7392,8 +7872,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Fahad Al",
-      "ln": "Rashidi",
+      "fn": "Fahad",
+      "ln": "Al Rashidi",
       "pos": "RW",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -7432,8 +7912,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Sanbi",
+      "fn": "Abdulrahman",
+      "ln": "Al Sanbi",
       "pos": "GK",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -7452,8 +7932,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Eid Al",
-      "ln": "Muwallad",
+      "fn": "Eid",
+      "ln": "Al Muwallad",
       "pos": "CDM",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -7522,8 +8002,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yaseen Al",
-      "ln": "Zubaidi",
+      "fn": "Yaseen",
+      "ln": "Al Zubaidi",
       "pos": "LW",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -7542,8 +8022,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 63
     },
     {
-      "fn": "Emad Al",
-      "ln": "Feda",
+      "fn": "Emad",
+      "ln": "Al Feda",
       "pos": "GK",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -7736,8 +8216,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Saeed Al",
-      "ln": "Rubaie",
+      "fn": "Saeed",
+      "ln": "Al Rubaie",
       "pos": "CB",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -7756,8 +8236,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Saleh Al",
-      "ln": "Abbas",
+      "fn": "Saleh",
+      "ln": "Al Abbas",
       "pos": "ST",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -7776,8 +8256,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Muhannad Al",
-      "ln": "Qaydhi",
+      "fn": "Muhannad",
+      "ln": "Al Qaydhi",
       "pos": "LB",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -7799,8 +8279,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hussain Al",
-      "ln": "Zabdani",
+      "fn": "Hussain",
+      "ln": "Al Zabdani",
       "pos": "RB",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -7866,8 +8346,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Abdulaziz Al",
-      "ln": "Hotailah",
+      "fn": "Abdulaziz",
+      "ln": "Al Hotailah",
       "pos": "CAM",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -7889,8 +8369,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Saleh Al",
-      "ln": "Harthi",
+      "fn": "Saleh",
+      "ln": "Al Harthi",
       "pos": "LB",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -7932,8 +8412,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rakan Al",
-      "ln": "Najjar",
+      "fn": "Rakan",
+      "ln": "Al Najjar",
       "pos": "GK",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -7972,8 +8452,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Saad Al",
-      "ln": "Qarni",
+      "fn": "Saad",
+      "ln": "Al Qarni",
       "pos": "GK",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -8038,7 +8518,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Medrán",
+      "fn": "Álvaro",
       "ln": "Medrán",
       "pos": "CM",
       "age": 32,
@@ -8211,8 +8691,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Radhi Al",
-      "ln": "Otaibi",
+      "fn": "Radhi",
+      "ln": "Al Otaibi",
       "pos": "RB",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -8257,8 +8737,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Khatib",
+      "fn": "Abdullah",
+      "ln": "Al Khatib",
       "pos": "CB",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -8320,8 +8800,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Madallah Al",
-      "ln": "Olayan",
+      "fn": "Madallah",
+      "ln": "Al Olayan",
       "pos": "LB",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -8363,8 +8843,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Khalid Al",
-      "ln": "Ghannam",
+      "fn": "Khalid",
+      "ln": "Al Ghannam",
       "pos": "LW",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -8383,8 +8863,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Meshal Al",
-      "ln": "Alaeli",
+      "fn": "Meshal",
+      "ln": "Al Alaeli",
       "pos": "LB",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -8463,8 +8943,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Belal Al",
-      "ln": "Doaa",
+      "fn": "Belal",
+      "ln": "Al Doaa",
       "pos": "GK",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -8483,8 +8963,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Ziyad Al",
-      "ln": "Ghamdi",
+      "fn": "Ziyad",
+      "ln": "Al Ghamdi",
       "pos": "CM",
       "age": 21,
       "nat": "Saudi Arabia",
@@ -8680,8 +9160,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Mogren",
+      "fn": "Abdullah",
+      "ln": "Al Mogren",
       "pos": "CAM",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -8724,8 +9204,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Othman Al",
-      "ln": "Othman",
+      "fn": "Othman",
+      "ln": "Al Othman",
       "pos": "CAM",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -8771,8 +9251,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Saad Al",
-      "ln": "Sharfa",
+      "fn": "Saad",
+      "ln": "Al Sharfa",
       "pos": "ST",
       "age": 21,
       "nat": "Saudi Arabia",
@@ -8791,8 +9271,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Habib Al",
-      "ln": "Watyan",
+      "fn": "Habib",
+      "ln": "Al Watyan",
       "pos": "GK",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -8831,8 +9311,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 60
     },
     {
-      "fn": "Ali Al",
-      "ln": "Masoud",
+      "fn": "Ali",
+      "ln": "Al Masoud",
       "pos": "LW",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -8851,8 +9331,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Enazi",
+      "fn": "Abdullah",
+      "ln": "Al Enazi",
       "pos": "RW",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -8874,8 +9354,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ziyad Al",
-      "ln": "Jari",
+      "fn": "Ziyad",
+      "ln": "Al Jari",
       "pos": "CB",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -8897,8 +9377,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Faisal Al",
-      "ln": "Abdulwahed",
+      "fn": "Faisal",
+      "ln": "Al Abdulwahed",
       "pos": "ST",
       "age": 21,
       "nat": "Saudi Arabia",
@@ -8917,8 +9397,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Sattam Al",
-      "ln": "Subaie",
+      "fn": "Sattam",
+      "ln": "Al Subaie",
       "pos": "GK",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -8937,8 +9417,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Muhannad Al",
-      "ln": "Yahya",
+      "fn": "Muhannad",
+      "ln": "Al Yahya",
       "pos": "GK",
       "age": 21,
       "nat": "Saudi Arabia",
@@ -9003,7 +9483,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jason",
+      "fn": "David",
       "ln": "Jason",
       "pos": "RW",
       "age": 32,
@@ -9109,8 +9589,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Mukhair Al",
-      "ln": "Rashidi",
+      "fn": "Mukhair",
+      "ln": "Al Rashidi",
       "pos": "CB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -9132,8 +9612,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Baqawi",
+      "fn": "Mohammed",
+      "ln": "Al Baqawi",
       "pos": "RB",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -9175,8 +9655,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Ziyad Al",
-      "ln": "Sahafi",
+      "fn": "Ziyad",
+      "ln": "Al Sahafi",
       "pos": "CB",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -9199,8 +9679,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nawaf Al",
-      "ln": "Harthi",
+      "fn": "Nawaf",
+      "ln": "Al Harthi",
       "pos": "CM",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -9222,8 +9702,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Joui",
+      "fn": "Abdullah",
+      "ln": "Al Joui",
       "pos": "LW",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -9242,8 +9722,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Mansour Al",
-      "ln": "Bishi",
+      "fn": "Mansour",
+      "ln": "Al Bishi",
       "pos": "CM",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -9266,8 +9746,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdelraouf Al",
-      "ln": "Duqail",
+      "fn": "Abdelraouf",
+      "ln": "Al Duqail",
       "pos": "GK",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -9310,8 +9790,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sattam Al",
-      "ln": "Rouqi",
+      "fn": "Sattam",
+      "ln": "Al Rouqi",
       "pos": "LW",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -9330,8 +9810,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Enazi",
+      "fn": "Abdulrahman",
+      "ln": "Al Enazi",
       "pos": "RB",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -9353,8 +9833,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ali Al",
-      "ln": "Hussain",
+      "fn": "Ali",
+      "ln": "Al Hussain",
       "pos": "CM",
       "age": 21,
       "nat": "Saudi Arabia",
@@ -9376,8 +9856,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Malek Al",
-      "ln": "Abdulmunem",
+      "fn": "Malek",
+      "ln": "Al Abdulmunem",
       "pos": "ST",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -9438,8 +9918,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Khaibary",
+      "fn": "Abdulrahman",
+      "ln": "Al Khaibary",
       "pos": "CDM",
       "age": 38,
       "nat": "Saudi Arabia",
@@ -9461,8 +9941,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nawaf Al",
-      "ln": "Habashi",
+      "fn": "Nawaf",
+      "ln": "Al Habashi",
       "pos": "ST",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -9504,8 +9984,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Abdulhadi Al",
-      "ln": "Harajin",
+      "fn": "Abdulhadi",
+      "ln": "Al Harajin",
       "pos": "CM",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -9527,8 +10007,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Basil Al",
-      "ln": "Sayali",
+      "fn": "Basil",
+      "ln": "Al Sayali",
       "pos": "CM",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -9551,8 +10031,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yousef Al",
-      "ln": "Mozairib",
+      "fn": "Yousef",
+      "ln": "Al Mozairib",
       "pos": "ST",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -9574,8 +10054,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Dakheel",
+      "fn": "Abdulrahman",
+      "ln": "Al Dakheel",
       "pos": "CB",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -9594,8 +10074,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Farhan Al",
-      "ln": "Azmi",
+      "fn": "Farhan",
+      "ln": "Al Azmi",
       "pos": "LB",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -9614,8 +10094,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Yami",
+      "fn": "Mohammed",
+      "ln": "Al Yami",
       "pos": "CDM",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -9657,8 +10137,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Shanqeeti",
+      "fn": "Abdullah",
+      "ln": "Al Shanqeeti",
       "pos": "CB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -9680,8 +10160,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Turki Al",
-      "ln": "Mutairi",
+      "fn": "Turki",
+      "ln": "Al Mutairi",
       "pos": "ST",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -9792,8 +10272,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Salem Al",
-      "ln": "Dawsari",
+      "fn": "Salem",
+      "ln": "Al Dawsari",
       "pos": "LW",
       "age": 35,
       "nat": "Saudi Arabia",
@@ -10023,8 +10503,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Ali Al",
-      "ln": "Bulayhi",
+      "fn": "Ali",
+      "ln": "Al Bulayhi",
       "pos": "CB",
       "age": 36,
       "nat": "Saudi Arabia",
@@ -10043,8 +10523,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Nasser Al",
-      "ln": "Dawsari",
+      "fn": "Nasser",
+      "ln": "Al Dawsari",
       "pos": "CM",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -10068,8 +10548,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Muteb Al",
-      "ln": "Harbi",
+      "fn": "Muteb",
+      "ln": "Al Harbi",
       "pos": "LB",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -10088,8 +10568,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 60
     },
     {
-      "fn": "Hamad Al",
-      "ln": "Yami",
+      "fn": "Hamad",
+      "ln": "Al Yami",
       "pos": "RB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -10108,8 +10588,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 61
     },
     {
-      "fn": "Abdulelah Al",
-      "ln": "Malki",
+      "fn": "Abdulelah",
+      "ln": "Al Malki",
       "pos": "CDM",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -10151,8 +10631,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Hamdan",
+      "fn": "Abdullah",
+      "ln": "Al Hamdan",
       "pos": "ST",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -10194,8 +10674,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Rubaie",
+      "fn": "Mohammed",
+      "ln": "Al Rubaie",
       "pos": "GK",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -10214,8 +10694,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Qahtani",
+      "fn": "Mohammed",
+      "ln": "Al Qahtani",
       "pos": "RW",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -10257,8 +10737,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Suhayb Al",
-      "ln": "Zaid",
+      "fn": "Suhayb",
+      "ln": "Al Zaid",
       "pos": "CDM",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -10324,8 +10804,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ahmed Abo",
-      "ln": "Rasain",
+      "fn": "Ahmed",
+      "ln": "Abo Rasain",
       "pos": "GK",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -10412,7 +10892,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Fabinho",
+      "fn": "Fábio",
       "ln": "Fabinho",
       "pos": "CDM",
       "age": 32,
@@ -10581,8 +11061,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Obud",
+      "fn": "Abdulrahman",
+      "ln": "Al Obud",
       "pos": "RW",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -10601,8 +11081,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Muhannad Al",
-      "ln": "Shanqeeti",
+      "fn": "Muhannad",
+      "ln": "Al Shanqeeti",
       "pos": "RB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -10624,8 +11104,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Saleh Al",
-      "ln": "Shehri",
+      "fn": "Saleh",
+      "ln": "Al Shehri",
       "pos": "ST",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -10691,8 +11171,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Faisal Al",
-      "ln": "Ghamdi",
+      "fn": "Faisal",
+      "ln": "Al Ghamdi",
       "pos": "CM",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -10737,8 +11217,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Fawaz Al",
-      "ln": "Sagour",
+      "fn": "Fawaz",
+      "ln": "Al Sagour",
       "pos": "RB",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -10781,8 +11261,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ahmed Al",
-      "ln": "Ghamdi",
+      "fn": "Ahmed",
+      "ln": "Al Ghamdi",
       "pos": "LW",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -10801,8 +11281,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Saad Al",
-      "ln": "Mousa",
+      "fn": "Saad",
+      "ln": "Al Mousa",
       "pos": "CB",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -10821,8 +11301,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Abdulaziz Al",
-      "ln": "Bishi",
+      "fn": "Abdulaziz",
+      "ln": "Al Bishi",
       "pos": "RW",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -10841,8 +11321,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Hamed Al",
-      "ln": "Ghamdi",
+      "fn": "Hamed",
+      "ln": "Al Ghamdi",
       "pos": "CM",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -10884,8 +11364,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Awadh Al",
-      "ln": "Nashri",
+      "fn": "Awadh",
+      "ln": "Al Nashri",
       "pos": "CDM",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -10907,8 +11387,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Farha Al",
-      "ln": "Shamrani",
+      "fn": "Farha",
+      "ln": "Al Shamrani",
       "pos": "CM",
       "age": 20,
       "nat": "Saudi Arabia",
@@ -10930,8 +11410,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ahmed Al",
-      "ln": "Julaydan",
+      "fn": "Ahmed",
+      "ln": "Al Julaydan",
       "pos": "RB",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -10950,8 +11430,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Osama Al",
-      "ln": "Mermesh",
+      "fn": "Osama",
+      "ln": "Al Mermesh",
       "pos": "GK",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -10970,8 +11450,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Absi",
+      "fn": "Mohammed",
+      "ln": "Al Absi",
       "pos": "GK",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -11170,8 +11650,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Saleh Al",
-      "ln": "Amri",
+      "fn": "Saleh",
+      "ln": "Al Amri",
       "pos": "ST",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -11260,8 +11740,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Saeed Al",
-      "ln": "Hamsal",
+      "fn": "Saeed",
+      "ln": "Al Hamsal",
       "pos": "RB",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -11303,8 +11783,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hamad Al",
-      "ln": "Jayzani",
+      "fn": "Hamad",
+      "ln": "Al Jayzani",
       "pos": "LB",
       "age": 33,
       "nat": "Saudi Arabia",
@@ -11326,8 +11806,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marwan Al",
-      "ln": "Haidari",
+      "fn": "Marwan",
+      "ln": "Al Haidari",
       "pos": "GK",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -11346,8 +11826,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Aref Al",
-      "ln": "Haider",
+      "fn": "Aref",
+      "ln": "Al Haider",
       "pos": "RB",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -11366,8 +11846,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 59
     },
     {
-      "fn": "Bandar Al",
-      "ln": "Mutairi",
+      "fn": "Bandar",
+      "ln": "Al Mutairi",
       "pos": "LB",
       "age": 36,
       "nat": "Saudi Arabia",
@@ -11410,8 +11890,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ali Al",
-      "ln": "Shaefi",
+      "fn": "Ali",
+      "ln": "Al Shaefi",
       "pos": "LB",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -11433,8 +11913,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Abdullah",
+      "fn": "Mohammed",
+      "ln": "Al Abdullah",
       "pos": "CAM",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -11456,8 +11936,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rayan Al",
-      "ln": "Dawsari",
+      "fn": "Rayan",
+      "ln": "Al Dawsari",
       "pos": "GK",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -11544,8 +12024,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 92
     },
     {
-      "fn": "Juan Pablo",
-      "ln": "Cozzani",
+      "fn": "Juan",
+      "ln": "Pablo Cozzani",
       "pos": "GK",
       "age": 27,
       "nat": "Argentina",
@@ -11674,8 +12154,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Safri",
+      "fn": "Abdulrahman",
+      "ln": "Al Safri",
       "pos": "CM",
       "age": 33,
       "nat": "Saudi Arabia",
@@ -11720,8 +12200,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Dawsari",
+      "fn": "Abdulrahman",
+      "ln": "Al Dawsari",
       "pos": "CM",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -11763,8 +12243,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Abdulaziz Al",
-      "ln": "Olewah",
+      "fn": "Abdulaziz",
+      "ln": "Al Olewah",
       "pos": "RW",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -11783,8 +12263,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Jamaan Al",
-      "ln": "Dossary",
+      "fn": "Jamaan",
+      "ln": "Al Dossary",
       "pos": "CB",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -11806,8 +12286,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sultan Al",
-      "ln": "Shehri",
+      "fn": "Sultan",
+      "ln": "Al Shehri",
       "pos": "LB",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -11826,8 +12306,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 62
     },
     {
-      "fn": "Jassim Al",
-      "ln": "Ashban",
+      "fn": "Jassim",
+      "ln": "Al Ashban",
       "pos": "GK",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -11846,8 +12326,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Hassan Al",
-      "ln": "Asmari",
+      "fn": "Hassan",
+      "ln": "Al Asmari",
       "pos": "RB",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -11889,8 +12369,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Abdulmalek Al",
-      "ln": "Harbi",
+      "fn": "Abdulmalek",
+      "ln": "Al Harbi",
       "pos": "LW",
       "age": 20,
       "nat": "Saudi Arabia",
@@ -11911,8 +12391,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "al-najma-sc": [
     {
-      "fn": "Jawad El",
-      "ln": "Yamiq",
+      "fn": "Jawad",
+      "ln": "El Yamiq",
       "pos": "CB",
       "age": 34,
       "nat": "Morocco",
@@ -12062,8 +12542,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Fahad Al",
-      "ln": "Abdulrazzaq",
+      "fn": "Fahad",
+      "ln": "Al Abdulrazzaq",
       "pos": "RB",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -12085,8 +12565,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulelah Al",
-      "ln": "Shammari",
+      "fn": "Abdulelah",
+      "ln": "Al Shammari",
       "pos": "RW",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -12109,8 +12589,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ammar Al",
-      "ln": "Najjar",
+      "fn": "Ammar",
+      "ln": "Al Najjar",
       "pos": "RW",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -12129,8 +12609,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Kunaydiri",
+      "fn": "Mohammed",
+      "ln": "Al Kunaydiri",
       "pos": "LB",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -12149,8 +12629,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Abdulaziz Al",
-      "ln": "Hurabi",
+      "fn": "Abdulaziz",
+      "ln": "Al Hurabi",
       "pos": "CDM",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -12195,8 +12675,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Waleed Al",
-      "ln": "Enezi",
+      "fn": "Waleed",
+      "ln": "Al Enezi",
       "pos": "GK",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -12238,8 +12718,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Khalid Al",
-      "ln": "Muqaytib",
+      "fn": "Khalid",
+      "ln": "Al Muqaytib",
       "pos": "GK",
       "age": 34,
       "nat": "Saudi Arabia",
@@ -12258,8 +12738,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Omar Al",
-      "ln": "Ruwaili",
+      "fn": "Omar",
+      "ln": "Al Ruwaili",
       "pos": "ST",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -12493,8 +12973,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Sultan Al",
-      "ln": "Ghannam",
+      "fn": "Sultan",
+      "ln": "Al Ghannam",
       "pos": "RB",
       "age": 32,
       "nat": "Saudi Arabia",
@@ -12513,8 +12993,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 62
     },
     {
-      "fn": "Nawaf Al",
-      "ln": "Aqidi",
+      "fn": "Nawaf",
+      "ln": "Al Aqidi",
       "pos": "GK",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -12573,8 +13053,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Abdulelah Al",
-      "ln": "Amri",
+      "fn": "Abdulelah",
+      "ln": "Al Amri",
       "pos": "CB",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -12593,8 +13073,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Khaibari",
+      "fn": "Abdullah",
+      "ln": "Al Khaibari",
       "pos": "CDM",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -12662,8 +13142,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nader Al",
-      "ln": "Sharari",
+      "fn": "Nader",
+      "ln": "Al Sharari",
       "pos": "CB",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -12685,8 +13165,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ali Al",
-      "ln": "Hassan",
+      "fn": "Ali",
+      "ln": "Al Hassan",
       "pos": "CDM",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -12708,8 +13188,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Saad Al",
-      "ln": "Nasser",
+      "fn": "Saad",
+      "ln": "Al Nasser",
       "pos": "LB",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -12732,8 +13212,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sami Al",
-      "ln": "Najai",
+      "fn": "Sami",
+      "ln": "Al Najai",
       "pos": "CAM",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -12755,8 +13235,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Salem Al",
-      "ln": "Najdi",
+      "fn": "Salem",
+      "ln": "Al Najdi",
       "pos": "LB",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -12795,8 +13275,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Raghid Al",
-      "ln": "Najjar",
+      "fn": "Raghid",
+      "ln": "Al Najjar",
       "pos": "GK",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -12815,8 +13295,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Mansour Al",
-      "ln": "Shammari",
+      "fn": "Mansour",
+      "ln": "Al Shammari",
       "pos": "LB",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -12855,8 +13335,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Rakan Al",
-      "ln": "Ghamdi",
+      "fn": "Rakan",
+      "ln": "Al Ghamdi",
       "pos": "CAM",
       "age": 20,
       "nat": "Saudi Arabia",
@@ -13038,8 +13518,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Musab Al",
-      "ln": "Juwair",
+      "fn": "Musab",
+      "ln": "Al Juwair",
       "pos": "CM",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -13085,8 +13565,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Christopher Bonsu",
-      "ln": "Baah",
+      "fn": "Christopher",
+      "ln": "Bonsu Baah",
       "pos": "LW",
       "age": 21,
       "nat": "Ghana",
@@ -13105,8 +13585,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Turki Al",
-      "ln": "Ammar",
+      "fn": "Turki",
+      "ln": "Al Ammar",
       "pos": "LB",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -13125,8 +13605,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Salem",
+      "fn": "Abdullah",
+      "ln": "Al Salem",
       "pos": "ST",
       "age": 33,
       "nat": "Saudi Arabia",
@@ -13149,8 +13629,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mohammed Abu Al",
-      "ln": "Shamat",
+      "fn": "Mohammed",
+      "ln": "Abu Al Shamat",
       "pos": "RB",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -13193,8 +13673,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yasser Al",
-      "ln": "Shahrani",
+      "fn": "Yasser",
+      "ln": "Al Shahrani",
       "pos": "LB",
       "age": 34,
       "nat": "Saudi Arabia",
@@ -13216,8 +13696,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hussain Al",
-      "ln": "Qahtani",
+      "fn": "Hussain",
+      "ln": "Al Qahtani",
       "pos": "CM",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -13263,8 +13743,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ahmed Al",
-      "ln": "Kassar",
+      "fn": "Ahmed",
+      "ln": "Al Kassar",
       "pos": "GK",
       "age": 35,
       "nat": "Saudi Arabia",
@@ -13323,8 +13803,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Mohammad Al",
-      "ln": "Thani",
+      "fn": "Mohammad",
+      "ln": "Al Thani",
       "pos": "RB",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -13366,8 +13846,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulaziz Al",
-      "ln": "Othman",
+      "fn": "Abdulaziz",
+      "ln": "Al Othman",
       "pos": "ST",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -13409,8 +13889,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Shanqeeti",
+      "fn": "Mohammed",
+      "ln": "Al Shanqeeti",
       "pos": "LB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -13491,7 +13971,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Tozé",
+      "fn": "António",
       "ln": "Tozé",
       "pos": "CM",
       "age": 33,
@@ -13646,8 +14126,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yahia Al",
-      "ln": "Shehri",
+      "fn": "Yahia",
+      "ln": "Al Shehri",
       "pos": "CM",
       "age": 36,
       "nat": "Saudi Arabia",
@@ -13670,8 +14150,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nawaf Al",
-      "ln": "Abed",
+      "fn": "Nawaf",
+      "ln": "Al Abed",
       "pos": "CAM",
       "age": 36,
       "nat": "Saudi Arabia",
@@ -13716,8 +14196,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Saeed",
+      "fn": "Mohammed",
+      "ln": "Al Saeed",
       "pos": "LB",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -13762,8 +14242,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Shammari",
+      "fn": "Abdulrahman",
+      "ln": "Al Shammari",
       "pos": "GK",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -13802,8 +14282,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Aqel",
+      "fn": "Mohammed",
+      "ln": "Al Aqel",
       "pos": "ST",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -13822,8 +14302,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Khalil Al",
-      "ln": "Absi",
+      "fn": "Khalil",
+      "ln": "Al Absi",
       "pos": "LW",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -13842,8 +14322,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 63
     },
     {
-      "fn": "Rayan Al",
-      "ln": "Bloushi",
+      "fn": "Rayan",
+      "ln": "Al Bloushi",
       "pos": "ST",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -13862,8 +14342,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Nasser Al",
-      "ln": "Bishi",
+      "fn": "Nasser",
+      "ln": "Al Bishi",
       "pos": "CAM",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -14017,8 +14497,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Shuwayrikh",
+      "fn": "Mohammed",
+      "ln": "Al Shuwayrikh",
       "pos": "CB",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -14037,8 +14517,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Nawaf Al",
-      "ln": "Saadi",
+      "fn": "Nawaf",
+      "ln": "Al Saadi",
       "pos": "RW",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -14060,8 +14540,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hussain Al",
-      "ln": "Sibyani",
+      "fn": "Hussain",
+      "ln": "Al Sibyani",
       "pos": "LB",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -14080,8 +14560,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 60
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Mahasna",
+      "fn": "Mohammed",
+      "ln": "Al Mahasna",
       "pos": "GK",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -14100,8 +14580,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Mubarak Al",
-      "ln": "Rajih",
+      "fn": "Mubarak",
+      "ln": "Al Rajih",
       "pos": "CB",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -14123,8 +14603,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hisham Al",
-      "ln": "Dubais",
+      "fn": "Hisham",
+      "ln": "Al Dubais",
       "pos": "ST",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -14213,8 +14693,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulaziz Al",
-      "ln": "Ouwiradi",
+      "fn": "Abdulaziz",
+      "ln": "Al Ouwiradi",
       "pos": "GK",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -14233,8 +14713,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Faisal Al",
-      "ln": "Sibyani",
+      "fn": "Faisal",
+      "ln": "Al Sibyani",
       "pos": "CDM",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -14276,8 +14756,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Nawaf Al",
-      "ln": "Ghulaimish",
+      "fn": "Nawaf",
+      "ln": "Al Ghulaimish",
       "pos": "RB",
       "age": 21,
       "nat": "Saudi Arabia",
@@ -14296,8 +14776,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Hamad Al",
-      "ln": "Khorayef",
+      "fn": "Hamad",
+      "ln": "Al Khorayef",
       "pos": "ST",
       "age": 21,
       "nat": "Saudi Arabia",
@@ -14318,8 +14798,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "al-taawoun-fc": [
     {
-      "fn": "Aschraf El",
-      "ln": "Mahdioui",
+      "fn": "Aschraf",
+      "ln": "El Mahdioui",
       "pos": "CDM",
       "age": 30,
       "nat": "Holland",
@@ -14497,8 +14977,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Kuwaykibi",
+      "fn": "Mohammed",
+      "ln": "Al Kuwaykibi",
       "pos": "RW",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -14537,8 +15017,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Awon Al",
-      "ln": "Bishi",
+      "fn": "Awon",
+      "ln": "Al Bishi",
       "pos": "CB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -14577,8 +15057,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Waleed Al",
-      "ln": "Ahmed",
+      "fn": "Waleed",
+      "ln": "Al Ahmed",
       "pos": "CB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -14597,8 +15077,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Muteb Al",
-      "ln": "Mufarrij",
+      "fn": "Muteb",
+      "ln": "Al Mufarrij",
       "pos": "CB",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -14661,8 +15141,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ibrahim Al",
-      "ln": "Shuayl",
+      "fn": "Ibrahim",
+      "ln": "Al Shuayl",
       "pos": "LB",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -14706,8 +15186,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulrahman Al",
-      "ln": "Ghamdi",
+      "fn": "Abdulrahman",
+      "ln": "Al Ghamdi",
       "pos": "GK",
       "age": 20,
       "nat": "Saudi Arabia",
@@ -14796,8 +15276,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hwang Ui",
-      "ln": "Jo",
+      "fn": "Hwang",
+      "ln": "Ui Jo",
       "pos": "ST",
       "age": 34,
       "nat": "Korea Republic",
@@ -14899,7 +15379,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Maestro",
+      "fn": "António",
       "ln": "Maestro",
       "pos": "CDM",
       "age": 23,
@@ -15180,7 +15660,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "albacete-bp": [
     {
-      "fn": "Puertas",
+      "fn": "Antonio",
       "ln": "Puertas",
       "pos": "CAM",
       "age": 34,
@@ -15203,7 +15683,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Vallejo",
+      "fn": "Jesús",
       "ln": "Vallejo",
       "pos": "CB",
       "age": 29,
@@ -15306,7 +15786,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Riki",
+      "fn": "Ricardo",
       "ln": "Riki",
       "pos": "CM",
       "age": 28,
@@ -15413,7 +15893,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lazo",
+      "fn": "José",
       "ln": "Lazo",
       "pos": "ST",
       "age": 30,
@@ -15503,7 +15983,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Meléndez",
+      "fn": "Alejandro",
       "ln": "Meléndez",
       "pos": "CM",
       "age": 27,
@@ -15549,7 +16029,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Pacheco",
+      "fn": "Antonio",
       "ln": "Pacheco",
       "pos": "CM",
       "age": 24,
@@ -15573,8 +16053,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jonathan Germán",
-      "ln": "Gómez",
+      "fn": "Jonathan",
+      "ln": "Germán Gómez",
       "pos": "LB",
       "age": 22,
       "nat": "Mexico",
@@ -15749,8 +16229,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kwasi Okyere",
-      "ln": "Wriedt",
+      "fn": "Kwasi",
+      "ln": "Okyere Wriedt",
       "pos": "ST",
       "age": 32,
       "nat": "Ghana",
@@ -15789,8 +16269,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Bentley Baxter",
-      "ln": "Bahn",
+      "fn": "Bentley",
+      "ln": "Baxter Bahn",
       "pos": "CM",
       "age": 34,
       "nat": "Germany",
@@ -16046,8 +16526,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Joel da Silva",
-      "ln": "Kiala",
+      "fn": "Joel",
+      "ln": "da Silva Kiala",
       "pos": "CB",
       "age": 22,
       "nat": "Germany",
@@ -16343,8 +16823,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marlon Suliman",
-      "ln": "Mustapha",
+      "fn": "Marlon",
+      "ln": "Suliman Mustapha",
       "pos": "ST",
       "age": 25,
       "nat": "Austria",
@@ -16996,8 +17476,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Yvan Ikia",
-      "ln": "Dimi",
+      "fn": "Yvan",
+      "ln": "Ikia Dimi",
       "pos": "LW",
       "age": 21,
       "nat": "France",
@@ -17059,8 +17539,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Teddy Andami",
-      "ln": "Averlant",
+      "fn": "Teddy",
+      "ln": "Andami Averlant",
       "pos": "RW",
       "age": 26,
       "nat": "Gabon",
@@ -17348,8 +17828,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Enric Llansana",
-      "ln": "Beuse",
+      "fn": "Enric",
+      "ln": "Llansana Beuse",
       "pos": "CDM",
       "age": 25,
       "nat": "Holland",
@@ -17784,8 +18264,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nathan De",
-      "ln": "Cat",
+      "fn": "Nathan",
+      "ln": "De Cat",
       "pos": "CDM",
       "age": 18,
       "nat": "Belgium",
@@ -18572,8 +19052,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Sander van de",
-      "ln": "Streek",
+      "fn": "Sander",
+      "ln": "van de Streek",
       "pos": "LW",
       "age": 33,
       "nat": "Holland",
@@ -18874,8 +19354,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Zeno Van Den",
-      "ln": "Bosch",
+      "fn": "Zeno",
+      "ln": "Van Den Bosch",
       "pos": "CB",
       "age": 23,
       "nat": "Belgium",
@@ -19206,8 +19686,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marwan Al",
-      "ln": "Sahafi",
+      "fn": "Marwan",
+      "ln": "Al Sahafi",
       "pos": "ST",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -19485,8 +19965,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Taishi Brandon",
-      "ln": "Nozawa",
+      "fn": "Taishi",
+      "ln": "Brandon Nozawa",
       "pos": "GK",
       "age": 23,
       "nat": "Japan",
@@ -19505,8 +19985,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Gabriel Jesus",
-      "ln": "David",
+      "fn": "Gabriel",
+      "ln": "Jesus David",
       "pos": "ST",
       "age": 19,
       "nat": "Nigeria",
@@ -19527,7 +20007,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "apoel": [
     {
-      "fn": "Marquinhos",
+      "fn": "Marcos",
       "ln": "Marquinhos",
       "pos": "LW",
       "age": 29,
@@ -19613,7 +20093,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dálcio",
+      "fn": "Euciodálcio",
       "ln": "Dálcio",
       "pos": "CDM",
       "age": 30,
@@ -20028,8 +20508,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Charles Yaw",
-      "ln": "Appiah",
+      "fn": "Charles",
+      "ln": "Yaw Appiah",
       "pos": "RW",
       "age": 20,
       "nat": "Ghana",
@@ -20186,8 +20666,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hernán López",
-      "ln": "Muñoz",
+      "fn": "Hernán",
+      "ln": "López Muñoz",
       "pos": "CAM",
       "age": 25,
       "nat": "Argentina",
@@ -20406,8 +20886,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Tobías Ramirez",
-      "ln": "Cardozo",
+      "fn": "Tobías",
+      "ln": "Ramirez Cardozo",
       "pos": "CB",
       "age": 19,
       "nat": "Argentina",
@@ -20869,8 +21349,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Noah Joel Sarenren",
-      "ln": "Bazee",
+      "fn": "Noah",
+      "ln": "Joel Sarenren Bazee",
       "pos": "RW",
       "age": 30,
       "nat": "Nigeria",
@@ -21560,8 +22040,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Lee Hyun",
-      "ln": "Ju",
+      "fn": "Lee",
+      "ln": "Hyun Ju",
       "pos": "CAM",
       "age": 23,
       "nat": "Korea Republic",
@@ -21629,7 +22109,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Barbero",
+      "fn": "Iván",
       "ln": "Barbero",
       "pos": "ST",
       "age": 28,
@@ -21755,8 +22235,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Espen van",
-      "ln": "Ee",
+      "fn": "Espen",
+      "ln": "van Ee",
       "pos": "CDM",
       "age": 23,
       "nat": "Holland",
@@ -22009,7 +22489,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Zubimendi",
+      "fn": "Martín",
       "ln": "Zubimendi",
       "pos": "CDM",
       "age": 27,
@@ -22322,7 +22802,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mosquera",
+      "fn": "Cristhian",
       "ln": "Mosquera",
       "pos": "CB",
       "age": 22,
@@ -22536,8 +23016,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Kouadio Manu",
-      "ln": "Koné",
+      "fn": "Kouadio",
+      "ln": "Manu Koné",
       "pos": "CM",
       "age": 25,
       "nat": "France",
@@ -22556,7 +23036,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Angeliño",
+      "fn": "José",
       "ln": "Angeliño",
       "pos": "LB",
       "age": 29,
@@ -22576,8 +23056,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Stephan El",
-      "ln": "Shaarawy",
+      "fn": "Stephan",
+      "ln": "El Shaarawy",
       "pos": "LW",
       "age": 33,
       "nat": "Italy",
@@ -22679,8 +23159,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Neil El",
-      "ln": "Aynaoui",
+      "fn": "Neil",
+      "ln": "El Aynaoui",
       "pos": "CM",
       "age": 25,
       "nat": "Morocco",
@@ -23500,8 +23980,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Charles De",
-      "ln": "Ketelaere",
+      "fn": "Charles",
+      "ln": "De Ketelaere",
       "pos": "CAM",
       "age": 25,
       "nat": "Belgium",
@@ -23524,8 +24004,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marten de",
-      "ln": "Roon",
+      "fn": "Marten",
+      "ln": "de Roon",
       "pos": "CM",
       "age": 35,
       "nat": "Holland",
@@ -24012,7 +24492,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Sancet",
+      "fn": "Oihan",
       "ln": "Sancet",
       "pos": "CAM",
       "age": 26,
@@ -24036,7 +24516,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Vivian",
+      "fn": "Daniel",
       "ln": "Vivian",
       "pos": "CB",
       "age": 27,
@@ -24102,8 +24582,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ruiz de",
-      "ln": "Galarreta",
+      "fn": "Ruiz",
+      "ln": "de Galarreta",
       "pos": "CDM",
       "age": 33,
       "nat": "Spain",
@@ -24145,7 +24625,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Guruzeta",
+      "fn": "Gorka",
       "ln": "Guruzeta",
       "pos": "ST",
       "age": 29,
@@ -24165,7 +24645,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Jauregizar",
+      "fn": "Mikel",
       "ln": "Jauregizar",
       "pos": "CM",
       "age": 22,
@@ -24232,7 +24712,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Gorosabel",
+      "fn": "Andoni",
       "ln": "Gorosabel",
       "pos": "RB",
       "age": 30,
@@ -24252,7 +24732,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Areso",
+      "fn": "Jesús",
       "ln": "Areso",
       "pos": "RB",
       "age": 27,
@@ -24272,7 +24752,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Lekue",
+      "fn": "Iñigo",
       "ln": "Lekue",
       "pos": "RB",
       "age": 33,
@@ -24295,7 +24775,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Vesga",
+      "fn": "Mikel",
       "ln": "Vesga",
       "pos": "CDM",
       "age": 33,
@@ -24401,7 +24881,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Izeta",
+      "fn": "Urko",
       "ln": "Izeta",
       "pos": "ST",
       "age": 26,
@@ -24444,7 +24924,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Egiluz",
+      "fn": "Unai",
       "ln": "Egiluz",
       "pos": "CB",
       "age": 24,
@@ -24576,8 +25056,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Emmanuel Latte",
-      "ln": "Lath",
+      "fn": "Emmanuel",
+      "ln": "Latte Lath",
       "pos": "ST",
       "age": 27,
       "nat": "Côte d'Ivoire",
@@ -24639,7 +25119,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Berrocal",
+      "fn": "Juan",
       "ln": "Berrocal",
       "pos": "CB",
       "age": 26,
@@ -25165,8 +25645,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "José María",
-      "ln": "Giménez",
+      "fn": "José",
+      "ln": "María Giménez",
       "pos": "CB",
       "age": 31,
       "nat": "Uruguay",
@@ -25185,8 +25665,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Robin Le",
-      "ln": "Normand",
+      "fn": "Robin",
+      "ln": "Le Normand",
       "pos": "CB",
       "age": 29,
       "nat": "Spain",
@@ -25274,7 +25754,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Koke",
+      "fn": "Jorge",
       "ln": "Koke",
       "pos": "CM",
       "age": 34,
@@ -25490,7 +25970,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Pubill",
+      "fn": "Marc",
       "ln": "Pubill",
       "pos": "RB",
       "age": 23,
@@ -25645,8 +26125,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ramiro Ruiz",
-      "ln": "Rodríguez",
+      "fn": "Ramiro",
+      "ln": "Ruiz Rodríguez",
       "pos": "ST",
       "age": 26,
       "nat": "Argentina",
@@ -25887,8 +26367,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nicolás Eduardo",
-      "ln": "Castro",
+      "fn": "Nicolás",
+      "ln": "Eduardo Castro",
       "pos": "CM",
       "age": 36,
       "nat": "Argentina",
@@ -26002,8 +26482,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Ignacio",
-      "ln": "González",
+      "fn": "Juan",
+      "ln": "Ignacio González",
       "pos": "GK",
       "age": 33,
       "nat": "Uruguay",
@@ -26233,8 +26713,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Francis de",
-      "ln": "Vries",
+      "fn": "Francis",
+      "ln": "de Vries",
       "pos": "LB",
       "age": 31,
       "nat": "New Zealand",
@@ -27946,8 +28426,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Tae",
-      "ln": "Seok",
+      "fn": "Lee",
+      "ln": "Tae Seok",
       "pos": "LB",
       "age": 24,
       "nat": "Korea Republic",
@@ -28149,8 +28629,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Lee Kang",
-      "ln": "Hee",
+      "fn": "Lee",
+      "ln": "Kang Hee",
       "pos": "CDM",
       "age": 25,
       "nat": "Korea Republic",
@@ -28367,8 +28847,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Ziad El",
-      "ln": "Sheiwi",
+      "fn": "Ziad",
+      "ln": "El Sheiwi",
       "pos": "LB",
       "age": 22,
       "nat": "Austria",
@@ -28712,8 +29192,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Oussama El",
-      "ln": "Azzouzi",
+      "fn": "Oussama",
+      "ln": "El Azzouzi",
       "pos": "CDM",
       "age": 25,
       "nat": "Morocco",
@@ -28775,8 +29255,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Théo De",
-      "ln": "Percin",
+      "fn": "Théo",
+      "ln": "De Percin",
       "pos": "GK",
       "age": 25,
       "nat": "France",
@@ -28917,7 +29397,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Kiki",
+      "fn": "Christian",
       "ln": "Kiki",
       "pos": "LB",
       "age": 31,
@@ -28937,7 +29417,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Algobia",
+      "fn": "Ángel",
       "ln": "Algobia",
       "pos": "CM",
       "age": 27,
@@ -29627,8 +30107,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Mees de",
-      "ln": "Wit",
+      "fn": "Mees",
+      "ln": "de Wit",
       "pos": "LB",
       "age": 28,
       "nat": "Holland",
@@ -29774,8 +30254,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Billy van",
-      "ln": "Duijl",
+      "fn": "Billy",
+      "ln": "van Duijl",
       "pos": "CB",
       "age": 20,
       "nat": "Holland",
@@ -29837,8 +30317,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Daniël Virginio",
-      "ln": "Deen",
+      "fn": "Daniël",
+      "ln": "Virginio Deen",
       "pos": "GK",
       "age": 23,
       "nat": "Holland",
@@ -29859,7 +30339,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "barcelona": [
     {
-      "fn": "Raphinha",
+      "fn": "Raphael",
       "ln": "Raphinha",
       "pos": "LW",
       "age": 29,
@@ -29899,7 +30379,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Pedri",
+      "fn": "Pedro",
       "ln": "Pedri",
       "pos": "CM",
       "age": 23,
@@ -29943,8 +30423,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Frenkie de",
-      "ln": "Jong",
+      "fn": "Frenkie",
+      "ln": "de Jong",
       "pos": "CM",
       "age": 29,
       "nat": "Holland",
@@ -29989,8 +30469,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marc-André ter",
-      "ln": "Stegen",
+      "fn": "Marc-André",
+      "ln": "ter Stegen",
       "pos": "GK",
       "age": 34,
       "nat": "Germany",
@@ -30073,7 +30553,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Gavi",
+      "fn": "Pablo",
       "ln": "Gavi",
       "pos": "CM",
       "age": 22,
@@ -30096,7 +30576,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Balde",
+      "fn": "Alejandro",
       "ln": "Balde",
       "pos": "LB",
       "age": 22,
@@ -30977,8 +31457,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Maël de",
-      "ln": "Gevigney",
+      "fn": "Maël",
+      "ln": "de Gevigney",
       "pos": "CB",
       "age": 26,
       "nat": "France",
@@ -32578,7 +33058,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Grimaldo",
+      "fn": "Alejandro",
       "ln": "Grimaldo",
       "pos": "LB",
       "age": 30,
@@ -32827,8 +33307,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Eliesse Ben",
-      "ln": "Seghir",
+      "fn": "Eliesse",
+      "ln": "Ben Seghir",
       "pos": "CAM",
       "age": 21,
       "nat": "Morocco",
@@ -33126,6 +33606,553 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     }
   ],
+  "bayern-munich": [
+    {
+      "fn": "Joshua",
+      "ln": "Kimmich",
+      "pos": "CDM",
+      "age": 31,
+      "nat": "Germany",
+      "ovr": 89,
+      "pot": 89,
+      "pace": 69,
+      "shooting": 74,
+      "passing": 92,
+      "defending": 83,
+      "physical": 81,
+      "mental": 86,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "212622",
+      "heightCm": 177,
+      "weightKg": 75,
+      "altPos": [
+        "RB",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Harry",
+      "ln": "Kane",
+      "pos": "ST",
+      "age": 33,
+      "nat": "England",
+      "ovr": 89,
+      "pot": 89,
+      "pace": 64,
+      "shooting": 92,
+      "passing": 83,
+      "defending": 48,
+      "physical": 85,
+      "mental": 89,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "202126",
+      "heightCm": 188,
+      "weightKg": 86
+    },
+    {
+      "fn": "Jamal",
+      "ln": "Musiala",
+      "pos": "CAM",
+      "age": 23,
+      "nat": "Germany",
+      "ovr": 88,
+      "pot": 92,
+      "pace": 80,
+      "shooting": 80,
+      "passing": 82,
+      "defending": 66,
+      "physical": 62,
+      "mental": 87,
+      "skillMoves": 5,
+      "source": "real",
+      "fcId": "256790",
+      "heightCm": 184,
+      "weightKg": 72,
+      "altPos": [
+        "CM",
+        "ST"
+      ]
+    },
+    {
+      "fn": "Jonathan",
+      "ln": "Tah",
+      "pos": "CB",
+      "age": 30,
+      "nat": "Germany",
+      "ovr": 87,
+      "pot": 87,
+      "pace": 61,
+      "shooting": 38,
+      "passing": 58,
+      "defending": 87,
+      "physical": 86,
+      "mental": 74,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "213331",
+      "heightCm": 195,
+      "weightKg": 94
+    },
+    {
+      "fn": "Michael",
+      "ln": "Olise",
+      "pos": "RW",
+      "age": 24,
+      "nat": "France",
+      "ovr": 86,
+      "pot": 88,
+      "pace": 78,
+      "shooting": 78,
+      "passing": 84,
+      "defending": 50,
+      "physical": 66,
+      "mental": 88,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "247827",
+      "heightCm": 184,
+      "weightKg": 73
+    },
+    {
+      "fn": "Luis",
+      "ln": "Díaz",
+      "pos": "LW",
+      "age": 29,
+      "nat": "Colombia",
+      "ovr": 85,
+      "pot": 85,
+      "pace": 88,
+      "shooting": 79,
+      "passing": 74,
+      "defending": 45,
+      "physical": 75,
+      "mental": 85,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "241084",
+      "heightCm": 180,
+      "weightKg": 73,
+      "altPos": [
+        "ST"
+      ]
+    },
+    {
+      "fn": "Dayot",
+      "ln": "Upamecano",
+      "pos": "CB",
+      "age": 27,
+      "nat": "France",
+      "ovr": 85,
+      "pot": 88,
+      "pace": 77,
+      "shooting": 45,
+      "passing": 64,
+      "defending": 84,
+      "physical": 82,
+      "mental": 72,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "229558",
+      "heightCm": 186,
+      "weightKg": 90
+    },
+    {
+      "fn": "Alphonso",
+      "ln": "Davies",
+      "pos": "LB",
+      "age": 25,
+      "nat": "Canada",
+      "ovr": 84,
+      "pot": 87,
+      "pace": 94,
+      "shooting": 69,
+      "passing": 81,
+      "defending": 74,
+      "physical": 78,
+      "mental": 82,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "234396",
+      "heightCm": 185,
+      "weightKg": 77
+    },
+    {
+      "fn": "Manuel",
+      "ln": "Neuer",
+      "pos": "GK",
+      "age": 40,
+      "nat": "Germany",
+      "ovr": 84,
+      "pot": 84,
+      "pace": 81,
+      "shooting": 84,
+      "passing": 90,
+      "defending": 86,
+      "physical": 81,
+      "mental": 53,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "167495",
+      "heightCm": 193,
+      "weightKg": 93
+    },
+    {
+      "fn": "Leon",
+      "ln": "Goretzka",
+      "pos": "CM",
+      "age": 31,
+      "nat": "Germany",
+      "ovr": 82,
+      "pot": 82,
+      "pace": 80,
+      "shooting": 75,
+      "passing": 80,
+      "defending": 80,
+      "physical": 82,
+      "mental": 85,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "209658",
+      "heightCm": 189,
+      "weightKg": 82,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Konrad",
+      "ln": "Laimer",
+      "pos": "RB",
+      "age": 29,
+      "nat": "Austria",
+      "ovr": 82,
+      "pot": 82,
+      "pace": 82,
+      "shooting": 69,
+      "passing": 76,
+      "defending": 81,
+      "physical": 78,
+      "mental": 79,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "225375",
+      "heightCm": 180,
+      "weightKg": 72,
+      "altPos": [
+        "CDM",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Serge",
+      "ln": "Gnabry",
+      "pos": "ST",
+      "age": 31,
+      "nat": "Germany",
+      "ovr": 82,
+      "pot": 82,
+      "pace": 81,
+      "shooting": 83,
+      "passing": 78,
+      "defending": 43,
+      "physical": 68,
+      "mental": 79,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "206113",
+      "heightCm": 176,
+      "weightKg": 77,
+      "altPos": [
+        "LW"
+      ]
+    },
+    {
+      "fn": "Kim",
+      "ln": "Min Jae",
+      "pos": "CB",
+      "age": 29,
+      "nat": "Korea Republic",
+      "ovr": 82,
+      "pot": 83,
+      "pace": 71,
+      "shooting": 33,
+      "passing": 56,
+      "defending": 80,
+      "physical": 84,
+      "mental": 67,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "237086",
+      "heightCm": 190,
+      "weightKg": 81
+    },
+    {
+      "fn": "Raphaël",
+      "ln": "Guerreiro",
+      "pos": "LB",
+      "age": 32,
+      "nat": "Portugal",
+      "ovr": 80,
+      "pot": 80,
+      "pace": 69,
+      "shooting": 78,
+      "passing": 83,
+      "defending": 74,
+      "physical": 54,
+      "mental": 83,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "209889",
+      "heightCm": 170,
+      "weightKg": 71,
+      "altPos": [
+        "CM",
+        "RB"
+      ]
+    },
+    {
+      "fn": "Nicolas",
+      "ln": "Jackson",
+      "pos": "ST",
+      "age": 25,
+      "nat": "Senegal",
+      "ovr": 80,
+      "pot": 84,
+      "pace": 82,
+      "shooting": 77,
+      "passing": 69,
+      "defending": 40,
+      "physical": 77,
+      "mental": 74,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "259197",
+      "heightCm": 187,
+      "weightKg": 78
+    },
+    {
+      "fn": "Aleksandar",
+      "ln": "Pavlović",
+      "pos": "CDM",
+      "age": 22,
+      "nat": "Germany",
+      "ovr": 79,
+      "pot": 87,
+      "pace": 60,
+      "shooting": 64,
+      "passing": 79,
+      "defending": 76,
+      "physical": 71,
+      "mental": 79,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "275298",
+      "heightCm": 188,
+      "weightKg": 75,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Hiroki",
+      "ln": "Ito",
+      "pos": "CB",
+      "age": 27,
+      "nat": "Japan",
+      "ovr": 78,
+      "pot": 82,
+      "pace": 76,
+      "shooting": 57,
+      "passing": 71,
+      "defending": 80,
+      "physical": 72,
+      "mental": 74,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "234205",
+      "heightCm": 188,
+      "weightKg": 84,
+      "altPos": [
+        "LB"
+      ]
+    },
+    {
+      "fn": "Josip",
+      "ln": "Stanišić",
+      "pos": "CB",
+      "age": 26,
+      "nat": "Croatia",
+      "ovr": 78,
+      "pot": 82,
+      "pace": 73,
+      "shooting": 44,
+      "passing": 68,
+      "defending": 79,
+      "physical": 74,
+      "mental": 65,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "250955",
+      "heightCm": 187,
+      "weightKg": 77,
+      "altPos": [
+        "RB"
+      ]
+    },
+    {
+      "fn": "Sacha",
+      "ln": "Boey",
+      "pos": "RB",
+      "age": 25,
+      "nat": "France",
+      "ovr": 77,
+      "pot": 80,
+      "pace": 68,
+      "shooting": 58,
+      "passing": 66,
+      "defending": 76,
+      "physical": 77,
+      "mental": 71,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "248266",
+      "heightCm": 178,
+      "weightKg": 76
+    },
+    {
+      "fn": "Tom",
+      "ln": "Bischof",
+      "pos": "CM",
+      "age": 21,
+      "nat": "Germany",
+      "ovr": 76,
+      "pot": 86,
+      "pace": 58,
+      "shooting": 67,
+      "passing": 79,
+      "defending": 62,
+      "physical": 63,
+      "mental": 75,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "263765",
+      "heightCm": 176,
+      "weightKg": 66,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Jonas",
+      "ln": "Urbig",
+      "pos": "GK",
+      "age": 23,
+      "nat": "Germany",
+      "ovr": 74,
+      "pot": 84,
+      "pace": 76,
+      "shooting": 74,
+      "passing": 79,
+      "defending": 74,
+      "physical": 70,
+      "mental": 53,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "263887",
+      "heightCm": 189,
+      "weightKg": 83
+    },
+    {
+      "fn": "Sven",
+      "ln": "Ulreich",
+      "pos": "GK",
+      "age": 38,
+      "nat": "Germany",
+      "ovr": 73,
+      "pot": 73,
+      "pace": 76,
+      "shooting": 74,
+      "passing": 62,
+      "defending": 73,
+      "physical": 67,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "186569",
+      "heightCm": 192,
+      "weightKg": 87
+    },
+    {
+      "fn": "Lennart",
+      "ln": "Karl",
+      "pos": "CAM",
+      "age": 18,
+      "nat": "Germany",
+      "ovr": 63,
+      "pot": 86,
+      "pace": 67,
+      "shooting": 58,
+      "passing": 60,
+      "defending": 32,
+      "physical": 37,
+      "mental": 62,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "78063",
+      "heightCm": 168,
+      "weightKg": 67,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "David",
+      "ln": "Santos Daiber",
+      "pos": "CDM",
+      "age": 19,
+      "nat": "Portugal",
+      "ovr": 59,
+      "pot": 79,
+      "pace": 61,
+      "shooting": 49,
+      "passing": 58,
+      "defending": 60,
+      "physical": 43,
+      "mental": 58,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "79317",
+      "heightCm": 179,
+      "weightKg": 72,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Leon",
+      "ln": "Klanac",
+      "pos": "GK",
+      "age": 19,
+      "nat": "Germany",
+      "ovr": 56,
+      "pot": 75,
+      "pace": 63,
+      "shooting": 61,
+      "passing": 54,
+      "defending": 49,
+      "physical": 58,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "76337",
+      "heightCm": 185,
+      "weightKg": 78
+    }
+  ],
   "belgrano-de-cordoba": [
     {
       "fn": "Lucas",
@@ -33241,8 +34268,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Francisco González",
-      "ln": "Metilli",
+      "fn": "Francisco",
+      "ln": "González Metilli",
       "pos": "CAM",
       "age": 29,
       "nat": "Argentina",
@@ -33610,8 +34637,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Martín",
-      "ln": "Velázquez",
+      "fn": "Juan",
+      "ln": "Martín Velázquez",
       "pos": "LB",
       "age": 21,
       "nat": "Argentina",
@@ -33982,7 +35009,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Bruma",
+      "fn": "Armindo",
       "ln": "Bruma",
       "pos": "LW",
       "age": 31,
@@ -34271,7 +35298,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Obrador",
+      "fn": "Rafael",
       "ln": "Obrador",
       "pos": "LB",
       "age": 22,
@@ -34574,8 +35601,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Suresh Singh",
-      "ln": "Wangjam",
+      "fn": "Suresh",
+      "ln": "Singh Wangjam",
       "pos": "CM",
       "age": 26,
       "nat": "India",
@@ -34621,8 +35648,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Gurpreet Singh",
-      "ln": "Sandhu",
+      "fn": "Gurpreet",
+      "ln": "Singh Sandhu",
       "pos": "GK",
       "age": 34,
       "nat": "India",
@@ -34915,7 +35942,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rafa",
+      "fn": "Rafael",
       "ln": "Rafa",
       "pos": "CAM",
       "age": 33,
@@ -35227,8 +36254,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "El Bilal",
-      "ln": "Touré",
+      "fn": "El",
+      "ln": "Bilal Touré",
       "pos": "ST",
       "age": 24,
       "nat": "Mali",
@@ -35250,8 +36277,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Demir Ege",
-      "ln": "Tıknaz",
+      "fn": "Demir",
+      "ln": "Ege Tıknaz",
       "pos": "CDM",
       "age": 22,
       "nat": "Turkey",
@@ -35409,8 +36436,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Mustafa Erhan",
-      "ln": "Hekimoğlu",
+      "fn": "Mustafa",
+      "ln": "Erhan Hekimoğlu",
       "pos": "ST",
       "age": 19,
       "nat": "Turkey",
@@ -35629,8 +36656,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Paik Seung",
-      "ln": "Ho",
+      "fn": "Paik",
+      "ln": "Seung Ho",
       "pos": "CDM",
       "age": 29,
       "nat": "Korea Republic",
@@ -35781,8 +36808,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Willum Þór",
-      "ln": "Willumsson",
+      "fn": "Willum",
+      "ln": "Þór Willumsson",
       "pos": "CAM",
       "age": 27,
       "nat": "Iceland",
@@ -36376,8 +37403,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Andri Lucas",
-      "ln": "Guðjohnsen",
+      "fn": "Andri",
+      "ln": "Lucas Guðjohnsen",
       "pos": "ST",
       "age": 24,
       "nat": "Iceland",
@@ -36419,8 +37446,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dion De",
-      "ln": "Neve",
+      "fn": "Dion",
+      "ln": "De Neve",
       "pos": "LB",
       "age": 25,
       "nat": "Belgium",
@@ -37788,8 +38815,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Miguel Ángel",
-      "ln": "Merentiel",
+      "fn": "Miguel",
+      "ln": "Ángel Merentiel",
       "pos": "ST",
       "age": 30,
       "nat": "Uruguay",
@@ -38332,8 +39359,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Lautaro Di",
-      "ln": "Lollo",
+      "fn": "Lautaro",
+      "ln": "Di Lollo",
       "pos": "CB",
       "age": 22,
       "nat": "Argentina",
@@ -38379,8 +39406,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Camilo Rey",
-      "ln": "Domenech",
+      "fn": "Camilo",
+      "ln": "Rey Domenech",
       "pos": "CDM",
       "age": 20,
       "nat": "Argentina",
@@ -39179,8 +40206,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Jens Petter",
-      "ln": "Hauge",
+      "fn": "Jens",
+      "ln": "Petter Hauge",
       "pos": "LW",
       "age": 26,
       "nat": "Norway",
@@ -39309,8 +40336,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Odin Luraas",
-      "ln": "Bjørtuft",
+      "fn": "Odin",
+      "ln": "Luraas Bjørtuft",
       "pos": "CB",
       "age": 27,
       "nat": "Norway",
@@ -39329,8 +40356,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Brede Mathias",
-      "ln": "Moe",
+      "fn": "Brede",
+      "ln": "Mathias Moe",
       "pos": "CB",
       "age": 34,
       "nat": "Norway",
@@ -39349,8 +40376,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Ole Didrik",
-      "ln": "Blomberg",
+      "fn": "Ole",
+      "ln": "Didrik Blomberg",
       "pos": "RW",
       "age": 26,
       "nat": "Norway",
@@ -39461,8 +40488,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Isak Dybvik",
-      "ln": "Määttä",
+      "fn": "Isak",
+      "ln": "Dybvik Määttä",
       "pos": "RW",
       "age": 24,
       "nat": "Norway",
@@ -39509,8 +40536,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Julian Faye",
-      "ln": "Lund",
+      "fn": "Julian",
+      "ln": "Faye Lund",
       "pos": "GK",
       "age": 27,
       "nat": "Norway",
@@ -40572,8 +41599,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Torbjørn L.",
-      "ln": "Heggem",
+      "fn": "Torbjørn",
+      "ln": "L. Heggem",
       "pos": "CB",
       "age": 27,
       "nat": "Norway",
@@ -40635,8 +41662,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Lorenzo De",
-      "ln": "Silvestri",
+      "fn": "Lorenzo",
+      "ln": "De Silvestri",
       "pos": "RB",
       "age": 38,
       "nat": "Italy",
@@ -42379,8 +43406,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Oscar Luigi",
-      "ln": "Fraulo",
+      "fn": "Oscar",
+      "ln": "Luigi Fraulo",
       "pos": "CM",
       "age": 22,
       "nat": "Denmark",
@@ -42423,8 +43450,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Tiago Pereira",
-      "ln": "Cardoso",
+      "fn": "Tiago",
+      "ln": "Pereira Cardoso",
       "pos": "GK",
       "age": 20,
       "nat": "Luxembourg",
@@ -42568,7 +43595,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Evanilson",
+      "fn": "F.",
       "ln": "Evanilson",
       "pos": "ST",
       "age": 26,
@@ -42867,8 +43894,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Eli Junior",
-      "ln": "Kroupi",
+      "fn": "Eli",
+      "ln": "Junior Kroupi",
       "pos": "ST",
       "age": 20,
       "nat": "France",
@@ -44041,8 +45068,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Jean Baptiste",
-      "ln": "Gorby",
+      "fn": "Jean",
+      "ln": "Baptiste Gorby",
       "pos": "CDM",
       "age": 24,
       "nat": "France",
@@ -44112,8 +45139,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Amine El",
-      "ln": "Ouazzani",
+      "fn": "Amine",
+      "ln": "El Ouazzani",
       "pos": "ST",
       "age": 25,
       "nat": "Morocco",
@@ -44307,8 +45334,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "brann": [
     {
-      "fn": "Felix Horn",
-      "ln": "Myhre",
+      "fn": "Felix",
+      "ln": "Horn Myhre",
       "pos": "CM",
       "age": 27,
       "nat": "Norway",
@@ -44458,8 +45485,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Japhet Sery",
-      "ln": "Larsen",
+      "fn": "Japhet",
+      "ln": "Sery Larsen",
       "pos": "CB",
       "age": 26,
       "nat": "Denmark",
@@ -44565,8 +45592,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Noah Jean",
-      "ln": "Holm",
+      "fn": "Noah",
+      "ln": "Jean Holm",
       "pos": "ST",
       "age": 25,
       "nat": "Norway",
@@ -44611,8 +45638,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sævar Atli",
-      "ln": "Magnússon",
+      "fn": "Sævar",
+      "ln": "Atli Magnússon",
       "pos": "RW",
       "age": 26,
       "nat": "Iceland",
@@ -44705,8 +45732,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Niklas Jensen",
-      "ln": "Wassberg",
+      "fn": "Niklas",
+      "ln": "Jensen Wassberg",
       "pos": "CM",
       "age": 22,
       "nat": "Norway",
@@ -44729,8 +45756,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Eggert Aron",
-      "ln": "Guðmundsson",
+      "fn": "Eggert",
+      "ln": "Aron Guðmundsson",
       "pos": "CAM",
       "age": 22,
       "nat": "Iceland",
@@ -44752,8 +45779,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Denzel De",
-      "ln": "Roeve",
+      "fn": "Denzel",
+      "ln": "De Roeve",
       "pos": "RB",
       "age": 22,
       "nat": "Belgium",
@@ -44859,8 +45886,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mathias Engevik",
-      "ln": "Klausen",
+      "fn": "Mathias",
+      "ln": "Engevik Klausen",
       "pos": "GK",
       "age": 18,
       "nat": "Norway",
@@ -45030,8 +46057,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Leon Bell",
-      "ln": "Bell",
+      "fn": "Leon",
+      "ln": "Bell Bell",
       "pos": "LB",
       "age": 29,
       "nat": "Cameroon",
@@ -45117,8 +46144,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Mehmet Can",
-      "ln": "Aydın",
+      "fn": "Mehmet",
+      "ln": "Can Aydın",
       "pos": "RB",
       "age": 24,
       "nat": "Turkey",
@@ -45137,8 +46164,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Johan Arath",
-      "ln": "Gómez",
+      "fn": "Johan",
+      "ln": "Arath Gómez",
       "pos": "CAM",
       "age": 25,
       "nat": "United States",
@@ -45161,8 +46188,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Fabio Di Michele",
-      "ln": "Sanchez",
+      "fn": "Fabio",
+      "ln": "Di Michele Sanchez",
       "pos": "LB",
       "age": 23,
       "nat": "Germany",
@@ -45574,8 +46601,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sepp van den",
-      "ln": "Berg",
+      "fn": "Sepp",
+      "ln": "van den Berg",
       "pos": "CB",
       "age": 24,
       "nat": "Holland",
@@ -45999,8 +47026,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 92
     },
     {
-      "fn": "Yunus Emre",
-      "ln": "Konak",
+      "fn": "Yunus",
+      "ln": "Emre Konak",
       "pos": "CDM",
       "age": 20,
       "nat": "Turkey",
@@ -46128,8 +47155,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Romain Del",
-      "ln": "Castillo",
+      "fn": "Romain",
+      "ln": "Del Castillo",
       "pos": "RW",
       "age": 30,
       "nat": "France",
@@ -46260,8 +47287,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Julien Le",
-      "ln": "Cardinal",
+      "fn": "Julien",
+      "ln": "Le Cardinal",
       "pos": "CB",
       "age": 29,
       "nat": "France",
@@ -46303,8 +47330,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Junior Dina",
-      "ln": "Ebimbe",
+      "fn": "Junior",
+      "ln": "Dina Ebimbe",
       "pos": "CM",
       "age": 25,
       "nat": "France",
@@ -46327,8 +47354,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rémy Labeau",
-      "ln": "Lascary",
+      "fn": "Rémy",
+      "ln": "Labeau Lascary",
       "pos": "ST",
       "age": 23,
       "nat": "France",
@@ -46499,8 +47526,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Serigne Saliou",
-      "ln": "Diop",
+      "fn": "Serigne",
+      "ln": "Saliou Diop",
       "pos": "ST",
       "age": 21,
       "nat": "Senegal",
@@ -46564,8 +47591,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Maxim De",
-      "ln": "Cuyper",
+      "fn": "Maxim",
+      "ln": "De Cuyper",
       "pos": "LB",
       "age": 25,
       "nat": "Belgium",
@@ -46587,8 +47614,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jan Paul van",
-      "ln": "Hecke",
+      "fn": "Jan",
+      "ln": "Paul van Hecke",
       "pos": "CB",
       "age": 26,
       "nat": "Holland",
@@ -49190,8 +50217,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Serge-Junior Martinsson",
-      "ln": "Ngouali",
+      "fn": "Serge-Junior",
+      "ln": "Martinsson Ngouali",
       "pos": "CDM",
       "age": 34,
       "nat": "Gabon",
@@ -49256,8 +50283,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Alex Timossi",
-      "ln": "Andersson",
+      "fn": "Alex",
+      "ln": "Timossi Andersson",
       "pos": "RB",
       "age": 25,
       "nat": "Sweden",
@@ -49386,8 +50413,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Hlynur Freyr",
-      "ln": "Karlsson",
+      "fn": "Hlynur",
+      "ln": "Freyr Karlsson",
       "pos": "CB",
       "age": 22,
       "nat": "Iceland",
@@ -50289,7 +51316,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Cantero",
+      "fn": "Ander",
       "ln": "Cantero",
       "pos": "GK",
       "age": 31,
@@ -50309,7 +51336,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Mollejo",
+      "fn": "Víctor",
       "ln": "Mollejo",
       "pos": "ST",
       "age": 25,
@@ -50349,7 +51376,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Atienza",
+      "fn": "Miguel",
       "ln": "Atienza",
       "pos": "CDM",
       "age": 27,
@@ -50417,7 +51444,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Chapela",
+      "fn": "Iván",
       "ln": "Chapela",
       "pos": "LW",
       "age": 27,
@@ -50874,8 +51901,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jacob Bruun",
-      "ln": "Larsen",
+      "fn": "Jacob",
+      "ln": "Bruun Larsen",
       "pos": "ST",
       "age": 27,
       "nat": "Denmark",
@@ -52600,8 +53627,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Juan Luis",
-      "ln": "Alfaro",
+      "fn": "Juan",
+      "ln": "Luis Alfaro",
       "pos": "RB",
       "age": 26,
       "nat": "Argentina",
@@ -52769,7 +53796,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "cadiz-cf": [
     {
-      "fn": "Suso",
+      "fn": "Jesús",
       "ln": "Suso",
       "pos": "CAM",
       "age": 32,
@@ -52813,7 +53840,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Ontiveros",
+      "fn": "Javier",
       "ln": "Ontiveros",
       "pos": "ST",
       "age": 28,
@@ -52916,7 +53943,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Fali",
+      "fn": "Rafael",
       "ln": "Fali",
       "pos": "CB",
       "age": 33,
@@ -53066,8 +54093,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "De la",
-      "ln": "Rosa",
+      "fn": "De",
+      "ln": "la Rosa",
       "pos": "ST",
       "age": 22,
       "nat": "Spain",
@@ -53390,8 +54417,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Michel Ndary",
-      "ln": "Adopo",
+      "fn": "Michel",
+      "ln": "Ndary Adopo",
       "pos": "CM",
       "age": 26,
       "nat": "France",
@@ -53637,8 +54664,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Alessandro Di",
-      "ln": "Pardo",
+      "fn": "Alessandro",
+      "ln": "Di Pardo",
       "pos": "RB",
       "age": 27,
       "nat": "Italy",
@@ -54079,8 +55106,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Zeno Ibsen",
-      "ln": "Rossi",
+      "fn": "Zeno",
+      "ln": "Ibsen Rossi",
       "pos": "CB",
       "age": 25,
       "nat": "England",
@@ -55157,8 +56184,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Devid Eugene",
-      "ln": "Bouah",
+      "fn": "Devid",
+      "ln": "Eugene Bouah",
       "pos": "RB",
       "age": 25,
       "nat": "Italy",
@@ -55408,7 +56435,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Larrazabal",
+      "fn": "Gaizka",
       "ln": "Larrazabal",
       "pos": "RB",
       "age": 28,
@@ -55451,8 +56478,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Patrick Gilmar",
-      "ln": "Sequeira",
+      "fn": "Patrick",
+      "ln": "Gilmar Sequeira",
       "pos": "GK",
       "age": 27,
       "nat": "Costa Rica",
@@ -55709,7 +56736,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Svensson",
+      "fn": "Max",
       "ln": "Svensson",
       "pos": "ST",
       "age": 24,
@@ -55901,8 +56928,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "catanzaro": [
     {
-      "fn": "Federico Di",
-      "ln": "Francesco",
+      "fn": "Federico",
+      "ln": "Di Francesco",
       "pos": "LW",
       "age": 32,
       "nat": "Italy",
@@ -55981,8 +57008,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Gianluca Di",
-      "ln": "Chiara",
+      "fn": "Gianluca",
+      "ln": "Di Chiara",
       "pos": "LB",
       "age": 32,
       "nat": "Italy",
@@ -56640,8 +57667,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Halil İbrahim",
-      "ln": "Dervişoğlu",
+      "fn": "Halil",
+      "ln": "İbrahim Dervişoğlu",
       "pos": "ST",
       "age": 26,
       "nat": "Turkey",
@@ -57457,7 +58484,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Medrano",
+      "fn": "Fernando",
       "ln": "Medrano",
       "pos": "LB",
       "age": 26,
@@ -57497,7 +58524,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Postigo",
+      "fn": "Sergio",
       "ln": "Postigo",
       "pos": "CB",
       "age": 37,
@@ -57560,7 +58587,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Bauza",
+      "fn": "Rafael",
       "ln": "Bauza",
       "pos": "CDM",
       "age": 21,
@@ -57626,7 +58653,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Gabri",
+      "fn": "Sergio",
       "ln": "Gabri",
       "pos": "ST",
       "age": 23,
@@ -57694,7 +58721,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mingueza",
+      "fn": "Óscar",
       "ln": "Mingueza",
       "pos": "RB",
       "age": 27,
@@ -57883,7 +58910,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Carreira",
+      "fn": "Sergio",
       "ln": "Carreira",
       "pos": "RB",
       "age": 25,
@@ -57903,7 +58930,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Jutglà",
+      "fn": "Ferran",
       "ln": "Jutglà",
       "pos": "ST",
       "age": 27,
@@ -57966,8 +58993,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ionuț Andrei",
-      "ln": "Radu",
+      "fn": "Ionuț",
+      "ln": "Andrei Radu",
       "pos": "GK",
       "age": 29,
       "nat": "Romania",
@@ -58348,7 +59375,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Jota",
+      "fn": "João",
       "ln": "Jota",
       "pos": "LW",
       "age": 27,
@@ -58437,8 +59464,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Michel Ange",
-      "ln": "Balikwisha",
+      "fn": "Michel",
+      "ln": "Ange Balikwisha",
       "pos": "CAM",
       "age": 25,
       "nat": "Belgium",
@@ -58634,8 +59661,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Yang Hyun",
-      "ln": "Jun",
+      "fn": "Yang",
+      "ln": "Hyun Jun",
       "pos": "RW",
       "age": 24,
       "nat": "Korea Republic",
@@ -59058,8 +60085,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Miguel Di",
-      "ln": "Pizio",
+      "fn": "Miguel",
+      "ln": "Di Pizio",
       "pos": "CAM",
       "age": 20,
       "nat": "Australia",
@@ -59570,8 +60597,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Pablo",
-      "ln": "Pignani",
+      "fn": "Juan",
+      "ln": "Pablo Pignani",
       "pos": "CB",
       "age": 25,
       "nat": "Argentina",
@@ -59716,8 +60743,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Pablo",
-      "ln": "Zozaya",
+      "fn": "Juan",
+      "ln": "Pablo Zozaya",
       "pos": "GK",
       "age": 25,
       "nat": "Argentina",
@@ -59968,8 +60995,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hannes Van Der",
-      "ln": "Bruggen",
+      "fn": "Hannes",
+      "ln": "Van Der Bruggen",
       "pos": "CM",
       "age": 33,
       "nat": "Belgium",
@@ -60083,7 +61110,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nazinho",
+      "fn": "Flávio",
       "ln": "Nazinho",
       "pos": "LB",
       "age": 23,
@@ -60103,7 +61130,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Bruninho",
+      "fn": "Bruno",
       "ln": "Bruninho",
       "pos": "LW",
       "age": 23,
@@ -60216,8 +61243,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nils De",
-      "ln": "Wilde",
+      "fn": "Nils",
+      "ln": "De Wilde",
       "pos": "CDM",
       "age": 23,
       "nat": "Belgium",
@@ -60368,8 +61395,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdoul Kader",
-      "ln": "Ouattara",
+      "fn": "Abdoul",
+      "ln": "Kader Ouattara",
       "pos": "ST",
       "age": 21,
       "nat": "Burkina Faso",
@@ -61812,7 +62839,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Camora",
+      "fn": "Mário",
       "ln": "Camora",
       "pos": "LB",
       "age": 39,
@@ -64343,8 +65370,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "chennaiyin-fc": [
     {
-      "fn": "Daniel Chima",
-      "ln": "Chukwu",
+      "fn": "Daniel",
+      "ln": "Chima Chukwu",
       "pos": "ST",
       "age": 35,
       "nat": "Nigeria",
@@ -64433,7 +65460,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Elsinho",
+      "fn": "Elson",
       "ln": "Elsinho",
       "pos": "CB",
       "age": 35,
@@ -65907,8 +66934,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdoul Kader",
-      "ln": "Bamba",
+      "fn": "Abdoul",
+      "ln": "Kader Bamba",
       "pos": "CM",
       "age": 32,
       "nat": "France",
@@ -66035,8 +67062,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Cheick Oumar",
-      "ln": "Konaté",
+      "fn": "Cheick",
+      "ln": "Oumar Konaté",
       "pos": "RB",
       "age": 22,
       "nat": "Mali",
@@ -66250,8 +67277,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Josué Mwimba",
-      "ln": "Isala",
+      "fn": "Josué",
+      "ln": "Mwimba Isala",
       "pos": "CB",
       "age": 23,
       "nat": "Congo",
@@ -66551,8 +67578,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Ignacio Maestro",
-      "ln": "Puch",
+      "fn": "Ignacio",
+      "ln": "Maestro Puch",
       "pos": "ST",
       "age": 23,
       "nat": "Argentina",
@@ -66574,8 +67601,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Ignacio",
-      "ln": "Cavallaro",
+      "fn": "Juan",
+      "ln": "Ignacio Cavallaro",
       "pos": "CAM",
       "age": 32,
       "nat": "Argentina",
@@ -66989,8 +68016,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Leonel Dante",
-      "ln": "Álvarez",
+      "fn": "Leonel",
+      "ln": "Dante Álvarez",
       "pos": "LB",
       "age": 30,
       "nat": "Argentina",
@@ -67072,8 +68099,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Gonzalo Matías",
-      "ln": "Lucero",
+      "fn": "Gonzalo",
+      "ln": "Matías Lucero",
       "pos": "LB",
       "age": 22,
       "nat": "Argentina",
@@ -67205,8 +68232,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Manuel",
-      "ln": "Insaurralde",
+      "fn": "Juan",
+      "ln": "Manuel Insaurralde",
       "pos": "CB",
       "age": 41,
       "nat": "Argentina",
@@ -67403,8 +68430,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Gabriel Díaz",
-      "ln": "Núñez",
+      "fn": "Gabriel",
+      "ln": "Díaz Núñez",
       "pos": "LB",
       "age": 26,
       "nat": "Argentina",
@@ -67895,8 +68922,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mateo Del",
-      "ln": "Blanco",
+      "fn": "Mateo",
+      "ln": "Del Blanco",
       "pos": "LB",
       "age": 22,
       "nat": "Argentina",
@@ -68959,8 +69986,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Dani van den",
-      "ln": "Heuvel",
+      "fn": "Dani",
+      "ln": "van den Heuvel",
       "pos": "GK",
       "age": 23,
       "nat": "Holland",
@@ -68979,8 +70006,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Bi Abdoul Kader",
-      "ln": "Yameogo",
+      "fn": "Bi",
+      "ln": "Abdoul Kader Yameogo",
       "pos": "CB",
       "age": 21,
       "nat": "Côte d'Ivoire",
@@ -70278,8 +71305,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Wessam Abou",
-      "ln": "Ali",
+      "fn": "Wessam",
+      "ln": "Abou Ali",
       "pos": "ST",
       "age": 27,
       "nat": "Denmark",
@@ -70523,7 +71550,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "como": [
     {
-      "fn": "Morata",
+      "fn": "Álvaro",
       "ln": "Morata",
       "pos": "ST",
       "age": 33,
@@ -70781,8 +71808,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lucas Da",
-      "ln": "Cunha",
+      "fn": "Lucas",
+      "ln": "Da Cunha",
       "pos": "CDM",
       "age": 25,
       "nat": "France",
@@ -70968,8 +71995,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Ignace Van der",
-      "ln": "Brempt",
+      "fn": "Ignace",
+      "ln": "Van der Brempt",
       "pos": "RB",
       "age": 24,
       "nat": "Belgium",
@@ -71070,7 +72097,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "cordoba-cf": [
     {
-      "fn": "Carracedo",
+      "fn": "Cristian",
       "ln": "Carracedo",
       "pos": "RW",
       "age": 30,
@@ -71156,7 +72183,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Vilarrasa",
+      "fn": "Ignasi",
       "ln": "Vilarrasa",
       "pos": "LB",
       "age": 27,
@@ -71340,7 +72367,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Albarrán",
+      "fn": "Carlos",
       "ln": "Albarrán",
       "pos": "RB",
       "age": 32,
@@ -71403,8 +72430,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Alberto del",
-      "ln": "Moral",
+      "fn": "Alberto",
+      "ln": "del Moral",
       "pos": "CM",
       "age": 26,
       "nat": "Spain",
@@ -71426,7 +72453,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Alcedo",
+      "fn": "Juan",
       "ln": "Alcedo",
       "pos": "LB",
       "age": 25,
@@ -71581,8 +72608,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Milan van",
-      "ln": "Ewijk",
+      "fn": "Milan",
+      "ln": "van Ewijk",
       "pos": "RB",
       "age": 25,
       "nat": "Holland",
@@ -72007,7 +73034,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Brau",
+      "fn": "Miguel",
       "ln": "Brau",
       "pos": "LB",
       "age": 24,
@@ -72160,8 +73187,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Davíð Kristján",
-      "ln": "Ólafsson",
+      "fn": "Davíð",
+      "ln": "Kristján Ólafsson",
       "pos": "LB",
       "age": 31,
       "nat": "Iceland",
@@ -73371,8 +74398,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Faris Pemi",
-      "ln": "Moumbagna",
+      "fn": "Faris",
+      "ln": "Pemi Moumbagna",
       "pos": "ST",
       "age": 26,
       "nat": "Cameroon",
@@ -73700,8 +74727,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Manuel De",
-      "ln": "Luca",
+      "fn": "Manuel",
+      "ln": "De Luca",
       "pos": "ST",
       "age": 28,
       "nat": "Italy",
@@ -73720,8 +74747,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Romano Floriani",
-      "ln": "Mussolini",
+      "fn": "Romano",
+      "ln": "Floriani Mussolini",
       "pos": "RB",
       "age": 23,
       "nat": "Italy",
@@ -75039,7 +76066,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "daegu-fc": [
     {
-      "fn": "Cesinha",
+      "fn": "Cesar",
       "ln": "Cesinha",
       "pos": "ST",
       "age": 36,
@@ -75084,8 +76111,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Hwang Jae",
-      "ln": "Won",
+      "fn": "Hwang",
+      "ln": "Jae Won",
       "pos": "RB",
       "age": 24,
       "nat": "Korea Republic",
@@ -75133,8 +76160,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jin",
-      "ln": "Hyuk",
+      "fn": "Kim",
+      "ln": "Jin Hyuk",
       "pos": "CB",
       "age": 33,
       "nat": "Korea Republic",
@@ -75181,8 +76208,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Oh Seung",
-      "ln": "Hoon",
+      "fn": "Oh",
+      "ln": "Seung Hoon",
       "pos": "GK",
       "age": 38,
       "nat": "Korea Republic",
@@ -75201,8 +76228,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Jeong Chi",
-      "ln": "In",
+      "fn": "Jeong",
+      "ln": "Chi In",
       "pos": "LW",
       "age": 29,
       "nat": "Korea Republic",
@@ -75224,8 +76251,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hong Jung",
-      "ln": "Un",
+      "fn": "Hong",
+      "ln": "Jung Un",
       "pos": "CB",
       "age": 31,
       "nat": "Korea Republic",
@@ -75267,8 +76294,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Woo Joo",
-      "ln": "Seong",
+      "fn": "Woo",
+      "ln": "Joo Seong",
       "pos": "CB",
       "age": 33,
       "nat": "Korea Republic",
@@ -75290,8 +76317,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jeong Hyun",
-      "ln": "Cheol",
+      "fn": "Jeong",
+      "ln": "Hyun Cheol",
       "pos": "CDM",
       "age": 33,
       "nat": "Korea Republic",
@@ -75334,8 +76361,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Jo Jin",
-      "ln": "Woo",
+      "fn": "Jo",
+      "ln": "Jin Woo",
       "pos": "CB",
       "age": 26,
       "nat": "Korea Republic",
@@ -75354,8 +76381,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Jang Seong",
-      "ln": "Won",
+      "fn": "Jang",
+      "ln": "Seong Won",
       "pos": "RB",
       "age": 29,
       "nat": "Korea Republic",
@@ -75374,8 +76401,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Lee Jin",
-      "ln": "Yong",
+      "fn": "Lee",
+      "ln": "Jin Yong",
       "pos": "CM",
       "age": 25,
       "nat": "Korea Republic",
@@ -75397,8 +76424,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Ju",
-      "ln": "Kong",
+      "fn": "Kim",
+      "ln": "Ju Kong",
       "pos": "CM",
       "age": 30,
       "nat": "Korea Republic",
@@ -75421,8 +76448,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jeong Woo",
-      "ln": "Jae",
+      "fn": "Jeong",
+      "ln": "Woo Jae",
       "pos": "LB",
       "age": 34,
       "nat": "Korea Republic",
@@ -75441,8 +76468,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Han Jong",
-      "ln": "Mu",
+      "fn": "Han",
+      "ln": "Jong Mu",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -75465,8 +76492,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Yong",
-      "ln": "Rae",
+      "fn": "Lee",
+      "ln": "Yong Rae",
       "pos": "CM",
       "age": 40,
       "nat": "Korea Republic",
@@ -75488,8 +76515,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Young",
-      "ln": "Eun",
+      "fn": "Choi",
+      "ln": "Young Eun",
       "pos": "GK",
       "age": 30,
       "nat": "Korea Republic",
@@ -75508,8 +76535,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Park Jin",
-      "ln": "Young",
+      "fn": "Park",
+      "ln": "Jin Young",
       "pos": "CB",
       "age": 24,
       "nat": "Korea Republic",
@@ -75532,8 +76559,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Dae",
-      "ln": "Hoon",
+      "fn": "Park",
+      "ln": "Dae Hoon",
       "pos": "ST",
       "age": 30,
       "nat": "Korea Republic",
@@ -75555,8 +76582,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Han Tae",
-      "ln": "Hui",
+      "fn": "Han",
+      "ln": "Tae Hui",
       "pos": "GK",
       "age": 22,
       "nat": "Korea Republic",
@@ -75575,8 +76602,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Jung Jae",
-      "ln": "Sang",
+      "fn": "Jung",
+      "ln": "Jae Sang",
       "pos": "ST",
       "age": 22,
       "nat": "Korea Republic",
@@ -75595,8 +76622,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Lee Won",
-      "ln": "Woo",
+      "fn": "Lee",
+      "ln": "Won Woo",
       "pos": "CB",
       "age": 23,
       "nat": "Korea Republic",
@@ -75615,8 +76642,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Kim Jeong",
-      "ln": "Hyun",
+      "fn": "Kim",
+      "ln": "Jeong Hyun",
       "pos": "CM",
       "age": 26,
       "nat": "Korea Republic",
@@ -75635,8 +76662,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Kim Min",
-      "ln": "Young",
+      "fn": "Kim",
+      "ln": "Min Young",
       "pos": "ST",
       "age": 26,
       "nat": "Korea Republic",
@@ -75655,8 +76682,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Kim Hyeon",
-      "ln": "Jun",
+      "fn": "Kim",
+      "ln": "Hyeon Jun",
       "pos": "CB",
       "age": 24,
       "nat": "Korea Republic",
@@ -75675,8 +76702,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Park Jae",
-      "ln": "Hyun",
+      "fn": "Park",
+      "ln": "Jae Hyun",
       "pos": "ST",
       "age": 22,
       "nat": "Korea Republic",
@@ -75698,8 +76725,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Min",
-      "ln": "Jun",
+      "fn": "Kim",
+      "ln": "Min Jun",
       "pos": "RW",
       "age": 20,
       "nat": "Korea Republic",
@@ -75718,8 +76745,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Kwon Tae",
-      "ln": "Young",
+      "fn": "Kwon",
+      "ln": "Tae Young",
       "pos": "RW",
       "age": 24,
       "nat": "Korea Republic",
@@ -75758,8 +76785,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Jung Yoon",
-      "ln": "Seo",
+      "fn": "Jung",
+      "ln": "Yoon Seo",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -75778,8 +76805,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Yoo Ji",
-      "ln": "Un",
+      "fn": "Yoo",
+      "ln": "Ji Un",
       "pos": "RB",
       "age": 22,
       "nat": "Korea Republic",
@@ -75801,8 +76828,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jung Heon",
-      "ln": "Taek",
+      "fn": "Jung",
+      "ln": "Heon Taek",
       "pos": "RB",
       "age": 24,
       "nat": "Korea Republic",
@@ -75821,8 +76848,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Jeon Yong",
-      "ln": "Jun",
+      "fn": "Jeon",
+      "ln": "Yong Jun",
       "pos": "RW",
       "age": 23,
       "nat": "Korea Republic",
@@ -75841,8 +76868,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Park Man",
-      "ln": "Ho",
+      "fn": "Park",
+      "ln": "Man Ho",
       "pos": "GK",
       "age": 22,
       "nat": "Korea Republic",
@@ -75863,8 +76890,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "daejeon-citizen": [
     {
-      "fn": "Lee Chang",
-      "ln": "Geun",
+      "fn": "Lee",
+      "ln": "Chang Geun",
       "pos": "GK",
       "age": 32,
       "nat": "Korea Republic",
@@ -75883,8 +76910,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Joo Min",
-      "ln": "Kyu",
+      "fn": "Joo",
+      "ln": "Min Kyu",
       "pos": "ST",
       "age": 36,
       "nat": "Korea Republic",
@@ -75903,8 +76930,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Kim Bong",
-      "ln": "Soo",
+      "fn": "Kim",
+      "ln": "Bong Soo",
       "pos": "CDM",
       "age": 26,
       "nat": "Korea Republic",
@@ -75927,8 +76954,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Myung",
-      "ln": "Jae",
+      "fn": "Lee",
+      "ln": "Myung Jae",
       "pos": "LB",
       "age": 32,
       "nat": "Korea Republic",
@@ -75950,8 +76977,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Moon",
-      "ln": "Hwan",
+      "fn": "Kim",
+      "ln": "Moon Hwan",
       "pos": "RB",
       "age": 31,
       "nat": "Korea Republic",
@@ -75993,8 +77020,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Hyeon",
-      "ln": "Ug",
+      "fn": "Kim",
+      "ln": "Hyeon Ug",
       "pos": "RW",
       "age": 31,
       "nat": "Korea Republic",
@@ -76039,8 +77066,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ha Chang",
-      "ln": "Rae",
+      "fn": "Ha",
+      "ln": "Chang Rae",
       "pos": "CB",
       "age": 31,
       "nat": "Korea Republic",
@@ -76059,8 +77086,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Lee Soon",
-      "ln": "Min",
+      "fn": "Lee",
+      "ln": "Soon Min",
       "pos": "CM",
       "age": 32,
       "nat": "Korea Republic",
@@ -76083,8 +77110,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yu Kang",
-      "ln": "Hyun",
+      "fn": "Yu",
+      "ln": "Kang Hyun",
       "pos": "ST",
       "age": 30,
       "nat": "Korea Republic",
@@ -76103,8 +77130,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Jeong Jae",
-      "ln": "Hee",
+      "fn": "Jeong",
+      "ln": "Jae Hee",
       "pos": "RW",
       "age": 32,
       "nat": "Korea Republic",
@@ -76147,8 +77174,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jun",
-      "ln": "Bum",
+      "fn": "Kim",
+      "ln": "Jun Bum",
       "pos": "CM",
       "age": 28,
       "nat": "Korea Republic",
@@ -76171,8 +77198,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kang Yoon",
-      "ln": "Seong",
+      "fn": "Kang",
+      "ln": "Yoon Seong",
       "pos": "RB",
       "age": 29,
       "nat": "Korea Republic",
@@ -76194,8 +77221,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Seo Jin",
-      "ln": "Su",
+      "fn": "Seo",
+      "ln": "Jin Su",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -76219,8 +77246,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Kyu",
-      "ln": "Hyun",
+      "fn": "Park",
+      "ln": "Kyu Hyun",
       "pos": "LB",
       "age": 25,
       "nat": "Korea Republic",
@@ -76239,8 +77266,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Kim Min",
-      "ln": "Duk",
+      "fn": "Kim",
+      "ln": "Min Duk",
       "pos": "CB",
       "age": 30,
       "nat": "Korea Republic",
@@ -76262,8 +77289,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lim Jong",
-      "ln": "Eun",
+      "fn": "Lim",
+      "ln": "Jong Eun",
       "pos": "CB",
       "age": 36,
       "nat": "Korea Republic",
@@ -76302,8 +77329,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Yeo Seung",
-      "ln": "Won",
+      "fn": "Yeo",
+      "ln": "Seung Won",
       "pos": "LB",
       "age": 26,
       "nat": "Korea Republic",
@@ -76325,8 +77352,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Geon",
-      "ln": "Ju",
+      "fn": "Choi",
+      "ln": "Geon Ju",
       "pos": "LW",
       "age": 27,
       "nat": "Korea Republic",
@@ -76348,8 +77375,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Seung",
-      "ln": "Dae",
+      "fn": "Kim",
+      "ln": "Seung Dae",
       "pos": "ST",
       "age": 35,
       "nat": "Korea Republic",
@@ -76371,8 +77398,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jin",
-      "ln": "Ya",
+      "fn": "Kim",
+      "ln": "Jin Ya",
       "pos": "RB",
       "age": 28,
       "nat": "Korea Republic",
@@ -76418,8 +77445,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Kyung",
-      "ln": "Tae",
+      "fn": "Lee",
+      "ln": "Kyung Tae",
       "pos": "GK",
       "age": 31,
       "nat": "Korea Republic",
@@ -76438,8 +77465,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Oh Jae",
-      "ln": "Suk",
+      "fn": "Oh",
+      "ln": "Jae Suk",
       "pos": "RB",
       "age": 36,
       "nat": "Korea Republic",
@@ -76461,8 +77488,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Jun",
-      "ln": "Gyu",
+      "fn": "Lee",
+      "ln": "Jun Gyu",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -76484,8 +77511,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Jun",
-      "ln": "Seo",
+      "fn": "Lee",
+      "ln": "Jun Seo",
       "pos": "GK",
       "age": 28,
       "nat": "Korea Republic",
@@ -76504,8 +77531,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Kim Han",
-      "ln": "Seo",
+      "fn": "Kim",
+      "ln": "Han Seo",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -76544,8 +77571,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Jung Jin",
-      "ln": "Woo",
+      "fn": "Jung",
+      "ln": "Jin Woo",
       "pos": "CM",
       "age": 21,
       "nat": "Korea Republic",
@@ -76567,8 +77594,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Min",
-      "ln": "Su",
+      "fn": "Kim",
+      "ln": "Min Su",
       "pos": "GK",
       "age": 21,
       "nat": "Korea Republic",
@@ -76676,8 +77703,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Dhari Al",
-      "ln": "Enazi",
+      "fn": "Dhari",
+      "ln": "Al Enazi",
       "pos": "LB",
       "age": 26,
       "nat": "Saudi Arabia",
@@ -76719,8 +77746,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Khaled Al",
-      "ln": "Samiri",
+      "fn": "Khaled",
+      "ln": "Al Samiri",
       "pos": "CDM",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -76765,8 +77792,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Moataz Al",
-      "ln": "Baqawi",
+      "fn": "Moataz",
+      "ln": "Al Baqawi",
       "pos": "GK",
       "age": 28,
       "nat": "Saudi Arabia",
@@ -76785,8 +77812,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Noor Al",
-      "ln": "Rashidi",
+      "fn": "Noor",
+      "ln": "Al Rashidi",
       "pos": "CB",
       "age": 31,
       "nat": "Saudi Arabia",
@@ -76808,8 +77835,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hazzaa Al",
-      "ln": "Ghamdi",
+      "fn": "Hazzaa",
+      "ln": "Al Ghamdi",
       "pos": "RW",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -76828,8 +77855,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Abdullah Al",
-      "ln": "Qahtani",
+      "fn": "Abdullah",
+      "ln": "Al Qahtani",
       "pos": "ST",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -76851,8 +77878,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jawad Al",
-      "ln": "Hassan",
+      "fn": "Jawad",
+      "ln": "Al Hassan",
       "pos": "RW",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -76871,8 +77898,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Nasser Al",
-      "ln": "Ghamdi",
+      "fn": "Nasser",
+      "ln": "Al Ghamdi",
       "pos": "GK",
       "age": 25,
       "nat": "Saudi Arabia",
@@ -76976,8 +78003,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Kim Joon",
-      "ln": "Hong",
+      "fn": "Kim",
+      "ln": "Joon Hong",
       "pos": "GK",
       "age": 23,
       "nat": "Korea Republic",
@@ -77720,8 +78747,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Manuel",
-      "ln": "Gutiérrez",
+      "fn": "Juan",
+      "ln": "Manuel Gutiérrez",
       "pos": "CAM",
       "age": 24,
       "nat": "Uruguay",
@@ -77834,8 +78861,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Bautista",
-      "ln": "Miritello",
+      "fn": "Juan",
+      "ln": "Bautista Miritello",
       "pos": "ST",
       "age": 27,
       "nat": "Argentina",
@@ -78354,8 +79381,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jordan Attah",
-      "ln": "Kadiri",
+      "fn": "Jordan",
+      "ln": "Attah Kadiri",
       "pos": "ST",
       "age": 26,
       "nat": "Nigeria",
@@ -78552,8 +79579,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Luc De",
-      "ln": "Fougerolles",
+      "fn": "Luc",
+      "ln": "De Fougerolles",
       "pos": "CB",
       "age": 20,
       "nat": "Canada",
@@ -78641,7 +79668,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sivera",
+      "fn": "Antonio",
       "ln": "Sivera",
       "pos": "GK",
       "age": 30,
@@ -78707,7 +79734,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jonny",
+      "fn": "Jonathan",
       "ln": "Jonny",
       "pos": "RB",
       "age": 32,
@@ -78730,7 +79757,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Guridi",
+      "fn": "Jon",
       "ln": "Guridi",
       "pos": "CAM",
       "age": 31,
@@ -78821,7 +79848,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Pacheco",
+      "fn": "Jon",
       "ln": "Pacheco",
       "pos": "CB",
       "age": 25,
@@ -78864,7 +79891,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Aleñá",
+      "fn": "Carles",
       "ln": "Aleñá",
       "pos": "CM",
       "age": 28,
@@ -79257,8 +80284,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nicolás Caro",
-      "ln": "Torres",
+      "fn": "Nicolás",
+      "ln": "Caro Torres",
       "pos": "CB",
       "age": 31,
       "nat": "Argentina",
@@ -79456,8 +80483,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Pedro David",
-      "ln": "Ramírez",
+      "fn": "Pedro",
+      "ln": "David Ramírez",
       "pos": "RB",
       "age": 26,
       "nat": "Argentina",
@@ -79500,8 +80527,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Juan Cruz",
-      "ln": "Randazzo",
+      "fn": "Juan",
+      "ln": "Cruz Randazzo",
       "pos": "CB",
       "age": 31,
       "nat": "Argentina",
@@ -79691,8 +80718,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "derby-county": [
     {
-      "fn": "Ben Brereton",
-      "ln": "Díaz",
+      "fn": "Ben",
+      "ln": "Brereton Díaz",
       "pos": "ST",
       "age": 27,
       "nat": "Chile",
@@ -79820,8 +80847,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Jacob Widell",
-      "ln": "Zetterström",
+      "fn": "Jacob",
+      "ln": "Widell Zetterström",
       "pos": "GK",
       "age": 28,
       "nat": "Sweden",
@@ -81355,8 +82382,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dion Drena",
-      "ln": "Beljo",
+      "fn": "Dion",
+      "ln": "Drena Beljo",
       "pos": "ST",
       "age": 24,
       "nat": "Croatia",
@@ -81375,7 +82402,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Torrente",
+      "fn": "Raúl",
       "ln": "Torrente",
       "pos": "CB",
       "age": 24,
@@ -81682,8 +82709,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Matteo Pérez",
-      "ln": "Vinlöf",
+      "fn": "Matteo",
+      "ln": "Pérez Vinlöf",
       "pos": "LB",
       "age": 20,
       "nat": "Sweden",
@@ -82406,8 +83433,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Malkolm Nilsson",
-      "ln": "Säfqvist",
+      "fn": "Malkolm",
+      "ln": "Nilsson Säfqvist",
       "pos": "GK",
       "age": 33,
       "nat": "Sweden",
@@ -82446,8 +83473,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Alieu Atlee",
-      "ln": "Manneh",
+      "fn": "Alieu",
+      "ln": "Atlee Manneh",
       "pos": "CB",
       "age": 20,
       "nat": "Sweden",
@@ -84902,8 +85929,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Jordy de",
-      "ln": "Wijs",
+      "fn": "Jordy",
+      "ln": "de Wijs",
       "pos": "CB",
       "age": 31,
       "nat": "Holland",
@@ -84922,8 +85949,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Anouar El",
-      "ln": "Azzouzi",
+      "fn": "Anouar",
+      "ln": "El Azzouzi",
       "pos": "CDM",
       "age": 25,
       "nat": "Morocco",
@@ -85553,8 +86580,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 95
     },
     {
-      "fn": "Kofi Jeremy",
-      "ln": "Amoako",
+      "fn": "Kofi",
+      "ln": "Jeremy Amoako",
       "pos": "CDM",
       "age": 21,
       "nat": "Germany",
@@ -85576,8 +86603,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jan Hendrik",
-      "ln": "Marx",
+      "fn": "Jan",
+      "ln": "Hendrik Marx",
       "pos": "RB",
       "age": 31,
       "nat": "Germany",
@@ -86405,8 +87432,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Naorem Mahesh",
-      "ln": "Singh",
+      "fn": "Naorem",
+      "ln": "Mahesh Singh",
       "pos": "LW",
       "age": 27,
       "nat": "India",
@@ -86428,8 +87455,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Prabhsukhan Singh",
-      "ln": "Gill",
+      "fn": "Prabhsukhan",
+      "ln": "Singh Gill",
       "pos": "GK",
       "age": 25,
       "nat": "India",
@@ -86471,8 +87498,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nandha Kumar",
-      "ln": "Sekar",
+      "fn": "Nandha",
+      "ln": "Kumar Sekar",
       "pos": "LW",
       "age": 30,
       "nat": "India",
@@ -86675,8 +87702,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "David Lalhlansanga",
-      "ln": "Hmar",
+      "fn": "David",
+      "ln": "Lalhlansanga Hmar",
       "pos": "ST",
       "age": 24,
       "nat": "India",
@@ -87542,7 +88569,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Bigas",
+      "fn": "Pedro",
       "ln": "Bigas",
       "pos": "CB",
       "age": 35,
@@ -87609,7 +88636,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Josan",
+      "fn": "José",
       "ln": "Josan",
       "pos": "RB",
       "age": 36,
@@ -87672,7 +88699,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Valera",
+      "fn": "Germán",
       "ln": "Valera",
       "pos": "LW",
       "age": 24,
@@ -87918,7 +88945,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Iturbe",
+      "fn": "Alejandro",
       "ln": "Iturbe",
       "pos": "GK",
       "age": 22,
@@ -88319,8 +89346,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Jens Jakob",
-      "ln": "Thomasen",
+      "fn": "Jens",
+      "ln": "Jakob Thomasen",
       "pos": "CM",
       "age": 30,
       "nat": "Denmark",
@@ -88405,8 +89432,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Lucas Hägg",
-      "ln": "Johansson",
+      "fn": "Lucas",
+      "ln": "Hägg Johansson",
       "pos": "GK",
       "age": 32,
       "nat": "Sweden",
@@ -88747,8 +89774,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Duccio Degli",
-      "ln": "Innocenti",
+      "fn": "Duccio",
+      "ln": "Degli Innocenti",
       "pos": "CM",
       "age": 23,
       "nat": "Italy",
@@ -88810,8 +89837,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Nosa Edward",
-      "ln": "Obaretin",
+      "fn": "Nosa",
+      "ln": "Edward Obaretin",
       "pos": "CB",
       "age": 23,
       "nat": "Italy",
@@ -89125,8 +90152,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Abdel Hakim",
-      "ln": "Abdallah",
+      "fn": "Abdel",
+      "ln": "Hakim Abdallah",
       "pos": "LB",
       "age": 29,
       "nat": "Comoros",
@@ -89698,8 +90725,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "King Samuel",
-      "ln": "Manu",
+      "fn": "King",
+      "ln": "Samuel Manu",
       "pos": "CB",
       "age": 22,
       "nat": "Germany",
@@ -89978,7 +91005,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 91
     },
     {
-      "fn": "Puado",
+      "fn": "Javier",
       "ln": "Puado",
       "pos": "ST",
       "age": 28,
@@ -90001,7 +91028,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Terrats",
+      "fn": "Ramón",
       "ln": "Terrats",
       "pos": "CM",
       "age": 25,
@@ -90025,8 +91052,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Omar El",
-      "ln": "Hilali",
+      "fn": "Omar",
+      "ln": "El Hilali",
       "pos": "RB",
       "age": 22,
       "nat": "Morocco",
@@ -90220,7 +91247,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Calero",
+      "fn": "Fernando",
       "ln": "Calero",
       "pos": "CB",
       "age": 30,
@@ -90243,7 +91270,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Salinas",
+      "fn": "José",
       "ln": "Salinas",
       "pos": "LB",
       "age": 25,
@@ -90460,7 +91487,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Fortuño",
+      "fn": "Ángel",
       "ln": "Fortuño",
       "pos": "GK",
       "age": 24,
@@ -90480,7 +91507,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Tristán",
+      "fn": "Pol",
       "ln": "Tristán",
       "pos": "GK",
       "age": 24,
@@ -90698,8 +91725,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Mounaïm El",
-      "ln": "Idrissy",
+      "fn": "Mounaïm",
+      "ln": "El Idrissy",
       "pos": "ST",
       "age": 27,
       "nat": "France",
@@ -91128,7 +92155,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Pizzi",
+      "fn": "Luis",
       "ln": "Pizzi",
       "pos": "CM",
       "age": 36,
@@ -91175,7 +92202,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Xeka",
+      "fn": "Miguel",
       "ln": "Xeka",
       "pos": "CM",
       "age": 31,
@@ -91285,8 +92312,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Patrick de",
-      "ln": "Paula",
+      "fn": "Patrick",
+      "ln": "de Paula",
       "pos": "CDM",
       "age": 26,
       "nat": "Brazil",
@@ -91371,7 +92398,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Ferro",
+      "fn": "Francisco",
       "ln": "Ferro",
       "pos": "CB",
       "age": 29,
@@ -91582,7 +92609,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "estrela-amadora": [
     {
-      "fn": "Kikas",
+      "fn": "João",
       "ln": "Kikas",
       "pos": "ST",
       "age": 27,
@@ -92001,8 +93028,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Leandro González",
-      "ln": "Pirez",
+      "fn": "Leandro",
+      "ln": "González Pirez",
       "pos": "CB",
       "age": 34,
       "nat": "Argentina",
@@ -92278,8 +93305,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Joaquín Tobio",
-      "ln": "Burgos",
+      "fn": "Joaquín",
+      "ln": "Tobio Burgos",
       "pos": "CAM",
       "age": 21,
       "nat": "Argentina",
@@ -92301,8 +93328,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ramiro Funes",
-      "ln": "Mori",
+      "fn": "Ramiro",
+      "ln": "Funes Mori",
       "pos": "CB",
       "age": 35,
       "nat": "Argentina",
@@ -92361,8 +93388,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 93
     },
     {
-      "fn": "Juan Cruz",
-      "ln": "Guasone",
+      "fn": "Juan",
+      "ln": "Cruz Guasone",
       "pos": "CB",
       "age": 25,
       "nat": "Argentina",
@@ -92464,8 +93491,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Benjamín Sagües",
-      "ln": "Barreiro",
+      "fn": "Benjamín",
+      "ln": "Sagües Barreiro",
       "pos": "ST",
       "age": 19,
       "nat": "Brazil",
@@ -92762,7 +93789,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Beto",
+      "fn": "Norberto",
       "ln": "Beto",
       "pos": "ST",
       "age": 28,
@@ -93062,8 +94089,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Carlos Mendes",
-      "ln": "Gomes",
+      "fn": "Carlos",
+      "ln": "Mendes Gomes",
       "pos": "ST",
       "age": 27,
       "nat": "Guinea-Bissau",
@@ -93941,7 +94968,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Calegari",
+      "fn": "Lucas",
       "ln": "Calegari",
       "pos": "RB",
       "age": 24,
@@ -94071,8 +95098,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Baran Ali",
-      "ln": "Gezek",
+      "fn": "Baran",
+      "ln": "Ali Gezek",
       "pos": "CM",
       "age": 21,
       "nat": "Turkey",
@@ -94202,7 +95229,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sorriso",
+      "fn": "Marcos",
       "ln": "Sorriso",
       "pos": "RW",
       "age": 25,
@@ -94222,8 +95249,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 62
     },
     {
-      "fn": "Justin de",
-      "ln": "Haas",
+      "fn": "Justin",
+      "ln": "de Haas",
       "pos": "CB",
       "age": 26,
       "nat": "Holland",
@@ -94262,7 +95289,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Rochinha",
+      "fn": "Diogo",
       "ln": "Rochinha",
       "pos": "LW",
       "age": 31,
@@ -94365,8 +95392,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Tom van de",
-      "ln": "Looi",
+      "fn": "Tom",
+      "ln": "van de Looi",
       "pos": "CDM",
       "age": 27,
       "nat": "Holland",
@@ -94449,8 +95476,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Mathias de",
-      "ln": "Amorim",
+      "fn": "Mathias",
+      "ln": "de Amorim",
       "pos": "CM",
       "age": 21,
       "nat": "Portugal",
@@ -94800,7 +95827,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Ramalho",
+      "fn": "Diogo",
       "ln": "Ramalho",
       "pos": "CM",
       "age": 27,
@@ -95041,8 +96068,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Albert Iustin",
-      "ln": "Doicaru",
+      "fn": "Albert",
+      "ln": "Iustin Doicaru",
       "pos": "RW",
       "age": 19,
       "nat": "Romania",
@@ -95473,8 +96500,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Kilyan Jusseron",
-      "ln": "Veniere",
+      "fn": "Kilyan",
+      "ln": "Jusseron Veniere",
       "pos": "CAM",
       "age": 20,
       "nat": "France",
@@ -95648,8 +96675,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kwon Kyung",
-      "ln": "Won",
+      "fn": "Kwon",
+      "ln": "Kyung Won",
       "pos": "CB",
       "age": 34,
       "nat": "Korea Republic",
@@ -95668,8 +96695,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Kim Jung",
-      "ln": "Hyun",
+      "fn": "Kim",
+      "ln": "Jung Hyun",
       "pos": "CDM",
       "age": 33,
       "nat": "Korea Republic",
@@ -95692,8 +96719,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Thomas Oude",
-      "ln": "Kotte",
+      "fn": "Thomas",
+      "ln": "Oude Kotte",
       "pos": "CB",
       "age": 30,
       "nat": "Holland",
@@ -95758,8 +96785,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lim Min",
-      "ln": "Hyuk",
+      "fn": "Lim",
+      "ln": "Min Hyuk",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -95781,8 +96808,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Da",
-      "ln": "Sol",
+      "fn": "Kim",
+      "ln": "Da Sol",
       "pos": "GK",
       "age": 37,
       "nat": "Korea Republic",
@@ -95801,8 +96828,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Lee Tae",
-      "ln": "Hee",
+      "fn": "Lee",
+      "ln": "Tae Hee",
       "pos": "RB",
       "age": 34,
       "nat": "Korea Republic",
@@ -95821,8 +96848,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Lee Chang",
-      "ln": "Yong",
+      "fn": "Lee",
+      "ln": "Chang Yong",
       "pos": "CB",
       "age": 36,
       "nat": "Korea Republic",
@@ -95861,8 +96888,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Kim Young",
-      "ln": "Chan",
+      "fn": "Kim",
+      "ln": "Young Chan",
       "pos": "CB",
       "age": 32,
       "nat": "Korea Republic",
@@ -95881,8 +96908,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Chae Hyun",
-      "ln": "Woo",
+      "fn": "Chae",
+      "ln": "Hyun Woo",
       "pos": "CM",
       "age": 22,
       "nat": "Korea Republic",
@@ -95904,8 +96931,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kang Ji",
-      "ln": "Hoon",
+      "fn": "Kang",
+      "ln": "Ji Hoon",
       "pos": "RB",
       "age": 29,
       "nat": "Korea Republic",
@@ -95924,8 +96951,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Kim Dong",
-      "ln": "Jin",
+      "fn": "Kim",
+      "ln": "Dong Jin",
       "pos": "LB",
       "age": 33,
       "nat": "Korea Republic",
@@ -95947,8 +96974,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Bo",
-      "ln": "Kyung",
+      "fn": "Kim",
+      "ln": "Bo Kyung",
       "pos": "CM",
       "age": 36,
       "nat": "Korea Republic",
@@ -95970,8 +96997,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Sung",
-      "ln": "Bum",
+      "fn": "Choi",
+      "ln": "Sung Bum",
       "pos": "RW",
       "age": 24,
       "nat": "Korea Republic",
@@ -95993,8 +97020,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Jong",
-      "ln": "Hyun",
+      "fn": "Park",
+      "ln": "Jong Hyun",
       "pos": "CB",
       "age": 25,
       "nat": "Korea Republic",
@@ -96016,8 +97043,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Gyu",
-      "ln": "Hyeon",
+      "fn": "Choi",
+      "ln": "Gyu Hyeon",
       "pos": "CM",
       "age": 25,
       "nat": "Korea Republic",
@@ -96040,8 +97067,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Joo Hyeon",
-      "ln": "Woo",
+      "fn": "Joo",
+      "ln": "Hyeon Woo",
       "pos": "RB",
       "age": 35,
       "nat": "Korea Republic",
@@ -96103,8 +97130,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Lim Seung",
-      "ln": "Kyum",
+      "fn": "Lim",
+      "ln": "Seung Kyum",
       "pos": "CB",
       "age": 31,
       "nat": "Korea Republic",
@@ -96123,8 +97150,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Lee Min",
-      "ln": "Soo",
+      "fn": "Lee",
+      "ln": "Min Soo",
       "pos": "CDM",
       "age": 34,
       "nat": "Korea Republic",
@@ -96146,8 +97173,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Han Ka",
-      "ln": "Ram",
+      "fn": "Han",
+      "ln": "Ka Ram",
       "pos": "CM",
       "age": 28,
       "nat": "Korea Republic",
@@ -96169,8 +97196,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Moon Seong",
-      "ln": "Woo",
+      "fn": "Moon",
+      "ln": "Seong Woo",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -96189,8 +97216,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Lee Yun",
-      "ln": "Oh",
+      "fn": "Lee",
+      "ln": "Yun Oh",
       "pos": "GK",
       "age": 27,
       "nat": "Korea Republic",
@@ -96209,8 +97236,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Lee Sang",
-      "ln": "Yong",
+      "fn": "Lee",
+      "ln": "Sang Yong",
       "pos": "CB",
       "age": 32,
       "nat": "Korea Republic",
@@ -96229,8 +97256,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Park Jeong",
-      "ln": "Hoon",
+      "fn": "Park",
+      "ln": "Jeong Hoon",
       "pos": "LW",
       "age": 22,
       "nat": "Korea Republic",
@@ -96249,8 +97276,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Kim Ji",
-      "ln": "Hoon",
+      "fn": "Kim",
+      "ln": "Ji Hoon",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -96269,8 +97296,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Kim Min",
-      "ln": "Ho",
+      "fn": "Kim",
+      "ln": "Min Ho",
       "pos": "RB",
       "age": 23,
       "nat": "Korea Republic",
@@ -96289,8 +97316,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Jang Jung",
-      "ln": "Woo",
+      "fn": "Jang",
+      "ln": "Jung Woo",
       "pos": "CM",
       "age": 21,
       "nat": "Korea Republic",
@@ -96481,8 +97508,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Koba Leïn",
-      "ln": "Koindredi",
+      "fn": "Koba",
+      "ln": "Leïn Koindredi",
       "pos": "CM",
       "age": 24,
       "nat": "France",
@@ -96548,7 +97575,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Metinho",
+      "fn": "Abelmy",
       "ln": "Metinho",
       "pos": "CDM",
       "age": 23,
@@ -96591,8 +97618,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Finn van",
-      "ln": "Breemen",
+      "fn": "Finn",
+      "ln": "van Breemen",
       "pos": "CB",
       "age": 23,
       "nat": "Holland",
@@ -96677,8 +97704,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Carlos",
-      "ln": "Gauto",
+      "fn": "Juan",
+      "ln": "Carlos Gauto",
       "pos": "CM",
       "age": 22,
       "nat": "Argentina",
@@ -96812,8 +97839,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Junior Arlet",
-      "ln": "Zé",
+      "fn": "Junior",
+      "ln": "Arlet Zé",
       "pos": "LW",
       "age": 20,
       "nat": "Switzerland",
@@ -97179,8 +98206,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Enzo Adrián",
-      "ln": "López",
+      "fn": "Enzo",
+      "ln": "Adrián López",
       "pos": "ST",
       "age": 28,
       "nat": "Argentina",
@@ -98090,8 +99117,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kenji Mboma",
-      "ln": "Dem",
+      "fn": "Kenji",
+      "ln": "Mboma Dem",
       "pos": "ST",
       "age": 24,
       "nat": "France",
@@ -98111,6 +99138,606 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "altPos": [
         "RW",
         "CAM"
+      ]
+    }
+  ],
+  "fc-copenhagen": [
+    {
+      "fn": "Dominik",
+      "ln": "Kotarski",
+      "pos": "GK",
+      "age": 26,
+      "nat": "Croatia",
+      "ovr": 77,
+      "pot": 81,
+      "pace": 80,
+      "shooting": 77,
+      "passing": 76,
+      "defending": 73,
+      "physical": 72,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "246267",
+      "heightCm": 189,
+      "weightKg": 80
+    },
+    {
+      "fn": "Mohamed",
+      "ln": "Elyounoussi",
+      "pos": "CAM",
+      "age": 32,
+      "nat": "Norway",
+      "ovr": 76,
+      "pot": 76,
+      "pace": 79,
+      "shooting": 74,
+      "passing": 71,
+      "defending": 59,
+      "physical": 73,
+      "mental": 79,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "203362",
+      "heightCm": 178,
+      "weightKg": 72,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Thomas",
+      "ln": "Delaney",
+      "pos": "CDM",
+      "age": 34,
+      "nat": "Denmark",
+      "ovr": 75,
+      "pot": 75,
+      "pace": 64,
+      "shooting": 64,
+      "passing": 66,
+      "defending": 75,
+      "physical": 78,
+      "mental": 72,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "193283",
+      "heightCm": 182,
+      "weightKg": 79
+    },
+    {
+      "fn": "Gabriel",
+      "ln": "Pereira",
+      "pos": "CB",
+      "age": 26,
+      "nat": "Brazil",
+      "ovr": 74,
+      "pot": 79,
+      "pace": 67,
+      "shooting": 38,
+      "passing": 58,
+      "defending": 71,
+      "physical": 83,
+      "mental": 63,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "274187",
+      "heightCm": 188,
+      "weightKg": 82
+    },
+    {
+      "fn": "Pantelis",
+      "ln": "Hatzidiakos",
+      "pos": "CB",
+      "age": 29,
+      "nat": "Greece",
+      "ovr": 73,
+      "pot": 74,
+      "pace": 68,
+      "shooting": 50,
+      "passing": 63,
+      "defending": 71,
+      "physical": 76,
+      "mental": 66,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "229150",
+      "heightCm": 185,
+      "weightKg": 78
+    },
+    {
+      "fn": "Youssoufa",
+      "ln": "Moukoko",
+      "pos": "ST",
+      "age": 21,
+      "nat": "Germany",
+      "ovr": 73,
+      "pot": 80,
+      "pace": 74,
+      "shooting": 69,
+      "passing": 62,
+      "defending": 34,
+      "physical": 65,
+      "mental": 68,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "240833",
+      "heightCm": 179,
+      "weightKg": 72
+    },
+    {
+      "fn": "Viktor",
+      "ln": "Claesson",
+      "pos": "CAM",
+      "age": 34,
+      "nat": "Sweden",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 69,
+      "shooting": 70,
+      "passing": 70,
+      "defending": 65,
+      "physical": 73,
+      "mental": 74,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "207554",
+      "heightCm": 183,
+      "weightKg": 77,
+      "altPos": [
+        "ST",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Mads",
+      "ln": "Emil Madsen",
+      "pos": "CM",
+      "age": 28,
+      "nat": "Denmark",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 62,
+      "shooting": 60,
+      "passing": 69,
+      "defending": 71,
+      "physical": 80,
+      "mental": 72,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "235636",
+      "heightCm": 186,
+      "weightKg": 84
+    },
+    {
+      "fn": "Rodrigo",
+      "ln": "Huescas",
+      "pos": "RB",
+      "age": 22,
+      "nat": "Mexico",
+      "ovr": 72,
+      "pot": 80,
+      "pace": 83,
+      "shooting": 63,
+      "passing": 64,
+      "defending": 65,
+      "physical": 62,
+      "mental": 64,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "263711",
+      "heightCm": 174,
+      "weightKg": 69
+    },
+    {
+      "fn": "Lukas",
+      "ln": "Lerager",
+      "pos": "CDM",
+      "age": 33,
+      "nat": "Denmark",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 61,
+      "shooting": 65,
+      "passing": 64,
+      "defending": 70,
+      "physical": 81,
+      "mental": 66,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "217605",
+      "heightCm": 188,
+      "weightKg": 82,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Jordan",
+      "ln": "Larsson",
+      "pos": "ST",
+      "age": 29,
+      "nat": "Sweden",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 81,
+      "shooting": 70,
+      "passing": 68,
+      "defending": 35,
+      "physical": 68,
+      "mental": 71,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "224389",
+      "heightCm": 175,
+      "weightKg": 68,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Birger",
+      "ln": "Meling",
+      "pos": "LB",
+      "age": 31,
+      "nat": "Norway",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 73,
+      "shooting": 51,
+      "passing": 64,
+      "defending": 69,
+      "physical": 62,
+      "mental": 68,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "219466",
+      "heightCm": 173,
+      "weightKg": 67
+    },
+    {
+      "fn": "Elias",
+      "ln": "Achouri",
+      "pos": "LW",
+      "age": 27,
+      "nat": "Tunisia",
+      "ovr": 72,
+      "pot": 73,
+      "pace": 83,
+      "shooting": 64,
+      "passing": 63,
+      "defending": 30,
+      "physical": 58,
+      "mental": 69,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "263672",
+      "heightCm": 177,
+      "weightKg": 70
+    },
+    {
+      "fn": "Marcos",
+      "ln": "López",
+      "pos": "LB",
+      "age": 26,
+      "nat": "Peru",
+      "ovr": 71,
+      "pot": 74,
+      "pace": 76,
+      "shooting": 55,
+      "passing": 63,
+      "defending": 68,
+      "physical": 74,
+      "mental": 67,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "246014",
+      "heightCm": 175,
+      "weightKg": 67
+    },
+    {
+      "fn": "Magnus",
+      "ln": "Mattsson",
+      "pos": "CAM",
+      "age": 27,
+      "nat": "Denmark",
+      "ovr": 71,
+      "pot": 73,
+      "pace": 70,
+      "shooting": 69,
+      "passing": 70,
+      "defending": 56,
+      "physical": 68,
+      "mental": 73,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "240974",
+      "heightCm": 174,
+      "weightKg": 66,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Robert",
+      "ln": "Robert",
+      "pos": "LW",
+      "age": 21,
+      "nat": "Brazil",
+      "ovr": 69,
+      "pot": 80,
+      "pace": 84,
+      "shooting": 64,
+      "passing": 62,
+      "defending": 30,
+      "physical": 59,
+      "mental": 66,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "74233",
+      "heightCm": 174,
+      "weightKg": 68
+    },
+    {
+      "fn": "Munashe",
+      "ln": "Garananga",
+      "pos": "CB",
+      "age": 25,
+      "nat": "Zimbabwe",
+      "ovr": 69,
+      "pot": 74,
+      "pace": 69,
+      "shooting": 42,
+      "passing": 53,
+      "defending": 64,
+      "physical": 75,
+      "mental": 52,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "70730",
+      "heightCm": 186,
+      "weightKg": 82
+    },
+    {
+      "fn": "Andreas",
+      "ln": "Cornelius",
+      "pos": "ST",
+      "age": 33,
+      "nat": "Denmark",
+      "ovr": 69,
+      "pot": 69,
+      "pace": 63,
+      "shooting": 66,
+      "passing": 58,
+      "defending": 29,
+      "physical": 77,
+      "mental": 65,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "201943",
+      "heightCm": 193,
+      "weightKg": 91
+    },
+    {
+      "fn": "German",
+      "ln": "Onugkha",
+      "pos": "ST",
+      "age": 30,
+      "nat": "Russia",
+      "ovr": 69,
+      "pot": 69,
+      "pace": 67,
+      "shooting": 70,
+      "passing": 55,
+      "defending": 24,
+      "physical": 77,
+      "mental": 62,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "260896",
+      "heightCm": 190,
+      "weightKg": 94
+    },
+    {
+      "fn": "William",
+      "ln": "Clem",
+      "pos": "CDM",
+      "age": 22,
+      "nat": "Denmark",
+      "ovr": 68,
+      "pot": 75,
+      "pace": 53,
+      "shooting": 53,
+      "passing": 64,
+      "defending": 65,
+      "physical": 72,
+      "mental": 63,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "271980",
+      "heightCm": 191,
+      "weightKg": 78,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Rúnar",
+      "ln": "Alex Rúnarsson",
+      "pos": "GK",
+      "age": 31,
+      "nat": "Iceland",
+      "ovr": 67,
+      "pot": 67,
+      "pace": 67,
+      "shooting": 68,
+      "passing": 68,
+      "defending": 66,
+      "physical": 68,
+      "mental": 48,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "222562",
+      "heightCm": 186,
+      "weightKg": 78
+    },
+    {
+      "fn": "Junnosuke",
+      "ln": "Suzuki",
+      "pos": "CB",
+      "age": 23,
+      "nat": "Japan",
+      "ovr": 66,
+      "pot": 75,
+      "pace": 73,
+      "shooting": 44,
+      "passing": 59,
+      "defending": 69,
+      "physical": 65,
+      "mental": 60,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "266260",
+      "heightCm": 183,
+      "weightKg": 76,
+      "altPos": [
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Yoram",
+      "ln": "Zague",
+      "pos": "RB",
+      "age": 20,
+      "nat": "France",
+      "ovr": 65,
+      "pot": 80,
+      "pace": 73,
+      "shooting": 47,
+      "passing": 60,
+      "defending": 60,
+      "physical": 56,
+      "mental": 59,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "70766",
+      "heightCm": 168,
+      "weightKg": 58,
+      "altPos": [
+        "LB"
+      ]
+    },
+    {
+      "fn": "Dominik",
+      "ln": "Sarapata",
+      "pos": "CDM",
+      "age": 18,
+      "nat": "Poland",
+      "ovr": 62,
+      "pot": 76,
+      "pace": 61,
+      "shooting": 49,
+      "passing": 62,
+      "defending": 58,
+      "physical": 62,
+      "mental": 54,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "75164",
+      "heightCm": 180,
+      "weightKg": 74,
+      "altPos": [
+        "CM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Oliver",
+      "ln": "Højer",
+      "pos": "CAM",
+      "age": 19,
+      "nat": "Denmark",
+      "ovr": 58,
+      "pot": 75,
+      "pace": 69,
+      "shooting": 52,
+      "passing": 54,
+      "defending": 45,
+      "physical": 45,
+      "mental": 57,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "73448",
+      "heightCm": 176,
+      "weightKg": 62,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Oscar",
+      "ln": "Buur",
+      "pos": "GK",
+      "age": 19,
+      "nat": "Denmark",
+      "ovr": 57,
+      "pot": 76,
+      "pace": 60,
+      "shooting": 59,
+      "passing": 58,
+      "defending": 54,
+      "physical": 57,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "79407",
+      "heightCm": 192,
+      "weightKg": 81
+    },
+    {
+      "fn": "Jonathan",
+      "ln": "Moalem",
+      "pos": "CAM",
+      "age": 19,
+      "nat": "Denmark",
+      "ovr": 56,
+      "pot": 75,
+      "pace": 70,
+      "shooting": 53,
+      "passing": 53,
+      "defending": 31,
+      "physical": 47,
+      "mental": 51,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "79034",
+      "heightCm": 181,
+      "weightKg": 72,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Liam",
+      "ln": "West",
+      "pos": "CAM",
+      "age": 18,
+      "nat": "Norway",
+      "ovr": 56,
+      "pot": 77,
+      "pace": 76,
+      "shooting": 51,
+      "passing": 47,
+      "defending": 22,
+      "physical": 42,
+      "mental": 53,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "79165",
+      "heightCm": 175,
+      "weightKg": 67,
+      "altPos": [
+        "RW"
       ]
     }
   ],
@@ -98358,8 +99985,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Don Deedson",
-      "ln": "Louicius",
+      "fn": "Don",
+      "ln": "Deedson Louicius",
       "pos": "RW",
       "age": 25,
       "nat": "Haiti",
@@ -98427,7 +100054,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Pedrinho",
+      "fn": "Pedro",
       "ln": "Pedrinho",
       "pos": "CAM",
       "age": 23,
@@ -99313,7 +100940,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "fc-goa": [
     {
-      "fn": "Guarrotxena",
+      "fn": "Iker",
       "ln": "Guarrotxena",
       "pos": "ST",
       "age": 33,
@@ -99381,7 +101008,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Timor",
+      "fn": "David",
       "ln": "Timor",
       "pos": "CM",
       "age": 36,
@@ -99598,8 +101225,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 63
     },
     {
-      "fn": "Nim Dorjee",
-      "ln": "Tamang",
+      "fn": "Nim",
+      "ln": "Dorjee Tamang",
       "pos": "CB",
       "age": 30,
       "nat": "India",
@@ -99978,8 +101605,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Thom van",
-      "ln": "Bergen",
+      "fn": "Thom",
+      "ln": "van Bergen",
       "pos": "ST",
       "age": 22,
       "nat": "Holland",
@@ -100084,8 +101711,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Tika de",
-      "ln": "Jonge",
+      "fn": "Tika",
+      "ln": "de Jonge",
       "pos": "CM",
       "age": 23,
       "nat": "Holland",
@@ -100234,8 +101861,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "David van der",
-      "ln": "Werff",
+      "fn": "David",
+      "ln": "van der Werff",
       "pos": "CAM",
       "age": 21,
       "nat": "Holland",
@@ -100317,8 +101944,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Elvis van der",
-      "ln": "Laan",
+      "fn": "Elvis",
+      "ln": "van der Laan",
       "pos": "CB",
       "age": 18,
       "nat": "Sweden",
@@ -100799,8 +102426,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Dario Ndubuisi",
-      "ln": "Gebuhr",
+      "fn": "Dario",
+      "ln": "Ndubuisi Gebuhr",
       "pos": "CB",
       "age": 23,
       "nat": "Germany",
@@ -101130,8 +102757,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Omar Haktab",
-      "ln": "Traoré",
+      "fn": "Omar",
+      "ln": "Haktab Traoré",
       "pos": "RB",
       "age": 28,
       "nat": "Germany",
@@ -102107,8 +103734,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Arthur Avom",
-      "ln": "Ebong",
+      "fn": "Arthur",
+      "ln": "Avom Ebong",
       "pos": "CM",
       "age": 21,
       "nat": "Cameroon",
@@ -102333,8 +103960,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Théo Le",
-      "ln": "Bris",
+      "fn": "Théo",
+      "ln": "Le Bris",
       "pos": "LB",
       "age": 23,
       "nat": "France",
@@ -102653,8 +104280,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "David von",
-      "ln": "Ballmoos",
+      "fn": "David",
+      "ln": "von Ballmoos",
       "pos": "GK",
       "age": 31,
       "nat": "Switzerland",
@@ -102713,8 +104340,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Lars Lukas",
-      "ln": "Mai",
+      "fn": "Lars",
+      "ln": "Lukas Mai",
       "pos": "CB",
       "age": 26,
       "nat": "Germany",
@@ -102733,8 +104360,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Mohamed Belhadj",
-      "ln": "Mahmoud",
+      "fn": "Mohamed",
+      "ln": "Belhadj Mahmoud",
       "pos": "CDM",
       "age": 26,
       "nat": "Tunisia",
@@ -102823,8 +104450,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Daniel dos",
-      "ln": "Santos",
+      "fn": "Daniel",
+      "ln": "dos Santos",
       "pos": "CAM",
       "age": 23,
       "nat": "Switzerland",
@@ -102887,8 +104514,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Ayman El",
-      "ln": "Wafi",
+      "fn": "Ayman",
+      "ln": "El Wafi",
       "pos": "CB",
       "age": 22,
       "nat": "Morocco",
@@ -103092,8 +104719,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Matteo Di",
-      "ln": "Giusto",
+      "fn": "Matteo",
+      "ln": "Di Giusto",
       "pos": "CAM",
       "age": 26,
       "nat": "Switzerland",
@@ -103306,8 +104933,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Julian von",
-      "ln": "Moos",
+      "fn": "Julian",
+      "ln": "von Moos",
       "pos": "RW",
       "age": 25,
       "nat": "Switzerland",
@@ -103412,8 +105039,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Bung Meng",
-      "ln": "Freimann",
+      "fn": "Bung",
+      "ln": "Meng Freimann",
       "pos": "CB",
       "age": 20,
       "nat": "Switzerland",
@@ -103435,8 +105062,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rúben Dantas",
-      "ln": "Fernandes",
+      "fn": "Rúben",
+      "ln": "Dantas Fernandes",
       "pos": "LB",
       "age": 23,
       "nat": "Switzerland",
@@ -104209,8 +105836,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Mads Bech",
-      "ln": "Sørensen",
+      "fn": "Mads",
+      "ln": "Bech Sørensen",
       "pos": "CB",
       "age": 27,
       "nat": "Denmark",
@@ -104329,8 +105956,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Elías Rafn",
-      "ln": "Ólafsson",
+      "fn": "Elías",
+      "ln": "Rafn Ólafsson",
       "pos": "GK",
       "age": 26,
       "nat": "Iceland",
@@ -104349,8 +105976,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Cho Gue",
-      "ln": "Sung",
+      "fn": "Cho",
+      "ln": "Gue Sung",
       "pos": "ST",
       "age": 28,
       "nat": "Korea Republic",
@@ -104369,7 +105996,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Paulinho",
+      "fn": "Paulo",
       "ln": "Paulinho",
       "pos": "LB",
       "age": 31,
@@ -104437,8 +106064,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Han",
-      "ln": "Beom",
+      "fn": "Lee",
+      "ln": "Han Beom",
       "pos": "CB",
       "age": 24,
       "nat": "Korea Republic",
@@ -104996,8 +106623,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Prince Amoako",
-      "ln": "Junior",
+      "fn": "Prince",
+      "ln": "Amoako Junior",
       "pos": "LW",
       "age": 19,
       "nat": "Ghana",
@@ -105810,8 +107437,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yazan Al",
-      "ln": "Arab",
+      "fn": "Yazan",
+      "ln": "Al Arab",
       "pos": "CB",
       "age": 30,
       "nat": "Jordan",
@@ -105854,8 +107481,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jeong Seung",
-      "ln": "Won",
+      "fn": "Jeong",
+      "ln": "Seung Won",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -105901,8 +107528,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jin",
-      "ln": "Su",
+      "fn": "Kim",
+      "ln": "Jin Su",
       "pos": "LB",
       "age": 34,
       "nat": "Korea Republic",
@@ -105921,8 +107548,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Moon Seon",
-      "ln": "Min",
+      "fn": "Moon",
+      "ln": "Seon Min",
       "pos": "LW",
       "age": 34,
       "nat": "Korea Republic",
@@ -105941,8 +107568,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Kang Hyeon",
-      "ln": "Mu",
+      "fn": "Kang",
+      "ln": "Hyeon Mu",
       "pos": "GK",
       "age": 31,
       "nat": "Korea Republic",
@@ -105961,8 +107588,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Park Soo",
-      "ln": "Il",
+      "fn": "Park",
+      "ln": "Soo Il",
       "pos": "RB",
       "age": 30,
       "nat": "Korea Republic",
@@ -106024,8 +107651,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Hwang Do",
-      "ln": "Yun",
+      "fn": "Hwang",
+      "ln": "Do Yun",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -106067,8 +107694,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Lee Seung",
-      "ln": "Mo",
+      "fn": "Lee",
+      "ln": "Seung Mo",
       "pos": "CDM",
       "age": 28,
       "nat": "Korea Republic",
@@ -106090,8 +107717,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ryu Jae",
-      "ln": "Moon",
+      "fn": "Ryu",
+      "ln": "Jae Moon",
       "pos": "CDM",
       "age": 32,
       "nat": "Korea Republic",
@@ -106114,8 +107741,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cho Young",
-      "ln": "Wook",
+      "fn": "Cho",
+      "ln": "Young Wook",
       "pos": "ST",
       "age": 27,
       "nat": "Korea Republic",
@@ -106137,8 +107764,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jeong Tae",
-      "ln": "Wook",
+      "fn": "Jeong",
+      "ln": "Tae Wook",
       "pos": "CB",
       "age": 29,
       "nat": "Korea Republic",
@@ -106157,8 +107784,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 92
     },
     {
-      "fn": "Lee Han",
-      "ln": "Do",
+      "fn": "Lee",
+      "ln": "Han Do",
       "pos": "CB",
       "age": 32,
       "nat": "Korea Republic",
@@ -106177,8 +107804,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Park Seong",
-      "ln": "Hun",
+      "fn": "Park",
+      "ln": "Seong Hun",
       "pos": "CB",
       "age": 23,
       "nat": "Korea Republic",
@@ -106197,8 +107824,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Cheon Seong",
-      "ln": "Hoon",
+      "fn": "Cheon",
+      "ln": "Seong Hoon",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -106217,8 +107844,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Lee Sang",
-      "ln": "Min",
+      "fn": "Lee",
+      "ln": "Sang Min",
       "pos": "CB",
       "age": 28,
       "nat": "Korea Republic",
@@ -106237,8 +107864,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Jung Han",
-      "ln": "Min",
+      "fn": "Jung",
+      "ln": "Han Min",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -106260,8 +107887,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Cheol",
-      "ln": "Won",
+      "fn": "Choi",
+      "ln": "Cheol Won",
       "pos": "GK",
       "age": 32,
       "nat": "Korea Republic",
@@ -106280,8 +107907,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Kang Ju",
-      "ln": "Hyeok",
+      "fn": "Kang",
+      "ln": "Ju Hyeok",
       "pos": "RW",
       "age": 20,
       "nat": "Korea Republic",
@@ -106300,8 +107927,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Son Seung",
-      "ln": "Beom",
+      "fn": "Son",
+      "ln": "Seung Beom",
       "pos": "LW",
       "age": 22,
       "nat": "Korea Republic",
@@ -106320,8 +107947,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Park Jang Han",
-      "ln": "Gyeol",
+      "fn": "Park",
+      "ln": "Jang Han Gyeol",
       "pos": "CAM",
       "age": 22,
       "nat": "Korea Republic",
@@ -106343,8 +107970,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Jun",
-      "ln": "Yeong",
+      "fn": "Choi",
+      "ln": "Jun Yeong",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -106366,8 +107993,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Hyeon",
-      "ln": "Deok",
+      "fn": "Kim",
+      "ln": "Hyeon Deok",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -106386,8 +108013,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Yun Ki",
-      "ln": "Wook",
+      "fn": "Yun",
+      "ln": "Ki Wook",
       "pos": "GK",
       "age": 19,
       "nat": "Korea Republic",
@@ -106406,8 +108033,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Heo Dong",
-      "ln": "Min",
+      "fn": "Heo",
+      "ln": "Dong Min",
       "pos": "CDM",
       "age": 22,
       "nat": "Korea Republic",
@@ -106429,8 +108056,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Gbato Seloh",
-      "ln": "Samuel",
+      "fn": "Gbato",
+      "ln": "Seloh Samuel",
       "pos": "RW",
       "age": 20,
       "nat": "Côte d'Ivoire",
@@ -106449,8 +108076,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Cho Young",
-      "ln": "Kwang",
+      "fn": "Cho",
+      "ln": "Young Kwang",
       "pos": "RB",
       "age": 22,
       "nat": "Korea Republic",
@@ -106469,8 +108096,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Bae Hyun",
-      "ln": "Seo",
+      "fn": "Bae",
+      "ln": "Hyun Seo",
       "pos": "LB",
       "age": 21,
       "nat": "Korea Republic",
@@ -106492,8 +108119,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lim Jun",
-      "ln": "Sub",
+      "fn": "Lim",
+      "ln": "Jun Sub",
       "pos": "GK",
       "age": 23,
       "nat": "Korea Republic",
@@ -106512,8 +108139,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Min Ji",
-      "ln": "Hoon",
+      "fn": "Min",
+      "ln": "Ji Hoon",
       "pos": "CM",
       "age": 21,
       "nat": "Korea Republic",
@@ -107153,8 +108780,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 103
     },
     {
-      "fn": "Bart van",
-      "ln": "Rooij",
+      "fn": "Bart",
+      "ln": "van Rooij",
       "pos": "RB",
       "age": 25,
       "nat": "Holland",
@@ -107216,8 +108843,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ricky van",
-      "ln": "Wolfswinkel",
+      "fn": "Ricky",
+      "ln": "van Wolfswinkel",
       "pos": "ST",
       "age": 37,
       "nat": "Holland",
@@ -107348,8 +108975,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Thomas van den",
-      "ln": "Belt",
+      "fn": "Thomas",
+      "ln": "van den Belt",
       "pos": "CM",
       "age": 25,
       "nat": "Holland",
@@ -107560,8 +109187,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Issam El",
-      "ln": "Maach",
+      "fn": "Issam",
+      "ln": "El Maach",
       "pos": "GK",
       "age": 26,
       "nat": "Morocco",
@@ -107580,8 +109207,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 96
     },
     {
-      "fn": "Lucas Vennegoor of",
-      "ln": "Hess.",
+      "fn": "Lucas",
+      "ln": "Vennegoor of Hess.",
       "pos": "ST",
       "age": 20,
       "nat": "Holland",
@@ -107642,8 +109269,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Souffian El",
-      "ln": "Karouani",
+      "fn": "Souffian",
+      "ln": "El Karouani",
       "pos": "LB",
       "age": 25,
       "nat": "Morocco",
@@ -107682,8 +109309,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Mike van der",
-      "ln": "Hoorn",
+      "fn": "Mike",
+      "ln": "van der Hoorn",
       "pos": "CB",
       "age": 33,
       "nat": "Holland",
@@ -107782,8 +109409,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Dani de",
-      "ln": "Wit",
+      "fn": "Dani",
+      "ln": "de Wit",
       "pos": "CAM",
       "age": 28,
       "nat": "Holland",
@@ -107851,8 +109478,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Derry John",
-      "ln": "Murkin",
+      "fn": "Derry",
+      "ln": "John Murkin",
       "pos": "LB",
       "age": 27,
       "nat": "England",
@@ -107981,8 +109608,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 91
     },
     {
-      "fn": "Davy van den",
-      "ln": "Berg",
+      "fn": "Davy",
+      "ln": "van den Berg",
       "pos": "CM",
       "age": 26,
       "nat": "Holland",
@@ -108147,8 +109774,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 63
     },
     {
-      "fn": "Jesse van de",
-      "ln": "Haar",
+      "fn": "Jesse",
+      "ln": "van de Haar",
       "pos": "ST",
       "age": 21,
       "nat": "Holland",
@@ -108233,8 +109860,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rafik El",
-      "ln": "Arguioui",
+      "fn": "Rafik",
+      "ln": "El Arguioui",
       "pos": "CAM",
       "age": 21,
       "nat": "Morocco",
@@ -109110,8 +110737,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan José",
-      "ln": "Perea",
+      "fn": "Juan",
+      "ln": "José Perea",
       "pos": "ST",
       "age": 26,
       "nat": "Colombia",
@@ -109130,8 +110757,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Philippe Paulin",
-      "ln": "Keny",
+      "fn": "Philippe",
+      "ln": "Paulin Keny",
       "pos": "ST",
       "age": 27,
       "nat": "Senegal",
@@ -109193,8 +110820,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Calixte Paul",
-      "ln": "Ligue",
+      "fn": "Calixte",
+      "ln": "Paul Ligue",
       "pos": "LB",
       "age": 21,
       "nat": "Switzerland",
@@ -109459,8 +111086,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Nevio Di",
-      "ln": "Giusto",
+      "fn": "Nevio",
+      "ln": "Di Giusto",
       "pos": "CAM",
       "age": 21,
       "nat": "Switzerland",
@@ -110344,7 +111971,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Fred",
+      "fn": "Frederico",
       "ln": "Fred",
       "pos": "CM",
       "age": 33,
@@ -110432,8 +112059,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "İrfan Can",
-      "ln": "Kahveci",
+      "fn": "İrfan",
+      "ln": "Can Kahveci",
       "pos": "RW",
       "age": 31,
       "nat": "Turkey",
@@ -110631,8 +112258,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "İrfan Can",
-      "ln": "Eğribayat",
+      "fn": "İrfan",
+      "ln": "Can Eğribayat",
       "pos": "GK",
       "age": 28,
       "nat": "Turkey",
@@ -110788,8 +112415,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mert Hakan",
-      "ln": "Yandaş",
+      "fn": "Mert",
+      "ln": "Hakan Yandaş",
       "pos": "CM",
       "age": 32,
       "nat": "Turkey",
@@ -110876,8 +112503,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Mohammed Abu",
-      "ln": "Fani",
+      "fn": "Mohammed",
+      "ln": "Abu Fani",
       "pos": "CM",
       "age": 28,
       "nat": "Israel",
@@ -110899,7 +112526,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cadu",
+      "fn": "Carlos",
       "ln": "Cadu",
       "pos": "RB",
       "age": 29,
@@ -111541,6 +113168,703 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     }
   ],
+  "feyenoord": [
+    {
+      "fn": "Quinten",
+      "ln": "Timber",
+      "pos": "CM",
+      "age": 25,
+      "nat": "Holland",
+      "ovr": 80,
+      "pot": 85,
+      "pace": 77,
+      "shooting": 76,
+      "passing": 74,
+      "defending": 74,
+      "physical": 80,
+      "mental": 80,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "251806",
+      "heightCm": 179,
+      "weightKg": 71,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Sem",
+      "ln": "Steijn",
+      "pos": "CAM",
+      "age": 24,
+      "nat": "Holland",
+      "ovr": 78,
+      "pot": 83,
+      "pace": 66,
+      "shooting": 84,
+      "passing": 72,
+      "defending": 43,
+      "physical": 74,
+      "mental": 79,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "244728",
+      "heightCm": 173,
+      "weightKg": 59,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Hwang",
+      "ln": "In Beom",
+      "pos": "CM",
+      "age": 29,
+      "nat": "Korea Republic",
+      "ovr": 77,
+      "pot": 77,
+      "pace": 62,
+      "shooting": 70,
+      "passing": 76,
+      "defending": 63,
+      "physical": 67,
+      "mental": 78,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "228010",
+      "heightCm": 178,
+      "weightKg": 68,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Cyle",
+      "ln": "Larin",
+      "pos": "ST",
+      "age": 31,
+      "nat": "Canada",
+      "ovr": 77,
+      "pot": 77,
+      "pace": 70,
+      "shooting": 77,
+      "passing": 70,
+      "defending": 28,
+      "physical": 78,
+      "mental": 70,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "226777",
+      "heightCm": 188,
+      "weightKg": 90
+    },
+    {
+      "fn": "Timon",
+      "ln": "Wellenreuther",
+      "pos": "GK",
+      "age": 30,
+      "nat": "Germany",
+      "ovr": 76,
+      "pot": 77,
+      "pace": 73,
+      "shooting": 80,
+      "passing": 69,
+      "defending": 73,
+      "physical": 72,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "223686",
+      "heightCm": 188,
+      "weightKg": 80
+    },
+    {
+      "fn": "Anis",
+      "ln": "Hadj-Moussa",
+      "pos": "RW",
+      "age": 24,
+      "nat": "Algeria",
+      "ovr": 76,
+      "pot": 82,
+      "pace": 80,
+      "shooting": 69,
+      "passing": 64,
+      "defending": 26,
+      "physical": 52,
+      "mental": 70,
+      "skillMoves": 5,
+      "source": "real",
+      "fcId": "70726",
+      "heightCm": 176,
+      "weightKg": 72
+    },
+    {
+      "fn": "Jakub",
+      "ln": "Moder",
+      "pos": "CM",
+      "age": 27,
+      "nat": "Poland",
+      "ovr": 75,
+      "pot": 77,
+      "pace": 64,
+      "shooting": 70,
+      "passing": 76,
+      "defending": 69,
+      "physical": 78,
+      "mental": 75,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "239778",
+      "heightCm": 188,
+      "weightKg": 78,
+      "altPos": [
+        "CAM",
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Givairo",
+      "ln": "Read",
+      "pos": "RB",
+      "age": 20,
+      "nat": "Holland",
+      "ovr": 75,
+      "pot": 88,
+      "pace": 84,
+      "shooting": 52,
+      "passing": 69,
+      "defending": 69,
+      "physical": 76,
+      "mental": 71,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "271266",
+      "heightCm": 175,
+      "weightKg": 70
+    },
+    {
+      "fn": "Justin",
+      "ln": "Bijlow",
+      "pos": "GK",
+      "age": 28,
+      "nat": "Holland",
+      "ovr": 75,
+      "pot": 76,
+      "pace": 78,
+      "shooting": 77,
+      "passing": 73,
+      "defending": 73,
+      "physical": 70,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "232229",
+      "heightCm": 188,
+      "weightKg": 84
+    },
+    {
+      "fn": "Jordan",
+      "ln": "Lotomba",
+      "pos": "RB",
+      "age": 27,
+      "nat": "Switzerland",
+      "ovr": 75,
+      "pot": 77,
+      "pace": 75,
+      "shooting": 48,
+      "passing": 67,
+      "defending": 71,
+      "physical": 71,
+      "mental": 65,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "234686",
+      "heightCm": 178,
+      "weightKg": 71
+    },
+    {
+      "fn": "Gernot",
+      "ln": "Trauner",
+      "pos": "CB",
+      "age": 34,
+      "nat": "Austria",
+      "ovr": 75,
+      "pot": 75,
+      "pace": 55,
+      "shooting": 56,
+      "passing": 65,
+      "defending": 73,
+      "physical": 79,
+      "mental": 66,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "199813",
+      "heightCm": 183,
+      "weightKg": 82
+    },
+    {
+      "fn": "Tsuyoshi",
+      "ln": "Watanabe",
+      "pos": "CB",
+      "age": 29,
+      "nat": "Japan",
+      "ovr": 75,
+      "pot": 75,
+      "pace": 76,
+      "shooting": 36,
+      "passing": 49,
+      "defending": 76,
+      "physical": 75,
+      "mental": 61,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "246826",
+      "heightCm": 186,
+      "weightKg": 78
+    },
+    {
+      "fn": "Bart",
+      "ln": "Nieuwkoop",
+      "pos": "RB",
+      "age": 30,
+      "nat": "Holland",
+      "ovr": 74,
+      "pot": 74,
+      "pace": 66,
+      "shooting": 62,
+      "passing": 72,
+      "defending": 67,
+      "physical": 78,
+      "mental": 71,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "226662",
+      "heightCm": 180,
+      "weightKg": 73,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Gijs",
+      "ln": "Smal",
+      "pos": "LB",
+      "age": 28,
+      "nat": "Holland",
+      "ovr": 74,
+      "pot": 74,
+      "pace": 71,
+      "shooting": 61,
+      "passing": 75,
+      "defending": 67,
+      "physical": 76,
+      "mental": 70,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "257502",
+      "heightCm": 183,
+      "weightKg": 74,
+      "altPos": [
+        "CM",
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Thomas",
+      "ln": "Beelen",
+      "pos": "CB",
+      "age": 25,
+      "nat": "Holland",
+      "ovr": 74,
+      "pot": 82,
+      "pace": 77,
+      "shooting": 43,
+      "passing": 63,
+      "defending": 72,
+      "physical": 74,
+      "mental": 68,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "263773",
+      "heightCm": 190,
+      "weightKg": 78
+    },
+    {
+      "fn": "Casper",
+      "ln": "Tengstedt",
+      "pos": "ST",
+      "age": 26,
+      "nat": "Denmark",
+      "ovr": 74,
+      "pot": 79,
+      "pace": 81,
+      "shooting": 72,
+      "passing": 63,
+      "defending": 36,
+      "physical": 68,
+      "mental": 68,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "257920",
+      "heightCm": 184,
+      "weightKg": 79
+    },
+    {
+      "fn": "Anel",
+      "ln": "Ahmedhodžić",
+      "pos": "CB",
+      "age": 27,
+      "nat": "Bosnia and Herzegovina",
+      "ovr": 74,
+      "pot": 78,
+      "pace": 72,
+      "shooting": 38,
+      "passing": 59,
+      "defending": 74,
+      "physical": 81,
+      "mental": 64,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "236524",
+      "heightCm": 195,
+      "weightKg": 84
+    },
+    {
+      "fn": "Ayase",
+      "ln": "Ueda",
+      "pos": "ST",
+      "age": 28,
+      "nat": "Japan",
+      "ovr": 74,
+      "pot": 75,
+      "pace": 71,
+      "shooting": 75,
+      "passing": 58,
+      "defending": 25,
+      "physical": 69,
+      "mental": 72,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "252162",
+      "heightCm": 183,
+      "weightKg": 76
+    },
+    {
+      "fn": "Oussama",
+      "ln": "Targhalline",
+      "pos": "CM",
+      "age": 24,
+      "nat": "Morocco",
+      "ovr": 73,
+      "pot": 80,
+      "pace": 49,
+      "shooting": 60,
+      "passing": 68,
+      "defending": 68,
+      "physical": 67,
+      "mental": 73,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "263603",
+      "heightCm": 186,
+      "weightKg": 70,
+      "altPos": [
+        "CDM",
+        "CB"
+      ]
+    },
+    {
+      "fn": "Leo",
+      "ln": "Sauer",
+      "pos": "LW",
+      "age": 20,
+      "nat": "Slovakia",
+      "ovr": 72,
+      "pot": 86,
+      "pace": 88,
+      "shooting": 66,
+      "passing": 64,
+      "defending": 39,
+      "physical": 60,
+      "mental": 68,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "277482",
+      "heightCm": 184,
+      "weightKg": 74,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Luciano",
+      "ln": "Valente",
+      "pos": "CAM",
+      "age": 22,
+      "nat": "Holland",
+      "ovr": 72,
+      "pot": 82,
+      "pace": 69,
+      "shooting": 59,
+      "passing": 69,
+      "defending": 47,
+      "physical": 68,
+      "mental": 72,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "262221",
+      "heightCm": 189,
+      "weightKg": 78,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Gaoussou",
+      "ln": "Diarra",
+      "pos": "LW",
+      "age": 23,
+      "nat": "Mali",
+      "ovr": 72,
+      "pot": 83,
+      "pace": 86,
+      "shooting": 71,
+      "passing": 65,
+      "defending": 29,
+      "physical": 57,
+      "mental": 68,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "79338",
+      "heightCm": 183,
+      "weightKg": 74,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Gonçalo",
+      "ln": "Borges",
+      "pos": "RW",
+      "age": 25,
+      "nat": "Portugal",
+      "ovr": 72,
+      "pot": 77,
+      "pace": 85,
+      "shooting": 58,
+      "passing": 61,
+      "defending": 29,
+      "physical": 56,
+      "mental": 69,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "266453",
+      "heightCm": 184,
+      "weightKg": 77,
+      "altPos": [
+        "LW"
+      ]
+    },
+    {
+      "fn": "Jordan",
+      "ln": "Bos",
+      "pos": "LB",
+      "age": 23,
+      "nat": "Australia",
+      "ovr": 69,
+      "pot": 78,
+      "pace": 87,
+      "shooting": 61,
+      "passing": 60,
+      "defending": 61,
+      "physical": 82,
+      "mental": 65,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "260521",
+      "heightCm": 180,
+      "weightKg": 70
+    },
+    {
+      "fn": "Ezequiel",
+      "ln": "Bullaude",
+      "pos": "CAM",
+      "age": 25,
+      "nat": "Argentina",
+      "ovr": 69,
+      "pot": 74,
+      "pace": 71,
+      "shooting": 69,
+      "passing": 63,
+      "defending": 35,
+      "physical": 64,
+      "mental": 67,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "246237",
+      "heightCm": 184,
+      "weightKg": 71,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Shiloh",
+      "ln": "t Zand",
+      "pos": "CAM",
+      "age": 23,
+      "nat": "Suriname",
+      "ovr": 67,
+      "pot": 78,
+      "pace": 63,
+      "shooting": 67,
+      "passing": 63,
+      "defending": 51,
+      "physical": 66,
+      "mental": 69,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "73964",
+      "heightCm": 177,
+      "weightKg": 68,
+      "altPos": [
+        "LW",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Jaden",
+      "ln": "Slory",
+      "pos": "RW",
+      "age": 21,
+      "nat": "Holland",
+      "ovr": 66,
+      "pot": 80,
+      "pace": 84,
+      "shooting": 61,
+      "passing": 55,
+      "defending": 28,
+      "physical": 47,
+      "mental": 61,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "72071",
+      "heightCm": 175,
+      "weightKg": 68,
+      "altPos": [
+        "LW"
+      ]
+    },
+    {
+      "fn": "Liam",
+      "ln": "Bossin",
+      "pos": "GK",
+      "age": 30,
+      "nat": "Republic of Ireland",
+      "ovr": 65,
+      "pot": 67,
+      "pace": 65,
+      "shooting": 63,
+      "passing": 61,
+      "defending": 62,
+      "physical": 63,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "229114",
+      "heightCm": 186,
+      "weightKg": 81
+    },
+    {
+      "fn": "Malcolm",
+      "ln": "Jeng",
+      "pos": "CB",
+      "age": 21,
+      "nat": "Sweden",
+      "ovr": 65,
+      "pot": 78,
+      "pace": 66,
+      "shooting": 32,
+      "passing": 54,
+      "defending": 65,
+      "physical": 70,
+      "mental": 57,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "275153",
+      "heightCm": 190,
+      "weightKg": 75
+    },
+    {
+      "fn": "Aymen",
+      "ln": "Sliti",
+      "pos": "LW",
+      "age": 20,
+      "nat": "Holland",
+      "ovr": 64,
+      "pot": 81,
+      "pace": 78,
+      "shooting": 57,
+      "passing": 57,
+      "defending": 27,
+      "physical": 48,
+      "mental": 59,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "75535",
+      "heightCm": 175,
+      "weightKg": 62,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Thijs",
+      "ln": "Kraaijeveld",
+      "pos": "CM",
+      "age": 19,
+      "nat": "Holland",
+      "ovr": 59,
+      "pot": 79,
+      "pace": 66,
+      "shooting": 52,
+      "passing": 58,
+      "defending": 51,
+      "physical": 54,
+      "mental": 60,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "77664",
+      "heightCm": 185,
+      "weightKg": 75,
+      "altPos": [
+        "CDM",
+        "CB"
+      ]
+    },
+    {
+      "fn": "Mannou",
+      "ln": "Berger",
+      "pos": "GK",
+      "age": 21,
+      "nat": "Holland",
+      "ovr": 59,
+      "pot": 73,
+      "pace": 64,
+      "shooting": 62,
+      "passing": 50,
+      "defending": 57,
+      "physical": 57,
+      "mental": 53,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "277928",
+      "heightCm": 181,
+      "weightKg": 72
+    }
+  ],
   "fiorentina": [
     {
       "fn": "De",
@@ -111646,7 +113970,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dodô",
+      "fn": "Domilson",
       "ln": "Dodô",
       "pos": "RB",
       "age": 27,
@@ -111756,8 +114080,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hans Nicolussi",
-      "ln": "Caviglia",
+      "fn": "Hans",
+      "ln": "Nicolussi Caviglia",
       "pos": "CDM",
       "age": 26,
       "nat": "Italy",
@@ -112864,8 +115188,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Syb van",
-      "ln": "Ottele",
+      "fn": "Syb",
+      "ln": "van Ottele",
       "pos": "CB",
       "age": 24,
       "nat": "Holland",
@@ -113239,8 +115563,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rocco Robert",
-      "ln": "Shein",
+      "fn": "Rocco",
+      "ln": "Robert Shein",
       "pos": "CM",
       "age": 23,
       "nat": "Estonia",
@@ -113547,8 +115871,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Imre Bech",
-      "ln": "Hermansen",
+      "fn": "Imre",
+      "ln": "Bech Hermansen",
       "pos": "RB",
       "age": 20,
       "nat": "Norway",
@@ -114357,8 +116681,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Ben Lhassine",
-      "ln": "Kone",
+      "fn": "Ben",
+      "ln": "Lhassine Kone",
       "pos": "CM",
       "age": 26,
       "nat": "Côte d'Ivoire",
@@ -114832,8 +117156,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Emile Smith",
-      "ln": "Rowe",
+      "fn": "Emile",
+      "ln": "Smith Rowe",
       "pos": "CAM",
       "age": 26,
       "nat": "England",
@@ -115526,8 +117850,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Brynjar Ingi",
-      "ln": "Bjarnason",
+      "fn": "Brynjar",
+      "ln": "Ingi Bjarnason",
       "pos": "CB",
       "age": 26,
       "nat": "Iceland",
@@ -115934,8 +118258,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Robin Wendin",
-      "ln": "Thomasson",
+      "fn": "Robin",
+      "ln": "Wendin Thomasson",
       "pos": "LB",
       "age": 27,
       "nat": "Sweden",
@@ -115974,8 +118298,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Matteo de",
-      "ln": "Brienne",
+      "fn": "Matteo",
+      "ln": "de Brienne",
       "pos": "LB",
       "age": 24,
       "nat": "Canada",
@@ -116017,8 +118341,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rasmus Niklasson",
-      "ln": "Petrovic",
+      "fn": "Rasmus",
+      "ln": "Niklasson Petrovic",
       "pos": "LW",
       "age": 23,
       "nat": "Sweden",
@@ -116163,8 +118487,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Róbert Frosti",
-      "ln": "Þorkelsson",
+      "fn": "Róbert",
+      "ln": "Frosti Þorkelsson",
       "pos": "CM",
       "age": 21,
       "nat": "Iceland",
@@ -116375,8 +118699,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Barış Alper",
-      "ln": "Yılmaz",
+      "fn": "Barış",
+      "ln": "Alper Yılmaz",
       "pos": "LW",
       "age": 26,
       "nat": "Turkey",
@@ -117360,8 +119684,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "gangwon-fc": [
     {
-      "fn": "Seo Min",
-      "ln": "Woo",
+      "fn": "Seo",
+      "ln": "Min Woo",
       "pos": "CDM",
       "age": 28,
       "nat": "Korea Republic",
@@ -117384,8 +119708,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Gi",
-      "ln": "Hyeok",
+      "fn": "Lee",
+      "ln": "Gi Hyeok",
       "pos": "CB",
       "age": 26,
       "nat": "Korea Republic",
@@ -117408,8 +119732,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Dae",
-      "ln": "Won",
+      "fn": "Kim",
+      "ln": "Dae Won",
       "pos": "LW",
       "age": 29,
       "nat": "Korea Republic",
@@ -117428,8 +119752,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Lee Sang",
-      "ln": "Heon",
+      "fn": "Lee",
+      "ln": "Sang Heon",
       "pos": "ST",
       "age": 28,
       "nat": "Korea Republic",
@@ -117452,8 +119776,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Dong",
-      "ln": "Hyun",
+      "fn": "Kim",
+      "ln": "Dong Hyun",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -117475,8 +119799,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Gwang",
-      "ln": "Yeon",
+      "fn": "Lee",
+      "ln": "Gwang Yeon",
       "pos": "GK",
       "age": 26,
       "nat": "Korea Republic",
@@ -117495,8 +119819,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Kim Kang",
-      "ln": "Guk",
+      "fn": "Kim",
+      "ln": "Kang Guk",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -117518,8 +119842,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mo Jae",
-      "ln": "Hyeon",
+      "fn": "Mo",
+      "ln": "Jae Hyeon",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -117581,8 +119905,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Lee You",
-      "ln": "Hyeon",
+      "fn": "Lee",
+      "ln": "You Hyeon",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -117606,8 +119930,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Gun",
-      "ln": "Hee",
+      "fn": "Kim",
+      "ln": "Gun Hee",
       "pos": "ST",
       "age": 31,
       "nat": "Korea Republic",
@@ -117629,8 +119953,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yun Il",
-      "ln": "Lok",
+      "fn": "Yun",
+      "ln": "Il Lok",
       "pos": "RB",
       "age": 34,
       "nat": "Korea Republic",
@@ -117653,8 +119977,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Shin Min",
-      "ln": "Ha",
+      "fn": "Shin",
+      "ln": "Min Ha",
       "pos": "CB",
       "age": 20,
       "nat": "Korea Republic",
@@ -117673,8 +119997,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Kim Min",
-      "ln": "Jun",
+      "fn": "Kim",
+      "ln": "Min Jun",
       "pos": "RW",
       "age": 26,
       "nat": "Korea Republic",
@@ -117696,8 +120020,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kang Yoon",
-      "ln": "Gu",
+      "fn": "Kang",
+      "ln": "Yoon Gu",
       "pos": "CAM",
       "age": 24,
       "nat": "Korea Republic",
@@ -117743,8 +120067,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Goo Bon",
-      "ln": "Cheol",
+      "fn": "Goo",
+      "ln": "Bon Cheol",
       "pos": "CAM",
       "age": 26,
       "nat": "Korea Republic",
@@ -117767,8 +120091,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Chung",
-      "ln": "Hyo",
+      "fn": "Park",
+      "ln": "Chung Hyo",
       "pos": "GK",
       "age": 36,
       "nat": "Korea Republic",
@@ -117787,8 +120111,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Song Jun",
-      "ln": "Seok",
+      "fn": "Song",
+      "ln": "Jun Seok",
       "pos": "LB",
       "age": 25,
       "nat": "Korea Republic",
@@ -117807,8 +120131,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Kang Joon",
-      "ln": "Hyuck",
+      "fn": "Kang",
+      "ln": "Joon Hyuck",
       "pos": "RB",
       "age": 26,
       "nat": "Korea Republic",
@@ -117830,8 +120154,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Ji",
-      "ln": "Ho",
+      "fn": "Lee",
+      "ln": "Ji Ho",
       "pos": "RW",
       "age": 24,
       "nat": "Korea Republic",
@@ -117850,8 +120174,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Kim Dae",
-      "ln": "Woo",
+      "fn": "Kim",
+      "ln": "Dae Woo",
       "pos": "CM",
       "age": 25,
       "nat": "Korea Republic",
@@ -117873,8 +120197,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Byeong",
-      "ln": "Chan",
+      "fn": "Choi",
+      "ln": "Byeong Chan",
       "pos": "RB",
       "age": 30,
       "nat": "Korea Republic",
@@ -117896,8 +120220,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Shin",
-      "ln": "Jin",
+      "fn": "Kim",
+      "ln": "Shin Jin",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -117920,8 +120244,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Jeong",
-      "ln": "Hoon",
+      "fn": "Choi",
+      "ln": "Jeong Hoon",
       "pos": "RW",
       "age": 27,
       "nat": "Korea Republic",
@@ -117940,8 +120264,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Cho Jin",
-      "ln": "Hyuk",
+      "fn": "Cho",
+      "ln": "Jin Hyuk",
       "pos": "RW",
       "age": 26,
       "nat": "Korea Republic",
@@ -117960,8 +120284,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Jin Jun",
-      "ln": "Seo",
+      "fn": "Jin",
+      "ln": "Jun Seo",
       "pos": "ST",
       "age": 21,
       "nat": "Korea Republic",
@@ -117980,8 +120304,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Park Ho",
-      "ln": "Young",
+      "fn": "Park",
+      "ln": "Ho Young",
       "pos": "CB",
       "age": 27,
       "nat": "Korea Republic",
@@ -118000,8 +120324,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Kim Do",
-      "ln": "Hyun",
+      "fn": "Kim",
+      "ln": "Do Hyun",
       "pos": "ST",
       "age": 22,
       "nat": "Korea Republic",
@@ -118023,8 +120347,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cho Min",
-      "ln": "Kyu",
+      "fn": "Cho",
+      "ln": "Min Kyu",
       "pos": "GK",
       "age": 23,
       "nat": "Korea Republic",
@@ -118043,8 +120367,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Kim Hyeong",
-      "ln": "Jin",
+      "fn": "Kim",
+      "ln": "Hyeong Jin",
       "pos": "LW",
       "age": 19,
       "nat": "Korea Republic",
@@ -118063,8 +120387,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Sung Ki",
-      "ln": "Wan",
+      "fn": "Sung",
+      "ln": "Ki Wan",
       "pos": "LW",
       "age": 22,
       "nat": "Korea Republic",
@@ -118083,8 +120407,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Jung Seung",
-      "ln": "Bin",
+      "fn": "Jung",
+      "ln": "Seung Bin",
       "pos": "CB",
       "age": 20,
       "nat": "Korea Republic",
@@ -118103,8 +120427,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Jo Hyun",
-      "ln": "Tae",
+      "fn": "Jo",
+      "ln": "Hyun Tae",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -118123,8 +120447,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Kim Tae",
-      "ln": "Hwan",
+      "fn": "Kim",
+      "ln": "Tae Hwan",
       "pos": "CM",
       "age": 20,
       "nat": "Korea Republic",
@@ -118566,8 +120890,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Mustafa Burak",
-      "ln": "Bozan",
+      "fn": "Mustafa",
+      "ln": "Burak Bozan",
       "pos": "GK",
       "age": 26,
       "nat": "Turkey",
@@ -118675,8 +120999,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Zakaria El",
-      "ln": "Ouahdi",
+      "fn": "Zakaria",
+      "ln": "El Ouahdi",
       "pos": "RB",
       "age": 24,
       "nat": "Morocco",
@@ -118824,8 +121148,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Oh Hyeon",
-      "ln": "Gyu",
+      "fn": "Oh",
+      "ln": "Hyeon Gyu",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -118890,8 +121214,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ibrahima Sory",
-      "ln": "Bangoura",
+      "fn": "Ibrahima",
+      "ln": "Sory Bangoura",
       "pos": "CDM",
       "age": 22,
       "nat": "Guinea",
@@ -118960,8 +121284,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hendrik Van",
-      "ln": "Crombrugge",
+      "fn": "Hendrik",
+      "ln": "Van Crombrugge",
       "pos": "GK",
       "age": 33,
       "nat": "Belgium",
@@ -119278,7 +121602,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Vitinha",
+      "fn": "Vítor",
       "ln": "Vitinha",
       "pos": "ST",
       "age": 26,
@@ -119595,8 +121919,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Mikael Egill",
-      "ln": "Ellertsson",
+      "fn": "Mikael",
+      "ln": "Egill Ellertsson",
       "pos": "CM",
       "age": 24,
       "nat": "Iceland",
@@ -119813,8 +122137,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Siebe Van der",
-      "ln": "Heyden",
+      "fn": "Siebe",
+      "ln": "Van der Heyden",
       "pos": "CB",
       "age": 28,
       "nat": "Belgium",
@@ -120117,8 +122441,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Momodou Lamin",
-      "ln": "Sonko",
+      "fn": "Momodou",
+      "ln": "Lamin Sonko",
       "pos": "LW",
       "age": 21,
       "nat": "Sweden",
@@ -120267,8 +122591,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Gilles De",
-      "ln": "Meyer",
+      "fn": "Gilles",
+      "ln": "De Meyer",
       "pos": "RB",
       "age": 19,
       "nat": "Belgium",
@@ -120287,8 +122611,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Tibe De",
-      "ln": "Vlieger",
+      "fn": "Tibe",
+      "ln": "De Vlieger",
       "pos": "CAM",
       "age": 20,
       "nat": "Belgium",
@@ -120330,8 +122654,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Mohammed El",
-      "ln": "Âdfaoui",
+      "fn": "Mohammed",
+      "ln": "El Âdfaoui",
       "pos": "CDM",
       "age": 18,
       "nat": "Belgium",
@@ -120575,7 +122899,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juanmi",
+      "fn": "Juan",
       "ln": "Juanmi",
       "pos": "ST",
       "age": 33,
@@ -120658,8 +122982,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Coba da",
-      "ln": "Costa",
+      "fn": "Coba",
+      "ln": "da Costa",
       "pos": "LW",
       "age": 24,
       "nat": "Spain",
@@ -120977,8 +123301,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Facundo Agustín",
-      "ln": "Cáseres",
+      "fn": "Facundo",
+      "ln": "Agustín Cáseres",
       "pos": "CDM",
       "age": 25,
       "nat": "Argentina",
@@ -121024,7 +123348,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Buatu",
+      "fn": "Jonathan",
       "ln": "Buatu",
       "pos": "CB",
       "age": 32,
@@ -121064,7 +123388,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Bermejo",
+      "fn": "Sergio",
       "ln": "Bermejo",
       "pos": "CAM",
       "age": 29,
@@ -121150,7 +123474,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Espigares",
+      "fn": "Antonio",
       "ln": "Espigares",
       "pos": "CB",
       "age": 21,
@@ -121789,8 +124113,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "gimcheon-sangmu-fc": [
     {
-      "fn": "Lee Dong",
-      "ln": "Kyeong",
+      "fn": "Lee",
+      "ln": "Dong Kyeong",
       "pos": "CAM",
       "age": 28,
       "nat": "Korea Republic",
@@ -121813,8 +124137,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Chan",
-      "ln": "Yong",
+      "fn": "Park",
+      "ln": "Chan Yong",
       "pos": "CB",
       "age": 30,
       "nat": "Korea Republic",
@@ -121833,8 +124157,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Lee Dong",
-      "ln": "Jun",
+      "fn": "Lee",
+      "ln": "Dong Jun",
       "pos": "RW",
       "age": 29,
       "nat": "Korea Republic",
@@ -121853,8 +124177,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Park Cheol",
-      "ln": "Woo",
+      "fn": "Park",
+      "ln": "Cheol Woo",
       "pos": "LB",
       "age": 28,
       "nat": "Korea Republic",
@@ -121876,8 +124200,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jeon Byung",
-      "ln": "Kwan",
+      "fn": "Jeon",
+      "ln": "Byung Kwan",
       "pos": "RW",
       "age": 23,
       "nat": "Korea Republic",
@@ -121899,8 +124223,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Sang",
-      "ln": "Hyuk",
+      "fn": "Park",
+      "ln": "Sang Hyuk",
       "pos": "ST",
       "age": 24,
       "nat": "Korea Republic",
@@ -121923,8 +124247,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lim Dug",
-      "ln": "Keun",
+      "fn": "Lim",
+      "ln": "Dug Keun",
       "pos": "CM",
       "age": 26,
       "nat": "Korea Republic",
@@ -121947,8 +124271,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Seung",
-      "ln": "Sub",
+      "fn": "Kim",
+      "ln": "Seung Sub",
       "pos": "LW",
       "age": 29,
       "nat": "Korea Republic",
@@ -121970,8 +124294,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim In",
-      "ln": "Kyun",
+      "fn": "Kim",
+      "ln": "In Kyun",
       "pos": "ST",
       "age": 28,
       "nat": "Korea Republic",
@@ -121994,8 +124318,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Tae",
-      "ln": "Joon",
+      "fn": "Park",
+      "ln": "Tae Joon",
       "pos": "CM",
       "age": 27,
       "nat": "Korea Republic",
@@ -122018,8 +124342,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Jung",
-      "ln": "Taek",
+      "fn": "Lee",
+      "ln": "Jung Taek",
       "pos": "CB",
       "age": 28,
       "nat": "Korea Republic",
@@ -122042,8 +124366,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Hyun",
-      "ln": "Woo",
+      "fn": "Kim",
+      "ln": "Hyun Woo",
       "pos": "CB",
       "age": 27,
       "nat": "Korea Republic",
@@ -122062,8 +124386,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Lee Geon",
-      "ln": "Hee",
+      "fn": "Lee",
+      "ln": "Geon Hee",
       "pos": "ST",
       "age": 28,
       "nat": "Korea Republic",
@@ -122085,8 +124409,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ko Jae",
-      "ln": "Hyeon",
+      "fn": "Ko",
+      "ln": "Jae Hyeon",
       "pos": "RW",
       "age": 27,
       "nat": "Korea Republic",
@@ -122108,8 +124432,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Se",
-      "ln": "Jin",
+      "fn": "Park",
+      "ln": "Se Jin",
       "pos": "CM",
       "age": 22,
       "nat": "Korea Republic",
@@ -122131,8 +124455,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Seung",
-      "ln": "Won",
+      "fn": "Lee",
+      "ln": "Seung Won",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -122155,8 +124479,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Baek Jong",
-      "ln": "Beom",
+      "fn": "Baek",
+      "ln": "Jong Beom",
       "pos": "GK",
       "age": 25,
       "nat": "Korea Republic",
@@ -122175,8 +124499,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Kim Ju",
-      "ln": "Chan",
+      "fn": "Kim",
+      "ln": "Ju Chan",
       "pos": "RW",
       "age": 22,
       "nat": "Korea Republic",
@@ -122198,8 +124522,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Kang",
-      "ln": "San",
+      "fn": "Kim",
+      "ln": "Kang San",
       "pos": "CB",
       "age": 27,
       "nat": "Korea Republic",
@@ -122221,8 +124545,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Min Gyeong",
-      "ln": "Hyeon",
+      "fn": "Min",
+      "ln": "Gyeong Hyeon",
       "pos": "CM",
       "age": 24,
       "nat": "Korea Republic",
@@ -122244,8 +124568,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Tae",
-      "ln": "Hwan",
+      "fn": "Kim",
+      "ln": "Tae Hwan",
       "pos": "RB",
       "age": 26,
       "nat": "Korea Republic",
@@ -122264,8 +124588,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Lee Soo",
-      "ln": "Bin",
+      "fn": "Lee",
+      "ln": "Soo Bin",
       "pos": "CDM",
       "age": 26,
       "nat": "Korea Republic",
@@ -122287,8 +124611,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Hyun",
-      "ln": "Sik",
+      "fn": "Lee",
+      "ln": "Hyun Sik",
       "pos": "RB",
       "age": 30,
       "nat": "Korea Republic",
@@ -122310,8 +124634,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Maeng Seong",
-      "ln": "Ung",
+      "fn": "Maeng",
+      "ln": "Seong Ung",
       "pos": "CM",
       "age": 28,
       "nat": "Korea Republic",
@@ -122334,8 +124658,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Jin",
-      "ln": "Seong",
+      "fn": "Park",
+      "ln": "Jin Seong",
       "pos": "LB",
       "age": 25,
       "nat": "Korea Republic",
@@ -122354,8 +124678,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Kim Jun",
-      "ln": "Ho",
+      "fn": "Kim",
+      "ln": "Jun Ho",
       "pos": "CDM",
       "age": 23,
       "nat": "Korea Republic",
@@ -122378,8 +124702,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Yi",
-      "ln": "Seok",
+      "fn": "Kim",
+      "ln": "Yi Seok",
       "pos": "CM",
       "age": 34,
       "nat": "Korea Republic",
@@ -122401,8 +124725,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Min",
-      "ln": "Gyu",
+      "fn": "Kim",
+      "ln": "Min Gyu",
       "pos": "CB",
       "age": 28,
       "nat": "Korea Republic",
@@ -122425,8 +124749,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Dae",
-      "ln": "Won",
+      "fn": "Park",
+      "ln": "Dae Won",
       "pos": "CB",
       "age": 28,
       "nat": "Korea Republic",
@@ -122448,8 +124772,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Oh In",
-      "ln": "Pyo",
+      "fn": "Oh",
+      "ln": "In Pyo",
       "pos": "RB",
       "age": 29,
       "nat": "Korea Republic",
@@ -122488,8 +124812,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Kim Kyung",
-      "ln": "Joon",
+      "fn": "Kim",
+      "ln": "Kyung Joon",
       "pos": "ST",
       "age": 29,
       "nat": "Korea Republic",
@@ -122512,8 +124836,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Won Ki",
-      "ln": "Jong",
+      "fn": "Won",
+      "ln": "Ki Jong",
       "pos": "ST",
       "age": 30,
       "nat": "Korea Republic",
@@ -122532,8 +124856,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Choo Sang",
-      "ln": "Hun",
+      "fn": "Choo",
+      "ln": "Sang Hun",
       "pos": "RW",
       "age": 26,
       "nat": "Korea Republic",
@@ -122555,8 +124879,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Moon Hyun",
-      "ln": "Ho",
+      "fn": "Moon",
+      "ln": "Hyun Ho",
       "pos": "GK",
       "age": 23,
       "nat": "Korea Republic",
@@ -122598,8 +124922,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Joo",
-      "ln": "Hyun",
+      "fn": "Lee",
+      "ln": "Joo Hyun",
       "pos": "GK",
       "age": 27,
       "nat": "Korea Republic",
@@ -122618,8 +124942,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Choi Ye",
-      "ln": "Hoon",
+      "fn": "Choi",
+      "ln": "Ye Hoon",
       "pos": "LB",
       "age": 22,
       "nat": "Korea Republic",
@@ -123401,7 +125725,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Portu",
+      "fn": "Cristian",
       "ln": "Portu",
       "pos": "RW",
       "age": 34,
@@ -123421,8 +125745,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Donny van de",
-      "ln": "Beek",
+      "fn": "Donny",
+      "ln": "van de Beek",
       "pos": "CAM",
       "age": 29,
       "nat": "Holland",
@@ -123514,7 +125838,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Francés",
+      "fn": "Alejandro",
       "ln": "Francés",
       "pos": "CB",
       "age": 24,
@@ -123777,8 +126101,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jari De",
-      "ln": "Busser",
+      "fn": "Jari",
+      "ln": "De Busser",
       "pos": "GK",
       "age": 26,
       "nat": "Belgium",
@@ -124763,8 +127087,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Luca Martínez",
-      "ln": "Dupuy",
+      "fn": "Luca",
+      "ln": "Martínez Dupuy",
       "pos": "ST",
       "age": 25,
       "nat": "Mexico",
@@ -124823,8 +127147,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Juan Segundo",
-      "ln": "Morán",
+      "fn": "Juan",
+      "ln": "Segundo Morán",
       "pos": "LB",
       "age": 20,
       "nat": "Argentina",
@@ -125254,8 +127578,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Young Jun",
-      "ln": "Goh",
+      "fn": "Young",
+      "ln": "Jun Goh",
       "pos": "CAM",
       "age": 25,
       "nat": "Korea Republic",
@@ -125277,7 +127601,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Josema",
+      "fn": "José",
       "ln": "Josema",
       "pos": "CB",
       "age": 30,
@@ -125956,8 +128280,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Uğur Kaan",
-      "ln": "Yıldız",
+      "fn": "Uğur",
+      "ln": "Kaan Yıldız",
       "pos": "RB",
       "age": 24,
       "nat": "Turkey",
@@ -126287,7 +128611,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Hormigo",
+      "fn": "Diego",
       "ln": "Hormigo",
       "pos": "LB",
       "age": 23,
@@ -126333,7 +128657,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Astralaga",
+      "fn": "Ander",
       "ln": "Astralaga",
       "pos": "GK",
       "age": 22,
@@ -126353,8 +128677,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Oscar Naasei",
-      "ln": "Oppong",
+      "fn": "Oscar",
+      "ln": "Naasei Oppong",
       "pos": "CB",
       "age": 21,
       "nat": "Ghana",
@@ -126441,8 +128765,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Young",
-      "ln": "Jun",
+      "fn": "Lee",
+      "ln": "Young Jun",
       "pos": "ST",
       "age": 23,
       "nat": "Korea Republic",
@@ -127736,8 +130060,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Samba Lélé",
-      "ln": "Diba",
+      "fn": "Samba",
+      "ln": "Lélé Diba",
       "pos": "CDM",
       "age": 22,
       "nat": "Senegal",
@@ -128083,8 +130407,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Jason Daði",
-      "ln": "Svanþórs­son",
+      "fn": "Jason",
+      "ln": "Daði Svanþórs­son",
       "pos": "RB",
       "age": 26,
       "nat": "Iceland",
@@ -128519,7 +130843,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "gwangju-fc": [
     {
-      "fn": "Reis",
+      "fn": "Isnairo",
       "ln": "Reis",
       "pos": "ST",
       "age": 33,
@@ -128543,8 +130867,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Gyeong",
-      "ln": "Min",
+      "fn": "Kim",
+      "ln": "Gyeong Min",
       "pos": "GK",
       "age": 34,
       "nat": "Korea Republic",
@@ -128563,8 +130887,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Byeon Jun",
-      "ln": "Soo",
+      "fn": "Byeon",
+      "ln": "Jun Soo",
       "pos": "CB",
       "age": 24,
       "nat": "Korea Republic",
@@ -128583,8 +130907,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Choi Kyoung",
-      "ln": "Rok",
+      "fn": "Choi",
+      "ln": "Kyoung Rok",
       "pos": "CM",
       "age": 31,
       "nat": "Korea Republic",
@@ -128607,8 +130931,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Kang",
-      "ln": "Hyeon",
+      "fn": "Lee",
+      "ln": "Kang Hyeon",
       "pos": "CDM",
       "age": 28,
       "nat": "Korea Republic",
@@ -128631,8 +130955,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hólmbert Aron",
-      "ln": "Friðjónsson",
+      "fn": "Hólmbert",
+      "ln": "Aron Friðjónsson",
       "pos": "ST",
       "age": 33,
       "nat": "Iceland",
@@ -128651,8 +130975,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Cho Sung",
-      "ln": "Gwon",
+      "fn": "Cho",
+      "ln": "Sung Gwon",
       "pos": "RB",
       "age": 25,
       "nat": "Korea Republic",
@@ -128674,8 +130998,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jin",
-      "ln": "Ho",
+      "fn": "Kim",
+      "ln": "Jin Ho",
       "pos": "RB",
       "age": 26,
       "nat": "Korea Republic",
@@ -128697,8 +131021,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Min",
-      "ln": "Gi",
+      "fn": "Lee",
+      "ln": "Min Gi",
       "pos": "LB",
       "age": 33,
       "nat": "Korea Republic",
@@ -128720,8 +131044,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ju Se",
-      "ln": "Jong",
+      "fn": "Ju",
+      "ln": "Se Jong",
       "pos": "CM",
       "age": 35,
       "nat": "Korea Republic",
@@ -128743,8 +131067,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park In",
-      "ln": "Hyeok",
+      "fn": "Park",
+      "ln": "In Hyeok",
       "pos": "ST",
       "age": 30,
       "nat": "Korea Republic",
@@ -128766,8 +131090,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ahn Young",
-      "ln": "Kyu",
+      "fn": "Ahn",
+      "ln": "Young Kyu",
       "pos": "CB",
       "age": 36,
       "nat": "Korea Republic",
@@ -128786,8 +131110,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Moon Min",
-      "ln": "Seo",
+      "fn": "Moon",
+      "ln": "Min Seo",
       "pos": "CM",
       "age": 22,
       "nat": "Korea Republic",
@@ -128809,8 +131133,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Oh Hoo",
-      "ln": "Sung",
+      "fn": "Oh",
+      "ln": "Hoo Sung",
       "pos": "ST",
       "age": 27,
       "nat": "Korea Republic",
@@ -128833,8 +131157,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sim Sang",
-      "ln": "Min",
+      "fn": "Sim",
+      "ln": "Sang Min",
       "pos": "LB",
       "age": 33,
       "nat": "Korea Republic",
@@ -128853,8 +131177,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Kim Han",
-      "ln": "Gil",
+      "fn": "Kim",
+      "ln": "Han Gil",
       "pos": "RB",
       "age": 31,
       "nat": "Korea Republic",
@@ -128873,8 +131197,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Min Sang",
-      "ln": "Gi",
+      "fn": "Min",
+      "ln": "Sang Gi",
       "pos": "CB",
       "age": 35,
       "nat": "Korea Republic",
@@ -128893,8 +131217,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Shin Chang",
-      "ln": "Moo",
+      "fn": "Shin",
+      "ln": "Chang Moo",
       "pos": "ST",
       "age": 33,
       "nat": "Korea Republic",
@@ -128916,8 +131240,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Jung",
-      "ln": "In",
+      "fn": "Park",
+      "ln": "Jung In",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -128939,8 +131263,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yu Je",
-      "ln": "Ho",
+      "fn": "Yu",
+      "ln": "Je Ho",
       "pos": "CM",
       "age": 26,
       "nat": "Korea Republic",
@@ -128962,8 +131286,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jung Ji",
-      "ln": "Hoon",
+      "fn": "Jung",
+      "ln": "Ji Hoon",
       "pos": "CAM",
       "age": 22,
       "nat": "Korea Republic",
@@ -128985,8 +131309,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kwon Seong",
-      "ln": "Yoon",
+      "fn": "Kwon",
+      "ln": "Seong Yoon",
       "pos": "RB",
       "age": 25,
       "nat": "Korea Republic",
@@ -129008,8 +131332,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ha Seung",
-      "ln": "Un",
+      "fn": "Ha",
+      "ln": "Seung Un",
       "pos": "LW",
       "age": 28,
       "nat": "Korea Republic",
@@ -129032,8 +131356,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jin Si",
-      "ln": "Woo",
+      "fn": "Jin",
+      "ln": "Si Woo",
       "pos": "CB",
       "age": 24,
       "nat": "Korea Republic",
@@ -129052,8 +131376,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Kang Hui",
-      "ln": "su",
+      "fn": "Kang",
+      "ln": "Hui su",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -129072,8 +131396,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Ahn Hyeok",
-      "ln": "Ju",
+      "fn": "Ahn",
+      "ln": "Hyeok Ju",
       "pos": "LW",
       "age": 21,
       "nat": "Korea Republic",
@@ -129092,8 +131416,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Roh Hee",
-      "ln": "Dong",
+      "fn": "Roh",
+      "ln": "Hee Dong",
       "pos": "GK",
       "age": 24,
       "nat": "Korea Republic",
@@ -129112,8 +131436,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Kim Dong",
-      "ln": "Hwa",
+      "fn": "Kim",
+      "ln": "Dong Hwa",
       "pos": "GK",
       "age": 23,
       "nat": "Korea Republic",
@@ -129132,8 +131456,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Kim Yun",
-      "ln": "Ho",
+      "fn": "Kim",
+      "ln": "Yun Ho",
       "pos": "ST",
       "age": 19,
       "nat": "Korea Republic",
@@ -129152,8 +131476,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Kwak Sung",
-      "ln": "Hun",
+      "fn": "Kwak",
+      "ln": "Sung Hun",
       "pos": "CB",
       "age": 20,
       "nat": "Korea Republic",
@@ -129172,8 +131496,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Kim Tae",
-      "ln": "Jun",
+      "fn": "Kim",
+      "ln": "Tae Jun",
       "pos": "GK",
       "age": 25,
       "nat": "Korea Republic",
@@ -129330,8 +131654,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Samuel Leach",
-      "ln": "Holm",
+      "fn": "Samuel",
+      "ln": "Leach Holm",
       "pos": "CDM",
       "age": 28,
       "nat": "Sweden",
@@ -129496,8 +131820,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Jacob Barrett",
-      "ln": "Laursen",
+      "fn": "Jacob",
+      "ln": "Barrett Laursen",
       "pos": "LB",
       "age": 31,
       "nat": "Denmark",
@@ -129540,8 +131864,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Danilo Al",
-      "ln": "Saed",
+      "fn": "Danilo",
+      "ln": "Al Saed",
       "pos": "LW",
       "age": 27,
       "nat": "Iraq",
@@ -129623,8 +131947,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "John Paul",
-      "ln": "Dembe",
+      "fn": "John",
+      "ln": "Paul Dembe",
       "pos": "ST",
       "age": 21,
       "nat": "Uganda",
@@ -129952,8 +132276,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Ismaël Chester",
-      "ln": "Diallo",
+      "fn": "Ismaël",
+      "ln": "Chester Diallo",
       "pos": "LB",
       "age": 29,
       "nat": "Côte d'Ivoire",
@@ -130633,8 +132957,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Aleksander Damnjanovic",
-      "ln": "Nilsson",
+      "fn": "Aleksander",
+      "ln": "Damnjanovic Nilsson",
       "pos": "CM",
       "age": 23,
       "nat": "Sweden",
@@ -130873,8 +133197,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Albert Sambi",
-      "ln": "Lokonga",
+      "fn": "Albert",
+      "ln": "Sambi Lokonga",
       "pos": "CM",
       "age": 26,
       "nat": "Belgium",
@@ -130956,8 +133280,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Daniel Heuer",
-      "ln": "Fernandes",
+      "fn": "Daniel",
+      "ln": "Heuer Fernandes",
       "pos": "GK",
       "age": 33,
       "nat": "Portugal",
@@ -131515,469 +133839,6 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     }
   ],
-  "hamkam": [
-    {
-      "fn": "Fredrik",
-      "ln": "Sjølstad",
-      "pos": "CB",
-      "age": 32,
-      "nat": "Norway",
-      "ovr": 66,
-      "pot": 66,
-      "pace": 59,
-      "shooting": 43,
-      "passing": 61,
-      "defending": 62,
-      "physical": 71,
-      "mental": 64,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "246911",
-      "heightCm": 187,
-      "weightKg": 78
-    },
-    {
-      "fn": "Marcus",
-      "ln": "Sandberg",
-      "pos": "GK",
-      "age": 35,
-      "nat": "Sweden",
-      "ovr": 66,
-      "pot": 66,
-      "pace": 65,
-      "shooting": 64,
-      "passing": 63,
-      "defending": 61,
-      "physical": 68,
-      "mental": 50,
-      "skillMoves": 1,
-      "source": "real",
-      "fcId": "191153",
-      "heightCm": 191,
-      "weightKg": 83
-    },
-    {
-      "fn": "Viðar Ari",
-      "ln": "Jónsson",
-      "pos": "RB",
-      "age": 32,
-      "nat": "Iceland",
-      "ovr": 65,
-      "pot": 65,
-      "pace": 80,
-      "shooting": 56,
-      "passing": 58,
-      "defending": 63,
-      "physical": 65,
-      "mental": 61,
-      "skillMoves": 3,
-      "source": "real",
-      "fcId": "238195",
-      "heightCm": 184,
-      "weightKg": 75
-    },
-    {
-      "fn": "Gard",
-      "ln": "Simenstad",
-      "pos": "CM",
-      "age": 27,
-      "nat": "Norway",
-      "ovr": 65,
-      "pot": 68,
-      "pace": 74,
-      "shooting": 57,
-      "passing": 64,
-      "defending": 57,
-      "physical": 65,
-      "mental": 62,
-      "skillMoves": 3,
-      "source": "real",
-      "fcId": "279832",
-      "heightCm": 179,
-      "weightKg": 70,
-      "altPos": [
-        "CAM"
-      ]
-    },
-    {
-      "fn": "Moses",
-      "ln": "Mawa",
-      "pos": "ST",
-      "age": 30,
-      "nat": "Norway",
-      "ovr": 65,
-      "pot": 65,
-      "pace": 82,
-      "shooting": 59,
-      "passing": 53,
-      "defending": 27,
-      "physical": 76,
-      "mental": 62,
-      "skillMoves": 3,
-      "source": "real",
-      "fcId": "252434",
-      "heightCm": 185,
-      "weightKg": 78
-    },
-    {
-      "fn": "Luc",
-      "ln": "Mares",
-      "pos": "CB",
-      "age": 29,
-      "nat": "Holland",
-      "ovr": 65,
-      "pot": 66,
-      "pace": 55,
-      "shooting": 54,
-      "passing": 58,
-      "defending": 64,
-      "physical": 74,
-      "mental": 56,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "71292",
-      "heightCm": 187,
-      "weightKg": 80
-    },
-    {
-      "fn": "Tore André",
-      "ln": "Sørås",
-      "pos": "CDM",
-      "age": 28,
-      "nat": "Norway",
-      "ovr": 64,
-      "pot": 66,
-      "pace": 65,
-      "shooting": 58,
-      "passing": 59,
-      "defending": 61,
-      "physical": 73,
-      "mental": 61,
-      "skillMoves": 3,
-      "source": "real",
-      "fcId": "239960",
-      "heightCm": 190,
-      "weightKg": 84,
-      "altPos": [
-        "CM"
-      ]
-    },
-    {
-      "fn": "Snorre Strand",
-      "ln": "Nilsen",
-      "pos": "RB",
-      "age": 29,
-      "nat": "Norway",
-      "ovr": 64,
-      "pot": 64,
-      "pace": 63,
-      "shooting": 42,
-      "passing": 56,
-      "defending": 58,
-      "physical": 72,
-      "mental": 56,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "229678",
-      "heightCm": 186,
-      "weightKg": 82
-    },
-    {
-      "fn": "Pål Alexander",
-      "ln": "Kirkevold",
-      "pos": "ST",
-      "age": 35,
-      "nat": "Norway",
-      "ovr": 64,
-      "pot": 64,
-      "pace": 52,
-      "shooting": 66,
-      "passing": 60,
-      "defending": 33,
-      "physical": 77,
-      "mental": 61,
-      "skillMoves": 3,
-      "source": "real",
-      "fcId": "227866",
-      "heightCm": 185,
-      "weightKg": 90,
-      "altPos": [
-        "CAM"
-      ]
-    },
-    {
-      "fn": "Gustav",
-      "ln": "Granath",
-      "pos": "CB",
-      "age": 29,
-      "nat": "Sweden",
-      "ovr": 64,
-      "pot": 66,
-      "pace": 60,
-      "shooting": 28,
-      "passing": 51,
-      "defending": 62,
-      "physical": 69,
-      "mental": 52,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "259916",
-      "heightCm": 191,
-      "weightKg": 82
-    },
-    {
-      "fn": "Halvor Rødølen",
-      "ln": "Opsahl",
-      "pos": "CB",
-      "age": 23,
-      "nat": "Norway",
-      "ovr": 64,
-      "pot": 75,
-      "pace": 54,
-      "shooting": 23,
-      "passing": 43,
-      "defending": 64,
-      "physical": 67,
-      "mental": 47,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "267694",
-      "heightCm": 188,
-      "weightKg": 80
-    },
-    {
-      "fn": "Anton",
-      "ln": "Ekeroth",
-      "pos": "LB",
-      "age": 24,
-      "nat": "Sweden",
-      "ovr": 63,
-      "pot": 70,
-      "pace": 76,
-      "shooting": 37,
-      "passing": 53,
-      "defending": 54,
-      "physical": 62,
-      "mental": 54,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "74175",
-      "heightCm": 181,
-      "weightKg": 72
-    },
-    {
-      "fn": "Alwande",
-      "ln": "Roaldsøy",
-      "pos": "CM",
-      "age": 22,
-      "nat": "Norway",
-      "ovr": 62,
-      "pot": 76,
-      "pace": 60,
-      "shooting": 58,
-      "passing": 58,
-      "defending": 61,
-      "physical": 68,
-      "mental": 60,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "70953",
-      "heightCm": 193,
-      "weightKg": 80,
-      "altPos": [
-        "CAM"
-      ]
-    },
-    {
-      "fn": "Kristian",
-      "ln": "Lien",
-      "pos": "ST",
-      "age": 24,
-      "nat": "Norway",
-      "ovr": 62,
-      "pot": 70,
-      "pace": 70,
-      "shooting": 61,
-      "passing": 49,
-      "defending": 20,
-      "physical": 59,
-      "mental": 53,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "256507",
-      "heightCm": 188,
-      "weightKg": 70
-    },
-    {
-      "fn": "Mats",
-      "ln": "Pedersen",
-      "pos": "CAM",
-      "age": 21,
-      "nat": "Norway",
-      "ovr": 61,
-      "pot": 76,
-      "pace": 69,
-      "shooting": 57,
-      "passing": 59,
-      "defending": 43,
-      "physical": 57,
-      "mental": 61,
-      "skillMoves": 3,
-      "source": "real",
-      "fcId": "276958",
-      "heightCm": 174,
-      "weightKg": 65,
-      "altPos": [
-        "CM"
-      ]
-    },
-    {
-      "fn": "Markus",
-      "ln": "Johnsgård",
-      "pos": "CM",
-      "age": 27,
-      "nat": "Norway",
-      "ovr": 61,
-      "pot": 63,
-      "pace": 63,
-      "shooting": 60,
-      "passing": 60,
-      "defending": 51,
-      "physical": 58,
-      "mental": 61,
-      "skillMoves": 3,
-      "source": "real",
-      "fcId": "71059",
-      "heightCm": 178,
-      "weightKg": 75,
-      "altPos": [
-        "CAM"
-      ]
-    },
-    {
-      "fn": "Alexander",
-      "ln": "Nilsson",
-      "pos": "GK",
-      "age": 29,
-      "nat": "Sweden",
-      "ovr": 61,
-      "pot": 63,
-      "pace": 62,
-      "shooting": 62,
-      "passing": 59,
-      "defending": 60,
-      "physical": 62,
-      "mental": 50,
-      "skillMoves": 1,
-      "source": "real",
-      "fcId": "252280",
-      "heightCm": 190,
-      "weightKg": 90
-    },
-    {
-      "fn": "Aksel Baran",
-      "ln": "Potur",
-      "pos": "CM",
-      "age": 23,
-      "nat": "Norway",
-      "ovr": 60,
-      "pot": 66,
-      "pace": 65,
-      "shooting": 52,
-      "passing": 53,
-      "defending": 52,
-      "physical": 61,
-      "mental": 58,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "77089",
-      "heightCm": 185,
-      "weightKg": 73
-    },
-    {
-      "fn": "Arne Hopland",
-      "ln": "Ødegård",
-      "pos": "CM",
-      "age": 22,
-      "nat": "Norway",
-      "ovr": 59,
-      "pot": 73,
-      "pace": 57,
-      "shooting": 52,
-      "passing": 57,
-      "defending": 47,
-      "physical": 64,
-      "mental": 56,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "275059",
-      "heightCm": 178,
-      "weightKg": 76
-    },
-    {
-      "fn": "Mads Orrhaug",
-      "ln": "Larsen",
-      "pos": "CB",
-      "age": 20,
-      "nat": "Norway",
-      "ovr": 57,
-      "pot": 74,
-      "pace": 64,
-      "shooting": 29,
-      "passing": 40,
-      "defending": 57,
-      "physical": 55,
-      "mental": 51,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "78036",
-      "heightCm": 187,
-      "weightKg": 74
-    },
-    {
-      "fn": "Sander",
-      "ln": "Østraat",
-      "pos": "GK",
-      "age": 21,
-      "nat": "Norway",
-      "ovr": 56,
-      "pot": 71,
-      "pace": 55,
-      "shooting": 55,
-      "passing": 52,
-      "defending": 56,
-      "physical": 54,
-      "mental": 47,
-      "skillMoves": 1,
-      "source": "real",
-      "fcId": "273615",
-      "heightCm": 191,
-      "weightKg": 80
-    },
-    {
-      "fn": "Ola Nikolai",
-      "ln": "Rye",
-      "pos": "LB",
-      "age": 21,
-      "nat": "Norway",
-      "ovr": 53,
-      "pot": 69,
-      "pace": 60,
-      "shooting": 26,
-      "passing": 32,
-      "defending": 49,
-      "physical": 60,
-      "mental": 42,
-      "skillMoves": 2,
-      "source": "real",
-      "fcId": "77077",
-      "heightCm": 193,
-      "weightKg": 76,
-      "altPos": [
-        "CB"
-      ]
-    }
-  ],
   "hammarby": [
     {
       "fn": "Tesfaldet",
@@ -132174,8 +134035,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 91
     },
     {
-      "fn": "Oscar Johansson",
-      "ln": "Schellhas",
+      "fn": "Oscar",
+      "ln": "Johansson Schellhas",
       "pos": "CM",
       "age": 31,
       "nat": "Sweden",
@@ -132240,8 +134101,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Jacob Ouro",
-      "ln": "Ortmark",
+      "fn": "Jacob",
+      "ln": "Ouro Ortmark",
       "pos": "CM",
       "age": 28,
       "nat": "Sweden",
@@ -132264,8 +134125,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Frank Junior",
-      "ln": "Adjei",
+      "fn": "Frank",
+      "ln": "Junior Adjei",
       "pos": "CM",
       "age": 22,
       "nat": "Ghana",
@@ -132288,8 +134149,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Obilor Denzel",
-      "ln": "Okeke",
+      "fn": "Obilor",
+      "ln": "Denzel Okeke",
       "pos": "LW",
       "age": 24,
       "nat": "Norway",
@@ -132354,8 +134215,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ibrahima Breze",
-      "ln": "Fofana",
+      "fn": "Ibrahima",
+      "ln": "Breze Fofana",
       "pos": "CB",
       "age": 24,
       "nat": "Guinea",
@@ -134340,8 +136201,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sory Ibrahim",
-      "ln": "Diarra",
+      "fn": "Sory",
+      "ln": "Ibrahim Diarra",
       "pos": "ST",
       "age": 26,
       "nat": "Mali",
@@ -134503,8 +136364,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Troy Engseth",
-      "ln": "Nyhammer",
+      "fn": "Troy",
+      "ln": "Engseth Nyhammer",
       "pos": "RW",
       "age": 20,
       "nat": "Norway",
@@ -134673,8 +136534,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Almar Gjerd",
-      "ln": "Grindhaug",
+      "fn": "Almar",
+      "ln": "Gjerd Grindhaug",
       "pos": "CM",
       "age": 20,
       "nat": "Norway",
@@ -134693,8 +136554,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Einar Bøe",
-      "ln": "Fauskanger",
+      "fn": "Einar",
+      "ln": "Bøe Fauskanger",
       "pos": "GK",
       "age": 18,
       "nat": "Norway",
@@ -134713,8 +136574,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Mathias Bakken",
-      "ln": "Myklebust",
+      "fn": "Mathias",
+      "ln": "Bakken Myklebust",
       "pos": "LB",
       "age": 20,
       "nat": "Norway",
@@ -134730,6 +136591,593 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "source": "real",
       "fcId": "71860",
       "heightCm": 180,
+      "weightKg": 70
+    }
+  ],
+  "hearts": [
+    {
+      "fn": "Lawrence",
+      "ln": "Shankland",
+      "pos": "ST",
+      "age": 31,
+      "nat": "Scotland",
+      "ovr": 73,
+      "pot": 73,
+      "pace": 63,
+      "shooting": 75,
+      "passing": 68,
+      "defending": 28,
+      "physical": 80,
+      "mental": 73,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "216218",
+      "heightCm": 185,
+      "weightKg": 80,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Frankie",
+      "ln": "Kent",
+      "pos": "CB",
+      "age": 30,
+      "nat": "England",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 59,
+      "shooting": 30,
+      "passing": 54,
+      "defending": 72,
+      "physical": 79,
+      "mental": 62,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "220140",
+      "heightCm": 188,
+      "weightKg": 76
+    },
+    {
+      "fn": "Cameron",
+      "ln": "Devlin",
+      "pos": "CDM",
+      "age": 28,
+      "nat": "Australia",
+      "ovr": 71,
+      "pot": 74,
+      "pace": 68,
+      "shooting": 53,
+      "passing": 66,
+      "defending": 69,
+      "physical": 72,
+      "mental": 68,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "246006",
+      "heightCm": 171,
+      "weightKg": 78,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Beni",
+      "ln": "Baningime",
+      "pos": "CDM",
+      "age": 27,
+      "nat": "Congo DR",
+      "ovr": 71,
+      "pot": 74,
+      "pace": 46,
+      "shooting": 52,
+      "passing": 63,
+      "defending": 69,
+      "physical": 75,
+      "mental": 69,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "238062",
+      "heightCm": 178,
+      "weightKg": 70,
+      "altPos": [
+        "CM",
+        "CB"
+      ]
+    },
+    {
+      "fn": "Zander",
+      "ln": "Clark",
+      "pos": "GK",
+      "age": 34,
+      "nat": "Scotland",
+      "ovr": 70,
+      "pot": 70,
+      "pace": 73,
+      "shooting": 70,
+      "passing": 71,
+      "defending": 67,
+      "physical": 66,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "204269",
+      "heightCm": 193,
+      "weightKg": 80
+    },
+    {
+      "fn": "Blair",
+      "ln": "Spittal",
+      "pos": "CM",
+      "age": 30,
+      "nat": "Scotland",
+      "ovr": 69,
+      "pot": 69,
+      "pace": 71,
+      "shooting": 69,
+      "passing": 68,
+      "defending": 56,
+      "physical": 67,
+      "mental": 67,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "223663",
+      "heightCm": 184,
+      "weightKg": 77,
+      "altPos": [
+        "CAM",
+        "LW"
+      ]
+    },
+    {
+      "fn": "Craig",
+      "ln": "Halkett",
+      "pos": "CB",
+      "age": 31,
+      "nat": "Scotland",
+      "ovr": 69,
+      "pot": 69,
+      "pace": 51,
+      "shooting": 51,
+      "passing": 57,
+      "defending": 69,
+      "physical": 71,
+      "mental": 57,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "222045",
+      "heightCm": 183,
+      "weightKg": 75
+    },
+    {
+      "fn": "Calem",
+      "ln": "Nieuwenhof",
+      "pos": "CM",
+      "age": 25,
+      "nat": "Australia",
+      "ovr": 68,
+      "pot": 75,
+      "pace": 76,
+      "shooting": 61,
+      "passing": 61,
+      "defending": 67,
+      "physical": 70,
+      "mental": 68,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "257890",
+      "heightCm": 181,
+      "weightKg": 73,
+      "altPos": [
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Stephen",
+      "ln": "Kingsley",
+      "pos": "CB",
+      "age": 32,
+      "nat": "Scotland",
+      "ovr": 67,
+      "pot": 67,
+      "pace": 56,
+      "shooting": 54,
+      "passing": 67,
+      "defending": 63,
+      "physical": 70,
+      "mental": 63,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "223747",
+      "heightCm": 178,
+      "weightKg": 77,
+      "altPos": [
+        "LB"
+      ]
+    },
+    {
+      "fn": "Alan",
+      "ln": "Forrest",
+      "pos": "LW",
+      "age": 29,
+      "nat": "Scotland",
+      "ovr": 67,
+      "pot": 67,
+      "pace": 80,
+      "shooting": 63,
+      "passing": 59,
+      "defending": 45,
+      "physical": 52,
+      "mental": 64,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "256421",
+      "heightCm": 176,
+      "weightKg": 74
+    },
+    {
+      "fn": "Alexandros",
+      "ln": "Kyziridis",
+      "pos": "LW",
+      "age": 25,
+      "nat": "Greece",
+      "ovr": 67,
+      "pot": 73,
+      "pace": 75,
+      "shooting": 68,
+      "passing": 61,
+      "defending": 25,
+      "physical": 64,
+      "mental": 61,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "276211",
+      "heightCm": 179,
+      "weightKg": 71,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Craig",
+      "ln": "Gordon",
+      "pos": "GK",
+      "age": 43,
+      "nat": "Scotland",
+      "ovr": 67,
+      "pot": 67,
+      "pace": 68,
+      "shooting": 67,
+      "passing": 63,
+      "defending": 68,
+      "physical": 66,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "53110",
+      "heightCm": 193,
+      "weightKg": 83
+    },
+    {
+      "fn": "Michael",
+      "ln": "Steinwender",
+      "pos": "CB",
+      "age": 26,
+      "nat": "Austria",
+      "ovr": 67,
+      "pot": 73,
+      "pace": 39,
+      "shooting": 30,
+      "passing": 44,
+      "defending": 67,
+      "physical": 75,
+      "mental": 52,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "245233",
+      "heightCm": 190,
+      "weightKg": 77
+    },
+    {
+      "fn": "Sander",
+      "ln": "Erik Kartum",
+      "pos": "CM",
+      "age": 30,
+      "nat": "Norway",
+      "ovr": 66,
+      "pot": 66,
+      "pace": 72,
+      "shooting": 62,
+      "passing": 64,
+      "defending": 60,
+      "physical": 65,
+      "mental": 70,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "261456",
+      "heightCm": 180,
+      "weightKg": 73,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Cláudio",
+      "ln": "Braga",
+      "pos": "ST",
+      "age": 26,
+      "nat": "Portugal",
+      "ovr": 66,
+      "pot": 72,
+      "pace": 70,
+      "shooting": 68,
+      "passing": 52,
+      "defending": 24,
+      "physical": 55,
+      "mental": 59,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "79274",
+      "heightCm": 180,
+      "weightKg": 70,
+      "altPos": [
+        "RW",
+        "LW"
+      ]
+    },
+    {
+      "fn": "Jamie",
+      "ln": "McCart",
+      "pos": "CB",
+      "age": 29,
+      "nat": "Scotland",
+      "ovr": 66,
+      "pot": 68,
+      "pace": 65,
+      "shooting": 32,
+      "passing": 42,
+      "defending": 65,
+      "physical": 71,
+      "mental": 50,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "227951",
+      "heightCm": 186,
+      "weightKg": 75
+    },
+    {
+      "fn": "Stuart",
+      "ln": "Findlay",
+      "pos": "CB",
+      "age": 30,
+      "nat": "Scotland",
+      "ovr": 66,
+      "pot": 68,
+      "pace": 52,
+      "shooting": 39,
+      "passing": 50,
+      "defending": 65,
+      "physical": 76,
+      "mental": 52,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "227945",
+      "heightCm": 191,
+      "weightKg": 82
+    },
+    {
+      "fn": "Christian",
+      "ln": "Dahle Borchgrevink",
+      "pos": "RB",
+      "age": 27,
+      "nat": "Norway",
+      "ovr": 65,
+      "pot": 68,
+      "pace": 68,
+      "shooting": 53,
+      "passing": 60,
+      "defending": 61,
+      "physical": 67,
+      "mental": 57,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "238091",
+      "heightCm": 182,
+      "weightKg": 75
+    },
+    {
+      "fn": "Elton",
+      "ln": "Kabangu",
+      "pos": "ST",
+      "age": 28,
+      "nat": "Belgium",
+      "ovr": 65,
+      "pot": 66,
+      "pace": 72,
+      "shooting": 65,
+      "passing": 60,
+      "defending": 33,
+      "physical": 51,
+      "mental": 60,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "231322",
+      "heightCm": 178,
+      "weightKg": 70,
+      "altPos": [
+        "LW"
+      ]
+    },
+    {
+      "fn": "Kenneth",
+      "ln": "Vargas",
+      "pos": "ST",
+      "age": 24,
+      "nat": "Costa Rica",
+      "ovr": 65,
+      "pot": 73,
+      "pace": 82,
+      "shooting": 70,
+      "passing": 49,
+      "defending": 24,
+      "physical": 54,
+      "mental": 52,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "268710",
+      "heightCm": 175,
+      "weightKg": 70,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Ryan",
+      "ln": "Fulton",
+      "pos": "GK",
+      "age": 30,
+      "nat": "Scotland",
+      "ovr": 63,
+      "pot": 65,
+      "pace": 68,
+      "shooting": 63,
+      "passing": 63,
+      "defending": 60,
+      "physical": 62,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "219482",
+      "heightCm": 191,
+      "weightKg": 70
+    },
+    {
+      "fn": "Harry",
+      "ln": "Milne",
+      "pos": "LB",
+      "age": 29,
+      "nat": "Scotland",
+      "ovr": 63,
+      "pot": 64,
+      "pace": 66,
+      "shooting": 25,
+      "passing": 52,
+      "defending": 58,
+      "physical": 62,
+      "mental": 49,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "77043",
+      "heightCm": 183,
+      "weightKg": 76
+    },
+    {
+      "fn": "James",
+      "ln": "Wilson",
+      "pos": "ST",
+      "age": 19,
+      "nat": "Scotland",
+      "ovr": 63,
+      "pot": 82,
+      "pace": 72,
+      "shooting": 66,
+      "passing": 42,
+      "defending": 19,
+      "physical": 58,
+      "mental": 62,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "278600",
+      "heightCm": 170,
+      "weightKg": 70
+    },
+    {
+      "fn": "Oisín",
+      "ln": "McEntee",
+      "pos": "CM",
+      "age": 25,
+      "nat": "Republic of Ireland",
+      "ovr": 61,
+      "pot": 66,
+      "pace": 57,
+      "shooting": 45,
+      "passing": 59,
+      "defending": 63,
+      "physical": 73,
+      "mental": 59,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "253111",
+      "heightCm": 190,
+      "weightKg": 78,
+      "altPos": [
+        "CB",
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Harry",
+      "ln": "Stone",
+      "pos": "GK",
+      "age": 24,
+      "nat": "Scotland",
+      "ovr": 61,
+      "pot": 71,
+      "pace": 61,
+      "shooting": 64,
+      "passing": 58,
+      "defending": 55,
+      "physical": 60,
+      "mental": 47,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "262989",
+      "heightCm": 191,
+      "weightKg": 70
+    },
+    {
+      "fn": "Finlay",
+      "ln": "Pollock",
+      "pos": "CAM",
+      "age": 22,
+      "nat": "Scotland",
+      "ovr": 59,
+      "pot": 73,
+      "pace": 68,
+      "shooting": 50,
+      "passing": 57,
+      "defending": 42,
+      "physical": 47,
+      "mental": 57,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "263293",
+      "heightCm": 178,
+      "weightKg": 68,
+      "altPos": [
+        "ST",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Sabah",
+      "ln": "Kerjota",
+      "pos": "RW",
+      "age": 25,
+      "nat": "Albania",
+      "ovr": 59,
+      "pot": 66,
+      "pace": 69,
+      "shooting": 58,
+      "passing": 50,
+      "defending": 26,
+      "physical": 47,
+      "mental": 57,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "80080",
+      "heightCm": 176,
       "weightKg": 70
     }
   ],
@@ -134758,8 +137206,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Joris van",
-      "ln": "Overeem",
+      "fn": "Joris",
+      "ln": "van Overeem",
       "pos": "CM",
       "age": 32,
       "nat": "Holland",
@@ -135100,8 +137548,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Amourricho van Axel",
-      "ln": "Dongen",
+      "fn": "Amourricho",
+      "ln": "van Axel Dongen",
       "pos": "LW",
       "age": 21,
       "nat": "Holland",
@@ -135268,8 +137716,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "hellas-verona": [
     {
-      "fn": "Ali Al",
-      "ln": "Musrati",
+      "fn": "Ali",
+      "ln": "Al Musrati",
       "pos": "CDM",
       "age": 30,
       "nat": "Libya",
@@ -135850,8 +138298,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Fabian de",
-      "ln": "Keijzer",
+      "fn": "Fabian",
+      "ln": "de Keijzer",
       "pos": "GK",
       "age": 26,
       "nat": "Holland",
@@ -135870,8 +138318,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Alec Van",
-      "ln": "Hoorenbeeck",
+      "fn": "Alec",
+      "ln": "Van Hoorenbeeck",
       "pos": "CB",
       "age": 27,
       "nat": "Belgium",
@@ -135939,8 +138387,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Djevencio van der",
-      "ln": "Kust",
+      "fn": "Djevencio",
+      "ln": "van der Kust",
       "pos": "LB",
       "age": 25,
       "nat": "Suriname",
@@ -136135,8 +138583,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mike te",
-      "ln": "Wierik",
+      "fn": "Mike",
+      "ln": "te Wierik",
       "pos": "CB",
       "age": 34,
       "nat": "Holland",
@@ -136181,8 +138629,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yvandro Borges",
-      "ln": "Sanches",
+      "fn": "Yvandro",
+      "ln": "Borges Sanches",
       "pos": "LW",
       "age": 22,
       "nat": "Luxembourg",
@@ -136221,8 +138669,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Tristan van",
-      "ln": "Gilst",
+      "fn": "Tristan",
+      "ln": "van Gilst",
       "pos": "CAM",
       "age": 23,
       "nat": "Holland",
@@ -137159,8 +139607,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jón Dagur",
-      "ln": "Þorsteinsson",
+      "fn": "Jón",
+      "ln": "Dagur Þorsteinsson",
       "pos": "LW",
       "age": 27,
       "nat": "Iceland",
@@ -137455,8 +139903,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Boris Mamuzah",
-      "ln": "Lum",
+      "fn": "Boris",
+      "ln": "Mamuzah Lum",
       "pos": "CDM",
       "age": 18,
       "nat": "Germany",
@@ -139905,7 +142353,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Artur",
+      "fn": "José",
       "ln": "Artur",
       "pos": "CDM",
       "age": 30,
@@ -140335,8 +142783,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Stephen Annor",
-      "ln": "Gyamfi",
+      "fn": "Stephen",
+      "ln": "Annor Gyamfi",
       "pos": "ST",
       "age": 23,
       "nat": "Ghana",
@@ -141451,8 +143899,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Babajide David",
-      "ln": "Akintola",
+      "fn": "Babajide",
+      "ln": "David Akintola",
       "pos": "LW",
       "age": 30,
       "nat": "Nigeria",
@@ -141818,8 +144266,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Hernán De La",
-      "ln": "Fuente",
+      "fn": "Hernán",
+      "ln": "De La Fuente",
       "pos": "RB",
       "age": 29,
       "nat": "Argentina",
@@ -142871,8 +145319,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ramon Pascal",
-      "ln": "Lundqvist",
+      "fn": "Ramon",
+      "ln": "Pascal Lundqvist",
       "pos": "CAM",
       "age": 29,
       "nat": "Sweden",
@@ -143267,8 +145715,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "David Moberg",
-      "ln": "Karlsson",
+      "fn": "David",
+      "ln": "Moberg Karlsson",
       "pos": "RW",
       "age": 32,
       "nat": "Sweden",
@@ -143287,8 +145735,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Arnór Ingvi",
-      "ln": "Traustason",
+      "fn": "Arnór",
+      "ln": "Ingvi Traustason",
       "pos": "CM",
       "age": 33,
       "nat": "Iceland",
@@ -143334,8 +145782,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ísak Andri",
-      "ln": "Sigurgeirsson",
+      "fn": "Ísak",
+      "ln": "Andri Sigurgeirsson",
       "pos": "LW",
       "age": 22,
       "nat": "Iceland",
@@ -143401,8 +145849,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "David Mitov",
-      "ln": "Nilsson",
+      "fn": "David",
+      "ln": "Mitov Nilsson",
       "pos": "GK",
       "age": 35,
       "nat": "North Macedonia",
@@ -143464,8 +145912,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kevin Höög",
-      "ln": "Jansson",
+      "fn": "Kevin",
+      "ln": "Höög Jansson",
       "pos": "CB",
       "age": 25,
       "nat": "Sweden",
@@ -143651,8 +146099,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Jónatan Guðni",
-      "ln": "Arnarsson",
+      "fn": "Jónatan",
+      "ln": "Guðni Arnarsson",
       "pos": "RW",
       "age": 19,
       "nat": "Iceland",
@@ -144274,8 +146722,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Jonathan de",
-      "ln": "Irastorza",
+      "fn": "Jonathan",
+      "ln": "de Irastorza",
       "pos": "LB",
       "age": 21,
       "nat": "Argentina",
@@ -145068,8 +147516,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Francis Mac",
-      "ln": "Allister",
+      "fn": "Francis",
+      "ln": "Mac Allister",
       "pos": "CDM",
       "age": 30,
       "nat": "Argentina",
@@ -145092,8 +147540,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Ignacio",
-      "ln": "Méndez",
+      "fn": "Juan",
+      "ln": "Ignacio Méndez",
       "pos": "CM",
       "age": 29,
       "nat": "Argentina",
@@ -145258,8 +147706,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Juan José",
-      "ln": "Franco",
+      "fn": "Juan",
+      "ln": "José Franco",
       "pos": "RB",
       "age": 34,
       "nat": "Paraguay",
@@ -145457,8 +147905,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Manuel",
-      "ln": "Romero",
+      "fn": "Juan",
+      "ln": "Manuel Romero",
       "pos": "ST",
       "age": 25,
       "nat": "Paraguay",
@@ -145610,8 +148058,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rodrigo De",
-      "ln": "Paul",
+      "fn": "Rodrigo",
+      "ln": "De Paul",
       "pos": "CM",
       "age": 32,
       "nat": "Argentina",
@@ -146054,8 +148502,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Rocco Ríos",
-      "ln": "Novo",
+      "fn": "Rocco",
+      "ln": "Ríos Novo",
       "pos": "GK",
       "age": 24,
       "nat": "Argentina",
@@ -146138,6 +148586,527 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "fcId": "276169",
       "heightCm": 180,
       "weightKg": 68
+    }
+  ],
+  "inter-milan": [
+    {
+      "fn": "Lautaro",
+      "ln": "Martínez",
+      "pos": "ST",
+      "age": 29,
+      "nat": "Argentina",
+      "ovr": 88,
+      "pot": 88,
+      "pace": 81,
+      "shooting": 86,
+      "passing": 75,
+      "defending": 53,
+      "physical": 83,
+      "mental": 84,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "231478",
+      "heightCm": 174,
+      "weightKg": 72
+    },
+    {
+      "fn": "Alessandro",
+      "ln": "Bastoni",
+      "pos": "CB",
+      "age": 27,
+      "nat": "Italy",
+      "ovr": 87,
+      "pot": 89,
+      "pace": 76,
+      "shooting": 46,
+      "passing": 77,
+      "defending": 88,
+      "physical": 82,
+      "mental": 81,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "237383",
+      "heightCm": 190,
+      "weightKg": 75
+    },
+    {
+      "fn": "Yann",
+      "ln": "Sommer",
+      "pos": "GK",
+      "age": 37,
+      "nat": "Switzerland",
+      "ovr": 87,
+      "pot": 87,
+      "pace": 89,
+      "shooting": 83,
+      "passing": 87,
+      "defending": 87,
+      "physical": 80,
+      "mental": 47,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "177683",
+      "heightCm": 183,
+      "weightKg": 77
+    },
+    {
+      "fn": "Nicolò",
+      "ln": "Barella",
+      "pos": "CM",
+      "age": 29,
+      "nat": "Italy",
+      "ovr": 87,
+      "pot": 87,
+      "pace": 80,
+      "shooting": 78,
+      "passing": 84,
+      "defending": 78,
+      "physical": 76,
+      "mental": 85,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "224232",
+      "heightCm": 175,
+      "weightKg": 68
+    },
+    {
+      "fn": "Hakan",
+      "ln": "Çalhanoğlu",
+      "pos": "CDM",
+      "age": 32,
+      "nat": "Turkey",
+      "ovr": 86,
+      "pot": 86,
+      "pace": 71,
+      "shooting": 81,
+      "passing": 87,
+      "defending": 79,
+      "physical": 71,
+      "mental": 84,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "208128",
+      "heightCm": 178,
+      "weightKg": 69,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Federico",
+      "ln": "Dimarco",
+      "pos": "LB",
+      "age": 28,
+      "nat": "Italy",
+      "ovr": 85,
+      "pot": 85,
+      "pace": 80,
+      "shooting": 78,
+      "passing": 84,
+      "defending": 82,
+      "physical": 77,
+      "mental": 81,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "226268",
+      "heightCm": 175,
+      "weightKg": 76
+    },
+    {
+      "fn": "Marcus",
+      "ln": "Thuram",
+      "pos": "ST",
+      "age": 29,
+      "nat": "France",
+      "ovr": 85,
+      "pot": 85,
+      "pace": 86,
+      "shooting": 83,
+      "passing": 74,
+      "defending": 50,
+      "physical": 80,
+      "mental": 81,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "228093",
+      "heightCm": 192,
+      "weightKg": 80
+    },
+    {
+      "fn": "Denzel",
+      "ln": "Dumfries",
+      "pos": "RB",
+      "age": 30,
+      "nat": "Holland",
+      "ovr": 84,
+      "pot": 84,
+      "pace": 84,
+      "shooting": 70,
+      "passing": 75,
+      "defending": 79,
+      "physical": 84,
+      "mental": 80,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "233096",
+      "heightCm": 188,
+      "weightKg": 80
+    },
+    {
+      "fn": "Francesco",
+      "ln": "Acerbi",
+      "pos": "CB",
+      "age": 38,
+      "nat": "Italy",
+      "ovr": 84,
+      "pot": 84,
+      "pace": 57,
+      "shooting": 48,
+      "passing": 65,
+      "defending": 87,
+      "physical": 81,
+      "mental": 78,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "199845",
+      "heightCm": 192,
+      "weightKg": 88
+    },
+    {
+      "fn": "Stefan",
+      "ln": "de Vrij",
+      "pos": "CB",
+      "age": 34,
+      "nat": "Holland",
+      "ovr": 84,
+      "pot": 84,
+      "pace": 65,
+      "shooting": 41,
+      "passing": 68,
+      "defending": 86,
+      "physical": 72,
+      "mental": 80,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "198176",
+      "heightCm": 189,
+      "weightKg": 78
+    },
+    {
+      "fn": "Henrikh",
+      "ln": "Mkhitaryan",
+      "pos": "CM",
+      "age": 37,
+      "nat": "Armenia",
+      "ovr": 83,
+      "pot": 83,
+      "pace": 74,
+      "shooting": 78,
+      "passing": 80,
+      "defending": 72,
+      "physical": 77,
+      "mental": 84,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "192883",
+      "heightCm": 177,
+      "weightKg": 75
+    },
+    {
+      "fn": "Manuel",
+      "ln": "Akanji",
+      "pos": "CB",
+      "age": 31,
+      "nat": "Switzerland",
+      "ovr": 82,
+      "pot": 82,
+      "pace": 74,
+      "shooting": 48,
+      "passing": 69,
+      "defending": 80,
+      "physical": 81,
+      "mental": 75,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "229237",
+      "heightCm": 187,
+      "weightKg": 91
+    },
+    {
+      "fn": "Davide",
+      "ln": "Frattesi",
+      "pos": "CM",
+      "age": 26,
+      "nat": "Italy",
+      "ovr": 81,
+      "pot": 83,
+      "pace": 79,
+      "shooting": 77,
+      "passing": 80,
+      "defending": 73,
+      "physical": 72,
+      "mental": 80,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "239807",
+      "heightCm": 178,
+      "weightKg": 74
+    },
+    {
+      "fn": "Carlos",
+      "ln": "Augusto",
+      "pos": "LB",
+      "age": 27,
+      "nat": "Brazil",
+      "ovr": 81,
+      "pot": 82,
+      "pace": 76,
+      "shooting": 72,
+      "passing": 77,
+      "defending": 79,
+      "physical": 76,
+      "mental": 79,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "258648",
+      "heightCm": 184,
+      "weightKg": 75,
+      "altPos": [
+        "CB"
+      ]
+    },
+    {
+      "fn": "Matteo",
+      "ln": "Darmian",
+      "pos": "RB",
+      "age": 36,
+      "nat": "Italy",
+      "ovr": 81,
+      "pot": 81,
+      "pace": 71,
+      "shooting": 60,
+      "passing": 74,
+      "defending": 81,
+      "physical": 74,
+      "mental": 77,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "184392",
+      "heightCm": 182,
+      "weightKg": 70,
+      "altPos": [
+        "CB"
+      ]
+    },
+    {
+      "fn": "Piotr",
+      "ln": "Zieliński",
+      "pos": "CM",
+      "age": 32,
+      "nat": "Poland",
+      "ovr": 80,
+      "pot": 80,
+      "pace": 76,
+      "shooting": 74,
+      "passing": 78,
+      "defending": 70,
+      "physical": 59,
+      "mental": 82,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "210406",
+      "heightCm": 180,
+      "weightKg": 75
+    },
+    {
+      "fn": "Luis",
+      "ln": "Henrique",
+      "pos": "RW",
+      "age": 24,
+      "nat": "Brazil",
+      "ovr": 78,
+      "pot": 83,
+      "pace": 90,
+      "shooting": 75,
+      "passing": 71,
+      "defending": 54,
+      "physical": 77,
+      "mental": 75,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "256632",
+      "heightCm": 181,
+      "weightKg": 85
+    },
+    {
+      "fn": "Yann",
+      "ln": "Aurel Bisseck",
+      "pos": "CB",
+      "age": 25,
+      "nat": "Germany",
+      "ovr": 76,
+      "pot": 80,
+      "pace": 76,
+      "shooting": 57,
+      "passing": 63,
+      "defending": 78,
+      "physical": 76,
+      "mental": 71,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "241736",
+      "heightCm": 196,
+      "weightKg": 83
+    },
+    {
+      "fn": "Yoan",
+      "ln": "Bonny",
+      "pos": "ST",
+      "age": 22,
+      "nat": "France",
+      "ovr": 76,
+      "pot": 86,
+      "pace": 87,
+      "shooting": 75,
+      "passing": 67,
+      "defending": 32,
+      "physical": 68,
+      "mental": 71,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "259565",
+      "heightCm": 189,
+      "weightKg": 86,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Andy",
+      "ln": "Diouf",
+      "pos": "CM",
+      "age": 23,
+      "nat": "France",
+      "ovr": 75,
+      "pot": 81,
+      "pace": 77,
+      "shooting": 68,
+      "passing": 74,
+      "defending": 67,
+      "physical": 76,
+      "mental": 75,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "268534",
+      "heightCm": 187,
+      "weightKg": 81,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Josep",
+      "ln": "Martínez",
+      "pos": "GK",
+      "age": 28,
+      "nat": "Spain",
+      "ovr": 75,
+      "pot": 77,
+      "pace": 74,
+      "shooting": 75,
+      "passing": 67,
+      "defending": 76,
+      "physical": 74,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "243311",
+      "heightCm": 191,
+      "weightKg": 78
+    },
+    {
+      "fn": "Petar",
+      "ln": "Sučić",
+      "pos": "CM",
+      "age": 22,
+      "nat": "Croatia",
+      "ovr": 74,
+      "pot": 83,
+      "pace": 69,
+      "shooting": 71,
+      "passing": 72,
+      "defending": 61,
+      "physical": 74,
+      "mental": 75,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "276278",
+      "heightCm": 183,
+      "weightKg": 76,
+      "altPos": [
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Francesco",
+      "ln": "Pio Esposito",
+      "pos": "ST",
+      "age": 21,
+      "nat": "Italy",
+      "ovr": 71,
+      "pot": 84,
+      "pace": 64,
+      "shooting": 71,
+      "passing": 60,
+      "defending": 34,
+      "physical": 68,
+      "mental": 62,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "277327",
+      "heightCm": 191,
+      "weightKg": 76
+    },
+    {
+      "fn": "Raffaele",
+      "ln": "Di Gennaro",
+      "pos": "GK",
+      "age": 32,
+      "nat": "Italy",
+      "ovr": 68,
+      "pot": 68,
+      "pace": 72,
+      "shooting": 71,
+      "passing": 62,
+      "defending": 65,
+      "physical": 65,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "219715",
+      "heightCm": 186,
+      "weightKg": 80
+    },
+    {
+      "fn": "Tomás",
+      "ln": "Palacios",
+      "pos": "CB",
+      "age": 23,
+      "nat": "Argentina",
+      "ovr": 67,
+      "pot": 77,
+      "pace": 53,
+      "shooting": 41,
+      "passing": 41,
+      "defending": 68,
+      "physical": 68,
+      "mental": 46,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "268558",
+      "heightCm": 196,
+      "weightKg": 80
     }
   ],
   "ipswich-town": [
@@ -146628,8 +149597,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Sindre Walle",
-      "ln": "Egeli",
+      "fn": "Sindre",
+      "ln": "Walle Egeli",
       "pos": "RW",
       "age": 20,
       "nat": "Norway",
@@ -146820,8 +149789,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Nuno da",
-      "ln": "Costa",
+      "fn": "Nuno",
+      "ln": "da Costa",
       "pos": "ST",
       "age": 35,
       "nat": "Cape Verde Islands",
@@ -147084,8 +150053,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ömer Ali",
-      "ln": "Şahiner",
+      "fn": "Ömer",
+      "ln": "Ali Şahiner",
       "pos": "RB",
       "age": 34,
       "nat": "Turkey",
@@ -148335,8 +151304,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Albino Giovanni",
-      "ln": "Gomes",
+      "fn": "Albino",
+      "ln": "Giovanni Gomes",
       "pos": "GK",
       "age": 32,
       "nat": "India",
@@ -148580,8 +151549,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ritwik Kumar",
-      "ln": "Das",
+      "fn": "Ritwik",
+      "ln": "Kumar Das",
       "pos": "ST",
       "age": 29,
       "nat": "India",
@@ -148821,8 +151790,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 62
     },
     {
-      "fn": "Sreekuttan Viruthiyil",
-      "ln": "Santhosh",
+      "fn": "Sreekuttan",
+      "ln": "Viruthiyil Santhosh",
       "pos": "RW",
       "age": 27,
       "nat": "India",
@@ -148953,8 +151922,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Chang",
-      "ln": "Min",
+      "fn": "Lee",
+      "ln": "Chang Min",
       "pos": "CM",
       "age": 32,
       "nat": "Korea Republic",
@@ -148976,8 +151945,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Dong",
-      "ln": "Joon",
+      "fn": "Kim",
+      "ln": "Dong Joon",
       "pos": "GK",
       "age": 31,
       "nat": "Korea Republic",
@@ -148996,8 +151965,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Song Ju",
-      "ln": "Hun",
+      "fn": "Song",
+      "ln": "Ju Hun",
       "pos": "CB",
       "age": 32,
       "nat": "Korea Republic",
@@ -149016,8 +151985,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Ahn Tae",
-      "ln": "Hyun",
+      "fn": "Ahn",
+      "ln": "Tae Hyun",
       "pos": "RB",
       "age": 33,
       "nat": "Korea Republic",
@@ -149039,8 +152008,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nam Tae",
-      "ln": "Hee",
+      "fn": "Nam",
+      "ln": "Tae Hee",
       "pos": "CM",
       "age": 35,
       "nat": "Korea Republic",
@@ -149062,8 +152031,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yu In",
-      "ln": "Soo",
+      "fn": "Yu",
+      "ln": "In Soo",
       "pos": "LB",
       "age": 31,
       "nat": "Korea Republic",
@@ -149085,7 +152054,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yuri",
+      "fn": "Vitor",
       "ln": "Yuri",
       "pos": "ST",
       "age": 28,
@@ -149105,8 +152074,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Kim Ryun",
-      "ln": "Seong",
+      "fn": "Kim",
+      "ln": "Ryun Seong",
       "pos": "LB",
       "age": 24,
       "nat": "Korea Republic",
@@ -149128,8 +152097,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lim Chai",
-      "ln": "Min",
+      "fn": "Lim",
+      "ln": "Chai Min",
       "pos": "CB",
       "age": 35,
       "nat": "Korea Republic",
@@ -149171,8 +152140,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rim Chang",
-      "ln": "Woo",
+      "fn": "Rim",
+      "ln": "Chang Woo",
       "pos": "CB",
       "age": 34,
       "nat": "Korea Republic",
@@ -149194,7 +152163,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Pedrinho",
+      "fn": "Pedro",
       "ln": "Pedrinho",
       "pos": "ST",
       "age": 24,
@@ -149237,8 +152206,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "An Chan",
-      "ln": "Gi",
+      "fn": "An",
+      "ln": "Chan Gi",
       "pos": "GK",
       "age": 28,
       "nat": "Korea Republic",
@@ -149257,8 +152226,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Jang Min",
-      "ln": "Gyu",
+      "fn": "Jang",
+      "ln": "Min Gyu",
       "pos": "CB",
       "age": 27,
       "nat": "Korea Republic",
@@ -149277,8 +152246,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Oh Jae",
-      "ln": "Hyuk",
+      "fn": "Oh",
+      "ln": "Jae Hyuk",
       "pos": "CM",
       "age": 24,
       "nat": "Korea Republic",
@@ -149300,8 +152269,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jae",
-      "ln": "Woo",
+      "fn": "Kim",
+      "ln": "Jae Woo",
       "pos": "CB",
       "age": 28,
       "nat": "Korea Republic",
@@ -149323,8 +152292,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jung",
-      "ln": "Min",
+      "fn": "Kim",
+      "ln": "Jung Min",
       "pos": "CM",
       "age": 26,
       "nat": "Korea Republic",
@@ -149347,8 +152316,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Shin Sang",
-      "ln": "Eun",
+      "fn": "Shin",
+      "ln": "Sang Eun",
       "pos": "RW",
       "age": 27,
       "nat": "Korea Republic",
@@ -149371,8 +152340,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jun",
-      "ln": "Ha",
+      "fn": "Kim",
+      "ln": "Jun Ha",
       "pos": "RW",
       "age": 20,
       "nat": "Korea Republic",
@@ -149391,8 +152360,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Choi Byung",
-      "ln": "Wook",
+      "fn": "Choi",
+      "ln": "Byung Wook",
       "pos": "RW",
       "age": 21,
       "nat": "Korea Republic",
@@ -149411,8 +152380,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Ji Sang",
-      "ln": "Wook",
+      "fn": "Ji",
+      "ln": "Sang Wook",
       "pos": "ST",
       "age": 23,
       "nat": "Korea Republic",
@@ -149434,8 +152403,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Won",
-      "ln": "Chang",
+      "fn": "Choi",
+      "ln": "Won Chang",
       "pos": "CB",
       "age": 25,
       "nat": "Korea Republic",
@@ -149454,8 +152423,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Kwon Sun",
-      "ln": "Ho",
+      "fn": "Kwon",
+      "ln": "Sun Ho",
       "pos": "ST",
       "age": 23,
       "nat": "Korea Republic",
@@ -149474,8 +152443,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Kim Jin",
-      "ln": "Ho",
+      "fn": "Kim",
+      "ln": "Jin Ho",
       "pos": "CAM",
       "age": 20,
       "nat": "Korea Republic",
@@ -149497,8 +152466,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cho Seong",
-      "ln": "Been",
+      "fn": "Cho",
+      "ln": "Seong Been",
       "pos": "GK",
       "age": 25,
       "nat": "Korea Republic",
@@ -149517,8 +152486,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Kang Min",
-      "ln": "Jae",
+      "fn": "Kang",
+      "ln": "Min Jae",
       "pos": "ST",
       "age": 23,
       "nat": "Korea Republic",
@@ -149537,8 +152506,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Kim Jae",
-      "ln": "Min",
+      "fn": "Kim",
+      "ln": "Jae Min",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -149557,8 +152526,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Joo Seung",
-      "ln": "Min",
+      "fn": "Joo",
+      "ln": "Seung Min",
       "pos": "GK",
       "age": 20,
       "nat": "Korea Republic",
@@ -149577,8 +152546,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Jo In",
-      "ln": "Jung",
+      "fn": "Jo",
+      "ln": "In Jung",
       "pos": "CM",
       "age": 20,
       "nat": "Korea Republic",
@@ -149597,8 +152566,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Kim Ji",
-      "ln": "Woon",
+      "fn": "Kim",
+      "ln": "Ji Woon",
       "pos": "RB",
       "age": 20,
       "nat": "Korea Republic",
@@ -149619,8 +152588,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "jeonbuk-hyundai-motors": [
     {
-      "fn": "Song Bum",
-      "ln": "Keun",
+      "fn": "Song",
+      "ln": "Bum Keun",
       "pos": "GK",
       "age": 28,
       "nat": "Korea Republic",
@@ -149639,8 +152608,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Jeon Jin",
-      "ln": "Woo",
+      "fn": "Jeon",
+      "ln": "Jin Woo",
       "pos": "RW",
       "age": 26,
       "nat": "Korea Republic",
@@ -149662,8 +152631,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Jin",
-      "ln": "Seob",
+      "fn": "Park",
+      "ln": "Jin Seob",
       "pos": "CB",
       "age": 30,
       "nat": "Korea Republic",
@@ -149686,8 +152655,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jin",
-      "ln": "Kyu",
+      "fn": "Kim",
+      "ln": "Jin Kyu",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -149731,8 +152700,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Song Min",
-      "ln": "Kyu",
+      "fn": "Song",
+      "ln": "Min Kyu",
       "pos": "LW",
       "age": 26,
       "nat": "Korea Republic",
@@ -149754,8 +152723,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kang Sang",
-      "ln": "Yoon",
+      "fn": "Kang",
+      "ln": "Sang Yoon",
       "pos": "CM",
       "age": 22,
       "nat": "Korea Republic",
@@ -149801,8 +152770,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hong Jeong",
-      "ln": "Ho",
+      "fn": "Hong",
+      "ln": "Jeong Ho",
       "pos": "CB",
       "age": 37,
       "nat": "Korea Republic",
@@ -149821,8 +152790,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Kim Young",
-      "ln": "Bin",
+      "fn": "Kim",
+      "ln": "Young Bin",
       "pos": "CB",
       "age": 34,
       "nat": "Korea Republic",
@@ -149844,8 +152813,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Tae",
-      "ln": "Hwan",
+      "fn": "Kim",
+      "ln": "Tae Hwan",
       "pos": "RB",
       "age": 37,
       "nat": "Korea Republic",
@@ -149867,8 +152836,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Seung",
-      "ln": "Woo",
+      "fn": "Lee",
+      "ln": "Seung Woo",
       "pos": "CAM",
       "age": 28,
       "nat": "Korea Republic",
@@ -149891,8 +152860,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Tae",
-      "ln": "Hyun",
+      "fn": "Kim",
+      "ln": "Tae Hyun",
       "pos": "LB",
       "age": 29,
       "nat": "Korea Republic",
@@ -149959,8 +152928,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Yeong",
-      "ln": "Jae",
+      "fn": "Lee",
+      "ln": "Yeong Jae",
       "pos": "CM",
       "age": 31,
       "nat": "Korea Republic",
@@ -149982,8 +152951,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Han Kook",
-      "ln": "Young",
+      "fn": "Han",
+      "ln": "Kook Young",
       "pos": "CDM",
       "age": 36,
       "nat": "Korea Republic",
@@ -150005,8 +152974,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yeon Je",
-      "ln": "Woon",
+      "fn": "Yeon",
+      "ln": "Je Woon",
       "pos": "CB",
       "age": 32,
       "nat": "Korea Republic",
@@ -150029,8 +152998,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Bak Jae",
-      "ln": "Yong",
+      "fn": "Bak",
+      "ln": "Jae Yong",
       "pos": "ST",
       "age": 26,
       "nat": "Korea Republic",
@@ -150049,8 +153018,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Choi Woo",
-      "ln": "Jin",
+      "fn": "Choi",
+      "ln": "Woo Jin",
       "pos": "LB",
       "age": 22,
       "nat": "Korea Republic",
@@ -150069,8 +153038,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Kim Jeong",
-      "ln": "hoon",
+      "fn": "Kim",
+      "ln": "Jeong hoon",
       "pos": "GK",
       "age": 25,
       "nat": "Korea Republic",
@@ -150089,8 +153058,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Kwon Chang",
-      "ln": "Hoon",
+      "fn": "Kwon",
+      "ln": "Chang Hoon",
       "pos": "RW",
       "age": 32,
       "nat": "Korea Republic",
@@ -150112,8 +153081,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Gyu",
-      "ln": "Dong",
+      "fn": "Lee",
+      "ln": "Gyu Dong",
       "pos": "CAM",
       "age": 22,
       "nat": "Korea Republic",
@@ -150136,8 +153105,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Jun",
-      "ln": "Ho",
+      "fn": "Lee",
+      "ln": "Jun Ho",
       "pos": "ST",
       "age": 23,
       "nat": "Korea Republic",
@@ -150159,8 +153128,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Kyu",
-      "ln": "Min",
+      "fn": "Park",
+      "ln": "Kyu Min",
       "pos": "CAM",
       "age": 25,
       "nat": "Korea Republic",
@@ -150182,8 +153151,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Chul",
-      "ln": "Soon",
+      "fn": "Choi",
+      "ln": "Chul Soon",
       "pos": "RB",
       "age": 39,
       "nat": "Korea Republic",
@@ -150205,8 +153174,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Eom Seung",
-      "ln": "Min",
+      "fn": "Eom",
+      "ln": "Seung Min",
       "pos": "RW",
       "age": 23,
       "nat": "Korea Republic",
@@ -150228,8 +153197,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Seo Jeong",
-      "ln": "Hyeok",
+      "fn": "Seo",
+      "ln": "Jeong Hyeok",
       "pos": "LB",
       "age": 20,
       "nat": "Korea Republic",
@@ -150248,8 +153217,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Sung Jin",
-      "ln": "Young",
+      "fn": "Sung",
+      "ln": "Jin Young",
       "pos": "CAM",
       "age": 23,
       "nat": "Korea Republic",
@@ -150271,8 +153240,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jang Nam",
-      "ln": "Ung",
+      "fn": "Jang",
+      "ln": "Nam Ung",
       "pos": "CM",
       "age": 22,
       "nat": "Korea Republic",
@@ -150291,8 +153260,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Gong Si",
-      "ln": "Hyeun",
+      "fn": "Gong",
+      "ln": "Si Hyeun",
       "pos": "GK",
       "age": 21,
       "nat": "Korea Republic",
@@ -150311,8 +153280,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Yoon Hyun",
-      "ln": "Seok",
+      "fn": "Yoon",
+      "ln": "Hyun Seok",
       "pos": "CAM",
       "age": 22,
       "nat": "Korea Republic",
@@ -150334,8 +153303,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Min",
-      "ln": "Jae",
+      "fn": "Kim",
+      "ln": "Min Jae",
       "pos": "CDM",
       "age": 22,
       "nat": "Korea Republic",
@@ -150357,8 +153326,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hwang Seung",
-      "ln": "Jun",
+      "fn": "Hwang",
+      "ln": "Seung Jun",
       "pos": "RB",
       "age": 21,
       "nat": "Korea Republic",
@@ -150377,8 +153346,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Jeong Sang",
-      "ln": "Woon",
+      "fn": "Jeong",
+      "ln": "Sang Woon",
       "pos": "ST",
       "age": 23,
       "nat": "Korea Republic",
@@ -150397,8 +153366,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Hwang Jung",
-      "ln": "Gu",
+      "fn": "Hwang",
+      "ln": "Jung Gu",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -150417,8 +153386,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Kang Hyeon",
-      "ln": "Jong",
+      "fn": "Kang",
+      "ln": "Hyeon Jong",
       "pos": "ST",
       "age": 22,
       "nat": "Korea Republic",
@@ -150440,8 +153409,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Chang",
-      "ln": "Hun",
+      "fn": "Kim",
+      "ln": "Chang Hun",
       "pos": "ST",
       "age": 21,
       "nat": "Korea Republic",
@@ -150462,7 +153431,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "juventus": [
     {
-      "fn": "Bremer",
+      "fn": "Gleison",
       "ln": "Bremer",
       "pos": "CB",
       "age": 29,
@@ -150611,8 +153580,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Michele Di",
-      "ln": "Gregorio",
+      "fn": "Michele",
+      "ln": "Di Gregorio",
       "pos": "GK",
       "age": 29,
       "nat": "Italy",
@@ -150935,8 +153904,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan David",
-      "ln": "Cabal",
+      "fn": "Juan",
+      "ln": "David Cabal",
       "pos": "LB",
       "age": 25,
       "nat": "Colombia",
@@ -151306,8 +154275,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kenny Prince",
-      "ln": "Redondo",
+      "fn": "Kenny",
+      "ln": "Prince Redondo",
       "pos": "ST",
       "age": 31,
       "nat": "Germany",
@@ -151546,8 +154515,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Ji",
-      "ln": "Soo",
+      "fn": "Kim",
+      "ln": "Ji Soo",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -151951,8 +154920,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hans Christian",
-      "ln": "Bernat",
+      "fn": "Hans",
+      "ln": "Christian Bernat",
       "pos": "GK",
       "age": 25,
       "nat": "Denmark",
@@ -151971,8 +154940,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Louey Ben",
-      "ln": "Farhat",
+      "fn": "Louey",
+      "ln": "Ben Farhat",
       "pos": "ST",
       "age": 20,
       "nat": "Tunisia",
@@ -151994,8 +154963,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rafael Pinto",
-      "ln": "Pedrosa",
+      "fn": "Rafael",
+      "ln": "Pinto Pedrosa",
       "pos": "RB",
       "age": 18,
       "nat": "Germany",
@@ -152057,8 +155026,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ali Eren",
-      "ln": "Ersungur",
+      "fn": "Ali",
+      "ln": "Eren Ersungur",
       "pos": "CAM",
       "age": 20,
       "nat": "Turkey",
@@ -152100,8 +155069,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Marc Niclas",
-      "ln": "Dühring",
+      "fn": "Marc",
+      "ln": "Niclas Dühring",
       "pos": "LB",
       "age": 22,
       "nat": "Germany",
@@ -152337,8 +155306,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Mortadha Ben",
-      "ln": "Ouanes",
+      "fn": "Mortadha",
+      "ln": "Ben Ouanes",
       "pos": "LB",
       "age": 32,
       "nat": "Tunisia",
@@ -152360,7 +155329,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cafú",
+      "fn": "Carlos",
       "ln": "Cafú",
       "pos": "CDM",
       "age": 33,
@@ -152383,8 +155352,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Pape Habib",
-      "ln": "Gueye",
+      "fn": "Pape",
+      "ln": "Habib Gueye",
       "pos": "ST",
       "age": 26,
       "nat": "Senegal",
@@ -152513,8 +155482,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Andri Fannar",
-      "ln": "Baldursson",
+      "fn": "Andri",
+      "ln": "Fannar Baldursson",
       "pos": "CDM",
       "age": 24,
       "nat": "Iceland",
@@ -152536,8 +155505,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ali Yavuz",
-      "ln": "Kol",
+      "fn": "Ali",
+      "ln": "Yavuz Kol",
       "pos": "LW",
       "age": 25,
       "nat": "Turkey",
@@ -152583,8 +155552,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ali Emre",
-      "ln": "Yanar",
+      "fn": "Ali",
+      "ln": "Emre Yanar",
       "pos": "GK",
       "age": 28,
       "nat": "Turkey",
@@ -152603,8 +155572,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Oğuzhan Efe",
-      "ln": "Yılmaz",
+      "fn": "Oğuzhan",
+      "ln": "Efe Yılmaz",
       "pos": "CDM",
       "age": 23,
       "nat": "Turkey",
@@ -152626,8 +155595,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Taylan Utku",
-      "ln": "Aydın",
+      "fn": "Taylan",
+      "ln": "Utku Aydın",
       "pos": "CB",
       "age": 20,
       "nat": "Turkey",
@@ -153154,8 +156123,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Yiğit Emre",
-      "ln": "Çeltik",
+      "fn": "Yiğit",
+      "ln": "Emre Çeltik",
       "pos": "CM",
       "age": 23,
       "nat": "Turkey",
@@ -153222,8 +156191,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "kerala-blasters-fc": [
     {
-      "fn": "Noah Wail Jacob",
-      "ln": "Sadaoui",
+      "fn": "Noah",
+      "ln": "Wail Jacob Sadaoui",
       "pos": "ST",
       "age": 32,
       "nat": "Morocco",
@@ -153425,8 +156394,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Danish Farooq",
-      "ln": "Bhat",
+      "fn": "Danish",
+      "ln": "Farooq Bhat",
       "pos": "CM",
       "age": 30,
       "nat": "India",
@@ -153698,8 +156667,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sagolsem Bikash",
-      "ln": "Singh",
+      "fn": "Sagolsem",
+      "ln": "Bikash Singh",
       "pos": "LW",
       "age": 25,
       "nat": "India",
@@ -155016,7 +157985,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Nono",
+      "fn": "David",
       "ln": "Nono",
       "pos": "CM",
       "age": 35,
@@ -155059,7 +158028,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Antoñín",
+      "fn": "Antonio",
       "ln": "Antoñín",
       "pos": "ST",
       "age": 26,
@@ -155298,8 +158267,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Dan Peter",
-      "ln": "Ulvestad",
+      "fn": "Dan",
+      "ln": "Peter Ulvestad",
       "pos": "CB",
       "age": 37,
       "nat": "Norway",
@@ -155408,8 +158377,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Wilfred George",
-      "ln": "Igor",
+      "fn": "Wilfred",
+      "ln": "George Igor",
       "pos": "CDM",
       "age": 21,
       "nat": "Nigeria",
@@ -155601,8 +158570,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 91
     },
     {
-      "fn": "Sander Hestetun",
-      "ln": "Kilen",
+      "fn": "Sander",
+      "ln": "Hestetun Kilen",
       "pos": "ST",
       "age": 21,
       "nat": "Norway",
@@ -155707,8 +158676,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Leander Næss",
-      "ln": "Alvheim",
+      "fn": "Leander",
+      "ln": "Næss Alvheim",
       "pos": "ST",
       "age": 21,
       "nat": "Norway",
@@ -155727,8 +158696,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Adrian Kurd",
-      "ln": "Rønning",
+      "fn": "Adrian",
+      "ln": "Kurd Rønning",
       "pos": "CAM",
       "age": 20,
       "nat": "Norway",
@@ -155813,8 +158782,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Herman Sjåvik",
-      "ln": "Opsahl",
+      "fn": "Herman",
+      "ln": "Sjåvik Opsahl",
       "pos": "CM",
       "age": 18,
       "nat": "Norway",
@@ -155989,7 +158958,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Zanka",
+      "fn": "Mathias",
       "ln": "Zanka",
       "pos": "CB",
       "age": 36,
@@ -156392,8 +159361,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Rubén Ramos",
-      "ln": "Jr",
+      "fn": "Rubén",
+      "ln": "Ramos Jr",
       "pos": "CAM",
       "age": 19,
       "nat": "United States",
@@ -156726,8 +159695,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Felipe Peña",
-      "ln": "Biafore",
+      "fn": "Felipe",
+      "ln": "Peña Biafore",
       "pos": "CDM",
       "age": 25,
       "nat": "Argentina",
@@ -157415,7 +160384,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Herzog",
+      "fn": "Juan",
       "ln": "Herzog",
       "pos": "CB",
       "age": 22,
@@ -157455,7 +160424,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Caro",
+      "fn": "José",
       "ln": "Caro",
       "pos": "GK",
       "age": 32,
@@ -157475,7 +160444,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Pejiño",
+      "fn": "Francisco",
       "ln": "Pejiño",
       "pos": "RW",
       "age": 30,
@@ -157641,7 +160610,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mata",
+      "fn": "Jaime",
       "ln": "Mata",
       "pos": "ST",
       "age": 37,
@@ -157664,7 +160633,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Clemente",
+      "fn": "Enrique",
       "ln": "Clemente",
       "pos": "CB",
       "age": 27,
@@ -157727,7 +160696,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Killane",
+      "fn": "Álvaro",
       "ln": "Killane",
       "pos": "GK",
       "age": 21,
@@ -158119,8 +161088,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Modou Kéba",
-      "ln": "Cissé",
+      "fn": "Modou",
+      "ln": "Kéba Cissé",
       "pos": "CB",
       "age": 21,
       "nat": "Senegal",
@@ -158370,8 +161339,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 96
     },
     {
-      "fn": "Muhannad Al",
-      "ln": "Saad",
+      "fn": "Muhannad",
+      "ln": "Al Saad",
       "pos": "RW",
       "age": 23,
       "nat": "Saudi Arabia",
@@ -159657,7 +162626,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Patric",
+      "fn": "Patricio",
       "ln": "Patric",
       "pos": "CB",
       "age": 33,
@@ -160072,8 +163041,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Étienne Youté",
-      "ln": "Kinkoué",
+      "fn": "Étienne",
+      "ln": "Youté Kinkoué",
       "pos": "CB",
       "age": 24,
       "nat": "France",
@@ -160404,8 +163373,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Guy Noël",
-      "ln": "Zohouri",
+      "fn": "Guy",
+      "ln": "Noël Zohouri",
       "pos": "CM",
       "age": 19,
       "nat": "France",
@@ -160736,8 +163705,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Þórir Jóhann",
-      "ln": "Helgason",
+      "fn": "Þórir",
+      "ln": "Jóhann Helgason",
       "pos": "CM",
       "age": 25,
       "nat": "Iceland",
@@ -161438,8 +164407,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Timothy Noor",
-      "ln": "Ouma",
+      "fn": "Timothy",
+      "ln": "Noor Ouma",
       "pos": "CM",
       "age": 22,
       "nat": "Kenya",
@@ -162077,8 +165046,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Mohamed Awad",
-      "ln": "Alla",
+      "fn": "Mohamed",
+      "ln": "Awad Alla",
       "pos": "ST",
       "age": 24,
       "nat": "United Arab Emirates",
@@ -162696,7 +165665,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Melero",
+      "fn": "Gonzalo",
       "ln": "Melero",
       "pos": "CM",
       "age": 32,
@@ -162744,7 +165713,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Franquesa",
+      "fn": "Enric",
       "ln": "Franquesa",
       "pos": "LB",
       "age": 29,
@@ -162978,7 +165947,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Duk",
+      "fn": "Luis",
       "ln": "Duk",
       "pos": "ST",
       "age": 26,
@@ -163042,7 +166011,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Guirao",
+      "fn": "Carlos",
       "ln": "Guirao",
       "pos": "CM",
       "age": 23,
@@ -163085,7 +166054,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Marvel",
+      "fn": "Marvelous",
       "ln": "Marvel",
       "pos": "CB",
       "age": 23,
@@ -163145,6 +166114,651 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73,
       "altPos": [
         "RB"
+      ]
+    }
+  ],
+  "legia-warsaw": [
+    {
+      "fn": "Damian",
+      "ln": "Szymański",
+      "pos": "CDM",
+      "age": 31,
+      "nat": "Poland",
+      "ovr": 74,
+      "pot": 74,
+      "pace": 70,
+      "shooting": 62,
+      "passing": 65,
+      "defending": 74,
+      "physical": 82,
+      "mental": 65,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "223779",
+      "heightCm": 185,
+      "weightKg": 81,
+      "altPos": [
+        "CB",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Noah",
+      "ln": "Weißhaupt",
+      "pos": "LW",
+      "age": 24,
+      "nat": "Germany",
+      "ovr": 73,
+      "pot": 77,
+      "pace": 78,
+      "shooting": 60,
+      "passing": 68,
+      "defending": 49,
+      "physical": 60,
+      "mental": 71,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "262672",
+      "heightCm": 181,
+      "weightKg": 76,
+      "altPos": [
+        "ST"
+      ]
+    },
+    {
+      "fn": "Rúben",
+      "ln": "Vinagre",
+      "pos": "LB",
+      "age": 27,
+      "nat": "Portugal",
+      "ovr": 72,
+      "pot": 75,
+      "pace": 85,
+      "shooting": 53,
+      "passing": 70,
+      "defending": 66,
+      "physical": 65,
+      "mental": 71,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "235172",
+      "heightCm": 174,
+      "weightKg": 66
+    },
+    {
+      "fn": "Bartosz",
+      "ln": "Kapustka",
+      "pos": "CM",
+      "age": 29,
+      "nat": "Poland",
+      "ovr": 72,
+      "pot": 72,
+      "pace": 75,
+      "shooting": 70,
+      "passing": 69,
+      "defending": 57,
+      "physical": 62,
+      "mental": 67,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "216003",
+      "heightCm": 180,
+      "weightKg": 72
+    },
+    {
+      "fn": "Kamil",
+      "ln": "Piątkowski",
+      "pos": "CB",
+      "age": 26,
+      "nat": "Poland",
+      "ovr": 71,
+      "pot": 75,
+      "pace": 80,
+      "shooting": 50,
+      "passing": 64,
+      "defending": 69,
+      "physical": 82,
+      "mental": 64,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "252018",
+      "heightCm": 191,
+      "weightKg": 87
+    },
+    {
+      "fn": "Antonio",
+      "ln": "Čolak",
+      "pos": "ST",
+      "age": 32,
+      "nat": "Croatia",
+      "ovr": 71,
+      "pot": 71,
+      "pace": 69,
+      "shooting": 73,
+      "passing": 57,
+      "defending": 34,
+      "physical": 75,
+      "mental": 72,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "220785",
+      "heightCm": 188,
+      "weightKg": 77
+    },
+    {
+      "fn": "Ermal",
+      "ln": "Krasniqi",
+      "pos": "LW",
+      "age": 27,
+      "nat": "Kosovo",
+      "ovr": 71,
+      "pot": 71,
+      "pace": 84,
+      "shooting": 70,
+      "passing": 65,
+      "defending": 25,
+      "physical": 61,
+      "mental": 67,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "273100",
+      "heightCm": 188,
+      "weightKg": 74,
+      "altPos": [
+        "ST",
+        "RW"
+      ]
+    },
+    {
+      "fn": "Steve",
+      "ln": "Kapuadi",
+      "pos": "CB",
+      "age": 28,
+      "nat": "Congo DR",
+      "ovr": 71,
+      "pot": 71,
+      "pace": 65,
+      "shooting": 31,
+      "passing": 45,
+      "defending": 70,
+      "physical": 86,
+      "mental": 50,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "269507",
+      "heightCm": 196,
+      "weightKg": 88
+    },
+    {
+      "fn": "Paweł",
+      "ln": "Wszołek",
+      "pos": "RB",
+      "age": 34,
+      "nat": "Poland",
+      "ovr": 70,
+      "pot": 70,
+      "pace": 78,
+      "shooting": 62,
+      "passing": 71,
+      "defending": 62,
+      "physical": 67,
+      "mental": 69,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "203568",
+      "heightCm": 186,
+      "weightKg": 77
+    },
+    {
+      "fn": "Juergen",
+      "ln": "Elitim",
+      "pos": "CM",
+      "age": 28,
+      "nat": "Colombia",
+      "ovr": 69,
+      "pot": 69,
+      "pace": 79,
+      "shooting": 62,
+      "passing": 68,
+      "defending": 59,
+      "physical": 64,
+      "mental": 64,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "257956",
+      "heightCm": 173,
+      "weightKg": 72,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Petar",
+      "ln": "Stojanović",
+      "pos": "RB",
+      "age": 30,
+      "nat": "Slovenia",
+      "ovr": 69,
+      "pot": 69,
+      "pace": 77,
+      "shooting": 53,
+      "passing": 63,
+      "defending": 63,
+      "physical": 69,
+      "mental": 62,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "225995",
+      "heightCm": 178,
+      "weightKg": 69
+    },
+    {
+      "fn": "Mileta",
+      "ln": "Rajović",
+      "pos": "ST",
+      "age": 27,
+      "nat": "Denmark",
+      "ovr": 69,
+      "pot": 72,
+      "pace": 76,
+      "shooting": 67,
+      "passing": 54,
+      "defending": 29,
+      "physical": 77,
+      "mental": 61,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "272853",
+      "heightCm": 192,
+      "weightKg": 83
+    },
+    {
+      "fn": "Kacper",
+      "ln": "Chodyna",
+      "pos": "RW",
+      "age": 27,
+      "nat": "Poland",
+      "ovr": 68,
+      "pot": 69,
+      "pace": 85,
+      "shooting": 60,
+      "passing": 63,
+      "defending": 57,
+      "physical": 61,
+      "mental": 65,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "255779",
+      "heightCm": 176,
+      "weightKg": 68,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Arkadiusz",
+      "ln": "Reca",
+      "pos": "LB",
+      "age": 31,
+      "nat": "Poland",
+      "ovr": 68,
+      "pot": 68,
+      "pace": 78,
+      "shooting": 54,
+      "passing": 63,
+      "defending": 62,
+      "physical": 64,
+      "mental": 67,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "234760",
+      "heightCm": 187,
+      "weightKg": 76
+    },
+    {
+      "fn": "Kacper",
+      "ln": "Urbański",
+      "pos": "CM",
+      "age": 21,
+      "nat": "Poland",
+      "ovr": 68,
+      "pot": 79,
+      "pace": 72,
+      "shooting": 65,
+      "passing": 67,
+      "defending": 55,
+      "physical": 43,
+      "mental": 70,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "254819",
+      "heightCm": 178,
+      "weightKg": 58,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Migouel",
+      "ln": "Alfarela",
+      "pos": "ST",
+      "age": 28,
+      "nat": "France",
+      "ovr": 68,
+      "pot": 68,
+      "pace": 74,
+      "shooting": 67,
+      "passing": 64,
+      "defending": 26,
+      "physical": 58,
+      "mental": 67,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "263675",
+      "heightCm": 173,
+      "weightKg": 66,
+      "altPos": [
+        "LW"
+      ]
+    },
+    {
+      "fn": "Radovan",
+      "ln": "Pankov",
+      "pos": "CB",
+      "age": 31,
+      "nat": "Serbia",
+      "ovr": 68,
+      "pot": 68,
+      "pace": 63,
+      "shooting": 30,
+      "passing": 39,
+      "defending": 68,
+      "physical": 75,
+      "mental": 49,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "234813",
+      "heightCm": 185,
+      "weightKg": 83
+    },
+    {
+      "fn": "Vahan",
+      "ln": "Bichakhchyan",
+      "pos": "RW",
+      "age": 27,
+      "nat": "Armenia",
+      "ovr": 67,
+      "pot": 68,
+      "pace": 78,
+      "shooting": 67,
+      "passing": 63,
+      "defending": 53,
+      "physical": 61,
+      "mental": 63,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "266277",
+      "heightCm": 172,
+      "weightKg": 68
+    },
+    {
+      "fn": "Rafał",
+      "ln": "Augustyniak",
+      "pos": "CB",
+      "age": 32,
+      "nat": "Poland",
+      "ovr": 67,
+      "pot": 67,
+      "pace": 65,
+      "shooting": 49,
+      "passing": 60,
+      "defending": 65,
+      "physical": 76,
+      "mental": 65,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "218985",
+      "heightCm": 185,
+      "weightKg": 82,
+      "altPos": [
+        "CM",
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Patryk",
+      "ln": "Kun",
+      "pos": "LB",
+      "age": 31,
+      "nat": "Poland",
+      "ovr": 67,
+      "pot": 67,
+      "pace": 86,
+      "shooting": 48,
+      "passing": 59,
+      "defending": 57,
+      "physical": 52,
+      "mental": 66,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "239505",
+      "heightCm": 165,
+      "weightKg": 54,
+      "altPos": [
+        "RB"
+      ]
+    },
+    {
+      "fn": "Claude",
+      "ln": "Gonçalves",
+      "pos": "CM",
+      "age": 32,
+      "nat": "Portugal",
+      "ovr": 67,
+      "pot": 67,
+      "pace": 62,
+      "shooting": 51,
+      "passing": 66,
+      "defending": 57,
+      "physical": 65,
+      "mental": 68,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "219780",
+      "heightCm": 174,
+      "weightKg": 69,
+      "altPos": [
+        "CDM"
+      ]
+    },
+    {
+      "fn": "Kacper",
+      "ln": "Tobiasz",
+      "pos": "GK",
+      "age": 23,
+      "nat": "Poland",
+      "ovr": 67,
+      "pot": 74,
+      "pace": 69,
+      "shooting": 69,
+      "passing": 61,
+      "defending": 66,
+      "physical": 63,
+      "mental": 48,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "262251",
+      "heightCm": 191,
+      "weightKg": 80
+    },
+    {
+      "fn": "Jean-Pierre",
+      "ln": "Nsame",
+      "pos": "ST",
+      "age": 33,
+      "nat": "Cameroon",
+      "ovr": 67,
+      "pot": 68,
+      "pace": 62,
+      "shooting": 68,
+      "passing": 52,
+      "defending": 26,
+      "physical": 78,
+      "mental": 65,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "240240",
+      "heightCm": 188,
+      "weightKg": 90,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Marco",
+      "ln": "Burch",
+      "pos": "CB",
+      "age": 25,
+      "nat": "Switzerland",
+      "ovr": 66,
+      "pot": 71,
+      "pace": 67,
+      "shooting": 45,
+      "passing": 52,
+      "defending": 68,
+      "physical": 74,
+      "mental": 57,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "252527",
+      "heightCm": 186,
+      "weightKg": 75,
+      "altPos": [
+        "RB"
+      ]
+    },
+    {
+      "fn": "Gabriel",
+      "ln": "Kobylak",
+      "pos": "GK",
+      "age": 24,
+      "nat": "Poland",
+      "ovr": 64,
+      "pot": 72,
+      "pace": 66,
+      "shooting": 61,
+      "passing": 65,
+      "defending": 69,
+      "physical": 62,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "269707",
+      "heightCm": 190,
+      "weightKg": 84
+    },
+    {
+      "fn": "Artur",
+      "ln": "Jędrzejczyk",
+      "pos": "CB",
+      "age": 38,
+      "nat": "Poland",
+      "ovr": 64,
+      "pot": 64,
+      "pace": 34,
+      "shooting": 45,
+      "passing": 56,
+      "defending": 62,
+      "physical": 74,
+      "mental": 58,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "177790",
+      "heightCm": 189,
+      "weightKg": 86
+    },
+    {
+      "fn": "Wojciech",
+      "ln": "Urbański",
+      "pos": "CM",
+      "age": 21,
+      "nat": "Poland",
+      "ovr": 62,
+      "pot": 77,
+      "pace": 61,
+      "shooting": 59,
+      "passing": 67,
+      "defending": 41,
+      "physical": 56,
+      "mental": 64,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "71485",
+      "heightCm": 184,
+      "weightKg": 75
+    },
+    {
+      "fn": "Jakub",
+      "ln": "Żewłakow",
+      "pos": "LW",
+      "age": 19,
+      "nat": "Poland",
+      "ovr": 56,
+      "pot": 73,
+      "pace": 65,
+      "shooting": 46,
+      "passing": 53,
+      "defending": 41,
+      "physical": 47,
+      "mental": 53,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "74399",
+      "heightCm": 182,
+      "weightKg": 75
+    },
+    {
+      "fn": "Marcel",
+      "ln": "Mendes-Dudziński",
+      "pos": "GK",
+      "age": 21,
+      "nat": "Poland",
+      "ovr": 56,
+      "pot": 67,
+      "pace": 58,
+      "shooting": 53,
+      "passing": 54,
+      "defending": 58,
+      "physical": 55,
+      "mental": 48,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "73046",
+      "heightCm": 193,
+      "weightKg": 80
+    },
+    {
+      "fn": "Pascal",
+      "ln": "Mozie",
+      "pos": "CDM",
+      "age": 18,
+      "nat": "Poland",
+      "ovr": 53,
+      "pot": 68,
+      "pace": 67,
+      "shooting": 43,
+      "passing": 49,
+      "defending": 54,
+      "physical": 57,
+      "mental": 49,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "76150",
+      "heightCm": 186,
+      "weightKg": 77,
+      "altPos": [
+        "CM"
       ]
     }
   ],
@@ -163423,8 +167037,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 101
     },
     {
-      "fn": "Bobby De",
-      "ln": "Cordova-Reid",
+      "fn": "Bobby",
+      "ln": "De Cordova-Reid",
       "pos": "RW",
       "age": 33,
       "nat": "Jamaica",
@@ -164321,7 +167935,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Morales",
+      "fn": "José",
       "ln": "Morales",
       "pos": "ST",
       "age": 39,
@@ -164344,7 +167958,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Olasagasti",
+      "fn": "Jon",
       "ln": "Olasagasti",
       "pos": "CM",
       "age": 26,
@@ -164367,7 +167981,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Brugui",
+      "fn": "Roger",
       "ln": "Brugui",
       "pos": "ST",
       "age": 29,
@@ -164390,7 +168004,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Elgezabal",
+      "fn": "Unai",
       "ln": "Elgezabal",
       "pos": "CB",
       "age": 33,
@@ -164525,7 +168139,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Dela",
+      "fn": "Adrián",
       "ln": "Dela",
       "pos": "CB",
       "age": 27,
@@ -164700,7 +168314,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Cabello",
+      "fn": "Jorge",
       "ln": "Cabello",
       "pos": "CB",
       "age": 22,
@@ -164723,8 +168337,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Karl Edouard Etta",
-      "ln": "Eyong",
+      "fn": "Karl",
+      "ln": "Edouard Etta Eyong",
       "pos": "ST",
       "age": 22,
       "nat": "Cameroon",
@@ -164851,8 +168465,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Idris El",
-      "ln": "Mizouni",
+      "fn": "Idris",
+      "ln": "El Mizouni",
       "pos": "CM",
       "age": 25,
       "nat": "Tunisia",
@@ -165387,8 +169001,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 91
     },
     {
-      "fn": "Hákon Arnar",
-      "ln": "Haraldsson",
+      "fn": "Hákon",
+      "ln": "Arnar Haraldsson",
       "pos": "CAM",
       "age": 23,
       "nat": "Iceland",
@@ -166438,8 +170052,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Virgil van",
-      "ln": "Dijk",
+      "fn": "Virgil",
+      "ln": "van Dijk",
       "pos": "CB",
       "age": 35,
       "nat": "Holland",
@@ -166522,8 +170136,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Alexis Mac",
-      "ln": "Allister",
+      "fn": "Alexis",
+      "ln": "Mac Allister",
       "pos": "CM",
       "age": 27,
       "nat": "Argentina",
@@ -167020,8 +170634,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "los-angeles-fc": [
     {
-      "fn": "Heung Min",
-      "ln": "Son",
+      "fn": "Heung",
+      "ln": "Min Son",
       "pos": "LW",
       "age": 34,
       "nat": "Korea Republic",
@@ -167444,8 +171058,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Odin Thiago",
-      "ln": "Holm",
+      "fn": "Odin",
+      "ln": "Thiago Holm",
       "pos": "CM",
       "age": 23,
       "nat": "Norway",
@@ -167744,8 +171358,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mads Juel",
-      "ln": "Andersen",
+      "fn": "Mads",
+      "ln": "Juel Andersen",
       "pos": "CB",
       "age": 28,
       "nat": "Denmark",
@@ -168026,8 +171640,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Ali Al",
-      "ln": "Hamadi",
+      "fn": "Ali",
+      "ln": "Al Hamadi",
       "pos": "ST",
       "age": 24,
       "nat": "Iraq",
@@ -168732,8 +172346,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Alejandro Gomes",
-      "ln": "Rodríguez",
+      "fn": "Alejandro",
+      "ln": "Gomes Rodríguez",
       "pos": "ST",
       "age": 18,
       "nat": "England",
@@ -168821,8 +172435,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Damien Da",
-      "ln": "Silva",
+      "fn": "Damien",
+      "ln": "Da Silva",
       "pos": "CB",
       "age": 38,
       "nat": "France",
@@ -168861,8 +172475,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Ji Dong",
-      "ln": "Won",
+      "fn": "Ji",
+      "ln": "Dong Won",
       "pos": "ST",
       "age": 35,
       "nat": "Korea Republic",
@@ -169310,8 +172924,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Jae",
-      "ln": "Sung",
+      "fn": "Lee",
+      "ln": "Jae Sung",
       "pos": "CAM",
       "age": 34,
       "nat": "Korea Republic",
@@ -169400,8 +173014,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Danny da",
-      "ln": "Costa",
+      "fn": "Danny",
+      "ln": "da Costa",
       "pos": "CB",
       "age": 33,
       "nat": "Germany",
@@ -169852,7 +173466,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Montero",
+      "fn": "Francisco",
       "ln": "Montero",
       "pos": "CB",
       "age": 27,
@@ -169872,7 +173486,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Luismi",
+      "fn": "Luis",
       "ln": "Luismi",
       "pos": "CM",
       "age": 34,
@@ -169918,7 +173532,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Larrubia",
+      "fn": "David",
       "ln": "Larrubia",
       "pos": "ST",
       "age": 24,
@@ -169961,7 +173575,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Dotor",
+      "fn": "Carlos",
       "ln": "Dotor",
       "pos": "CM",
       "age": 25,
@@ -170005,7 +173619,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Jauregi",
+      "fn": "Eneko",
       "ln": "Jauregi",
       "pos": "ST",
       "age": 30,
@@ -170025,7 +173639,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Gabilondo",
+      "fn": "Jokin",
       "ln": "Gabilondo",
       "pos": "RB",
       "age": 27,
@@ -170045,7 +173659,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Lobete",
+      "fn": "Julen",
       "ln": "Lobete",
       "pos": "ST",
       "age": 25,
@@ -170068,7 +173682,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Chupete",
+      "fn": "Carlos",
       "ln": "Chupete",
       "pos": "ST",
       "age": 22,
@@ -170154,7 +173768,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Juanpe",
+      "fn": "Juan",
       "ln": "Juanpe",
       "pos": "CM",
       "age": 30,
@@ -170288,8 +173902,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Haitam Abaida El",
-      "ln": "Achhab",
+      "fn": "Haitam",
+      "ln": "Abaida El Achhab",
       "pos": "RW",
       "age": 24,
       "nat": "Morocco",
@@ -170398,7 +174012,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Raíllo",
+      "fn": "Antonio",
       "ln": "Raíllo",
       "pos": "CB",
       "age": 34,
@@ -170885,8 +174499,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "malmo-ff": [
     {
-      "fn": "Lasse Berg",
-      "ln": "Johnsen",
+      "fn": "Lasse",
+      "ln": "Berg Johnsen",
       "pos": "CM",
       "age": 27,
       "nat": "Norway",
@@ -170908,7 +174522,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Busanello",
+      "fn": "Gabriel",
       "ln": "Busanello",
       "pos": "LB",
       "age": 27,
@@ -170991,8 +174605,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jens Stryger",
-      "ln": "Larsen",
+      "fn": "Jens",
+      "ln": "Stryger Larsen",
       "pos": "RB",
       "age": 35,
       "nat": "Denmark",
@@ -171500,7 +175114,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "manchester-city": [
     {
-      "fn": "Rodri",
+      "fn": "Rodrigo",
       "ln": "Rodri",
       "pos": "CDM",
       "age": 30,
@@ -171772,7 +175386,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Savinho",
+      "fn": "Sávio",
       "ln": "Savinho",
       "pos": "RW",
       "age": 22,
@@ -172153,8 +175767,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Matthijs de",
-      "ln": "Ligt",
+      "fn": "Matthijs",
+      "ln": "de Ligt",
       "pos": "CB",
       "age": 27,
       "nat": "Holland",
@@ -172256,7 +175870,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Casemiro",
+      "fn": "Carlos",
       "ln": "Casemiro",
       "pos": "CDM",
       "age": 34,
@@ -173606,8 +177220,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Maat Daniel",
-      "ln": "Caprini",
+      "fn": "Maat",
+      "ln": "Daniel Caprini",
       "pos": "LW",
       "age": 20,
       "nat": "Italy",
@@ -173950,8 +177564,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Hamed Junior",
-      "ln": "Traoré",
+      "fn": "Hamed",
+      "ln": "Junior Traoré",
       "pos": "CAM",
       "age": 26,
       "nat": "Côte d'Ivoire",
@@ -174150,8 +177764,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Jeffrey de",
-      "ln": "Lange",
+      "fn": "Jeffrey",
+      "ln": "de Lange",
       "pos": "GK",
       "age": 28,
       "nat": "Holland",
@@ -174338,8 +177952,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "mechelen": [
     {
-      "fn": "Ortwin De",
-      "ln": "Wolf",
+      "fn": "Ortwin",
+      "ln": "De Wolf",
       "pos": "GK",
       "age": 29,
       "nat": "Belgium",
@@ -174564,8 +178178,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Tommy St.",
-      "ln": "Jago",
+      "fn": "Tommy",
+      "ln": "St. Jago",
       "pos": "CB",
       "age": 26,
       "nat": "Holland",
@@ -174776,8 +178390,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Tijn Van",
-      "ln": "Ingelgom",
+      "fn": "Tijn",
+      "ln": "Van Ingelgom",
       "pos": "GK",
       "age": 19,
       "nat": "Belgium",
@@ -175694,7 +179308,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Santos",
+      "fn": "Clarismario",
       "ln": "Santos",
       "pos": "RW",
       "age": 25,
@@ -176316,8 +179930,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Casper De",
-      "ln": "Norre",
+      "fn": "Casper",
+      "ln": "De Norre",
       "pos": "CDM",
       "age": 29,
       "nat": "Belgium",
@@ -177031,8 +180645,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dayne St.",
-      "ln": "Clair",
+      "fn": "Dayne",
+      "ln": "St. Clair",
       "pos": "GK",
       "age": 29,
       "nat": "Canada",
@@ -177094,8 +180708,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jung Ho",
-      "ln": "Yeon",
+      "fn": "Jung",
+      "ln": "Ho Yeon",
       "pos": "CM",
       "age": 25,
       "nat": "Korea Republic",
@@ -177276,8 +180890,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Anthony Markanich",
-      "ln": "Jr",
+      "fn": "Anthony",
+      "ln": "Markanich Jr",
       "pos": "LB",
       "age": 26,
       "nat": "United States",
@@ -177663,8 +181277,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ludwig Małachowski",
-      "ln": "Thorell",
+      "fn": "Ludwig",
+      "ln": "Małachowski Thorell",
       "pos": "CM",
       "age": 21,
       "nat": "Sweden",
@@ -178597,8 +182211,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Francesco Di",
-      "ln": "Mariano",
+      "fn": "Francesco",
+      "ln": "Di Mariano",
       "pos": "RW",
       "age": 30,
       "nat": "Italy",
@@ -179335,8 +182949,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sahal Abdul",
-      "ln": "Samad",
+      "fn": "Sahal",
+      "ln": "Abdul Samad",
       "pos": "CM",
       "age": 29,
       "nat": "India",
@@ -179401,8 +183015,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dheeraj Singh",
-      "ln": "Moirangthem",
+      "fn": "Dheeraj",
+      "ln": "Singh Moirangthem",
       "pos": "GK",
       "age": 26,
       "nat": "India",
@@ -179533,8 +183147,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "molde": [
     {
-      "fn": "Magnus Wolff",
-      "ln": "Eikrem",
+      "fn": "Magnus",
+      "ln": "Wolff Eikrem",
       "pos": "CAM",
       "age": 36,
       "nat": "Norway",
@@ -179557,8 +183171,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mats Møller",
-      "ln": "Dæhli",
+      "fn": "Mats",
+      "ln": "Møller Dæhli",
       "pos": "CDM",
       "age": 31,
       "nat": "Norway",
@@ -179807,8 +183421,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Caleb Zady",
-      "ln": "Sery",
+      "fn": "Caleb",
+      "ln": "Zady Sery",
       "pos": "LW",
       "age": 26,
       "nat": "Côte d'Ivoire",
@@ -179867,8 +183481,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Isak Helstad",
-      "ln": "Amundsen",
+      "fn": "Isak",
+      "ln": "Helstad Amundsen",
       "pos": "CB",
       "age": 26,
       "nat": "Norway",
@@ -181001,8 +184615,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 58
     },
     {
-      "fn": "Naoufel El",
-      "ln": "Hannach",
+      "fn": "Naoufel",
+      "ln": "El Hannach",
       "pos": "CB",
       "age": 19,
       "nat": "Morocco",
@@ -181393,8 +185007,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Filippo Delli",
-      "ln": "Carri",
+      "fn": "Filippo",
+      "ln": "Delli Carri",
       "pos": "CB",
       "age": 27,
       "nat": "Italy",
@@ -181627,7 +185241,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Maracás",
+      "fn": "Jobson",
       "ln": "Maracás",
       "pos": "CB",
       "age": 32,
@@ -181776,7 +185390,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Benny",
+      "fn": "Bernardo",
       "ln": "Benny",
       "pos": "CAM",
       "age": 28,
@@ -181887,7 +185501,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mika",
+      "fn": "Michael",
       "ln": "Mika",
       "pos": "GK",
       "age": 35,
@@ -181907,7 +185521,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Jorquera",
+      "fn": "Joel",
       "ln": "Jorquera",
       "pos": "LW",
       "age": 26,
@@ -182564,8 +186178,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Detlef Esapa",
-      "ln": "Osong",
+      "fn": "Detlef",
+      "ln": "Esapa Osong",
       "pos": "ST",
       "age": 21,
       "nat": "England",
@@ -183063,8 +186677,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Bradly van",
-      "ln": "Hoeven",
+      "fn": "Bradly",
+      "ln": "van Hoeven",
       "pos": "LW",
       "age": 26,
       "nat": "Holland",
@@ -183125,7 +186739,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "mumbai-city-fc": [
     {
-      "fn": "Tiri",
+      "fn": "José",
       "ln": "Tiri",
       "pos": "CB",
       "age": 35,
@@ -183148,8 +186762,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yoëll van",
-      "ln": "Nieff",
+      "fn": "Yoëll",
+      "ln": "van Nieff",
       "pos": "CM",
       "age": 33,
       "nat": "Holland",
@@ -183195,8 +186809,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jorge Pereyra",
-      "ln": "Díaz",
+      "fn": "Jorge",
+      "ln": "Pereyra Díaz",
       "pos": "ST",
       "age": 36,
       "nat": "Argentina",
@@ -183711,8 +187325,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Sydney van",
-      "ln": "Hooijdonk",
+      "fn": "Sydney",
+      "ln": "van Hooijdonk",
       "pos": "ST",
       "age": 26,
       "nat": "Holland",
@@ -183966,8 +187580,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Fredrik Oldrup",
-      "ln": "Jensen",
+      "fn": "Fredrik",
+      "ln": "Oldrup Jensen",
       "pos": "CDM",
       "age": 33,
       "nat": "Norway",
@@ -184173,8 +187787,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Daan van",
-      "ln": "Reeuwijk",
+      "fn": "Daan",
+      "ln": "van Reeuwijk",
       "pos": "CB",
       "age": 19,
       "nat": "Holland",
@@ -184278,7 +187892,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Liziero",
+      "fn": "Igor",
       "ln": "Liziero",
       "pos": "CM",
       "age": 28,
@@ -184384,7 +187998,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Witi",
+      "fn": "Witiness",
       "ln": "Witi",
       "pos": "LW",
       "age": 30,
@@ -184578,7 +188192,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jota",
+      "fn": "João",
       "ln": "Jota",
       "pos": "CM",
       "age": 33,
@@ -184770,8 +188384,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hong Hyeon",
-      "ln": "Seok",
+      "fn": "Hong",
+      "ln": "Hyeon Seok",
       "pos": "CAM",
       "age": 27,
       "nat": "Korea Republic",
@@ -184856,8 +188470,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Youssef El",
-      "ln": "Arabi",
+      "fn": "Youssef",
+      "ln": "El Arabi",
       "pos": "ST",
       "age": 39,
       "nat": "Morocco",
@@ -185005,8 +188619,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Kwon Hyeok",
-      "ln": "Kyu",
+      "fn": "Kwon",
+      "ln": "Hyeok Kyu",
       "pos": "CDM",
       "age": 25,
       "nat": "Korea Republic",
@@ -185249,8 +188863,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "napoli": [
     {
-      "fn": "Kevin De",
-      "ln": "Bruyne",
+      "fn": "Kevin",
+      "ln": "De Bruyne",
       "pos": "CM",
       "age": 35,
       "nat": "Belgium",
@@ -185315,8 +188929,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 94
     },
     {
-      "fn": "Giovanni Di",
-      "ln": "Lorenzo",
+      "fn": "Giovanni",
+      "ln": "Di Lorenzo",
       "pos": "RB",
       "age": 33,
       "nat": "Italy",
@@ -185381,8 +188995,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "André-Franck Zambo",
-      "ln": "Anguissa",
+      "fn": "André-Franck",
+      "ln": "Zambo Anguissa",
       "pos": "CM",
       "age": 30,
       "nat": "Cameroon",
@@ -186606,8 +190220,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Vito van",
-      "ln": "Crooij",
+      "fn": "Vito",
+      "ln": "van Crooij",
       "pos": "CAM",
       "age": 30,
       "nat": "Holland",
@@ -186629,8 +190243,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Youssef El",
-      "ln": "Kachati",
+      "fn": "Youssef",
+      "ln": "El Kachati",
       "pos": "ST",
       "age": 26,
       "nat": "Morocco",
@@ -186752,7 +190366,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Rober",
+      "fn": "Roberto",
       "ln": "Rober",
       "pos": "CAM",
       "age": 25,
@@ -186863,8 +190477,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Sam de",
-      "ln": "Laat",
+      "fn": "Sam",
+      "ln": "de Laat",
       "pos": "CM",
       "age": 20,
       "nat": "Holland",
@@ -187074,8 +190688,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Mohammed Al",
-      "ln": "Buraik",
+      "fn": "Mohammed",
+      "ln": "Al Buraik",
       "pos": "LB",
       "age": 33,
       "nat": "Saudi Arabia",
@@ -187121,8 +190735,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Salman Al",
-      "ln": "Faraj",
+      "fn": "Salman",
+      "ln": "Al Faraj",
       "pos": "CM",
       "age": 37,
       "nat": "Saudi Arabia",
@@ -187144,8 +190758,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdulmalek Al",
-      "ln": "Ayeri",
+      "fn": "Abdulmalek",
+      "ln": "Al Ayeri",
       "pos": "RB",
       "age": 22,
       "nat": "Saudi Arabia",
@@ -187253,8 +190867,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Ali Al",
-      "ln": "Asmari",
+      "fn": "Ali",
+      "ln": "Al Asmari",
       "pos": "CM",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -187276,8 +190890,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Alaa Al",
-      "ln": "Hajji",
+      "fn": "Alaa",
+      "ln": "Al Hajji",
       "pos": "CM",
       "age": 30,
       "nat": "Saudi Arabia",
@@ -187320,8 +190934,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 60
     },
     {
-      "fn": "Fahad Al",
-      "ln": "Harbi",
+      "fn": "Fahad",
+      "ln": "Al Harbi",
       "pos": "CB",
       "age": 29,
       "nat": "Saudi Arabia",
@@ -187340,8 +190954,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Khalifa Al",
-      "ln": "Dawsari",
+      "fn": "Khalifa",
+      "ln": "Al Dawsari",
       "pos": "CB",
       "age": 27,
       "nat": "Saudi Arabia",
@@ -187364,8 +190978,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hassan Al",
-      "ln": "Ali",
+      "fn": "Hassan",
+      "ln": "Al Ali",
       "pos": "ST",
       "age": 24,
       "nat": "Saudi Arabia",
@@ -187387,8 +191001,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Thamer Al",
-      "ln": "Khaibari",
+      "fn": "Thamer",
+      "ln": "Al Khaibari",
       "pos": "ST",
       "age": 20,
       "nat": "Saudi Arabia",
@@ -188484,8 +192098,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Eric Maxim",
-      "ln": "Choupo-Moting",
+      "fn": "Eric",
+      "ln": "Maxim Choupo-Moting",
       "pos": "ST",
       "age": 37,
       "nat": "Cameroon",
@@ -188550,8 +192164,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Carlos Miguel",
-      "ln": "Coronel",
+      "fn": "Carlos",
+      "ln": "Miguel Coronel",
       "pos": "GK",
       "age": 29,
       "nat": "Paraguay",
@@ -188869,8 +192483,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Juan José",
-      "ln": "Mina",
+      "fn": "Juan",
+      "ln": "José Mina",
       "pos": "RB",
       "age": 22,
       "nat": "Colombia",
@@ -189533,8 +193147,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ben Van",
-      "ln": "Dorssen",
+      "fn": "Ben",
+      "ln": "Van Dorssen",
       "pos": "CB",
       "age": 21,
       "nat": "Australia",
@@ -190294,8 +193908,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Juan Manuel",
-      "ln": "García",
+      "fn": "Juan",
+      "ln": "Manuel García",
       "pos": "ST",
       "age": 33,
       "nat": "Argentina",
@@ -191719,8 +195333,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Salis Abdul",
-      "ln": "Samed",
+      "fn": "Salis",
+      "ln": "Abdul Samed",
       "pos": "CDM",
       "age": 26,
       "nat": "Ghana",
@@ -191762,8 +195376,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 98
     },
     {
-      "fn": "Abdulai Juma",
-      "ln": "Bah",
+      "fn": "Abdulai",
+      "ln": "Juma Bah",
       "pos": "CB",
       "age": 20,
       "nat": "Sierra Leone",
@@ -191876,8 +195490,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kojo Peprah",
-      "ln": "Oppong",
+      "fn": "Kojo",
+      "ln": "Peprah Oppong",
       "pos": "CB",
       "age": 22,
       "nat": "Ghana",
@@ -192572,8 +196186,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Macarton Louis",
-      "ln": "Nickson",
+      "fn": "Macarton",
+      "ln": "Louis Nickson",
       "pos": "CM",
       "age": 22,
       "nat": "India",
@@ -193496,8 +197110,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Papa Amadou",
-      "ln": "Diallo",
+      "fn": "Papa",
+      "ln": "Amadou Diallo",
       "pos": "LW",
       "age": 22,
       "nat": "Senegal",
@@ -194165,7 +197779,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Morato",
+      "fn": "Felipe",
       "ln": "Morato",
       "pos": "CB",
       "age": 25,
@@ -195505,8 +199119,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Abdoul Karim",
-      "ln": "Traoré",
+      "fn": "Abdoul",
+      "ln": "Karim Traoré",
       "pos": "ST",
       "age": 19,
       "nat": "Guinea",
@@ -195547,8 +199161,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "olympiacos": [
     {
-      "fn": "Ayoub El",
-      "ln": "Kaabi",
+      "fn": "Ayoub",
+      "ln": "El Kaabi",
       "pos": "ST",
       "age": 33,
       "nat": "Morocco",
@@ -195607,7 +199221,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Chiquinho",
+      "fn": "Francisco",
       "ln": "Chiquinho",
       "pos": "CM",
       "age": 31,
@@ -195757,7 +199371,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Costinha",
+      "fn": "João",
       "ln": "Costinha",
       "pos": "RB",
       "age": 26,
@@ -196414,8 +200028,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Dagur Dan",
-      "ln": "Þór­halls­son",
+      "fn": "Dagur",
+      "ln": "Dan Þór­halls­son",
       "pos": "RB",
       "age": 26,
       "nat": "Iceland",
@@ -196788,7 +200402,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Catena",
+      "fn": "Alejandro",
       "ln": "Catena",
       "pos": "CB",
       "age": 31,
@@ -196808,7 +200422,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Moncayola",
+      "fn": "Jon",
       "ln": "Moncayola",
       "pos": "CM",
       "age": 28,
@@ -197077,7 +200691,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Herrando",
+      "fn": "Jorge",
       "ln": "Herrando",
       "pos": "CB",
       "age": 25,
@@ -197207,7 +200821,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 60
     },
     {
-      "fn": "Osambela",
+      "fn": "Asier",
       "ln": "Osambela",
       "pos": "CM",
       "age": 21,
@@ -197247,7 +200861,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Arguibide",
+      "fn": "Iñigo",
       "ln": "Arguibide",
       "pos": "RB",
       "age": 21,
@@ -197319,7 +200933,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Andrezinho",
+      "fn": "André",
       "ln": "Andrezinho",
       "pos": "RW",
       "age": 29,
@@ -197423,7 +201037,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Kazu",
+      "fn": "Christian",
       "ln": "Kazu",
       "pos": "LB",
       "age": 26,
@@ -197466,7 +201080,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Paulinho",
+      "fn": "Paulo",
       "ln": "Paulinho",
       "pos": "ST",
       "age": 26,
@@ -197509,7 +201123,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Patrick",
+      "fn": "Fábio",
       "ln": "Patrick",
       "pos": "ST",
       "age": 32,
@@ -197774,8 +201388,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Brian De",
-      "ln": "Keersmaecker",
+      "fn": "Brian",
+      "ln": "De Keersmaecker",
       "pos": "CDM",
       "age": 26,
       "nat": "Belgium",
@@ -197883,8 +201497,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Hidde ter",
-      "ln": "Avest",
+      "fn": "Hidde",
+      "ln": "ter Avest",
       "pos": "RB",
       "age": 29,
       "nat": "Holland",
@@ -198393,8 +202007,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Jérémy Le",
-      "ln": "Douaron",
+      "fn": "Jérémy",
+      "ln": "Le Douaron",
       "pos": "ST",
       "age": 28,
       "nat": "France",
@@ -198830,7 +202444,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Tetê",
+      "fn": "Mateus",
       "ln": "Tetê",
       "pos": "RW",
       "age": 26,
@@ -198959,8 +202573,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sverrir Ingi",
-      "ln": "Ingason",
+      "fn": "Sverrir",
+      "ln": "Ingi Ingason",
       "pos": "CB",
       "age": 33,
       "nat": "Iceland",
@@ -198979,8 +202593,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Adam Gnezda",
-      "ln": "Čerin",
+      "fn": "Adam",
+      "ln": "Gnezda Čerin",
       "pos": "CM",
       "age": 27,
       "nat": "Slovenia",
@@ -200278,8 +203892,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Thibault De",
-      "ln": "Smet",
+      "fn": "Thibault",
+      "ln": "De Smet",
       "pos": "LB",
       "age": 28,
       "nat": "Belgium",
@@ -200708,7 +204322,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Vitinha",
+      "fn": "Vítor",
       "ln": "Vitinha",
       "pos": "CM",
       "age": 26,
@@ -200755,7 +204369,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marquinhos",
+      "fn": "Marcos",
       "ln": "Marquinhos",
       "pos": "CB",
       "age": 32,
@@ -200995,8 +204609,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Lee Kang",
-      "ln": "In",
+      "fn": "Lee",
+      "ln": "Kang In",
       "pos": "RW",
       "age": 25,
       "nat": "Korea Republic",
@@ -202278,8 +205892,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Anselmo García",
-      "ln": "MacNulty",
+      "fn": "Anselmo",
+      "ln": "García MacNulty",
       "pos": "CB",
       "age": 23,
       "nat": "Republic of Ireland",
@@ -202554,8 +206168,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Damian van der",
-      "ln": "Haar",
+      "fn": "Damian",
+      "ln": "van der Haar",
       "pos": "LB",
       "age": 22,
       "nat": "Holland",
@@ -202577,8 +206191,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kaj de",
-      "ln": "Rooij",
+      "fn": "Kaj",
+      "ln": "de Rooij",
       "pos": "LW",
       "age": 25,
       "nat": "Holland",
@@ -202597,8 +206211,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Tom de",
-      "ln": "Graaff",
+      "fn": "Tom",
+      "ln": "de Graaff",
       "pos": "GK",
       "age": 21,
       "nat": "Holland",
@@ -203738,8 +207352,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ryan De",
-      "ln": "Havilland",
+      "fn": "Ryan",
+      "ln": "De Havilland",
       "pos": "CDM",
       "age": 25,
       "nat": "England",
@@ -203960,7 +207574,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ricardinho",
+      "fn": "Ricardo",
       "ln": "Ricardinho",
       "pos": "RB",
       "age": 32,
@@ -204596,8 +208210,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Danley Jean",
-      "ln": "Jacques",
+      "fn": "Danley",
+      "ln": "Jean Jacques",
       "pos": "CM",
       "age": 26,
       "nat": "Haiti",
@@ -205166,7 +208780,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dalmau",
+      "fn": "Adriàn",
       "ln": "Dalmau",
       "pos": "ST",
       "age": 32,
@@ -205963,7 +209577,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nicolas",
+      "fn": "David",
       "ln": "Nicolas",
       "pos": "GK",
       "age": 38,
@@ -206289,8 +209903,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Raúl Alberto",
-      "ln": "Lozano",
+      "fn": "Raúl",
+      "ln": "Alberto Lozano",
       "pos": "RB",
       "age": 28,
       "nat": "Argentina",
@@ -206464,8 +210078,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Bautista Barros",
-      "ln": "Schelotto",
+      "fn": "Bautista",
+      "ln": "Barros Schelotto",
       "pos": "RB",
       "age": 26,
       "nat": "Argentina",
@@ -206484,8 +210098,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Maximiliano Rodríguez",
-      "ln": "Vejar",
+      "fn": "Maximiliano",
+      "ln": "Rodríguez Vejar",
       "pos": "ST",
       "age": 26,
       "nat": "Chile",
@@ -206651,8 +210265,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Juan Pablo",
-      "ln": "Goicochea",
+      "fn": "Juan",
+      "ln": "Pablo Goicochea",
       "pos": "ST",
       "age": 21,
       "nat": "Peru",
@@ -206819,7 +210433,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Pleguezuelo",
+      "fn": "Julio",
       "ln": "Pleguezuelo",
       "pos": "CB",
       "age": 29,
@@ -207339,8 +210953,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Linus Wahlqvist",
-      "ln": "Egnell",
+      "fn": "Linus",
+      "ln": "Wahlqvist Egnell",
       "pos": "RB",
       "age": 29,
       "nat": "Sweden",
@@ -207512,8 +211126,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Paul Omo",
-      "ln": "Mukairu",
+      "fn": "Paul",
+      "ln": "Omo Mukairu",
       "pos": "LW",
       "age": 26,
       "nat": "Nigeria",
@@ -207835,8 +211449,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 62
     },
     {
-      "fn": "Park Seung",
-      "ln": "Wook",
+      "fn": "Park",
+      "ln": "Seung Wook",
       "pos": "CB",
       "age": 29,
       "nat": "Korea Republic",
@@ -207858,8 +211472,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Ho",
-      "ln": "Jae",
+      "fn": "Lee",
+      "ln": "Ho Jae",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -207878,8 +211492,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Jeon Min",
-      "ln": "Gwang",
+      "fn": "Jeon",
+      "ln": "Min Gwang",
       "pos": "CB",
       "age": 33,
       "nat": "Korea Republic",
@@ -207902,8 +211516,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ki Sung",
-      "ln": "Yueng",
+      "fn": "Ki",
+      "ln": "Sung Yueng",
       "pos": "CM",
       "age": 37,
       "nat": "Korea Republic",
@@ -207925,8 +211539,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hwang In",
-      "ln": "Jae",
+      "fn": "Hwang",
+      "ln": "In Jae",
       "pos": "GK",
       "age": 32,
       "nat": "Korea Republic",
@@ -207945,8 +211559,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Shin Kwang",
-      "ln": "Hoon",
+      "fn": "Shin",
+      "ln": "Kwang Hoon",
       "pos": "RB",
       "age": 39,
       "nat": "Korea Republic",
@@ -207992,8 +211606,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim In",
-      "ln": "Sung",
+      "fn": "Kim",
+      "ln": "In Sung",
       "pos": "ST",
       "age": 36,
       "nat": "Korea Republic",
@@ -208038,8 +211652,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Dong",
-      "ln": "Hee",
+      "fn": "Lee",
+      "ln": "Dong Hee",
       "pos": "CB",
       "age": 26,
       "nat": "Korea Republic",
@@ -208058,8 +211672,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Eo Jeong",
-      "ln": "Won",
+      "fn": "Eo",
+      "ln": "Jeong Won",
       "pos": "RB",
       "age": 27,
       "nat": "Korea Republic",
@@ -208081,8 +211695,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hong Yun",
-      "ln": "Sang",
+      "fn": "Hong",
+      "ln": "Yun Sang",
       "pos": "LW",
       "age": 24,
       "nat": "Korea Republic",
@@ -208104,8 +211718,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Jong",
-      "ln": "Woo",
+      "fn": "Kim",
+      "ln": "Jong Woo",
       "pos": "CM",
       "age": 32,
       "nat": "Korea Republic",
@@ -208129,8 +211743,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Paik Sung",
-      "ln": "Dong",
+      "fn": "Paik",
+      "ln": "Sung Dong",
       "pos": "ST",
       "age": 35,
       "nat": "Korea Republic",
@@ -208152,8 +211766,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yoon Pyung",
-      "ln": "Gook",
+      "fn": "Yoon",
+      "ln": "Pyung Gook",
       "pos": "GK",
       "age": 34,
       "nat": "Korea Republic",
@@ -208172,8 +211786,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "An Jae",
-      "ln": "Jun",
+      "fn": "An",
+      "ln": "Jae Jun",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -208215,8 +211829,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Han Hyeon",
-      "ln": "Seo",
+      "fn": "Han",
+      "ln": "Hyeon Seo",
       "pos": "CB",
       "age": 22,
       "nat": "Korea Republic",
@@ -208235,8 +211849,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Kim Dong",
-      "ln": "Jin",
+      "fn": "Kim",
+      "ln": "Dong Jin",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -208255,8 +211869,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Cho Jae",
-      "ln": "Hun",
+      "fn": "Cho",
+      "ln": "Jae Hun",
       "pos": "LW",
       "age": 23,
       "nat": "Korea Republic",
@@ -208275,8 +211889,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Cho Sang",
-      "ln": "Hyeok",
+      "fn": "Cho",
+      "ln": "Sang Hyeok",
       "pos": "ST",
       "age": 22,
       "nat": "Korea Republic",
@@ -208295,8 +211909,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Kang Min",
-      "ln": "Jun",
+      "fn": "Kang",
+      "ln": "Min Jun",
       "pos": "RB",
       "age": 23,
       "nat": "Korea Republic",
@@ -208315,8 +211929,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Jo Sung",
-      "ln": "Wook",
+      "fn": "Jo",
+      "ln": "Sung Wook",
       "pos": "CB",
       "age": 31,
       "nat": "Korea Republic",
@@ -208335,8 +211949,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Kang Hyun",
-      "ln": "Je",
+      "fn": "Kang",
+      "ln": "Hyun Je",
       "pos": "CAM",
       "age": 23,
       "nat": "Korea Republic",
@@ -208358,8 +211972,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hwang Seo",
-      "ln": "Ung",
+      "fn": "Hwang",
+      "ln": "Seo Ung",
       "pos": "CAM",
       "age": 21,
       "nat": "Korea Republic",
@@ -208381,8 +211995,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cha Jun",
-      "ln": "Young",
+      "fn": "Cha",
+      "ln": "Jun Young",
       "pos": "CB",
       "age": 22,
       "nat": "Korea Republic",
@@ -208421,8 +212035,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Hong Sung",
-      "ln": "Min",
+      "fn": "Hong",
+      "ln": "Sung Min",
       "pos": "GK",
       "age": 19,
       "nat": "Korea Republic",
@@ -208441,8 +212055,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Lee Heon",
-      "ln": "Jae",
+      "fn": "Lee",
+      "ln": "Heon Jae",
       "pos": "RW",
       "age": 20,
       "nat": "Korea Republic",
@@ -208461,8 +212075,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 66
     },
     {
-      "fn": "Lee Gyu",
-      "ln": "Min",
+      "fn": "Lee",
+      "ln": "Gyu Min",
       "pos": "RW",
       "age": 20,
       "nat": "Korea Republic",
@@ -208481,8 +212095,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Lee Dong",
-      "ln": "Hyeop",
+      "fn": "Lee",
+      "ln": "Dong Hyeop",
       "pos": "LB",
       "age": 23,
       "nat": "Korea Republic",
@@ -208501,8 +212115,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Baek Seung",
-      "ln": "Won",
+      "fn": "Baek",
+      "ln": "Seung Won",
       "pos": "RW",
       "age": 20,
       "nat": "Korea Republic",
@@ -208521,8 +212135,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Hong Ji",
-      "ln": "Woo",
+      "fn": "Hong",
+      "ln": "Ji Woo",
       "pos": "CM",
       "age": 23,
       "nat": "Korea Republic",
@@ -208541,8 +212155,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Kim Dong",
-      "ln": "Min",
+      "fn": "Kim",
+      "ln": "Dong Min",
       "pos": "CDM",
       "age": 21,
       "nat": "Korea Republic",
@@ -209191,8 +212805,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "David da",
-      "ln": "Costa",
+      "fn": "David",
+      "ln": "da Costa",
       "pos": "CAM",
       "age": 25,
       "nat": "Portugal",
@@ -209476,8 +213090,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Juan David",
-      "ln": "Mosquera",
+      "fn": "Juan",
+      "ln": "David Mosquera",
       "pos": "RB",
       "age": 23,
       "nat": "Colombia",
@@ -209737,7 +213351,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Samu",
+      "fn": "Samuel",
       "ln": "Samu",
       "pos": "ST",
       "age": 22,
@@ -209777,7 +213391,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Pepê",
+      "fn": "Eduardo",
       "ln": "Pepê",
       "pos": "CAM",
       "age": 29,
@@ -209800,8 +213414,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Luuk de",
-      "ln": "Jong",
+      "fn": "Luuk",
+      "ln": "de Jong",
       "pos": "ST",
       "age": 36,
       "nat": "Holland",
@@ -210400,8 +214014,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Yang Min",
-      "ln": "Hyeok",
+      "fn": "Yang",
+      "ln": "Min Hyeok",
       "pos": "RW",
       "age": 20,
       "nat": "Korea Republic",
@@ -210613,8 +214227,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Luke Le",
-      "ln": "Roux",
+      "fn": "Luke",
+      "ln": "Le Roux",
       "pos": "CM",
       "age": 26,
       "nat": "South Africa",
@@ -211160,8 +214774,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Stefán Teitur",
-      "ln": "Þórðarson",
+      "fn": "Stefán",
+      "ln": "Teitur Þórðarson",
       "pos": "CM",
       "age": 27,
       "nat": "Iceland",
@@ -211655,8 +215269,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Oliver Batista",
-      "ln": "Meier",
+      "fn": "Oliver",
+      "ln": "Batista Meier",
       "pos": "CAM",
       "age": 25,
       "nat": "Germany",
@@ -211749,8 +215363,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jano ter",
-      "ln": "Horst",
+      "fn": "Jano",
+      "ln": "ter Horst",
       "pos": "RB",
       "age": 24,
       "nat": "Germany",
@@ -212414,8 +216028,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Ruben van",
-      "ln": "Bommel",
+      "fn": "Ruben",
+      "ln": "van Bommel",
       "pos": "LW",
       "age": 22,
       "nat": "Holland",
@@ -212848,8 +216462,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ranjeet Singh",
-      "ln": "Pandre",
+      "fn": "Ranjeet",
+      "ln": "Singh Pandre",
       "pos": "ST",
       "age": 31,
       "nat": "India",
@@ -212935,8 +216549,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Muheet Shabir",
-      "ln": "Khan",
+      "fn": "Muheet",
+      "ln": "Shabir Khan",
       "pos": "GK",
       "age": 25,
       "nat": "India",
@@ -213547,7 +217161,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Esquerdinha",
+      "fn": "João",
       "ln": "Esquerdinha",
       "pos": "LB",
       "age": 20,
@@ -214236,7 +217850,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Ezkieta",
+      "fn": "Jokin",
       "ln": "Ezkieta",
       "pos": "GK",
       "age": 30,
@@ -214256,7 +217870,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Villalibre",
+      "fn": "Asier",
       "ln": "Villalibre",
       "pos": "ST",
       "age": 28,
@@ -214276,7 +217890,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Arana",
+      "fn": "Juan",
       "ln": "Arana",
       "pos": "ST",
       "age": 26,
@@ -214319,7 +217933,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Aldasoro",
+      "fn": "Aritz",
       "ln": "Aldasoro",
       "pos": "CDM",
       "age": 27,
@@ -214490,7 +218104,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Mantilla",
+      "fn": "Álvaro",
       "ln": "Mantilla",
       "pos": "RB",
       "age": 26,
@@ -214667,8 +218281,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "r-sporting": [
     {
-      "fn": "Juan Ferney",
-      "ln": "Otero",
+      "fn": "Juan",
+      "ln": "Ferney Otero",
       "pos": "ST",
       "age": 31,
       "nat": "Colombia",
@@ -215032,8 +218646,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 64
     },
     {
-      "fn": "Christian Joel",
-      "ln": "Sánchez",
+      "fn": "Christian",
+      "ln": "Joel Sánchez",
       "pos": "GK",
       "age": 27,
       "nat": "Cuba",
@@ -215182,8 +218796,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Yann Kembo",
-      "ln": "Diantela",
+      "fn": "Yann",
+      "ln": "Kembo Diantela",
       "pos": "CB",
       "age": 24,
       "nat": "France",
@@ -215333,8 +218947,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Ignacio",
-      "ln": "Nardoni",
+      "fn": "Juan",
+      "ln": "Ignacio Nardoni",
       "pos": "CM",
       "age": 24,
       "nat": "Argentina",
@@ -215439,8 +219053,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Agustín García",
-      "ln": "Basso",
+      "fn": "Agustín",
+      "ln": "García Basso",
       "pos": "CB",
       "age": 34,
       "nat": "Argentina",
@@ -215459,8 +219073,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Marco Di",
-      "ln": "Cesare",
+      "fn": "Marco",
+      "ln": "Di Cesare",
       "pos": "CB",
       "age": 24,
       "nat": "Argentina",
@@ -215716,8 +219330,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Ignacio Agustín",
-      "ln": "Rodríguez",
+      "fn": "Ignacio",
+      "ln": "Agustín Rodríguez",
       "pos": "CM",
       "age": 24,
       "nat": "Argentina",
@@ -215953,7 +219567,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Capita",
+      "fn": "Osvaldo",
       "ln": "Capita",
       "pos": "LW",
       "age": 24,
@@ -216270,8 +219884,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Abdoul Fessal",
-      "ln": "Tapsoba",
+      "fn": "Abdoul",
+      "ln": "Fessal Tapsoba",
       "pos": "ST",
       "age": 25,
       "nat": "Burkina Faso",
@@ -216316,7 +219930,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Depú",
+      "fn": "Laurindo",
       "ln": "Depú",
       "pos": "ST",
       "age": 26,
@@ -216878,8 +220492,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lamine Diaby",
-      "ln": "Fadiga",
+      "fn": "Lamine",
+      "ln": "Diaby Fadiga",
       "pos": "ST",
       "age": 25,
       "nat": "France",
@@ -217178,8 +220792,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Florian Thomas",
-      "ln": "Danho",
+      "fn": "Florian",
+      "ln": "Thomas Danho",
       "pos": "ST",
       "age": 26,
       "nat": "France",
@@ -217350,8 +220964,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Laurits Raun",
-      "ln": "Pedersen",
+      "fn": "Laurits",
+      "ln": "Raun Pedersen",
       "pos": "CDM",
       "age": 20,
       "nat": "Denmark",
@@ -218919,8 +222533,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jean Harisson",
-      "ln": "Marcelin",
+      "fn": "Jean",
+      "ln": "Harisson Marcelin",
       "pos": "CB",
       "age": 26,
       "nat": "Madagascar",
@@ -219131,8 +222745,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Petter Nosa",
-      "ln": "Dahl",
+      "fn": "Petter",
+      "ln": "Nosa Dahl",
       "pos": "LW",
       "age": 22,
       "nat": "Norway",
@@ -219338,7 +222952,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "rayo-vallecano": [
     {
-      "fn": "Isi",
+      "fn": "Isaac",
       "ln": "Isi",
       "pos": "CAM",
       "age": 31,
@@ -219678,7 +223292,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Gumbau",
+      "fn": "Gerard",
       "ln": "Gumbau",
       "pos": "CM",
       "age": 31,
@@ -219857,8 +223471,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "De las",
-      "ln": "Sías",
+      "fn": "De",
+      "ln": "las Sías",
       "pos": "CB",
       "age": 20,
       "nat": "Spain",
@@ -220261,8 +223875,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "El Chadaille",
-      "ln": "Bitshiabu",
+      "fn": "El",
+      "ln": "Chadaille Bitshiabu",
       "pos": "CB",
       "age": 21,
       "nat": "France",
@@ -220504,8 +224118,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Joyeux Masanka",
-      "ln": "Bungi",
+      "fn": "Joyeux",
+      "ln": "Masanka Bungi",
       "pos": "LW",
       "age": 19,
       "nat": "Belgium",
@@ -221242,7 +224856,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Villares",
+      "fn": "Diego",
       "ln": "Villares",
       "pos": "CM",
       "age": 30,
@@ -221265,7 +224879,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Stoichkov",
+      "fn": "Juan",
       "ln": "Stoichkov",
       "pos": "ST",
       "age": 32,
@@ -221358,7 +224972,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Loureiro",
+      "fn": "Miguel",
       "ln": "Loureiro",
       "pos": "CB",
       "age": 29,
@@ -221381,7 +224995,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mella",
+      "fn": "David",
       "ln": "Mella",
       "pos": "RW",
       "age": 21,
@@ -221485,7 +225099,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Escudero",
+      "fn": "Sergio",
       "ln": "Escudero",
       "pos": "LB",
       "age": 36,
@@ -221545,7 +225159,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Patiño",
+      "fn": "Charlie",
       "ln": "Patiño",
       "pos": "CM",
       "age": 22,
@@ -222377,7 +225991,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "real-betis": [
     {
-      "fn": "Isco",
+      "fn": "Francisco",
       "ln": "Isco",
       "pos": "CAM",
       "age": 34,
@@ -222400,8 +226014,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Giovani Lo",
-      "ln": "Celso",
+      "fn": "Giovani",
+      "ln": "Lo Celso",
       "pos": "CAM",
       "age": 30,
       "nat": "Argentina",
@@ -222571,7 +226185,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cucho",
+      "fn": "Juan",
       "ln": "Cucho",
       "pos": "ST",
       "age": 27,
@@ -222617,7 +226231,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Natan",
+      "fn": "Bernardo",
       "ln": "Natan",
       "pos": "CB",
       "age": 25,
@@ -222661,7 +226275,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Riquelme",
+      "fn": "Rodrigo",
       "ln": "Riquelme",
       "pos": "LW",
       "age": 26,
@@ -222681,7 +226295,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Altimira",
+      "fn": "Sergio",
       "ln": "Altimira",
       "pos": "CDM",
       "age": 25,
@@ -223118,7 +226732,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Carvajal",
+      "fn": "Daniel",
       "ln": "Carvajal",
       "pos": "RB",
       "age": 34,
@@ -223468,7 +227082,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Asencio",
+      "fn": "Raúl",
       "ln": "Asencio",
       "pos": "CB",
       "age": 23,
@@ -224048,7 +227662,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Oyarzabal",
+      "fn": "Mikel",
       "ln": "Oyarzabal",
       "pos": "ST",
       "age": 29,
@@ -224185,7 +227799,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Zubeldia",
+      "fn": "Igor",
       "ln": "Zubeldia",
       "pos": "CB",
       "age": 29,
@@ -224228,8 +227842,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jon Mikel",
-      "ln": "Aramburu",
+      "fn": "Jon",
+      "ln": "Mikel Aramburu",
       "pos": "RB",
       "age": 24,
       "nat": "Venezuela",
@@ -224248,7 +227862,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Barrenetxea",
+      "fn": "Ander",
       "ln": "Barrenetxea",
       "pos": "LW",
       "age": 24,
@@ -224381,7 +227995,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Odriozola",
+      "fn": "Álvaro",
       "ln": "Odriozola",
       "pos": "RB",
       "age": 30,
@@ -224441,7 +228055,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Gorrotxa",
+      "fn": "Jon",
       "ln": "Gorrotxa",
       "pos": "CDM",
       "age": 24,
@@ -224464,7 +228078,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Turrientes",
+      "fn": "Beñat",
       "ln": "Turrientes",
       "pos": "CM",
       "age": 24,
@@ -224550,7 +228164,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Karrikaburu",
+      "fn": "Jon",
       "ln": "Karrikaburu",
       "pos": "ST",
       "age": 23,
@@ -224698,7 +228312,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Meseguer",
+      "fn": "Víctor",
       "ln": "Meseguer",
       "pos": "CM",
       "age": 27,
@@ -224746,7 +228360,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Latasa",
+      "fn": "Juan",
       "ln": "Latasa",
       "pos": "ST",
       "age": 25,
@@ -224826,7 +228440,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Chuki",
+      "fn": "Iván",
       "ln": "Chuki",
       "pos": "CAM",
       "age": 22,
@@ -224892,7 +228506,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Aceves",
+      "fn": "Álvaro",
       "ln": "Aceves",
       "pos": "GK",
       "age": 23,
@@ -224952,7 +228566,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Arnu",
+      "fn": "Adrián",
       "ln": "Arnu",
       "pos": "ST",
       "age": 19,
@@ -224972,7 +228586,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Koke",
+      "fn": "Jorge",
       "ln": "Koke",
       "pos": "RB",
       "age": 21,
@@ -225087,7 +228701,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Soberón",
+      "fn": "Mario",
       "ln": "Soberón",
       "pos": "ST",
       "age": 29,
@@ -225327,7 +228941,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Tachi",
+      "fn": "Alberto",
       "ln": "Tachi",
       "pos": "CB",
       "age": 28,
@@ -225347,7 +228961,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Insua",
+      "fn": "Pablo",
       "ln": "Insua",
       "pos": "CB",
       "age": 32,
@@ -225387,7 +229001,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Pomares",
+      "fn": "Carlos",
       "ln": "Pomares",
       "pos": "LB",
       "age": 33,
@@ -225427,7 +229041,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Cuenca",
+      "fn": "Marcos",
       "ln": "Cuenca",
       "pos": "ST",
       "age": 23,
@@ -225840,8 +229454,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 63
     },
     {
-      "fn": "Joachim Kayi",
-      "ln": "Sanda",
+      "fn": "Joachim",
+      "ln": "Kayi Sanda",
       "pos": "CB",
       "age": 19,
       "nat": "France",
@@ -226161,8 +229775,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cedric Diomandè",
-      "ln": "Gondo",
+      "fn": "Cedric",
+      "ln": "Diomandè Gondo",
       "pos": "ST",
       "age": 29,
       "nat": "Côte d'Ivoire",
@@ -226411,7 +230025,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Charlys",
+      "fn": "Lima",
       "ln": "Charlys",
       "pos": "CM",
       "age": 22,
@@ -226562,7 +230176,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Akieme",
+      "fn": "Sergio",
       "ln": "Akieme",
       "pos": "LB",
       "age": 28,
@@ -226969,8 +230583,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Ange Martial",
-      "ln": "Tia",
+      "fn": "Ange",
+      "ln": "Martial Tia",
       "pos": "CAM",
       "age": 19,
       "nat": "Mali",
@@ -227230,8 +230844,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Musa Al",
-      "ln": "Tamari",
+      "fn": "Musa",
+      "ln": "Al Tamari",
       "pos": "ST",
       "age": 29,
       "nat": "Jordan",
@@ -227426,8 +231040,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Mohamed Kader",
-      "ln": "Meïté",
+      "fn": "Mohamed",
+      "ln": "Kader Meïté",
       "pos": "ST",
       "age": 18,
       "nat": "France",
@@ -227466,8 +231080,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 63
     },
     {
-      "fn": "Abdelhamid Ait",
-      "ln": "Boudlal",
+      "fn": "Abdelhamid",
+      "ln": "Ait Boudlal",
       "pos": "CB",
       "age": 20,
       "nat": "Morocco",
@@ -227920,8 +231534,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Eric da Silva",
-      "ln": "Moreira",
+      "fn": "Eric",
+      "ln": "da Silva Moreira",
       "pos": "RB",
       "age": 20,
       "nat": "Germany",
@@ -228072,8 +231686,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lucas Martínez",
-      "ln": "Quarta",
+      "fn": "Lucas",
+      "ln": "Martínez Quarta",
       "pos": "CB",
       "age": 30,
       "nat": "Argentina",
@@ -228092,8 +231706,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Juan Fernando",
-      "ln": "Quintero",
+      "fn": "Juan",
+      "ln": "Fernando Quintero",
       "pos": "CAM",
       "age": 33,
       "nat": "Colombia",
@@ -228609,8 +232223,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Juan Cruz",
-      "ln": "Meza",
+      "fn": "Juan",
+      "ln": "Cruz Meza",
       "pos": "CM",
       "age": 18,
       "nat": "Argentina",
@@ -228632,8 +232246,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Agustín de la",
-      "ln": "Cuesta",
+      "fn": "Agustín",
+      "ln": "de la Cuesta",
       "pos": "CM",
       "age": 20,
       "nat": "Argentina",
@@ -229264,8 +232878,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "rosario-central": [
     {
-      "fn": "Ángel Di",
-      "ln": "María",
+      "fn": "Ángel",
+      "ln": "Di María",
       "pos": "RW",
       "age": 38,
       "nat": "Argentina",
@@ -229284,8 +232898,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Víctor Ignacio",
-      "ln": "Malcorra",
+      "fn": "Víctor",
+      "ln": "Ignacio Malcorra",
       "pos": "CAM",
       "age": 39,
       "nat": "Argentina",
@@ -229457,8 +233071,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Cruz",
-      "ln": "Komar",
+      "fn": "Juan",
+      "ln": "Cruz Komar",
       "pos": "CB",
       "age": 30,
       "nat": "Argentina",
@@ -229563,8 +233177,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Juan Manuel",
-      "ln": "Elordi",
+      "fn": "Juan",
+      "ln": "Manuel Elordi",
       "pos": "LB",
       "age": 32,
       "nat": "Argentina",
@@ -229630,8 +233244,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Francesco Lo",
-      "ln": "Celso",
+      "fn": "Francesco",
+      "ln": "Lo Celso",
       "pos": "CM",
       "age": 26,
       "nat": "Argentina",
@@ -229828,8 +233442,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "rosenborg": [
     {
-      "fn": "Simen Bolkan",
-      "ln": "Nordli",
+      "fn": "Simen",
+      "ln": "Bolkan Nordli",
       "pos": "CM",
       "age": 26,
       "nat": "Norway",
@@ -229851,8 +233465,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ole Kristian",
-      "ln": "Selnæs",
+      "fn": "Ole",
+      "ln": "Kristian Selnæs",
       "pos": "CM",
       "age": 32,
       "nat": "Norway",
@@ -229874,8 +233488,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Aslak Fonn",
-      "ln": "Witry",
+      "fn": "Aslak",
+      "ln": "Fonn Witry",
       "pos": "RB",
       "age": 30,
       "nat": "Norway",
@@ -229897,8 +233511,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Adrian Nilsen",
-      "ln": "Pereira",
+      "fn": "Adrian",
+      "ln": "Nilsen Pereira",
       "pos": "LB",
       "age": 26,
       "nat": "Norway",
@@ -230029,8 +233643,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Erlend Dahl",
-      "ln": "Reitan",
+      "fn": "Erlend",
+      "ln": "Dahl Reitan",
       "pos": "RB",
       "age": 28,
       "nat": "Norway",
@@ -230052,8 +233666,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ulrik Yttergård",
-      "ln": "Jenssen",
+      "fn": "Ulrik",
+      "ln": "Yttergård Jenssen",
       "pos": "LB",
       "age": 30,
       "nat": "Norway",
@@ -230144,8 +233758,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ole Christian",
-      "ln": "Sæter",
+      "fn": "Ole",
+      "ln": "Christian Sæter",
       "pos": "ST",
       "age": 30,
       "nat": "Norway",
@@ -230250,8 +233864,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Noah Donovan",
-      "ln": "Sahsah",
+      "fn": "Noah",
+      "ln": "Donovan Sahsah",
       "pos": "LW",
       "age": 21,
       "nat": "Denmark",
@@ -230290,8 +233904,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Tobias Solheim",
-      "ln": "Dahl",
+      "fn": "Tobias",
+      "ln": "Solheim Dahl",
       "pos": "CB",
       "age": 21,
       "nat": "Norway",
@@ -230490,8 +234104,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "José-Enrique Ríos",
-      "ln": "Alonso",
+      "fn": "José-Enrique",
+      "ln": "Ríos Alonso",
       "pos": "CB",
       "age": 26,
       "nat": "Germany",
@@ -230703,8 +234317,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jaka Čuber",
-      "ln": "Potočnik",
+      "fn": "Jaka",
+      "ln": "Čuber Potočnik",
       "pos": "ST",
       "age": 21,
       "nat": "Slovenia",
@@ -232540,8 +236154,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nadir El",
-      "ln": "Jamali",
+      "fn": "Nadir",
+      "ln": "El Jamali",
       "pos": "CM",
       "age": 19,
       "nat": "France",
@@ -233672,8 +237286,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rick van",
-      "ln": "Drongelen",
+      "fn": "Rick",
+      "ln": "van Drongelen",
       "pos": "CB",
       "age": 27,
       "nat": "Holland",
@@ -234058,8 +237672,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yunus Emre",
-      "ln": "Çift",
+      "fn": "Yunus",
+      "ln": "Emre Çift",
       "pos": "CB",
       "age": 22,
       "nat": "Turkey",
@@ -234214,8 +237828,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Luca de la",
-      "ln": "Torre",
+      "fn": "Luca",
+      "ln": "de la Torre",
       "pos": "CM",
       "age": 28,
       "nat": "United States",
@@ -234538,8 +238152,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "CJ dos",
-      "ln": "Santos",
+      "fn": "CJ",
+      "ln": "dos Santos",
       "pos": "GK",
       "age": 26,
       "nat": "United States",
@@ -234578,8 +238192,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Oscar Anthony",
-      "ln": "Verhoeven",
+      "fn": "Oscar",
+      "ln": "Anthony Verhoeven",
       "pos": "RB",
       "age": 20,
       "nat": "United States",
@@ -234853,7 +238467,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Rodrigues",
+      "fn": "Antônio",
       "ln": "Rodrigues",
       "pos": "CB",
       "age": 28,
@@ -235055,8 +238669,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 94
     },
     {
-      "fn": "Earl Edwards",
-      "ln": "Jr.",
+      "fn": "Earl",
+      "ln": "Edwards Jr.",
       "pos": "GK",
       "age": 34,
       "nat": "United States",
@@ -235770,8 +239384,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jakob Maslø",
-      "ln": "Dunsby",
+      "fn": "Jakob",
+      "ln": "Maslø Dunsby",
       "pos": "LW",
       "age": 26,
       "nat": "Norway",
@@ -235836,8 +239450,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Stefán Ingi",
-      "ln": "Sigurðarson",
+      "fn": "Stefán",
+      "ln": "Ingi Sigurðarson",
       "pos": "ST",
       "age": 25,
       "nat": "Iceland",
@@ -235896,8 +239510,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Vetle Walle",
-      "ln": "Egeli",
+      "fn": "Vetle",
+      "ln": "Walle Egeli",
       "pos": "LB",
       "age": 22,
       "nat": "Norway",
@@ -235940,8 +239554,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 89
     },
     {
-      "fn": "Sander Risan",
-      "ln": "Mørk",
+      "fn": "Sander",
+      "ln": "Risan Mørk",
       "pos": "CM",
       "age": 25,
       "nat": "Norway",
@@ -236066,8 +239680,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Fredrik Carson",
-      "ln": "Pedersen",
+      "fn": "Fredrik",
+      "ln": "Carson Pedersen",
       "pos": "RB",
       "age": 23,
       "nat": "Norway",
@@ -236130,8 +239744,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Theodor Martin",
-      "ln": "Agelin",
+      "fn": "Theodor",
+      "ln": "Martin Agelin",
       "pos": "RB",
       "age": 22,
       "nat": "Norway",
@@ -236153,8 +239767,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Alf Lukas",
-      "ln": "Grønneberg",
+      "fn": "Alf",
+      "ln": "Lukas Grønneberg",
       "pos": "GK",
       "age": 22,
       "nat": "Norway",
@@ -236196,8 +239810,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sebastian Holm",
-      "ln": "Mathisen",
+      "fn": "Sebastian",
+      "ln": "Holm Mathisen",
       "pos": "RW",
       "age": 21,
       "nat": "Norway",
@@ -236216,8 +239830,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Storm Bugge",
-      "ln": "Pettersen",
+      "fn": "Storm",
+      "ln": "Bugge Pettersen",
       "pos": "ST",
       "age": 20,
       "nat": "Norway",
@@ -236520,7 +240134,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Serginho",
+      "fn": "Sérgio",
       "ln": "Serginho",
       "pos": "CM",
       "age": 26,
@@ -236620,7 +240234,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Neneca",
+      "fn": "Hélio",
       "ln": "Neneca",
       "pos": "GK",
       "age": 23,
@@ -236682,8 +240296,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Jo Inge",
-      "ln": "Berget",
+      "fn": "Jo",
+      "ln": "Inge Berget",
       "pos": "ST",
       "age": 35,
       "nat": "Norway",
@@ -236768,8 +240382,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Bjørn Inge",
-      "ln": "Utvik",
+      "fn": "Bjørn",
+      "ln": "Inge Utvik",
       "pos": "CB",
       "age": 30,
       "nat": "Norway",
@@ -236828,8 +240442,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Harald Nilsen",
-      "ln": "Tangen",
+      "fn": "Harald",
+      "ln": "Nilsen Tangen",
       "pos": "CAM",
       "age": 25,
       "nat": "Norway",
@@ -236919,8 +240533,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Victor Emanuel",
-      "ln": "Halvorsen",
+      "fn": "Victor",
+      "ln": "Emanuel Halvorsen",
       "pos": "CAM",
       "age": 22,
       "nat": "Norway",
@@ -236962,8 +240576,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Sveinn Aron",
-      "ln": "Guðjohnsen",
+      "fn": "Sveinn",
+      "ln": "Aron Guðjohnsen",
       "pos": "ST",
       "age": 28,
       "nat": "Iceland",
@@ -237071,8 +240685,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Momodou Lion",
-      "ln": "Njie",
+      "fn": "Momodou",
+      "ln": "Lion Njie",
       "pos": "CB",
       "age": 24,
       "nat": "Gambia",
@@ -237091,8 +240705,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 91
     },
     {
-      "fn": "Håvar Grøntvedt",
-      "ln": "Jenssen",
+      "fn": "Håvar",
+      "ln": "Grøntvedt Jenssen",
       "pos": "GK",
       "age": 30,
       "nat": "Norway",
@@ -237111,8 +240725,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 93
     },
     {
-      "fn": "Heine Gikling",
-      "ln": "Bruseth",
+      "fn": "Heine",
+      "ln": "Gikling Bruseth",
       "pos": "CM",
       "age": 22,
       "nat": "Norway",
@@ -238321,8 +241935,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Joel Vega",
-      "ln": "Zambrano",
+      "fn": "Joel",
+      "ln": "Vega Zambrano",
       "pos": "RW",
       "age": 21,
       "nat": "Germany",
@@ -239024,7 +242638,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "sd-eibar": [
     {
-      "fn": "Corpas",
+      "fn": "José",
       "ln": "Corpas",
       "pos": "RB",
       "age": 35,
@@ -239047,7 +242661,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nolaskoain",
+      "fn": "Peru",
       "ln": "Nolaskoain",
       "pos": "CDM",
       "age": 27,
@@ -239070,7 +242684,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Olaetxea",
+      "fn": "Lander",
       "ln": "Olaetxea",
       "pos": "CM",
       "age": 33,
@@ -239138,7 +242752,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Magunagoitia",
+      "fn": "Jon",
       "ln": "Magunagoitia",
       "pos": "GK",
       "age": 26,
@@ -239158,7 +242772,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Arbilla",
+      "fn": "Anaitz",
       "ln": "Arbilla",
       "pos": "CB",
       "age": 39,
@@ -239178,7 +242792,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Alkain",
+      "fn": "Xeber",
       "ln": "Alkain",
       "pos": "RW",
       "age": 29,
@@ -239241,7 +242855,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "Cubero",
+      "fn": "Sergio",
       "ln": "Cubero",
       "pos": "RB",
       "age": 26,
@@ -239261,7 +242875,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Guruzeta",
+      "fn": "Jon",
       "ln": "Guruzeta",
       "pos": "CAM",
       "age": 26,
@@ -239324,7 +242938,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Arambarri",
+      "fn": "Aritz",
       "ln": "Arambarri",
       "pos": "CB",
       "age": 28,
@@ -239364,7 +242978,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Mada",
+      "fn": "Ander",
       "ln": "Mada",
       "pos": "CAM",
       "age": 24,
@@ -239473,7 +243087,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Magunazelaia",
+      "fn": "Jon",
       "ln": "Magunazelaia",
       "pos": "CAM",
       "age": 25,
@@ -239584,7 +243198,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Pulido",
+      "fn": "Jorge",
       "ln": "Pulido",
       "pos": "CB",
       "age": 35,
@@ -239624,7 +243238,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Kortajarena",
+      "fn": "Iker",
       "ln": "Kortajarena",
       "pos": "CM",
       "age": 26,
@@ -239764,7 +243378,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Carrillo",
+      "fn": "Álvaro",
       "ln": "Carrillo",
       "pos": "CB",
       "age": 24,
@@ -240045,8 +243659,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yeimar Gómez",
-      "ln": "Andrade",
+      "fn": "Yeimar",
+      "ln": "Gómez Andrade",
       "pos": "CB",
       "age": 34,
       "nat": "Colombia",
@@ -240089,8 +243703,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Pedro De la",
-      "ln": "Vega",
+      "fn": "Pedro",
+      "ln": "De la Vega",
       "pos": "RW",
       "age": 25,
       "nat": "Argentina",
@@ -240314,8 +243928,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Kee",
-      "ln": "Hee",
+      "fn": "Kim",
+      "ln": "Kee Hee",
       "pos": "CB",
       "age": 37,
       "nat": "Korea Republic",
@@ -241271,7 +244885,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Carmona",
+      "fn": "José",
       "ln": "Carmona",
       "pos": "RB",
       "age": 24,
@@ -241385,7 +244999,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Alfon",
+      "fn": "Alfonso",
       "ln": "Alfon",
       "pos": "ST",
       "age": 27,
@@ -241478,7 +245092,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marcão",
+      "fn": "Marcos",
       "ln": "Marcão",
       "pos": "CB",
       "age": 30,
@@ -241605,8 +245219,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Akor Jerome",
-      "ln": "Adams",
+      "fn": "Akor",
+      "ln": "Jerome Adams",
       "pos": "ST",
       "age": 26,
       "nat": "Nigeria",
@@ -241625,7 +245239,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 92
     },
     {
-      "fn": "Peque",
+      "fn": "Gerard",
       "ln": "Peque",
       "pos": "CAM",
       "age": 23,
@@ -241848,7 +245462,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Pedrinho",
+      "fn": "Pedro",
       "ln": "Pedrinho",
       "pos": "CAM",
       "age": 28,
@@ -245053,8 +248667,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Rami Al",
-      "ln": "Hajj",
+      "fn": "Rami",
+      "ln": "Al Hajj",
       "pos": "CAM",
       "age": 24,
       "nat": "Sweden",
@@ -245208,8 +248822,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jens Martin",
-      "ln": "Gammelby",
+      "fn": "Jens",
+      "ln": "Martin Gammelby",
       "pos": "RB",
       "age": 31,
       "nat": "Denmark",
@@ -245401,8 +249015,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Julius Lorents",
-      "ln": "Nielsen",
+      "fn": "Julius",
+      "ln": "Lorents Nielsen",
       "pos": "CM",
       "age": 20,
       "nat": "Denmark",
@@ -245635,8 +249249,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Rein Van",
-      "ln": "Helden",
+      "fn": "Rein",
+      "ln": "Van Helden",
       "pos": "CB",
       "age": 24,
       "nat": "Belgium",
@@ -245897,8 +249511,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jay David",
-      "ln": "Mbalanda",
+      "fn": "Jay",
+      "ln": "David Mbalanda",
       "pos": "ST",
       "age": 19,
       "nat": "Belgium",
@@ -246116,8 +249730,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Henrik Rönnlöf",
-      "ln": "Castegren",
+      "fn": "Henrik",
+      "ln": "Rönnlöf Castegren",
       "pos": "CB",
       "age": 30,
       "nat": "Sweden",
@@ -246309,8 +249923,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Jakob Voelkerling",
-      "ln": "Persson",
+      "fn": "Jakob",
+      "ln": "Voelkerling Persson",
       "pos": "RB",
       "age": 25,
       "nat": "Sweden",
@@ -246482,8 +250096,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Hugo Andersson",
-      "ln": "Mella",
+      "fn": "Hugo",
+      "ln": "Andersson Mella",
       "pos": "CAM",
       "age": 19,
       "nat": "Sweden",
@@ -247069,8 +250683,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Daníel Leó",
-      "ln": "Grétarsson",
+      "fn": "Daníel",
+      "ln": "Leó Grétarsson",
       "pos": "CB",
       "age": 30,
       "nat": "Iceland",
@@ -247156,8 +250770,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kristall Máni",
-      "ln": "Ingason",
+      "fn": "Kristall",
+      "ln": "Máni Ingason",
       "pos": "ST",
       "age": 24,
       "nat": "Iceland",
@@ -248074,8 +251688,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "sparta-rotterdam": [
     {
-      "fn": "Patrick van",
-      "ln": "Aanholt",
+      "fn": "Patrick",
+      "ln": "van Aanholt",
       "pos": "LB",
       "age": 35,
       "nat": "Holland",
@@ -248223,8 +251837,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mitchell van",
-      "ln": "Bergen",
+      "fn": "Mitchell",
+      "ln": "van Bergen",
       "pos": "RW",
       "age": 27,
       "nat": "Holland",
@@ -248283,8 +251897,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 60
     },
     {
-      "fn": "Bruno Martins",
-      "ln": "Indi",
+      "fn": "Bruno",
+      "ln": "Martins Indi",
       "pos": "CB",
       "age": 34,
       "nat": "Holland",
@@ -248394,8 +252008,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jonathan de",
-      "ln": "Guzmán",
+      "fn": "Jonathan",
+      "ln": "de Guzmán",
       "pos": "CM",
       "age": 38,
       "nat": "Holland",
@@ -248563,8 +252177,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Max de",
-      "ln": "Ligt",
+      "fn": "Max",
+      "ln": "de Ligt",
       "pos": "CB",
       "age": 22,
       "nat": "Holland",
@@ -248904,8 +252518,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Giuseppe Di",
-      "ln": "Serio",
+      "fn": "Giuseppe",
+      "ln": "Di Serio",
       "pos": "ST",
       "age": 25,
       "nat": "Italy",
@@ -249158,7 +252772,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Trincão",
+      "fn": "Francisco",
       "ln": "Trincão",
       "pos": "CAM",
       "age": 26,
@@ -249428,8 +253042,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Luis Javier",
-      "ln": "Suárez",
+      "fn": "Luis",
+      "ln": "Javier Suárez",
       "pos": "ST",
       "age": 28,
       "nat": "Colombia",
@@ -249468,8 +253082,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Jeremiah St.",
-      "ln": "Juste",
+      "fn": "Jeremiah",
+      "ln": "St. Juste",
       "pos": "CB",
       "age": 29,
       "nat": "Holland",
@@ -249558,7 +253172,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Fresneda",
+      "fn": "Iván",
       "ln": "Fresneda",
       "pos": "RB",
       "age": 21,
@@ -250506,8 +254120,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Giacomo De",
-      "ln": "Pieri",
+      "fn": "Giacomo",
+      "ln": "De Pieri",
       "pos": "RW",
       "age": 19,
       "nat": "Italy",
@@ -250771,8 +254385,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "st-gallen": [
     {
-      "fn": "Lawrence Ati",
-      "ln": "Zigi",
+      "fn": "Lawrence",
+      "ln": "Ati Zigi",
       "pos": "GK",
       "age": 29,
       "nat": "Ghana",
@@ -251339,7 +254953,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Klauss",
+      "fn": "João",
       "ln": "Klauss",
       "pos": "ST",
       "age": 29,
@@ -251564,8 +255178,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sang Bin",
-      "ln": "Jeong",
+      "fn": "Sang",
+      "ln": "Bin Jeong",
       "pos": "ST",
       "age": 24,
       "nat": "Korea Republic",
@@ -253026,8 +256640,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Mathias Pereira",
-      "ln": "Lage",
+      "fn": "Mathias",
+      "ln": "Pereira Lage",
       "pos": "LW",
       "age": 29,
       "nat": "Portugal",
@@ -253272,8 +256886,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Joel Chima",
-      "ln": "Fujita",
+      "fn": "Joel",
+      "ln": "Chima Fujita",
       "pos": "CM",
       "age": 24,
       "nat": "Japan",
@@ -253616,8 +257230,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Dennis Eckert",
-      "ln": "Ayensa",
+      "fn": "Dennis",
+      "ln": "Eckert Ayensa",
       "pos": "ST",
       "age": 29,
       "nat": "Germany",
@@ -253640,8 +257254,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Mo El",
-      "ln": "Hankouri",
+      "fn": "Mo",
+      "ln": "El Hankouri",
       "pos": "CM",
       "age": 29,
       "nat": "Morocco",
@@ -255288,8 +258902,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Benoný Breki",
-      "ln": "Andrésson",
+      "fn": "Benoný",
+      "ln": "Breki Andrésson",
       "pos": "ST",
       "age": 20,
       "nat": "Iceland",
@@ -255482,8 +259096,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Bae Jun",
-      "ln": "Ho",
+      "fn": "Bae",
+      "ln": "Jun Ho",
       "pos": "CAM",
       "age": 23,
       "nat": "Korea Republic",
@@ -256196,8 +259810,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Julio César",
-      "ln": "Enciso",
+      "fn": "Julio",
+      "ln": "César Enciso",
       "pos": "CAM",
       "age": 22,
       "nat": "Paraguay",
@@ -256519,8 +260133,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Samir El",
-      "ln": "Mourabet",
+      "fn": "Samir",
+      "ln": "El Mourabet",
       "pos": "CM",
       "age": 20,
       "nat": "Morocco",
@@ -256581,8 +260195,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Per Kristian",
-      "ln": "Bråtveit",
+      "fn": "Per",
+      "ln": "Kristian Bråtveit",
       "pos": "GK",
       "age": 30,
       "nat": "Norway",
@@ -256601,8 +260215,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Gustav Mendonça",
-      "ln": "Wikheim",
+      "fn": "Gustav",
+      "ln": "Mendonça Wikheim",
       "pos": "LW",
       "age": 33,
       "nat": "Norway",
@@ -256778,8 +260392,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Eirik Ulland",
-      "ln": "Andersen",
+      "fn": "Eirik",
+      "ln": "Ulland Andersen",
       "pos": "LW",
       "age": 33,
       "nat": "Norway",
@@ -256802,8 +260416,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marcus Johansen",
-      "ln": "Mehnert",
+      "fn": "Marcus",
+      "ln": "Johansen Mehnert",
       "pos": "RW",
       "age": 28,
       "nat": "Norway",
@@ -256825,8 +260439,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Elias Hoff",
-      "ln": "Melkersen",
+      "fn": "Elias",
+      "ln": "Hoff Melkersen",
       "pos": "ST",
       "age": 23,
       "nat": "Norway",
@@ -256868,8 +260482,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Eirik Holmen",
-      "ln": "Johansen",
+      "fn": "Eirik",
+      "ln": "Holmen Johansen",
       "pos": "GK",
       "age": 34,
       "nat": "Norway",
@@ -257024,8 +260638,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 71
     },
     {
-      "fn": "Jasper Silva",
-      "ln": "Torkildsen",
+      "fn": "Jasper",
+      "ln": "Silva Torkildsen",
       "pos": "GK",
       "age": 22,
       "nat": "Norway",
@@ -257089,8 +260703,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jon Gorenc",
-      "ln": "Stanković",
+      "fn": "Jon",
+      "ln": "Gorenc Stanković",
       "pos": "CDM",
       "age": 30,
       "nat": "Slovenia",
@@ -257580,8 +261194,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Jacob Peter",
-      "ln": "Hödl",
+      "fn": "Jacob",
+      "ln": "Peter Hödl",
       "pos": "CM",
       "age": 19,
       "nat": "Austria",
@@ -257797,8 +261411,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Bilal El",
-      "ln": "Khannouss",
+      "fn": "Bilal",
+      "ln": "El Khannouss",
       "pos": "CAM",
       "age": 22,
       "nat": "Morocco",
@@ -257972,8 +261586,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 86
     },
     {
-      "fn": "Ameen Al",
-      "ln": "Dakhil",
+      "fn": "Ameen",
+      "ln": "Al Dakhil",
       "pos": "CB",
       "age": 24,
       "nat": "Belgium",
@@ -258600,8 +262214,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hamza El",
-      "ln": "Kaouakibi",
+      "fn": "Hamza",
+      "ln": "El Kaouakibi",
       "pos": "RB",
       "age": 28,
       "nat": "Morocco",
@@ -258881,8 +262495,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Enzo Le",
-      "ln": "Fée",
+      "fn": "Enzo",
+      "ln": "Le Fée",
       "pos": "CM",
       "age": 26,
       "nat": "France",
@@ -259416,8 +263030,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Blondy Nna",
-      "ln": "Noukeu",
+      "fn": "Blondy",
+      "ln": "Nna Noukeu",
       "pos": "GK",
       "age": 25,
       "nat": "Cameroon",
@@ -259458,8 +263072,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 88
     },
     {
-      "fn": "Lee Jae",
-      "ln": "Won",
+      "fn": "Lee",
+      "ln": "Jae Won",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -259482,8 +263096,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ahn Joon",
-      "ln": "Soo",
+      "fn": "Ahn",
+      "ln": "Joon Soo",
       "pos": "GK",
       "age": 28,
       "nat": "Korea Republic",
@@ -259502,8 +263116,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Ahn Hyun",
-      "ln": "Beom",
+      "fn": "Ahn",
+      "ln": "Hyun Beom",
       "pos": "RB",
       "age": 31,
       "nat": "Korea Republic",
@@ -259522,8 +263136,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 72
     },
     {
-      "fn": "Yoon Bit",
-      "ln": "Garam",
+      "fn": "Yoon",
+      "ln": "Bit Garam",
       "pos": "CM",
       "age": 36,
       "nat": "Korea Republic",
@@ -259569,8 +263183,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Han Chan",
-      "ln": "Hee",
+      "fn": "Han",
+      "ln": "Chan Hee",
       "pos": "CM",
       "age": 29,
       "nat": "Korea Republic",
@@ -259612,8 +263226,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Choi Kyu",
-      "ln": "Baek",
+      "fn": "Choi",
+      "ln": "Kyu Baek",
       "pos": "CB",
       "age": 32,
       "nat": "Korea Republic",
@@ -259655,8 +263269,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Lee Ji",
-      "ln": "Sol",
+      "fn": "Lee",
+      "ln": "Ji Sol",
       "pos": "CB",
       "age": 27,
       "nat": "Korea Republic",
@@ -259675,8 +263289,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Kim Tae",
-      "ln": "Han",
+      "fn": "Kim",
+      "ln": "Tae Han",
       "pos": "CB",
       "age": 30,
       "nat": "Korea Republic",
@@ -259698,8 +263312,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Seo Jae",
-      "ln": "Min",
+      "fn": "Seo",
+      "ln": "Jae Min",
       "pos": "LB",
       "age": 28,
       "nat": "Korea Republic",
@@ -259721,8 +263335,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Si",
-      "ln": "Young",
+      "fn": "Lee",
+      "ln": "Si Young",
       "pos": "RB",
       "age": 29,
       "nat": "Korea Republic",
@@ -259741,8 +263355,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 65
     },
     {
-      "fn": "Kim Jae",
-      "ln": "Sung",
+      "fn": "Kim",
+      "ln": "Jae Sung",
       "pos": "RB",
       "age": 27,
       "nat": "Korea Republic",
@@ -259765,8 +263379,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Roh Kyung",
-      "ln": "Ho",
+      "fn": "Roh",
+      "ln": "Kyung Ho",
       "pos": "CM",
       "age": 26,
       "nat": "Korea Republic",
@@ -259789,8 +263403,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jang Yun",
-      "ln": "Ho",
+      "fn": "Jang",
+      "ln": "Yun Ho",
       "pos": "CM",
       "age": 30,
       "nat": "Korea Republic",
@@ -259813,8 +263427,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Joon",
-      "ln": "Suk",
+      "fn": "Lee",
+      "ln": "Joon Suk",
       "pos": "LW",
       "age": 26,
       "nat": "Korea Republic",
@@ -259836,8 +263450,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Gyeong",
-      "ln": "Min",
+      "fn": "Kim",
+      "ln": "Gyeong Min",
       "pos": "ST",
       "age": 29,
       "nat": "Korea Republic",
@@ -259859,8 +263473,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Hyun",
-      "ln": "Yong",
+      "fn": "Lee",
+      "ln": "Hyun Yong",
       "pos": "CB",
       "age": 22,
       "nat": "Korea Republic",
@@ -259879,8 +263493,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Jang Yeong",
-      "ln": "Woo",
+      "fn": "Jang",
+      "ln": "Yeong Woo",
       "pos": "LB",
       "age": 24,
       "nat": "Korea Republic",
@@ -259902,8 +263516,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Yong",
-      "ln": "Hui",
+      "fn": "Park",
+      "ln": "Yong Hui",
       "pos": "RW",
       "age": 24,
       "nat": "Korea Republic",
@@ -259925,8 +263539,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Taek",
-      "ln": "Keun",
+      "fn": "Lee",
+      "ln": "Taek Keun",
       "pos": "LB",
       "age": 24,
       "nat": "Korea Republic",
@@ -259949,8 +263563,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hwang In",
-      "ln": "Taek",
+      "fn": "Hwang",
+      "ln": "In Taek",
       "pos": "CB",
       "age": 23,
       "nat": "Korea Republic",
@@ -259972,8 +263586,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Do",
-      "ln": "Yun",
+      "fn": "Kim",
+      "ln": "Do Yun",
       "pos": "ST",
       "age": 21,
       "nat": "Korea Republic",
@@ -259996,8 +263610,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Han Sang",
-      "ln": "Gyu",
+      "fn": "Han",
+      "ln": "Sang Gyu",
       "pos": "CB",
       "age": 21,
       "nat": "Korea Republic",
@@ -260016,8 +263630,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Jeong Seung",
-      "ln": "Bae",
+      "fn": "Jeong",
+      "ln": "Seung Bae",
       "pos": "LW",
       "age": 22,
       "nat": "Korea Republic",
@@ -260039,8 +263653,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hwang Jae",
-      "ln": "Yun",
+      "fn": "Hwang",
+      "ln": "Jae Yun",
       "pos": "GK",
       "age": 23,
       "nat": "Korea Republic",
@@ -260059,8 +263673,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Gang Min",
-      "ln": "Seong",
+      "fn": "Gang",
+      "ln": "Min Seong",
       "pos": "ST",
       "age": 21,
       "nat": "Korea Republic",
@@ -260082,8 +263696,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sin Il",
-      "ln": "Yeon",
+      "fn": "Sin",
+      "ln": "Il Yeon",
       "pos": "RB",
       "age": 21,
       "nat": "Korea Republic",
@@ -260126,8 +263740,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Chi",
-      "ln": "Ung",
+      "fn": "Choi",
+      "ln": "Chi Ung",
       "pos": "ST",
       "age": 25,
       "nat": "Korea Republic",
@@ -260146,8 +263760,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Kwon Do",
-      "ln": "Yeong",
+      "fn": "Kwon",
+      "ln": "Do Yeong",
       "pos": "CB",
       "age": 23,
       "nat": "Korea Republic",
@@ -260166,8 +263780,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Jo Jun",
-      "ln": "Hyeon",
+      "fn": "Jo",
+      "ln": "Jun Hyeon",
       "pos": "CM",
       "age": 22,
       "nat": "Korea Republic",
@@ -260190,8 +263804,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Eun",
-      "ln": "Gyeom",
+      "fn": "Kim",
+      "ln": "Eun Gyeom",
       "pos": "LB",
       "age": 22,
       "nat": "Korea Republic",
@@ -260210,8 +263824,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Kim Dae",
-      "ln": "Hyeon",
+      "fn": "Kim",
+      "ln": "Dae Hyeon",
       "pos": "CB",
       "age": 24,
       "nat": "Korea Republic",
@@ -260230,8 +263844,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Joo Ho",
-      "ln": "Yeon",
+      "fn": "Joo",
+      "ln": "Ho Yeon",
       "pos": "GK",
       "age": 23,
       "nat": "Korea Republic",
@@ -260250,8 +263864,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Lee Dae",
-      "ln": "Gwang",
+      "fn": "Lee",
+      "ln": "Dae Gwang",
       "pos": "ST",
       "age": 23,
       "nat": "Korea Republic",
@@ -260965,8 +264579,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Florian Le",
-      "ln": "Joncour",
+      "fn": "Florian",
+      "ln": "Le Joncour",
       "pos": "CB",
       "age": 31,
       "nat": "France",
@@ -261939,8 +265553,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jan Marco",
-      "ln": "Niemann",
+      "fn": "Jan",
+      "ln": "Marco Niemann",
       "pos": "GK",
       "age": 22,
       "nat": "Germany",
@@ -262153,8 +265767,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 67
     },
     {
-      "fn": "Eom Ji",
-      "ln": "Sung",
+      "fn": "Eom",
+      "ln": "Ji Sung",
       "pos": "LW",
       "age": 24,
       "nat": "Korea Republic",
@@ -263153,8 +266767,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Al Hassan",
-      "ln": "Touré",
+      "fn": "Al",
+      "ln": "Hassan Touré",
       "pos": "ST",
       "age": 26,
       "nat": "Australia",
@@ -263358,8 +266972,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Zac De",
-      "ln": "Jesus",
+      "fn": "Zac",
+      "ln": "De Jesus",
       "pos": "RB",
       "age": 20,
       "nat": "Australia",
@@ -263555,8 +267169,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Gabriel",
-      "ln": "Rodríguez",
+      "fn": "Juan",
+      "ln": "Gabriel Rodríguez",
       "pos": "CB",
       "age": 32,
       "nat": "Argentina",
@@ -263598,8 +267212,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Juan Camilo",
-      "ln": "Portilla",
+      "fn": "Juan",
+      "ln": "Camilo Portilla",
       "pos": "CDM",
       "age": 27,
       "nat": "Colombia",
@@ -263689,8 +267303,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "José Luis",
-      "ln": "Palomino",
+      "fn": "José",
+      "ln": "Luis Palomino",
       "pos": "CB",
       "age": 36,
       "nat": "Argentina",
@@ -263729,8 +267343,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Luis Miguel",
-      "ln": "Angulo",
+      "fn": "Luis",
+      "ln": "Miguel Angulo",
       "pos": "LW",
       "age": 22,
       "nat": "Colombia",
@@ -265276,8 +268890,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Ali Bina",
-      "ln": "Dembélé",
+      "fn": "Ali",
+      "ln": "Bina Dembélé",
       "pos": "RB",
       "age": 22,
       "nat": "France",
@@ -265532,8 +269146,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Derrick Etienne",
-      "ln": "Jr.",
+      "fn": "Derrick",
+      "ln": "Etienne Jr.",
       "pos": "ST",
       "age": 29,
       "nat": "Haiti",
@@ -265836,8 +269450,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Adisa De",
-      "ln": "Rosario",
+      "fn": "Adisa",
+      "ln": "De Rosario",
       "pos": "GK",
       "age": 21,
       "nat": "Canada",
@@ -265929,7 +269543,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Palhinha",
+      "fn": "João",
       "ln": "Palhinha",
       "pos": "CDM",
       "age": 31,
@@ -265992,8 +269606,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Micky van de",
-      "ln": "Ven",
+      "fn": "Micky",
+      "ln": "van de Ven",
       "pos": "CB",
       "age": 25,
       "nat": "Holland",
@@ -266032,8 +269646,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 79
     },
     {
-      "fn": "Randal Kolo",
-      "ln": "Muani",
+      "fn": "Randal",
+      "ln": "Kolo Muani",
       "pos": "ST",
       "age": 27,
       "nat": "France",
@@ -266139,8 +269753,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Pape Matar",
-      "ln": "Sarr",
+      "fn": "Pape",
+      "ln": "Matar Sarr",
       "pos": "CM",
       "age": 23,
       "nat": "Senegal",
@@ -266578,8 +270192,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cristian Cásseres",
-      "ln": "Jr",
+      "fn": "Cristian",
+      "ln": "Cásseres Jr",
       "pos": "CDM",
       "age": 26,
       "nat": "Venezuela",
@@ -267393,8 +271007,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Christ Ravynel Inao",
-      "ln": "Oulaï",
+      "fn": "Christ",
+      "ln": "Ravynel Inao Oulaï",
       "pos": "CAM",
       "age": 20,
       "nat": "Côte d'Ivoire",
@@ -267944,8 +271558,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lars Olden",
-      "ln": "Larsen",
+      "fn": "Lars",
+      "ln": "Olden Larsen",
       "pos": "LB",
       "age": 27,
       "nat": "Norway",
@@ -267984,8 +271598,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 87
     },
     {
-      "fn": "Ruben Yttergård",
-      "ln": "Jenssen",
+      "fn": "Ruben",
+      "ln": "Yttergård Jenssen",
       "pos": "CDM",
       "age": 38,
       "nat": "Norway",
@@ -268090,8 +271704,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Abubacarr Sedi",
-      "ln": "Kinteh",
+      "fn": "Abubacarr",
+      "ln": "Sedi Kinteh",
       "pos": "CB",
       "age": 19,
       "nat": "Gambia",
@@ -268110,8 +271724,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Anders Finjord",
-      "ln": "Jenssen",
+      "fn": "Anders",
+      "ln": "Finjord Jenssen",
       "pos": "CB",
       "age": 32,
       "nat": "Norway",
@@ -268173,8 +271787,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Jens Berland",
-      "ln": "Husebø",
+      "fn": "Jens",
+      "ln": "Berland Husebø",
       "pos": "CB",
       "age": 27,
       "nat": "Norway",
@@ -268259,8 +271873,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 90
     },
     {
-      "fn": "Heine Åsen",
-      "ln": "Larsen",
+      "fn": "Heine",
+      "ln": "Åsen Larsen",
       "pos": "ST",
       "age": 24,
       "nat": "Norway",
@@ -268282,8 +271896,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sander Håvik",
-      "ln": "Innvær",
+      "fn": "Sander",
+      "ln": "Håvik Innvær",
       "pos": "LW",
       "age": 21,
       "nat": "Norway",
@@ -268305,8 +271919,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ole Kristian",
-      "ln": "Lauvli",
+      "fn": "Ole",
+      "ln": "Kristian Lauvli",
       "pos": "GK",
       "age": 32,
       "nat": "Norway",
@@ -268430,7 +272044,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 82
     },
     {
-      "fn": "Embarba",
+      "fn": "Adrián",
       "ln": "Embarba",
       "pos": "LW",
       "age": 34,
@@ -268450,7 +272064,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 68
     },
     {
-      "fn": "Arribas",
+      "fn": "Sergio",
       "ln": "Arribas",
       "pos": "CAM",
       "age": 24,
@@ -268716,7 +272330,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Luna",
+      "fn": "Marcos",
       "ln": "Luna",
       "pos": "RB",
       "age": 23,
@@ -268759,7 +272373,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Chumi",
+      "fn": "Juan",
       "ln": "Chumi",
       "pos": "CB",
       "age": 27,
@@ -268889,7 +272503,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Selvi",
+      "fn": "Silvi",
       "ln": "Selvi",
       "pos": "CDM",
       "age": 21,
@@ -269404,8 +273018,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Vakoun Issouf",
-      "ln": "Bayo",
+      "fn": "Vakoun",
+      "ln": "Issouf Bayo",
       "pos": "ST",
       "age": 29,
       "nat": "Côte d'Ivoire",
@@ -269526,8 +273140,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "ulsan-hd-fc": [
     {
-      "fn": "Jo Hyeon",
-      "ln": "Woo",
+      "fn": "Jo",
+      "ln": "Hyeon Woo",
       "pos": "GK",
       "age": 34,
       "nat": "Korea Republic",
@@ -269592,7 +273206,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Marcão",
+      "fn": "Amaral",
       "ln": "Marcão",
       "pos": "ST",
       "age": 32,
@@ -269612,8 +273226,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 98
     },
     {
-      "fn": "Ko Seung",
-      "ln": "Beom",
+      "fn": "Ko",
+      "ln": "Seung Beom",
       "pos": "CM",
       "age": 32,
       "nat": "Korea Republic",
@@ -269635,8 +273249,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Um Won",
-      "ln": "Sang",
+      "fn": "Um",
+      "ln": "Won Sang",
       "pos": "RW",
       "age": 27,
       "nat": "Korea Republic",
@@ -269658,8 +273272,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Young",
-      "ln": "Gwon",
+      "fn": "Kim",
+      "ln": "Young Gwon",
       "pos": "CB",
       "age": 36,
       "nat": "Korea Republic",
@@ -269678,8 +273292,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Jeong Seung",
-      "ln": "Hyun",
+      "fn": "Jeong",
+      "ln": "Seung Hyun",
       "pos": "CB",
       "age": 32,
       "nat": "Korea Republic",
@@ -269764,8 +273378,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Seo Myeong",
-      "ln": "Kwan",
+      "fn": "Seo",
+      "ln": "Myeong Kwan",
       "pos": "CB",
       "age": 23,
       "nat": "Korea Republic",
@@ -269784,8 +273398,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Kang Sang",
-      "ln": "Woo",
+      "fn": "Kang",
+      "ln": "Sang Woo",
       "pos": "LB",
       "age": 32,
       "nat": "Korea Republic",
@@ -269807,8 +273421,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Hee",
-      "ln": "Kyun",
+      "fn": "Lee",
+      "ln": "Hee Kyun",
       "pos": "CM",
       "age": 28,
       "nat": "Korea Republic",
@@ -269831,8 +273445,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Cho Hyun",
-      "ln": "Taek",
+      "fn": "Cho",
+      "ln": "Hyun Taek",
       "pos": "LB",
       "age": 25,
       "nat": "Korea Republic",
@@ -269851,8 +273465,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 76
     },
     {
-      "fn": "Lee Jin",
-      "ln": "Hyun",
+      "fn": "Lee",
+      "ln": "Jin Hyun",
       "pos": "CAM",
       "age": 29,
       "nat": "Korea Republic",
@@ -269874,8 +273488,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Lee Chung",
-      "ln": "Yong",
+      "fn": "Lee",
+      "ln": "Chung Yong",
       "pos": "CAM",
       "age": 38,
       "nat": "Korea Republic",
@@ -269897,8 +273511,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jung Woo",
-      "ln": "Young",
+      "fn": "Jung",
+      "ln": "Woo Young",
       "pos": "CDM",
       "age": 36,
       "nat": "Korea Republic",
@@ -269921,8 +273535,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yoon Jong",
-      "ln": "Gyu",
+      "fn": "Yoon",
+      "ln": "Jong Gyu",
       "pos": "RB",
       "age": 28,
       "nat": "Korea Republic",
@@ -269968,8 +273582,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Kim Min",
-      "ln": "Hyeok",
+      "fn": "Kim",
+      "ln": "Min Hyeok",
       "pos": "CDM",
       "age": 34,
       "nat": "Korea Republic",
@@ -269991,8 +273605,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Moon Jung",
-      "ln": "In",
+      "fn": "Moon",
+      "ln": "Jung In",
       "pos": "GK",
       "age": 28,
       "nat": "Korea Republic",
@@ -270011,8 +273625,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Lee Jae",
-      "ln": "Ik",
+      "fn": "Lee",
+      "ln": "Jae Ik",
       "pos": "CB",
       "age": 27,
       "nat": "Korea Republic",
@@ -270034,8 +273648,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yoon Jae",
-      "ln": "Seok",
+      "fn": "Yoon",
+      "ln": "Jae Seok",
       "pos": "RW",
       "age": 22,
       "nat": "Korea Republic",
@@ -270057,8 +273671,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Park Min",
-      "ln": "Seo",
+      "fn": "Park",
+      "ln": "Min Seo",
       "pos": "LB",
       "age": 25,
       "nat": "Korea Republic",
@@ -270080,8 +273694,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Choi Seok",
-      "ln": "Hyun",
+      "fn": "Choi",
+      "ln": "Seok Hyun",
       "pos": "CB",
       "age": 23,
       "nat": "Korea Republic",
@@ -270103,8 +273717,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Baek In",
-      "ln": "Woo",
+      "fn": "Baek",
+      "ln": "In Woo",
       "pos": "CAM",
       "age": 19,
       "nat": "Korea Republic",
@@ -270126,8 +273740,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Ryu Seong",
-      "ln": "Min",
+      "fn": "Ryu",
+      "ln": "Seong Min",
       "pos": "GK",
       "age": 22,
       "nat": "Korea Republic",
@@ -270469,8 +274083,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jeong Woo",
-      "ln": "Yeong",
+      "fn": "Jeong",
+      "ln": "Woo Yeong",
       "pos": "CAM",
       "age": 26,
       "nat": "Korea Republic",
@@ -270754,6 +274368,524 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     }
   ],
+  "union-sg": [
+    {
+      "fn": "Adem",
+      "ln": "Zorgane",
+      "pos": "CDM",
+      "age": 26,
+      "nat": "Algeria",
+      "ovr": 78,
+      "pot": 80,
+      "pace": 51,
+      "shooting": 70,
+      "passing": 75,
+      "defending": 71,
+      "physical": 81,
+      "mental": 77,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "262925",
+      "heightCm": 184,
+      "weightKg": 77,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Christian",
+      "ln": "Burgess",
+      "pos": "CB",
+      "age": 34,
+      "nat": "England",
+      "ovr": 78,
+      "pot": 78,
+      "pace": 36,
+      "shooting": 31,
+      "passing": 54,
+      "defending": 77,
+      "physical": 84,
+      "mental": 62,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "210044",
+      "heightCm": 196,
+      "weightKg": 84
+    },
+    {
+      "fn": "Rob",
+      "ln": "Schoofs",
+      "pos": "CM",
+      "age": 32,
+      "nat": "Belgium",
+      "ovr": 76,
+      "pot": 76,
+      "pace": 53,
+      "shooting": 72,
+      "passing": 78,
+      "defending": 67,
+      "physical": 68,
+      "mental": 74,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "205369",
+      "heightCm": 178,
+      "weightKg": 69,
+      "altPos": [
+        "CDM",
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Kevin",
+      "ln": "Mac Allister",
+      "pos": "CB",
+      "age": 28,
+      "nat": "Argentina",
+      "ovr": 76,
+      "pot": 76,
+      "pace": 74,
+      "shooting": 52,
+      "passing": 58,
+      "defending": 75,
+      "physical": 84,
+      "mental": 64,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "233230",
+      "heightCm": 175,
+      "weightKg": 72
+    },
+    {
+      "fn": "Promise",
+      "ln": "David",
+      "pos": "ST",
+      "age": 25,
+      "nat": "Canada",
+      "ovr": 75,
+      "pot": 80,
+      "pace": 62,
+      "shooting": 78,
+      "passing": 59,
+      "defending": 26,
+      "physical": 84,
+      "mental": 68,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "73070",
+      "heightCm": 195,
+      "weightKg": 91
+    },
+    {
+      "fn": "Sofiane",
+      "ln": "Boufal",
+      "pos": "CAM",
+      "age": 32,
+      "nat": "Morocco",
+      "ovr": 74,
+      "pot": 74,
+      "pace": 74,
+      "shooting": 72,
+      "passing": 71,
+      "defending": 32,
+      "physical": 58,
+      "mental": 74,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "211381",
+      "heightCm": 175,
+      "weightKg": 70,
+      "altPos": [
+        "ST",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Anan",
+      "ln": "Khalaili",
+      "pos": "RB",
+      "age": 21,
+      "nat": "Israel",
+      "ovr": 73,
+      "pot": 84,
+      "pace": 81,
+      "shooting": 66,
+      "passing": 65,
+      "defending": 66,
+      "physical": 72,
+      "mental": 72,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "70888",
+      "heightCm": 183,
+      "weightKg": 77,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Kjell",
+      "ln": "Scherpen",
+      "pos": "GK",
+      "age": 26,
+      "nat": "Holland",
+      "ovr": 73,
+      "pot": 78,
+      "pace": 74,
+      "shooting": 79,
+      "passing": 72,
+      "defending": 75,
+      "physical": 69,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "243675",
+      "heightCm": 206,
+      "weightKg": 85
+    },
+    {
+      "fn": "Anouar",
+      "ln": "Ait El Hadj",
+      "pos": "CAM",
+      "age": 24,
+      "nat": "Belgium",
+      "ovr": 72,
+      "pot": 77,
+      "pace": 70,
+      "shooting": 69,
+      "passing": 69,
+      "defending": 44,
+      "physical": 61,
+      "mental": 67,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "252108",
+      "heightCm": 167,
+      "weightKg": 70,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Ross",
+      "ln": "Sykes",
+      "pos": "CB",
+      "age": 27,
+      "nat": "England",
+      "ovr": 72,
+      "pot": 76,
+      "pace": 38,
+      "shooting": 49,
+      "passing": 57,
+      "defending": 71,
+      "physical": 81,
+      "mental": 59,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "235572",
+      "heightCm": 196,
+      "weightKg": 73
+    },
+    {
+      "fn": "Mathias",
+      "ln": "Rasmussen",
+      "pos": "CM",
+      "age": 28,
+      "nat": "Norway",
+      "ovr": 71,
+      "pot": 71,
+      "pace": 70,
+      "shooting": 64,
+      "passing": 74,
+      "defending": 64,
+      "physical": 65,
+      "mental": 71,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "225266",
+      "heightCm": 180,
+      "weightKg": 68,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Mohammed",
+      "ln": "Fuseini",
+      "pos": "ST",
+      "age": 24,
+      "nat": "Ghana",
+      "ovr": 71,
+      "pot": 77,
+      "pace": 86,
+      "shooting": 69,
+      "passing": 60,
+      "defending": 27,
+      "physical": 54,
+      "mental": 70,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "270905",
+      "heightCm": 169,
+      "weightKg": 60,
+      "altPos": [
+        "CAM"
+      ]
+    },
+    {
+      "fn": "Ousseynou",
+      "ln": "Niang",
+      "pos": "LB",
+      "age": 24,
+      "nat": "Senegal",
+      "ovr": 70,
+      "pot": 75,
+      "pace": 80,
+      "shooting": 67,
+      "passing": 63,
+      "defending": 60,
+      "physical": 70,
+      "mental": 68,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "74963",
+      "heightCm": 168,
+      "weightKg": 72
+    },
+    {
+      "fn": "Raul",
+      "ln": "Florucz",
+      "pos": "RW",
+      "age": 25,
+      "nat": "Austria",
+      "ovr": 70,
+      "pot": 74,
+      "pace": 72,
+      "shooting": 68,
+      "passing": 67,
+      "defending": 31,
+      "physical": 60,
+      "mental": 69,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "79334",
+      "heightCm": 182,
+      "weightKg": 74,
+      "altPos": [
+        "ST"
+      ]
+    },
+    {
+      "fn": "Louis",
+      "ln": "Patris",
+      "pos": "RB",
+      "age": 25,
+      "nat": "Belgium",
+      "ovr": 69,
+      "pot": 74,
+      "pace": 75,
+      "shooting": 59,
+      "passing": 64,
+      "defending": 65,
+      "physical": 71,
+      "mental": 61,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "261312",
+      "heightCm": 187,
+      "weightKg": 75
+    },
+    {
+      "fn": "Fedde",
+      "ln": "Leysen",
+      "pos": "CB",
+      "age": 23,
+      "nat": "Belgium",
+      "ovr": 68,
+      "pot": 76,
+      "pace": 60,
+      "shooting": 40,
+      "passing": 58,
+      "defending": 64,
+      "physical": 72,
+      "mental": 54,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "275207",
+      "heightCm": 187,
+      "weightKg": 78
+    },
+    {
+      "fn": "Kevin",
+      "ln": "Rodríguez",
+      "pos": "ST",
+      "age": 26,
+      "nat": "Ecuador",
+      "ovr": 67,
+      "pot": 71,
+      "pace": 79,
+      "shooting": 65,
+      "passing": 54,
+      "defending": 25,
+      "physical": 67,
+      "mental": 60,
+      "skillMoves": 4,
+      "source": "real",
+      "fcId": "272569",
+      "heightCm": 190,
+      "weightKg": 72,
+      "altPos": [
+        "CAM",
+        "CM"
+      ]
+    },
+    {
+      "fn": "Kamiel",
+      "ln": "Van de Perre",
+      "pos": "CDM",
+      "age": 22,
+      "nat": "Belgium",
+      "ovr": 66,
+      "pot": 74,
+      "pace": 72,
+      "shooting": 39,
+      "passing": 61,
+      "defending": 62,
+      "physical": 54,
+      "mental": 61,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "251247",
+      "heightCm": 181,
+      "weightKg": 68,
+      "altPos": [
+        "CM"
+      ]
+    },
+    {
+      "fn": "Guillaume",
+      "ln": "François",
+      "pos": "RB",
+      "age": 36,
+      "nat": "Belgium",
+      "ovr": 63,
+      "pot": 63,
+      "pace": 58,
+      "shooting": 59,
+      "passing": 59,
+      "defending": 64,
+      "physical": 65,
+      "mental": 61,
+      "skillMoves": 3,
+      "source": "real",
+      "fcId": "184156",
+      "heightCm": 174,
+      "weightKg": 74,
+      "altPos": [
+        "RW"
+      ]
+    },
+    {
+      "fn": "Vic",
+      "ln": "Chambaere",
+      "pos": "GK",
+      "age": 23,
+      "nat": "Belgium",
+      "ovr": 63,
+      "pot": 70,
+      "pace": 62,
+      "shooting": 68,
+      "passing": 64,
+      "defending": 62,
+      "physical": 62,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "263619",
+      "heightCm": 191,
+      "weightKg": 77
+    },
+    {
+      "fn": "Marc",
+      "ln": "Giger",
+      "pos": "ST",
+      "age": 22,
+      "nat": "Switzerland",
+      "ovr": 60,
+      "pot": 69,
+      "pace": 56,
+      "shooting": 62,
+      "passing": 57,
+      "defending": 36,
+      "physical": 63,
+      "mental": 62,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "76976",
+      "heightCm": 186,
+      "weightKg": 78
+    },
+    {
+      "fn": "Mamadou",
+      "ln": "Thierno Barry",
+      "pos": "CB",
+      "age": 21,
+      "nat": "Senegal",
+      "ovr": 60,
+      "pot": 71,
+      "pace": 61,
+      "shooting": 43,
+      "passing": 53,
+      "defending": 60,
+      "physical": 65,
+      "mental": 55,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "72062",
+      "heightCm": 195,
+      "weightKg": 75
+    },
+    {
+      "fn": "Cristian",
+      "ln": "Makaté",
+      "pos": "ST",
+      "age": 23,
+      "nat": "Equatorial Guinea",
+      "ovr": 59,
+      "pot": 66,
+      "pace": 71,
+      "shooting": 60,
+      "passing": 40,
+      "defending": 19,
+      "physical": 50,
+      "mental": 49,
+      "skillMoves": 2,
+      "source": "real",
+      "fcId": "79192",
+      "heightCm": 178,
+      "weightKg": 70
+    },
+    {
+      "fn": "Giorgi",
+      "ln": "Kavlashvili",
+      "pos": "GK",
+      "age": 19,
+      "nat": "Georgia",
+      "ovr": 54,
+      "pot": 72,
+      "pace": 59,
+      "shooting": 57,
+      "passing": 51,
+      "defending": 51,
+      "physical": 47,
+      "mental": 50,
+      "skillMoves": 1,
+      "source": "real",
+      "fcId": "79332",
+      "heightCm": 195,
+      "weightKg": 80
+    }
+  ],
   "universitatea-cluj": [
     {
       "fn": "Dan",
@@ -271022,8 +275154,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Omar El",
-      "ln": "Sawy",
+      "fn": "Omar",
+      "ln": "El Sawy",
       "pos": "CAM",
       "age": 22,
       "nat": "Romania",
@@ -271132,8 +275264,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Jasper van der",
-      "ln": "Werff",
+      "fn": "Jasper",
+      "ln": "van der Werff",
       "pos": "CB",
       "age": 27,
       "nat": "Switzerland",
@@ -271431,8 +275563,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 85
     },
     {
-      "fn": "Assad Al",
-      "ln": "Hamlawi",
+      "fn": "Assad",
+      "ln": "Al Hamlawi",
       "pos": "ST",
       "age": 25,
       "nat": "Palestine",
@@ -271580,7 +275712,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 81
     },
     {
-      "fn": "Teles",
+      "fn": "Samuel",
       "ln": "Teles",
       "pos": "CM",
       "age": 29,
@@ -271968,7 +276100,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Eguaras",
+      "fn": "Iñigo",
       "ln": "Eguaras",
       "pos": "CDM",
       "age": 34,
@@ -272532,8 +276664,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Benjamin Van",
-      "ln": "Durmen",
+      "fn": "Benjamin",
+      "ln": "Van Durmen",
       "pos": "CM",
       "age": 29,
       "nat": "Belgium",
@@ -272895,7 +277027,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "valencia": [
     {
-      "fn": "Gayà",
+      "fn": "José",
       "ln": "Gayà",
       "pos": "LB",
       "age": 31,
@@ -273018,7 +277150,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Pepelu",
+      "fn": "Jose",
       "ln": "Pepelu",
       "pos": "CM",
       "age": 28,
@@ -273088,7 +277220,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Agirrezabala",
+      "fn": "Julen",
       "ln": "Agirrezabala",
       "pos": "GK",
       "age": 25,
@@ -273265,7 +277397,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Copete",
+      "fn": "José",
       "ln": "Copete",
       "pos": "CB",
       "age": 26,
@@ -273457,8 +277589,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 70
     },
     {
-      "fn": "Vegar Eggen",
-      "ln": "Hedenstad",
+      "fn": "Vegar",
+      "ln": "Eggen Hedenstad",
       "pos": "RB",
       "age": 35,
       "nat": "Norway",
@@ -273650,8 +277782,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Aaron Kiil",
-      "ln": "Olsen",
+      "fn": "Aaron",
+      "ln": "Kiil Olsen",
       "pos": "CB",
       "age": 25,
       "nat": "Norway",
@@ -273757,8 +277889,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Filip Erik",
-      "ln": "Thorvaldsen",
+      "fn": "Filip",
+      "ln": "Erik Thorvaldsen",
       "pos": "RW",
       "age": 20,
       "nat": "Norway",
@@ -273824,8 +277956,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Omar Bully",
-      "ln": "Drammeh",
+      "fn": "Omar",
+      "ln": "Bully Drammeh",
       "pos": "LW",
       "age": 23,
       "nat": "Norway",
@@ -275636,7 +279768,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Casas",
+      "fn": "Antonio",
       "ln": "Casas",
       "pos": "ST",
       "age": 26,
@@ -276019,8 +280151,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Bjarki Steinn",
-      "ln": "Bjarkason",
+      "fn": "Bjarki",
+      "ln": "Steinn Bjarkason",
       "pos": "CM",
       "age": 26,
       "nat": "Iceland",
@@ -276235,8 +280367,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Samuele Di",
-      "ln": "Benedetto",
+      "fn": "Samuele",
+      "ln": "Di Benedetto",
       "pos": "CM",
       "age": 21,
       "nat": "Germany",
@@ -276388,8 +280520,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jerik von der",
-      "ln": "Felsen",
+      "fn": "Jerik",
+      "ln": "von der Felsen",
       "pos": "GK",
       "age": 21,
       "nat": "Germany",
@@ -277837,8 +281969,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Peter Buch",
-      "ln": "Christiansen",
+      "fn": "Peter",
+      "ln": "Buch Christiansen",
       "pos": "ST",
       "age": 26,
       "nat": "Denmark",
@@ -277861,8 +281993,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Sondre Flem",
-      "ln": "Bjørshol",
+      "fn": "Sondre",
+      "ln": "Flem Bjørshol",
       "pos": "RB",
       "age": 32,
       "nat": "Norway",
@@ -277944,8 +282076,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 78
     },
     {
-      "fn": "Viljar Helland",
-      "ln": "Vevatne",
+      "fn": "Viljar",
+      "ln": "Helland Vevatne",
       "pos": "CB",
       "age": 31,
       "nat": "Norway",
@@ -277991,8 +282123,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Martin Ove",
-      "ln": "Roseth",
+      "fn": "Martin",
+      "ln": "Ove Roseth",
       "pos": "CB",
       "age": 28,
       "nat": "Norway",
@@ -278014,8 +282146,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Yann-Erik de",
-      "ln": "Lanlay",
+      "fn": "Yann-Erik",
+      "ln": "de Lanlay",
       "pos": "CM",
       "age": 34,
       "nat": "Norway",
@@ -278146,8 +282278,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Jakob Segadal",
-      "ln": "Hansen",
+      "fn": "Jakob",
+      "ln": "Segadal Hansen",
       "pos": "CM",
       "age": 21,
       "nat": "Norway",
@@ -278169,8 +282301,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hilmir Rafn",
-      "ln": "Mikaelsson",
+      "fn": "Hilmir",
+      "ln": "Rafn Mikaelsson",
       "pos": "ST",
       "age": 22,
       "nat": "Iceland",
@@ -278209,8 +282341,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 74
     },
     {
-      "fn": "Magnus Rugland",
-      "ln": "Ree",
+      "fn": "Magnus",
+      "ln": "Rugland Ree",
       "pos": "GK",
       "age": 22,
       "nat": "Norway",
@@ -278384,7 +282516,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Dudu",
+      "fn": "Eduardo",
       "ln": "Dudu",
       "pos": "GK",
       "age": 27,
@@ -278663,8 +282795,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 80
     },
     {
-      "fn": "Verthomy Schilo",
-      "ln": "Boboy",
+      "fn": "Verthomy",
+      "ln": "Schilo Boboy",
       "pos": "CB",
       "age": 23,
       "nat": "Germany",
@@ -279074,8 +283206,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Prince Kwabena",
-      "ln": "Adu",
+      "fn": "Prince",
+      "ln": "Kwabena Adu",
       "pos": "ST",
       "age": 22,
       "nat": "Ghana",
@@ -279285,8 +283417,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jiří Maxim",
-      "ln": "Panoš",
+      "fn": "Jiří",
+      "ln": "Maxim Panoš",
       "pos": "CAM",
       "age": 18,
       "nat": "Czech Republic",
@@ -279398,7 +283530,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Parejo",
+      "fn": "Daniel",
       "ln": "Parejo",
       "pos": "CM",
       "age": 37,
@@ -279488,7 +283620,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 77
     },
     {
-      "fn": "Moleiro",
+      "fn": "Alberto",
       "ln": "Moleiro",
       "pos": "CAM",
       "age": 22,
@@ -279703,7 +283835,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Pedraza",
+      "fn": "Alfonso",
       "ln": "Pedraza",
       "pos": "LB",
       "age": 30,
@@ -279812,7 +283944,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Altimira",
+      "fn": "Adrià",
       "ln": "Altimira",
       "pos": "RB",
       "age": 25,
@@ -279961,7 +284093,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
   ],
   "vitoria-guimaraes": [
     {
-      "fn": "Samu",
+      "fn": "Fábio",
       "ln": "Samu",
       "pos": "CM",
       "age": 30,
@@ -280148,7 +284280,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 69
     },
     {
-      "fn": "Beni",
+      "fn": "Benedito",
       "ln": "Beni",
       "pos": "CM",
       "age": 24,
@@ -280321,7 +284453,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Gui",
+      "fn": "José",
       "ln": "Gui",
       "pos": "GK",
       "age": 20,
@@ -282608,8 +286740,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 83
     },
     {
-      "fn": "Jan Matthias",
-      "ln": "Becker",
+      "fn": "Jan",
+      "ln": "Matthias Becker",
       "pos": "ST",
       "age": 19,
       "nat": "Germany",
@@ -282631,8 +286763,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Nassim El",
-      "ln": "Ouarti",
+      "fn": "Nassim",
+      "ln": "El Ouarti",
       "pos": "LB",
       "age": 21,
       "nat": "Germany",
@@ -283008,8 +287140,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Fin Roa",
-      "ln": "Conchie",
+      "fn": "Fin",
+      "ln": "Roa Conchie",
       "pos": "CM",
       "age": 23,
       "nat": "New Zealand",
@@ -284188,8 +288320,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 84
     },
     {
-      "fn": "Aune Selland",
-      "ln": "Heggebø",
+      "fn": "Aune",
+      "ln": "Selland Heggebø",
       "pos": "ST",
       "age": 25,
       "nat": "Norway",
@@ -284600,8 +288732,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "El Hadji Malick",
-      "ln": "Diouf",
+      "fn": "El",
+      "ln": "Hadji Malick Diouf",
       "pos": "LB",
       "age": 21,
       "nat": "Senegal",
@@ -285046,8 +289178,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Thomas Van Den",
-      "ln": "Keybus",
+      "fn": "Thomas",
+      "ln": "Van Den Keybus",
       "pos": "CM",
       "age": 25,
       "nat": "Belgium",
@@ -285069,8 +289201,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Koen Van",
-      "ln": "Langendonck",
+      "fn": "Koen",
+      "ln": "Van Langendonck",
       "pos": "GK",
       "age": 37,
       "nat": "Belgium",
@@ -286833,8 +290965,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Cheick Mamadou",
-      "ln": "Diabaté",
+      "fn": "Cheick",
+      "ln": "Mamadou Diabaté",
       "pos": "CB",
       "age": 22,
       "nat": "Côte d'Ivoire",
@@ -287145,8 +291277,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Andreas Skov",
-      "ln": "Olsen",
+      "fn": "Andreas",
+      "ln": "Skov Olsen",
       "pos": "RW",
       "age": 26,
       "nat": "Denmark",
@@ -287705,8 +291837,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Jørgen Strand",
-      "ln": "Larsen",
+      "fn": "Jørgen",
+      "ln": "Strand Larsen",
       "pos": "ST",
       "age": 26,
       "nat": "Norway",
@@ -287832,8 +291964,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Hwang Hee",
-      "ln": "Chan",
+      "fn": "Hwang",
+      "ln": "Hee Chan",
       "pos": "ST",
       "age": 30,
       "nat": "Korea Republic",
@@ -287856,7 +291988,7 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Toti",
+      "fn": "Tote",
       "ln": "Toti",
       "pos": "CB",
       "age": 27,
@@ -287959,8 +292091,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 73
     },
     {
-      "fn": "David Møller",
-      "ln": "Wolfe",
+      "fn": "David",
+      "ln": "Møller Wolfe",
       "pos": "LB",
       "age": 24,
       "nat": "Norway",
@@ -289249,8 +293381,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Mikki van",
-      "ln": "Sas",
+      "fn": "Mikki",
+      "ln": "van Sas",
       "pos": "GK",
       "age": 22,
       "nat": "Holland",
@@ -289402,8 +293534,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       ]
     },
     {
-      "fn": "Joël Almada",
-      "ln": "Monteiro",
+      "fn": "Joël",
+      "ln": "Almada Monteiro",
       "pos": "CM",
       "age": 27,
       "nat": "Switzerland",
@@ -289882,8 +294014,8 @@ export const byClub: Record<string, CommunityPlayer[]> = {
       "weightKg": 75
     },
     {
-      "fn": "Felix Emmanuel",
-      "ln": "Tsimba",
+      "fn": "Felix",
+      "ln": "Emmanuel Tsimba",
       "pos": "ST",
       "age": 20,
       "nat": "Switzerland",
