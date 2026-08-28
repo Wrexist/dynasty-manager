@@ -81,7 +81,13 @@ await page.route('https://flagcdn.com/**', async route => {
 page.on('pageerror', e => console.log('PAGE ERR:', String(e).slice(0, 200)));
 page.on('console', m => { const t = m.text(); if (t.startsWith('[capture]') || m.type() === 'error') console.log('[page]', t.slice(0, 160)); });
 await page.goto(URL, { waitUntil: 'networkidle' });
-await page.waitForTimeout(1500 * SLOW);
+// Pre-roll before the screencast starts, so the scene has mounted and is not
+// mid-layout on frame 1. The single-card Legends pack is the exception: it
+// auto-plays its rip and walkout the moment it mounts, with no tap, so a 6s
+// pre-roll swallows the entire animation and the take opens on the summary
+// card. Start recording almost immediately there and trim the blank lead-in
+// at encode time instead.
+await page.waitForTimeout((PLAN === 'icon' ? 120 : 1500) * SLOW);
 
 const cdp = await ctx.newCDPSession(page);
 // CSS keyframes/transitions run on the compositor clock, which the JS patch
@@ -124,6 +130,30 @@ if (PLAN === 'preview') {
   // Ride the full walkout, then hold the summary long enough for the total
   // to clear Apple's 15s floor with margin.
   await wait(10500);
+}
+
+if (PLAN === 'icon') {
+  // Single-card Legends take. The 5-card packs deal four unknowns beside the
+  // hero — forcing every card above 84 succeeds 0.8% of the time and still
+  // deals Tapsoba and Burkardt, because rating is not fame. The Icon tier
+  // deals ONE card at a guaranteed 88+, and the whole 88+ band is Salah,
+  // Mbappe, Bellingham, Haaland. One card, every name a household name.
+  //
+  // NO TAPS. A one-card pack rips and walks out on its own as soon as it
+  // mounts; the blind tap loop the 5-card plans use skipped straight past the
+  // walkout to the summary. Just hold and let it play.
+  await wait(9000);
+}
+
+if (PLAN === 'squad') {
+  // The lineup board: your XI of real stars. Held, not driven — the beat
+  // exists to say "this is a management game", and a cursor jumping around
+  // the pitch reads as a demo rather than a game.
+  await wait(2500);
+  // One considered tap on a starter opens the detail sheet, which is where
+  // the card art and the rating actually read at phone size.
+  await tap(195, 300); await wait(3000);
+  await tap(195, 300); await wait(2500);
 }
 
 if (PLAN === 'still') {

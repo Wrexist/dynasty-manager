@@ -15,9 +15,10 @@ import { useEffect, useState } from 'react';
 import '@/index.css';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
+import { LineupEditor } from '@/components/game/LineupEditor';
 import { pickRealPlayerForPack } from '@/utils/realPlayerPicker';
 import { buildPlayerFromTemplate } from '@/utils/playerGen';
-import type { Club, IncomingOffer } from '@/types/game';
+import type { Club, IncomingOffer, Position } from '@/types/game';
 import { generatePackContents } from '@/utils/packGeneration';
 import { useGameStore } from '@/store/gameStore';
 import { getFlagUrl } from '@/utils/nationality';
@@ -57,7 +58,9 @@ function preloadFlags(players: Player[]): Promise<void> {
 
 const params = new URLSearchParams(location.search);
 /** Which capture scene to mount: `pack` (the store overlay) or `transfer`
- *  (an incoming-offer negotiation frozen mid-drama, for POV text-wall ads). */
+ *  (an incoming-offer negotiation frozen mid-drama, for POV text-wall ads),
+ *  or `squad` (your XI of real stars on the pitch — the beat that shows this
+ *  is a management game and not a card-pack game). */
 const SCENE = params.get('scene') || 'pack';
 /** POV text wall — the BitLife-style meme caption. Newlines via `|`. */
 const POV = params.get('pov') || '';
@@ -222,6 +225,100 @@ function TransferScene() {
   return <IncomingOfferNegotiation offer={offer} onClose={() => {}} />;
 }
 
+/**
+ * The squad beat: a starting XI of recognisable players on the pitch board.
+ *
+ * The App Preview cannot be a pack opening alone. A walkout is the biggest
+ * dopamine hit the game has, but a store visitor who installs expecting a
+ * card game churns on day one — and D7 is the number that needs help, not
+ * install count. So the walkout opens and THIS is what it opens onto.
+ *
+ * Players are drawn from the top of the real pool by position, because rating
+ * is not fame: a pack rolled to "everyone above 84" deals Tapsoba and
+ * Burkardt, whereas the 88+ band is Salah, Mbappe, Bellingham, Haaland.
+ */
+function SquadScene() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    loadNationalPool().then(() => {
+      // Slot order and positions must match FORMATION_POSITIONS['4-3-3']
+      // exactly, or the editor's own audit reports "N players in wrong
+      // position" over the shot — true, and the last thing a store preview
+      // should say about your team.
+      const SHAPE: { pos: Position; min: number }[] = [
+        { pos: 'GK', min: 87 },
+        { pos: 'LB', min: 84 }, { pos: 'CB', min: 86 }, { pos: 'CB', min: 85 }, { pos: 'RB', min: 84 },
+        { pos: 'CM', min: 86 }, { pos: 'CM', min: 87 }, { pos: 'CM', min: 86 },
+        { pos: 'LW', min: 88 }, { pos: 'ST', min: 89 }, { pos: 'RW', min: 88 },
+      ];
+      const used = new Set<string>();
+      const squad: Player[] = [];
+      for (const { pos, min } of SHAPE) {
+        let t = null;
+        // Walk the floor down rather than fail: a thin position at 88 still
+        // yields a name worth showing at 84.
+        for (let floor = min; floor >= 80 && !t; floor -= 1) {
+          for (let i = 0; i < 30 && !t; i++) {
+            const c = pickRealPlayerForPack(pos, floor, 95);
+            if (c && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
+          }
+        }
+        if (!t) continue;
+        used.add(t.fcId ?? `${t.fn}|${t.ln}`);
+        squad.push(buildPlayerFromTemplate(t, 'my-club', 1));
+      }
+      if (squad.length < 11) {
+        console.error(`[capture] squad scene only filled ${squad.length}/11 slots`);
+      }
+      // A bench, not just an XI: BENCH & RESERVES sits directly under the
+      // pitch, and leaving it empty put a black band across the bottom third
+      // of every 9:16 crop.
+      const BENCH: { pos: Position; min: number }[] = [
+        { pos: 'GK', min: 84 }, { pos: 'CB', min: 84 }, { pos: 'CM', min: 85 },
+        { pos: 'ST', min: 86 }, { pos: 'LW', min: 84 }, { pos: 'RW', min: 84 },
+      ];
+      const bench: Player[] = [];
+      for (const { pos, min } of BENCH) {
+        let t = null;
+        for (let floor = min; floor >= 80 && !t; floor -= 1) {
+          for (let i = 0; i < 30 && !t; i++) {
+            const c = pickRealPlayerForPack(pos, floor, 95);
+            if (c && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
+          }
+        }
+        if (!t) continue;
+        used.add(t.fcId ?? `${t.fn}|${t.ln}`);
+        bench.push(buildPlayerFromTemplate(t, 'my-club', 1));
+      }
+      const club = {
+        id: 'my-club', name: 'Your Club', shortName: 'YOU',
+        budget: 200_000_000, wageBill: 2_000_000,
+        formation: '4-3-3',
+        playerIds: [...squad, ...bench].map(p => p.id),
+        lineup: squad.map(p => p.id),
+        subs: bench.map(p => p.id),
+      } as unknown as Club;
+      useGameStore.setState({
+        players: Object.fromEntries([...squad, ...bench].map(p => [p.id, p])),
+        clubs: { 'my-club': club },
+        playerClubId: 'my-club',
+        season: 1, week: 8, totalWeeks: 38,
+        pairFamiliarity: {},
+      } as never);
+      for (const src of ['/player-cards/icon.webp', '/player-cards/gold.webp', '/player-cards/premium.webp']) {
+        const img = new Image(); img.src = src;
+      }
+      preloadFlags([...squad, ...bench]).then(() => setReady(true));
+    });
+  }, []);
+  if (!ready) return null;
+  // No CSS scale: the flank cards already sit near the edge at 1.0, and any
+  // zoom pushes LW/RW half out of frame. The lower third is filled by giving
+  // the club a real bench instead — an empty BENCH & RESERVES strip is what
+  // left a black band under the pitch.
+  return <LineupEditor />;
+}
+
 function Harness() {
   const [players, setPlayers] = useState<Player[] | null>(null);
   const t = useClock();
@@ -287,7 +384,9 @@ if (KENBURNS) {
 }
 createRoot(document.getElementById('root')!).render(
   <>
-    {SCENE === 'transfer' ? <TransferScene /> : <Harness />}
+    {SCENE === 'transfer' ? <TransferScene />
+      : SCENE === 'squad' ? <SquadScene />
+      : <Harness />}
     {POV && <PovWall text={POV} />}
   </>,
 );
