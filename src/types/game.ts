@@ -194,15 +194,27 @@ export type PlayerRarity = 'common' | 'rare' | 'star' | 'icon' | 'legend';
 export interface PlayerCardArt {
   src: string;
   filter?: string;
+  /** How hard the legibility scrim over this artwork has to work.
+   *
+   *  `'standard'` is tuned for the OVR tier shields, whose centres are calm.
+   *  `'strong'` is for artwork with a bright burst behind the name and rating —
+   *  the pack frames and the Ballon d'Or card both put light exactly where the
+   *  text sits, and the standard scrim leaves white-on-gold at the top-left
+   *  rating and the surname. Defaults to `'standard'` when absent. */
+  scrim?: 'standard' | 'strong';
 }
 
-/** Options for {@link PlayerCardArt} resolution — currently only the
- *  Ballon d'Or top-10 override, which outranks every overall-based tier. */
+/** Options for {@link PlayerCardArt} resolution — the Ballon d'Or top-10
+ *  override and the pack-earned frame, in that precedence order, both of which
+ *  outrank the overall-based tier shield. */
 export interface PlayerCardArtOptions {
   /** When true, return the Ballon d'Or top-10 card instead of the tier shield.
    *  Set this for players whose `ballonDOrTop10HoldSeason` is the current
    *  reigning season — see src/utils/ballonDorBoost.ts for the lifecycle. */
   ballonDorTop10?: boolean;
+  /** Pack-earned card frame id (see `Player.packFrame`). Outranked by the
+   *  Ballon d'Or card, outranks the OVR tier card. */
+  packFrame?: string;
 }
 
 // ── Injury System ──
@@ -293,11 +305,39 @@ export interface Player {
   /**
    * Season in which the player most recently finished in the Ballon d'Or
    * top 10. While set, the player is the reigning top-10 holder — they
-   * carry a stats boost and the special `ballondor.png` card. The marker is
+   * carry a stats boost and the special `ballondor.webp` card. The marker is
    * refreshed each season they re-make the top 10, and cleared at next
    * season-end if they drop out (along with reverting the stats boost).
    */
   ballonDOrTop10HoldSeason?: number;
+  /**
+   * Card frame this player wears, earned by being pulled from a pack at or
+   * above that pack's guaranteed floor. Purely cosmetic — it changes the card
+   * artwork and nothing else, and it never touches a simulation parameter.
+   *
+   * A frame id, not a path: `PACK_CARD_FRAMES` in `config/packs.ts` resolves it,
+   * and an id that resolver does not know falls back to the ordinary OVR-tier
+   * card. That fallback is what lets a frame be retired without breaking every
+   * save that has one, the same contract the archived pack tiers live under.
+   *
+   * Absent on every player not pulled from a pack, which is almost all of them.
+   */
+  packFrame?: string;
+  /**
+   * Multiplier applied to this player's wage on every recompute, so a signing
+   * discount survives development, training and season rollover.
+   *
+   * Exists because pack pulls are real players at real ratings, and a real
+   * 88-rated player earns real 88-rated money. One $6.99 pack was adding
+   * ~£920k/week — 58% of Celtic's entire wage bill, from a single purchase —
+   * which turns paying money into a punishment. A signing-time-only discount
+   * was not enough: `recomputeDerivedEconomics` runs on every development tick,
+   * so the discount would silently evaporate and the player's wage would double
+   * between seasons. It has to be a property OF the player.
+   *
+   * Absent on almost everyone, which reads as 1.0.
+   */
+  wageFactor?: number;
   /**
    * Per-attribute deltas applied by the active Ballon d'Or top-10 boost.
    * Stored as deltas (not absolute snapshots) so development, training, and
@@ -2251,7 +2291,15 @@ export interface ActiveInterview {
 }
 
 // ── Player Packs ──
-export type PackTierKey = 'bronze' | 'silver' | 'gold' | 'premium' | 'rare' | 'icon';
+/** Pack tiers.
+ *
+ *  `bronze` and `silver` are ARCHIVED: they are no longer sold or given away
+ *  (see `PACK_STOREFRONT_ORDER` in `config/packs.ts`), but their definitions
+ *  must never be deleted — `OpenedPackRecord.tier` in every existing save
+ *  references them, and the Recent Pulls replay resolves the label, art and
+ *  palette through `PACK_TIER_MAP`. Retiring a tier is a *storefront* change:
+ *  stop listing it, keep resolving it. */
+export type PackTierKey = 'daily' | 'bronze' | 'silver' | 'gold' | 'premium' | 'rare' | 'icon';
 
 export interface PackRarityWeights {
   common: number;     // < 60
@@ -2274,7 +2322,6 @@ export type PackUnlockMethod = 'free' | 'ad' | 'currency' | 'iap';
 export interface PackTierDefinition {
   key: PackTierKey;
   label: string;
-  tagline: string;
   /** In-game currency price. 0 means the pack is not buyable with money. */
   price: number;
   cards: number;
@@ -2294,6 +2341,10 @@ export interface PackTierDefinition {
    *  placeholder. Public asset path (e.g. `/packs/bronze.png`). The img
    *  fails silently to the placeholder if the asset isn't deployed yet. */
   artSrc?: string;
+  /** Previous cover, rendered when `artSrc` has not been deployed yet. Lets a
+   *  new art drop be referenced before the file lands without the card falling
+   *  all the way back to a bare gradient in the meantime. */
+  artLegacySrc?: string;
   /** Free opens per real-world day (no ad, no payment). Default 0. */
   freeDailyLimit?: number;
   /** Rewarded-ad opens per real-world day, used after free opens are
@@ -2312,6 +2363,88 @@ export interface PackTierDefinition {
    *  never read these fields directly, or the shop badge and the generator
    *  will drift apart. */
   freeOpenOverride?: Partial<Pick<PackTierDefinition, 'guaranteedMinOvr' | 'ovrMin' | 'ovrMax' | 'rarity'>>;
+  /** Streak-scaled odds for the free Daily Pack. Index 0 applies at the lowest
+   *  streak band, the last entry at the highest — see `PACK_STREAK_BANDS`.
+   *  Resolved through `resolvePackTier`, never read directly. */
+  streakOverrides?: Array<Partial<Pick<PackTierDefinition, 'guaranteedMinOvr' | 'ovrMin' | 'ovrMax' | 'rarity'>>>;
+  /** One-line store caption rendered on the pack card. Must describe what the
+   *  buyer actually gets — it is shown, unlike the old `tagline` field, which
+   *  was never rendered and advertised rewarded ads that do not exist. */
+  storeCaption?: string;
+  /** Marketing badge shown on the card. At most one tier may carry
+   *  `best_value` at a time, or the label means nothing. */
+  badge?: PackCardBadge;
+  /** May this tier appear in the weekly featured rotation? Icon is excluded so
+   *  it stays a deliberate splurge rather than a recurring headline. */
+  weeklyEligible?: boolean;
+  /** Card-frame id awarded to cards pulled from this pack at or above its
+   *  guaranteed floor. See `Player.packFrame`. */
+  cardFrame?: string;
+  /** ── Card version boost ──
+   *  Every card dealt by this pack is the pack's own VERSION of the player:
+   *  the real player with +N to every attribute and +N overall, priced (wage,
+   *  value, rarity) from the boosted rating. A Champions Haaland and a Legends
+   *  Haaland are different cards of the same person, which is the entire
+   *  collect-them-all draw of the storefront.
+   *
+   *  All of this tier's band numbers (`ovrMin`, `ovrMax`, `guaranteedMinOvr`,
+   *  odds-sheet rows) are FINAL ratings — what the buyer receives. Generation
+   *  picks the underlying real player at (final − boost), which is what lets
+   *  a $9.99 pack guarantee 88+ from a world that holds only 28 such players:
+   *  it draws from the 122 players at 84+ and issues them at +4. */
+  versionBoost?: number;
+  /** Two–three sentences for the pack info popup: what this pack is, who it is
+   *  for, what its version means. Player-facing teaching copy, not marketing
+   *  fluff — the popup exists so a new player LEARNS the storefront. */
+  storeBlurb?: string;
+}
+
+/** Card badges. Deliberately few — a badge on every card is a badge on none. */
+export type PackCardBadge = 'best_value' | 'entry' | 'trophy';
+
+/** A weekly promo cover: a NAME and ARTWORK laid over an existing pack tier.
+ *
+ *  The Market's weekly slot needs its own identity to be worth returning for,
+ *  but Apple will not let the app invent a product ID, so the offer has to be
+ *  backed by a SKU that already exists. A skin is how those two facts are
+ *  reconciled: the player sees "Golden Era Pack — 6 players, one guaranteed
+ *  82+", which is exactly what they get; underneath it is the Premium Gold
+ *  consumable plus this week's bonus card. Contents are never overstated —
+ *  the card and the odds sheet both render the backing tier's real numbers. */
+export interface WeeklyPackSkin {
+  /** Player-facing name for the week. */
+  name: string;
+  /** Cover art path under `public/packs/`. Falls back to the tier's own art. */
+  artSrc: string;
+  /** The storefront tier (and therefore the SKU and the contents) behind it. */
+  tier: PackTierKey;
+  /** Card-frame id awarded to cards pulled at or above the pack's guaranteed
+   *  floor. This is the promo's lasting artefact — the only way to own a
+   *  Golden Era card is to have opened one during a Golden Era week. */
+  cardFrame?: string;
+  /** Extra version boost on top of the backing tier's, for the promo week
+   *  only. Dated the same way the frame is: a Dynasty card can only exist if
+   *  it was pulled during a Dynasty week. Kept at +1 so no promo version ever
+   *  beats the Legends Pack — special is a date, not a power ceiling. */
+  extraBoost?: number;
+  /** Popup blurb for the promo week, replacing the backing tier's. */
+  blurb?: string;
+}
+
+/** One row of the published odds table for a pack. Derived from config by
+ *  `describePackOdds`, never authored by hand, so the disclosed odds cannot
+ *  drift from the generator. Apple Guideline 3.1.1 requires these to be
+ *  visible BEFORE a randomized paid pack is purchased. */
+export interface PackOddsRow {
+  /** Rarity rung label, e.g. `Gold (80-89 OVR)`. */
+  label: string;
+  /** Probability for a single non-guaranteed card, 0-1. */
+  chance: number;
+  /** Numeric band bounds (already clamped to the tier window and folded like
+   *  the label), so derived expectations use the same distribution the table
+   *  discloses instead of re-reading raw rarity weights. */
+  minOvr: number;
+  maxOvr: number;
 }
 
 export interface OpenedPackRecord {
@@ -2324,6 +2457,11 @@ export interface OpenedPackRecord {
   playerIds: string[];
   /** Cached top OVR so the shop can badge the record without touching `players`. */
   topOvr: number;
+  /** Total already refunded by quick-sells from THIS open. The quick-sell cap
+   *  is per open, not per card: a per-card cap turned Sell All into a flat
+   *  n × cap payout — a $4.99 pack reliably minted ~£50M, which is the exact
+   *  faucet the cap exists to close. Optional; absent reads as 0. */
+  quickSoldTotal?: number;
 }
 
 /** Where a pulled player landed after auto-place: XI, bench, or squad-only. */

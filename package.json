@@ -23,8 +23,9 @@
     "test:fast": "VITEST_FAST=1 vitest run",
     "test:watch": "vitest",
     "size:check": "node scripts/check-eager-bundle.mjs",
+    "packs:supply": "node scripts/check-pack-supply.mjs",
     "sunday:chrome": "node scripts/measure-sunday-chrome.mjs",
-    "preflight": "npm run lint && npm run typecheck && npm run docs:check && npm run i18n:check && npm run test:fast && npm run build && npm run size:check",
+    "preflight": "npm run lint && npm run typecheck && npm run docs:check && npm run i18n:check && npm run packs:supply && npm run test:fast && npm run build && npm run size:check",
     "cap:sync": "npm run build:native && npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
@@ -56,7 +57,7 @@
     "whats-new:seal": "node scripts/seal-whats-new.mjs",
     "whats-new:plan": "node scripts/seal-whats-new.mjs --dry-run",
     "whats-new:append-pr": "node scripts/append-pending-from-pr.mjs",
-    "preflight:full": "npm run lint && npm run typecheck && npm run docs:check && npm run i18n:check && npm run test && npm run build && npm run size:check"
+    "preflight:full": "npm run lint && npm run typecheck && npm run docs:check && npm run i18n:check && npm run packs:supply && npm run test && npm run build && npm run size:check"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

@@ -10,6 +10,13 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
  *   - gold            : a stronger gold glow with twinkling sparkles
  *   - legendary       : a dramatic pulsing aura with a full ring of particles
  *
+ * It is a HALO ONLY — light spilling out from behind the card. There used to be
+ * a second layer, a rounded rectangle with an inset box-shadow "hugging the card
+ * silhouette", and once the card art became a pointed frame rather than a
+ * rectangle that layer was a coloured rim painted on top of the artwork inside a
+ * box the card does not have. Rarity still reads from the halo, which is where a
+ * glow belongs: behind the thing that is glowing.
+ *
  * Pure decoration — `pointer-events-none`, sits as a sibling *behind* the
  * flipping card (outside its 3D context) so the glow stays put while the
  * card turns. All motion self-disables under the OS reduced-motion setting.
@@ -20,18 +27,16 @@ interface AuraSpec {
   haloOpacity: number;
   /** Breathe the halo + ring (rarer pulls feel "alive"). */
   pulse: boolean;
-  /** Edge-glow spread in px. */
-  ringGlow: number;
   /** Twinkling sparkle count around the card. */
   particles: number;
 }
 
 const AURA: Record<string, AuraSpec> = {
-  common:    { glow: 'rgba(203,213,225,0.55)', haloOpacity: 0.42, pulse: false, ringGlow: 10, particles: 0 },
-  bronze:    { glow: 'rgba(232,162,112,0.60)', haloOpacity: 0.48, pulse: false, ringGlow: 12, particles: 0 },
-  silver:    { glow: 'rgba(96,165,250,0.78)',  haloOpacity: 0.62, pulse: true,  ringGlow: 16, particles: 0 },
-  gold:      { glow: 'rgba(251,191,36,0.88)',  haloOpacity: 0.74, pulse: true,  ringGlow: 22, particles: 7 },
-  legendary: { glow: 'rgba(248,113,113,0.92)', haloOpacity: 0.9,  pulse: true,  ringGlow: 30, particles: 14 },
+  common:    { glow: 'rgba(203,213,225,0.55)', haloOpacity: 0.42, pulse: false, particles: 0 },
+  bronze:    { glow: 'rgba(232,162,112,0.60)', haloOpacity: 0.48, pulse: false, particles: 0 },
+  silver:    { glow: 'rgba(96,165,250,0.78)',  haloOpacity: 0.62, pulse: true,  particles: 0 },
+  gold:      { glow: 'rgba(251,191,36,0.88)',  haloOpacity: 0.74, pulse: true,  particles: 7 },
+  legendary: { glow: 'rgba(248,113,113,0.92)', haloOpacity: 0.9,  pulse: true,  particles: 14 },
 };
 
 export function PackCardAura({ tierKey }: { tierKey: string }) {
@@ -58,19 +63,6 @@ export function PackCardAura({ tierKey }: { tierKey: string }) {
         transition={breathe
           ? { duration: 2.6, repeat: Infinity, ease: 'easeInOut' }
           : { duration: 0.5, ease: 'easeOut' }}
-      />
-
-      {/* Edge glow ring hugging the card silhouette. */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          boxShadow: `0 0 ${spec.ringGlow}px ${spec.glow}, inset 0 0 ${Math.round(spec.ringGlow / 2)}px ${spec.glow}`,
-        }}
-        initial={{ opacity: 0 }}
-        animate={breathe ? { opacity: [0.6, 1, 0.7] } : { opacity: 0.85 }}
-        transition={breathe
-          ? { duration: 2.6, repeat: Infinity, ease: 'easeInOut' }
-          : { duration: 0.4 }}
       />
 
       {/* Twinkling sparkles ringing the card — gold + legendary only. */}

@@ -192,3 +192,58 @@ export function pickUnclaimedRealPlayer(
   if (preferred) return preferred;
   return tryPickFromPool(poolForAll(), position, options);
 }
+
+/**
+ * Pick a real player template for a PACK PULL, ignoring claims entirely.
+ *
+ * ── Why packs are allowed duplicates when nothing else is ──
+ *
+ * Everywhere else in the game a real player belongs to exactly one club, which
+ * is why `pickUnclaimedRealPlayer` claims what it hands out. A pack cannot work
+ * that way. There are only 28 players in the whole pool rated 88+ and 8 rated
+ * 90+, and every one of them is already on a club at kickoff — so a claiming
+ * Icon Pack would find nobody and silently fall back to an invented player,
+ * which is exactly what it did before packs used this pool at all.
+ *
+ * So a pack pull is a CARD OF a player, not the player himself: you can pull
+ * Haaland while Haaland also plays for City, and two people can pull him in the
+ * same week. That is how every card game in this genre works and it is what
+ * makes the top end of a pack chaseable at all — the repeats are the chase.
+ *
+ * The OVR window is a hard requirement and the template brings its own rating.
+ * The band decides WHICH real players are eligible; it never rewrites one. An
+ * 88+ pack draws from the real 88+ players rather than stamping 88 onto
+ * whoever it found, because a 74-rated Mbappé is worse than no Mbappé.
+ */
+export function pickRealPlayerForPack(
+  position: Position,
+  minOvr: number,
+  maxOvr: number,
+): PlayerTemplate | null {
+  const pool = poolForAll();
+  if (pool.length === 0) return null;
+  const inBand = (t: PlayerTemplate) => t.ovr >= minOvr && t.ovr <= maxOvr;
+
+  // Same position-widening ladder as the claiming picker, minus the claim
+  // check: exact position, then a listed alternate, then a related position.
+  const exact = pool.filter(t => t.pos === position && inBand(t));
+  if (exact.length > 0) return pick(exact);
+
+  const alt = pool.filter(t => t.altPos?.includes(position) && inBand(t));
+  if (alt.length > 0) return pick(alt);
+
+  for (const fallbackPos of POSITION_FALLBACK[position] ?? []) {
+    const fb = pool.filter(
+      t => (t.pos === fallbackPos || t.altPos?.includes(fallbackPos)) && inBand(t),
+    );
+    if (fb.length > 0) return pick(fb);
+  }
+  return null;
+}
+
+/** How many real templates sit in an OVR band, for a supply check. Used by the
+ *  storefront guard so an imported dataset that cannot back a pack's guarantee
+ *  fails loudly instead of degrading into invented players. */
+export function countRealPlayersInBand(minOvr: number, maxOvr: number): number {
+  return poolForAll().filter(t => t.ovr >= minOvr && t.ovr <= maxOvr).length;
+}

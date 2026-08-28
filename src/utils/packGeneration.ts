@@ -1,5 +1,6 @@
 import type { Club, Player, PlayerAttributes, Position, PackTierDefinition, PackTierKey, PackRarityWeights } from '@/types/game';
-import { generatePlayer, calculateOverall } from '@/utils/playerGen';
+import { generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
+import { pickRealPlayerForPack } from '@/utils/realPlayerPicker';
 import { pick, clamp } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { recomputeDerivedEconomics } from '@/utils/playerEconomics';
@@ -11,6 +12,7 @@ import {
   PACK_PITY_MAX_OVERSHOOT,
   PACK_PITY_MIN_BAND,
   PACK_RARITY_BANDS,
+  PACK_WAGE_FACTOR,
   resolvePackTier,
   AI_BACKFILL_PER_TIER,
   AI_BACKFILL_OVR_GAP,
@@ -31,6 +33,11 @@ function pickRarity(weights: PackRarityWeights): keyof PackRarityWeights {
  *  value (6) so the proportional-scale fallback only fires in truly
  *  adversarial cases. */
 const MAX_FIT_REROLLS = 20;
+
+/** Hard ceiling on weekly-bonus cards, independent of what config asks for.
+ *  A pack is a reveal sequence the player sits through; past a handful of cards
+ *  the ceremony becomes a chore. */
+const MAX_EXTRA_CARDS = 3;
 
 /** Scale every attribute by the given ratio so the derived overall lands
  *  on target. Mirrors the pattern playerGen.ts uses to cap star/veteran
@@ -64,10 +71,69 @@ function rollPackPlayer(
   minOvr: number,
   maxOvr: number,
   ceiling: number = tier.ovrMax,
+  /** fcIds already dealt in THIS pack. Pulling the same player twice in one
+   *  five-card pack reads as a bug even in a game where duplicates across
+   *  packs are the whole point. */
+  taken?: Set<string>,
+  /** Version boost this pack issues its cards at. Every band number in this
+   *  function is a FINAL rating; the underlying real player is picked at
+   *  (final − boost) and dealt with +boost on every attribute. */
+  versionBoost = 0,
 ): Player {
   let lo = Math.max(tier.ovrMin, Math.min(minOvr, ceiling));
   let hi = Math.max(lo, Math.min(Math.max(maxOvr, minOvr), ceiling));
   if (hi < lo) { const tmp = lo; lo = hi; hi = tmp; }
+
+  // ── Real player first ──
+  //
+  // A pack is the one surface in the game that was handing out invented people.
+  // Everything else — squads, the transfer market, free agents — is built from
+  // the real-player templates, so the monetised screen was the only place you
+  // could not pull a name you recognise. That is backwards.
+  //
+  // The band selects the player and the player brings his own rating; see
+  // `pickRealPlayerForPack` for why pack pulls are allowed to duplicate real
+  // players when nothing else in the game is.
+  // The player is picked at his BASE rating; the card is issued at final.
+  // This is what lets an 88+ pack draw on the 122 players rated 84+ instead
+  // of the 28 rated 88+ — the version boost widens the honest supply.
+  const baseLo = Math.max(1, lo - versionBoost);
+  const baseHi = Math.max(baseLo, hi - versionBoost);
+  let template = pickRealPlayerForPack(position, baseLo, baseHi);
+  // A few rerolls is plenty: the narrowest band any tier uses still holds
+  // dozens of players, and giving up falls through to a fresh invented player
+  // rather than dealing a duplicate.
+  for (let i = 0; i < 6 && template?.fcId && taken?.has(template.fcId); i++) {
+    template = pickRealPlayerForPack(position, baseLo, baseHi);
+  }
+  if (template && !(template.fcId && taken?.has(template.fcId))) {
+    if (template.fcId) taken?.add(template.fcId);
+    const real = buildPlayerFromTemplate(template, '', season);
+    // ── Issue the pack's version of him ──
+    // Flat +boost on every attribute and on overall, the same shape the
+    // Ballon d'Or boost uses. The template's own rating is the base; the
+    // pack's band numbers are the final. Never scaled or re-derived — a
+    // version is the same player, one notch sharper everywhere.
+    if (versionBoost > 0) {
+      for (const key of Object.keys(real.attributes) as (keyof PlayerAttributes)[]) {
+        real.attributes[key] = clamp(real.attributes[key] + versionBoost);
+      }
+      real.overall = clamp(real.overall + versionBoost);
+    }
+    if (real.potential < real.overall) real.potential = real.overall;
+    // Sign on the pack wage scale, then re-price from the FINAL rating so the
+    // wage, value and rarity all belong to the card the player actually holds.
+    real.wageFactor = PACK_WAGE_FACTOR;
+    recomputeDerivedEconomics(real);
+    return real;
+  }
+
+  // ── Fallback: an invented player ──
+  //
+  // Reached when the pool has nobody in this band at this position. It should
+  // be rare and the storefront supply guard (`scripts/check-pack-supply.mjs`)
+  // exists so an imported dataset that makes it COMMON fails the build rather
+  // than quietly filling the Icon Pack with strangers.
   const target = lo + Math.floor(Math.random() * (hi - lo + 1));
 
   let player = generatePlayer(position, target, '', season);
@@ -98,7 +164,9 @@ function rollPackPlayer(
   player.overall = clamp(derived, lo, hi);
 
   // Pack-pulled players run through the shared economics helper so the
-  // walkout reveal carries the right rarity/value/wage premium.
+  // walkout reveal carries the right rarity/value/wage premium. Same contract
+  // as a real pull — the discount belongs to the pack, not to the player.
+  player.wageFactor = PACK_WAGE_FACTOR;
   recomputeDerivedEconomics(player);
   // Potential floors at overall — never below.
   if (player.potential < player.overall) player.potential = player.overall;
@@ -114,6 +182,19 @@ export interface PackContentsOptions {
    *  them. Defaults to false so a caller that forgets it gets the PAID odds
    *  rather than silently under-rewarding a purchase. */
   freeOpen?: boolean;
+  /** Consecutive-login streak, which selects the Daily Pack's odds band.
+   *  Defaults to 1 (the weakest band) so a caller that forgets it cannot
+   *  accidentally hand out the day-7 pack. */
+  streak?: number;
+  /** Extra cards beyond `tier.cards`, granted by the weekly featured bonus.
+   *  Each one rolls at the tier's guaranteed floor — that is precisely what
+   *  the offer promises on the card, so it is what the generator delivers. */
+  extraCards?: number;
+  /** Version boost override. Defaults to the tier's own `versionBoost`; the
+   *  slice passes `packVersionBoostFor(tier, currentWeekIndex())` so a promo
+   *  week's +1 reaches the cards. Must default from config rather than 0, or
+   *  a caller that forgets it silently deals base cards from a paid pack. */
+  versionBoost?: number;
 }
 
 /** Generate the full set of players contained in a pack. The first card is
@@ -125,8 +206,25 @@ export function generatePackContents(
   season: number,
   opts: PackContentsOptions = {},
 ): Player[] {
-  // A free/ad open resolves to the tier's weaker odds where it defines them.
-  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], !!opts.freeOpen);
+  // A free/ad open resolves to the tier's weaker odds where it defines them;
+  // the Daily Pack additionally resolves its streak band. Single resolver, so
+  // the odds sheet and the generator can never disagree.
+  const resolved = resolvePackTier(PACK_TIER_MAP[tierKey], {
+    freeOpen: !!opts.freeOpen,
+    streak: opts.streak,
+  });
+  const versionBoost = opts.versionBoost ?? resolved.versionBoost ?? 0;
+  // A promo week's +1 raises the FINAL ceiling with it — the base pick band's
+  // top (ovrMax − boost) is unchanged, the issued cards go one higher. Without
+  // this, the promo odds sheet (built from the raised presentation) published
+  // a top row the generator was mathematically incapable of dealing: during a
+  // Golden Era week the guide said "Legendary (90 OVR) 5%" while every card
+  // clamped to 89 (audit finding, and the exact false-odds class Guideline
+  // 3.1.1 is about).
+  const extraOverTier = Math.max(0, versionBoost - (resolved.versionBoost ?? 0));
+  const tier = extraOverTier > 0
+    ? { ...resolved, ovrMax: resolved.ovrMax + extraOverTier }
+    : resolved;
   const players: Player[] = [];
 
   // ── Guaranteed slot ──
@@ -140,18 +238,31 @@ export function generatePackContents(
   const guaranteedMax = pityOn
     ? Math.min(Math.max(guaranteedMin + 8, 89), pityCeiling)
     : Math.max(guaranteedMin, tier.ovrMax);
+  const taken = new Set<string>();
   const guaranteedPosition = pick(PACK_POSITION_POOL);
   players.push(rollPackPlayer(
     guaranteedPosition, tier, season, guaranteedMin, guaranteedMax,
-    pityOn ? pityCeiling : tier.ovrMax,
+    pityOn ? pityCeiling : tier.ovrMax, taken, versionBoost,
   ));
+
+  // ── Weekly bonus cards ──
+  // Rolled at the guaranteed floor, matching the offer's wording exactly
+  // ("+1 card, guaranteed 84+"). Clamped so a misconfigured bonus can never
+  // inflate a pack past a sane size — a pack is a reveal sequence, not a list.
+  const extra = Math.max(0, Math.min(Math.floor(opts.extraCards ?? 0), MAX_EXTRA_CARDS));
+  for (let i = 0; i < extra; i++) {
+    players.push(rollPackPlayer(
+      pick(PACK_POSITION_POOL), tier, season, tier.guaranteedMinOvr, tier.ovrMax,
+      tier.ovrMax, taken, versionBoost,
+    ));
+  }
 
   // ── Remaining cards: weighted rarity roll ──
   for (let i = 1; i < tier.cards; i++) {
     const rarity = pickRarity(tier.rarity);
     const [rMin, rMax] = PACK_RARITY_BANDS[rarity];
     const position = pick(PACK_POSITION_POOL);
-    players.push(rollPackPlayer(position, tier, season, rMin, rMax));
+    players.push(rollPackPlayer(position, tier, season, rMin, rMax, tier.ovrMax, taken, versionBoost));
   }
 
   // Shuffle so the guaranteed card isn't always first in the reveal order
@@ -188,8 +299,9 @@ export function generateAiCounterSignings(
   playerDivision: string,
   season: number,
   freeOpen = false,
+  streak?: number,
 ): AiBackfillResult {
-  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], freeOpen);
+  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], { freeOpen, streak });
   const slots = AI_BACKFILL_PER_TIER[tierKey] || 0;
   if (slots === 0) return { perClub: {} };
 

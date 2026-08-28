@@ -12,7 +12,7 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 86;
+const CURRENT_VERSION = 90;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -87,7 +87,88 @@ const migrations: Record<number, MigrationFn> = {
   //     "nobody vouched" means at the signing desk.
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
-  // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  // it uses (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  //
+  // ⚠ The block above documents the v85→v86 SUNDAY LEAGUE step, which is the
+  // `85:` entry near the bottom of this map — the Market-era steps sit between
+  // here and there because the map reads newest-first.
+
+  // v89 → v90: `OpenedPackRecord.quickSoldTotal` — the per-open quick-sell
+  // refund ledger behind PACK_QUICK_SELL_CAP. Optional and absent-reads-as-0,
+  // so nothing needs writing into old payloads; the step exists to record the
+  // shape change per the CURRENT_VERSION rule. No backfill is also CORRECT:
+  // quick-sell is restricted to the most recent open in the same in-game week,
+  // and any pre-migration open is by definition older than that.
+  89: (data) => ({ ...data, version: 90 }),
+
+  // v88 → v89: `Player.wageFactor` + a global wage easing.
+  //
+  // Two things happened and only one of them needs a migration step.
+  //
+  // `WAGE_EXP_BASE` dropped 10 → 8.5 (a uniform −15%). Nothing to migrate:
+  // every path that touches a wage runs `recomputeDerivedEconomics`, so
+  // existing players re-price themselves on their next development tick. They
+  // are briefly on old money, which is what a pay rise freeze looks like.
+  //
+  // `wageFactor` is optional and reads as 1.0 when absent, so no backfill is
+  // needed either — and no backfill would be CORRECT. It marks a player as
+  // having signed on the pack wage scale, and a save has no record of which
+  // players arrived through a pack. Retro-discounting everyone would hand
+  // existing squads a wage cut they never earned; leaving it unset means
+  // players pulled from here on get the new contract and nobody else does.
+  88: (data) => ({ ...data, version: 89 }),
+
+  // v87 → v88: pack card frames.
+  //
+  // `Player.packFrame` is a cosmetic frame id earned by being pulled from a pack
+  // at or above its guaranteed floor. There is deliberately NO backfill: the
+  // frame records where a card came from, and a save has no record of which
+  // players arrived through a pack (`openedPacks` keeps ids, but those players
+  // may since have been sold, retired or purged). Inventing an origin would be
+  // fabricating history to make old cards prettier. Existing players keep their
+  // OVR-tier art; every card pulled from here on earns a frame honestly.
+  //
+  // The field is optional and `getPlayerCardArt` treats an unknown or missing id
+  // as "no frame", so nothing needs writing into the payload at all — this step
+  // exists to record the version and the decision.
+  87: (data) => ({ ...data, version: 88 }),
+
+  // v86 → v87: Market redesign.
+  //
+  //   - `weeklyPackBonus` mirrors the device-global weekly featured-pack bonus
+  //     claim so the Market re-renders when it is spent. `null` = unspent, and
+  //     that is also the right backfill: no save can have claimed a bonus that
+  //     did not exist, and the authority (`readWeeklyPackBonus`) is device-side
+  //     and unaffected by this field either way.
+  //
+  //   - The free daily allowance moved from three tiers (bronze, silver, gold)
+  //     onto one new `daily` tier. The old per-tier `free` counts are DROPPED
+  //     rather than carried: they are counts against allowances that no longer
+  //     exist, and mapping any of them onto `daily` would mean a player who had
+  //     opened a Bronze pack today loses a free pack they never spent. Leaving
+  //     `daily` unset gives everyone today's free pack, which is the generous
+  //     reading and costs one pack once.
+  //
+  //     The `ad` bucket is dropped for the same reason. Note this state field is
+  //     only a MIRROR — the authoritative bucket is device-global localStorage
+  //     (`readDailyPackOpens`) and is untouched by a save migration. A player
+  //     mid-day keeps whatever device-side counts they had for `bronze` /
+  //     `silver` / `gold`, which are now inert keys nothing reads.
+  //
+  //   - `openedPacks` records referencing `bronze` / `silver` are LEFT ALONE.
+  //     Those tiers stay in `PACK_TIERS` precisely so Recent Pulls can still
+  //     resolve their label, art and palette; rewriting history to a tier the
+  //     player never opened would be a lie in service of nothing.
+  86: (data) => {
+    const old = data.dailyPackOpens as { date?: string } | undefined;
+    return {
+      ...data,
+      version: 87,
+      weeklyPackBonus: null,
+      dailyPackOpens: { date: old?.date || '', free: {}, ad: {} },
+    };
+  },
+
   85: (data) => {
     const sunday = data.sunday as Record<string, unknown> | null | undefined;
     if (!sunday || typeof sunday !== 'object') return { ...data, version: 86, sunday: sunday ?? null };

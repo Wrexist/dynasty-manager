@@ -658,6 +658,11 @@ export interface GameState {
     free: Partial<Record<PackTierKey, number>>;
     ad: Partial<Record<PackTierKey, number>>;
   };
+  /** Mirror of the device-global weekly featured-pack bonus claim, so the
+   *  Market re-renders when the week's bonus is spent. `null` means unspent
+   *  (or a week has rolled over). The authority is `readWeeklyPackBonus()` in
+   *  `store/helpers/persistence.ts` — never gate an offer on this field. */
+  weeklyPackBonus: { weekIndex: number; tier: PackTierKey } | null;
   /** Open a pack via a specific method. The page is responsible for
    *  picking the right method (free → ad → iap → currency priority) and
    *  for completing any out-of-band cost (showing the rewarded ad,

@@ -122,6 +122,27 @@ function sizeTokens(size: PlayerCardSize) {
     flagHPx: isXs ? Math.max(6, Math.round(w * 0.13)) : Math.max(7, Math.round(w * 0.087)),
     statRowGapPx: Math.max(1, Math.round(w * 0.01)),
     outerRadiusPx: Math.max(8, Math.round(w * 0.107)),
+    // ── Card shape ──
+    // Every piece of card artwork in the game is 1024x1536, i.e. 2:3. The box
+    // was 3:4, so `object-cover` cropped ~11% off the top and bottom of every
+    // card. That was invisible while the art was OVR tier shields — those are
+    // painted inside a transparent margin at ~0.71 aspect, so the crop only ate
+    // padding — and became very visible the moment pack frames arrived, which
+    // are painted edge to edge and lost their pointed top and ornate base.
+    //
+    // The two SMALL tokens keep 3:4 deliberately. `xs` is the tactics-pitch
+    // token and `sm` the bench strip: they are chips, not cards, they only ever
+    // carry a plain shield, and the pitch lays them out against a fixed
+    // aspect-[3/4] empty-slot placeholder that taller tiles would desync from.
+    //
+    // At 3:4 the artwork is cropped to fill, so a rounded container and a cast
+    // shadow are the chip's edge and it needs them. At 2:3 the artwork fits
+    // exactly and its own alpha is the edge — a rounded box behind a scalloped
+    // shield or a pointed frame shows through the corners as a rectangle that
+    // is not part of the card. That is one decision, not two, so it is derived
+    // from the size rather than from the artwork.
+    chip: size === 'xs' || size === 'sm',
+    aspectClass: (size === 'xs' || size === 'sm') ? 'aspect-[3/4]' : 'aspect-[2/3]',
     paddingXPx: Math.max(8, Math.round(w * 0.093)),
     dismissPx: Math.max(16, Math.round(w * 0.16)),
   };
@@ -148,6 +169,10 @@ export const PlayerCard = memo(function PlayerCard({
   const tk = sizeTokens(size);
   const cardArt = getPlayerCardArt(player.overall, {
     ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+    // Chips crop their art to fill a 3:4 box (see sizeTokens), which would
+    // eat a pack frame's pointed top and ornate base — the frame's whole
+    // identity. Chips keep the tier shield; the frame shows on real cards.
+    packFrame: tk.chip ? undefined : player.packFrame,
   });
   const prefersReducedMotion = useReducedMotionPref();
   const [statView, setStatView] = useState<StatView>(0);
@@ -202,15 +227,17 @@ export const PlayerCard = memo(function PlayerCard({
         }
       }}
       className={cn(
-        'relative block aspect-[3/4] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        'relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        tk.aspectClass,
+        tk.chip && 'overflow-hidden',
         // The big drop-shadow looks like a dark halo behind the tactics-pitch
-        // tiles on a green pitch; keep it only at sm+ where the card sits on
-        // a dark UI surface and the cast shadow reads as depth.
-        size !== 'xs' && 'shadow-[0_18px_36px_rgba(0,0,0,0.55)]',
+        // tiles on a green pitch; keep it only at sm where the chip sits on a
+        // dark UI surface and the cast shadow reads as depth.
+        size === 'sm' && 'shadow-[0_18px_36px_rgba(0,0,0,0.55)]',
         clickable && 'cursor-pointer',
         className,
       )}
-      style={{ width: tk.widthPx, borderRadius: tk.outerRadiusPx }}
+      style={{ width: tk.widthPx, borderRadius: tk.chip ? tk.outerRadiusPx : undefined }}
       role={clickable ? 'button' : undefined}
       tabIndex={clickable ? 0 : undefined}
       aria-label={ariaLabel}
@@ -237,10 +264,27 @@ export const PlayerCard = memo(function PlayerCard({
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
+            // Match the artwork's own alpha so the scrim cannot paint a dark
+            // rectangle in the transparent corners outside the card's shape.
+            ...(!tk.chip
+              ? {
+                  WebkitMaskImage: `url(${cardArt.src})`,
+                  maskImage: `url(${cardArt.src})`,
+                  WebkitMaskSize: '100% 100%',
+                  maskSize: '100% 100%',
+                }
+              : {}),
             background:
-              'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
-              'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),' +
-              'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
+              cardArt.scrim === 'strong'
+                // Pack frames and the Ballon d'Or card put a light burst
+                // exactly where the rating and the surname sit, so the scrim
+                // tuned for the calm tier shields left white-on-gold text.
+                ? 'radial-gradient(ellipse 46% 36% at 18% 17%, rgba(0,0,0,0.78), transparent 78%),'
+                  + 'linear-gradient(to bottom, transparent 44%, rgba(0,0,0,0.52) 56%, rgba(0,0,0,0.4) 64%, transparent 69%),'
+                  + 'linear-gradient(to bottom, transparent 62%, rgba(0,0,0,0.5) 72%, rgba(0,0,0,0.66) 86%, rgba(0,0,0,0.74) 100%)'
+                : 'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),'
+                  + 'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),'
+                  + 'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
           }}
         />
       )}
