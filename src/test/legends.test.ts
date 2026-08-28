@@ -96,6 +96,32 @@ describe('Hall of Legends — archive record', () => {
   });
 });
 
+describe('Hall of Legends — career-card fidelity', () => {
+  it('a deep-declined retiree\'s record never prints a rating its attributes cannot play', () => {
+    // The audit's measured failure: peak 94 from a 72 final shape derived at
+    // 91 after one blind ratio pass, so the card printed 94 and played 91.
+    // The build now converges iteratively and, where saturation stops the
+    // climb, prints what the attributes support instead.
+    for (const [finalOvr, peak] of [[72, 94], [66, 95], [84, 94], [70, 93]] as const) {
+      const p = mkRetiree({ overall: finalOvr, peakOverall: peak });
+      const legend = buildRetiredLegend(p, 12);
+      const derived = calculateOverall(legend.attributes, legend.position);
+      expect(Math.abs(derived - legend.peakOverall),
+        `final ${finalOvr} / peak ${peak}: printed ${legend.peakOverall}, plays ${derived}`)
+        .toBeLessThanOrEqual(1);
+      expect(legend.peakOverall).toBeLessThanOrEqual(peak);
+    }
+  });
+
+  it('captures alternate positions both into the record and back onto the card', () => {
+    const p = mkRetiree({ alternatePositions: ['CAM', 'LW'] });
+    const legend = buildRetiredLegend(p, 12);
+    expect(legend.altPos).toEqual(['CAM', 'LW']);
+    const card = buildPlayerFromLegend(legend, 5);
+    expect(card.alternatePositions).toEqual(['CAM', 'LW']);
+  });
+});
+
 describe('Hall of Legends — seed set integrity', () => {
   it('has unique ids and card-worthy ratings (88–95)', () => {
     const ids = new Set(SEED_LEGENDS.map(l => l.id));
@@ -193,6 +219,15 @@ describe('Hall of Legends — packs', () => {
       const players = generatePackContents('icon', 5, { forceLegendRoll: false });
       expect(players.every(p => !p.legendId)).toBe(true);
     }
+  });
+
+  it('a legend deal is allowed on a pity open and over-delivers its promise', () => {
+    // Suppressing the roll under pity made the flat disclosed chance false
+    // for exactly the users pity compensates. Every legend is 88+, above the
+    // pity floor, so the deal satisfies the pity promise by construction.
+    const players = generatePackContents('icon', 5, { pityTriggered: true, forceLegendRoll: true });
+    expect(players[0].legendId).toBeTruthy();
+    expect(players[0].overall).toBeGreaterThanOrEqual(88);
   });
 
   it('multi-card packs keep their full card count when the legend fires', () => {

@@ -83,6 +83,7 @@ function getGeneralNavTarget(title: string): { label: string; screen: GameScreen
   if (t.includes('available') || t.includes('settled')) return { label: 'View Squad', screen: 'squad' };
   if (t.includes('between jobs') || t.includes('contract expiring')) return { label: 'Job Market', screen: 'job-market' };
   if (t.includes('reputation') || t.includes('manager of the month')) return { label: 'Profile', screen: 'manager-profile' };
+  if (t.includes('hall of legends')) return { label: 'View Hall', screen: 'manager-profile' };
   if (t.includes('hired') || t.includes('released')) return { label: 'Staff', screen: 'staff' };
   return null;
 }

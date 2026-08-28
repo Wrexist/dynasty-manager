@@ -160,8 +160,8 @@ export const PACK_TIERS: PackTierDefinition[] = [
     storeBlurb: 'The value pick. Five Elite versions — +2 to every stat — with one card guaranteed 82 or better. More top-rated cards per dollar than any other pack on the shelf, which is why it wears the badge. A small chance the top card is a Hall of Legends icon — odds in the guide.',
     price: 0,
     cards: 5,
-    // The bottom rung of the Legend ladder — see LEGEND_CHANCE_LADDER below
-    // for why the three paid multi-card tiers step 3% → 8% → 25%.
+    // The bottom rung of the Legend chance ladder (3% → 8% → 25%) — see the
+    // "Hall of Legends dealing" block near packLegendChance for the design.
     legendChance: 0.03,
     guaranteedMinOvr: 82,
     ovrMin: 74,

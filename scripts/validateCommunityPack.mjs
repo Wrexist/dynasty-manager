@@ -3,11 +3,13 @@
  * Community Pack validator — Phase E content QA.
  *
  * Loads the three auto-generated community pack data files (byClub,
- * freeAgents, newLeagues) and verifies:
+ * freeAgents, and the CP-league squad files behind cpLeagueSquads) and verifies:
  *
  *   1. Every player has fcId, source:'real', ovr in [1,99], and all 6
  *      stats (pace/shooting/passing/defending/physical/mental) in [1,99].
- *   2. No duplicate fcId across byClub + freeAgents + newLeagues.
+ *   2. No duplicate fcId across byClub + freeAgents. (The CP-league squad
+ *      files carry no fcId — they are name/rating templates — so they join
+ *      every other check but not this one.)
  *   3. Every byClub key is a valid gameClubId from src/data/leagues/*.ts.
  *   4. Every new-league club has >=18 players and >=1 GK.
  *   5. No player has empty name (both fn and ln blank), empty nationality,
@@ -103,20 +105,74 @@ function loadGameClubIds() {
   return ids;
 }
 
+/**
+ * The seven community-pack-only league squad files aggregated by
+ * `src/data/communityPack/cpLeagueSquads.ts`. Kept as an explicit list that a
+ * check below reconciles against the aggregator's imports, so adding a league
+ * to one side without the other fails loudly here instead of silently
+ * shipping an unvalidated file.
+ */
+const CP_LEAGUE_SQUAD_FILES = ['arg', 'aus', 'bra', 'ind', 'kor', 'mls', 'sau'];
+const SQUADS_DIR = join(ROOT, 'src/data/squads');
+
+/**
+ * Parse a generated `src/data/squads/<id>.ts` file into
+ * { clubId: playerObject[] }. These files are TS literals (unquoted keys,
+ * single-quoted positions), not JSON, so `extractLiteral` cannot read them.
+ * They are machine-generated with one player per line, which is what makes a
+ * line-based field parser reliable here — and only here. Never point this at
+ * hand-written code.
+ */
+function parseSquadFile(filePath) {
+  const src = readFileSync(filePath, 'utf8');
+  const out = {};
+  let current = null;
+  const str = (line, key) => {
+    const m = line.match(new RegExp(`\\b${key}: "((?:[^"\\\\]|\\\\.)*)"`));
+    return m ? m[1] : undefined;
+  };
+  const single = (line, key) => {
+    const m = line.match(new RegExp(`\\b${key}: '([^']*)'`));
+    return m ? m[1] : undefined;
+  };
+  const num = (line, key) => {
+    const m = line.match(new RegExp(`\\b${key}: (-?\\d+)`));
+    return m ? Number(m[1]) : undefined;
+  };
+  for (const line of src.split('\n')) {
+    const clubKey = line.match(/^  '([^']+)': \[/);
+    if (clubKey) { current = clubKey[1]; out[current] = []; continue; }
+    if (!current || !line.trimStart().startsWith('{ fn:')) continue;
+    const altPosRaw = line.match(/\baltPos: \[([^\]]*)\]/);
+    out[current].push({
+      fn: str(line, 'fn'), ln: str(line, 'ln'),
+      pos: single(line, 'pos'), nat: str(line, 'nat'),
+      age: num(line, 'age'), ovr: num(line, 'ovr'), pot: num(line, 'pot'),
+      pace: num(line, 'pace'), shooting: num(line, 'shooting'), passing: num(line, 'passing'),
+      defending: num(line, 'defending'), physical: num(line, 'physical'), mental: num(line, 'mental'),
+      ...(altPosRaw ? { altPos: [...altPosRaw[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) } : {}),
+    });
+  }
+  return out;
+}
+
 // ── Per-player validation ─────────────────────────────────────────────────
 
 function isInt(n) {
   return typeof n === 'number' && Number.isFinite(n) && Math.floor(n) === n;
 }
 
-function validatePlayer(p, context, errors) {
-  // fcId
-  if (!p.fcId || typeof p.fcId !== 'string') {
-    errors.push(`${context}: missing or non-string fcId`);
-  }
-  // source
-  if (p.source !== 'real') {
-    errors.push(`${context}: source is ${JSON.stringify(p.source)}, expected 'real'`);
+function validatePlayer(p, context, errors, { requireProvenance = true } = {}) {
+  // fcId + source — required for the byClub/freeAgents buckets, which promise
+  // real, individually-identified players. The CP-league squad templates are
+  // name/rating templates without ids, so those callers relax this.
+  if (requireProvenance) {
+    if (!p.fcId || typeof p.fcId !== 'string') {
+      errors.push(`${context}: missing or non-string fcId`);
+    }
+    if (p.source !== 'real') {
+      errors.push(`${context}: source is ${JSON.stringify(p.source)}, expected 'real'`);
+    }
   }
   // ovr
   if (!isInt(p.ovr) || p.ovr < MIN_RATING || p.ovr > MAX_RATING) {
@@ -162,8 +218,13 @@ function main() {
   console.log('Loading community pack data...');
   const byClub = extractLiteral(join(CP_DIR, 'byClub.ts'));
   const freeAgents = extractLiteral(join(CP_DIR, 'freeAgents.ts'));
-  const newLeagues = extractLiteral(join(CP_DIR, 'newLeagues.ts'));
   const gameClubIds = loadGameClubIds();
+
+  // Reconcile the validated squad-file list against what cpLeagueSquads.ts
+  // actually aggregates — a league added to one side but not the other is a
+  // validator blind spot, which is worse than a failure.
+  const aggregatorSrc = readFileSync(join(CP_DIR, 'cpLeagueSquads.ts'), 'utf8');
+  const aggregated = [...aggregatorSrc.matchAll(/from '@\/data\/squads\/([a-z0-9]+)'/g)].map((m) => m[1]).sort();
 
   const errors = [];
   const warnings = [];
@@ -172,8 +233,12 @@ function main() {
   // Counts for the summary.
   let byClubPlayerCount = 0;
   let freeAgentCount = 0;
-  let newLeagueClubCount = 0;
-  let newLeaguePlayerCount = 0;
+  let cpLeagueClubCount = 0;
+  let cpLeaguePlayerCount = 0;
+
+  if (aggregated.join(',') !== [...CP_LEAGUE_SQUAD_FILES].sort().join(',')) {
+    errors.push(`cpLeagueSquads.ts aggregates [${aggregated}] but the validator covers [${CP_LEAGUE_SQUAD_FILES}] — update CP_LEAGUE_SQUAD_FILES`);
+  }
 
   // ── Check 1, 5, 6: per-player validation on every bucket.
   // ── Check 2: duplicate fcId tracking.
@@ -217,43 +282,43 @@ function main() {
     });
   }
 
-  // newLeagues — also runs check 4 (>=18 players, >=1 GK).
-  for (const [leagueId, league] of Object.entries(newLeagues)) {
-    const clubs = league?.clubs;
-    if (!Array.isArray(clubs)) {
-      errors.push(`newLeagues[${leagueId}] has no clubs array`);
+  // CP-league squads — also runs check 4 (>=18 players, >=1 GK per club).
+  for (const leagueId of CP_LEAGUE_SQUAD_FILES) {
+    const clubs = parseSquadFile(join(SQUADS_DIR, `${leagueId}.ts`));
+    if (Object.keys(clubs).length === 0) {
+      errors.push(`squads/${leagueId}.ts: parsed zero clubs — file shape changed under the parser`);
       continue;
     }
-    for (const club of clubs) {
-      newLeagueClubCount++;
-      const cid = club?.id ?? '?';
-      const players = Array.isArray(club?.players) ? club.players : [];
+    for (const [cid, players] of Object.entries(clubs)) {
+      cpLeagueClubCount++;
+      if (!gameClubIds.has(cid)) {
+        errors.push(`squads/${leagueId}.${cid}: not a valid gameClubId (not found in src/data/leagues/*.ts)`);
+      }
       if (players.length < NEW_LEAGUE_MIN_PLAYERS) {
-        errors.push(`newLeagues[${leagueId}].${cid}: only ${players.length} players (min ${NEW_LEAGUE_MIN_PLAYERS})`);
+        errors.push(`squads/${leagueId}.${cid}: only ${players.length} players (min ${NEW_LEAGUE_MIN_PLAYERS})`);
       }
       const gkCount = players.filter((p) => p?.pos === 'GK').length;
       if (gkCount < NEW_LEAGUE_MIN_GK) {
-        errors.push(`newLeagues[${leagueId}].${cid}: ${gkCount} GKs (min ${NEW_LEAGUE_MIN_GK})`);
+        errors.push(`squads/${leagueId}.${cid}: ${gkCount} GKs (min ${NEW_LEAGUE_MIN_GK})`);
       }
       players.forEach((p, idx) => {
-        const ctx = `newLeagues[${leagueId}].${cid}[${idx}] ${p?.fn ?? ''} ${p?.ln ?? ''} (fcId=${p?.fcId ?? '?'})`;
-        validatePlayer(p, ctx, errors);
-        registerFcId(p, ctx);
-        newLeaguePlayerCount++;
+        const ctx = `squads/${leagueId}.${cid}[${idx}] ${p?.fn ?? ''} ${p?.ln ?? ''}`;
+        validatePlayer(p, ctx, errors, { requireProvenance: false });
+        cpLeaguePlayerCount++;
       });
     }
   }
 
   // ── Report ──────────────────────────────────────────────────────────────
-  const totalPlayers = byClubPlayerCount + freeAgentCount + newLeaguePlayerCount;
+  const totalPlayers = byClubPlayerCount + freeAgentCount + cpLeaguePlayerCount;
   console.log('');
   console.log('── Community Pack validation summary ────────────────────────');
   console.log(`  byClub keys:            ${Object.keys(byClub).length}`);
   console.log(`  byClub players:         ${byClubPlayerCount}`);
   console.log(`  freeAgents:             ${freeAgentCount}`);
-  console.log(`  newLeagues:             ${Object.keys(newLeagues).length}`);
-  console.log(`  newLeagues clubs:       ${newLeagueClubCount}`);
-  console.log(`  newLeagues players:     ${newLeaguePlayerCount}`);
+  console.log(`  CP leagues:             ${CP_LEAGUE_SQUAD_FILES.length}`);
+  console.log(`  CP-league clubs:        ${cpLeagueClubCount}`);
+  console.log(`  CP-league players:      ${cpLeaguePlayerCount}`);
   console.log(`  total players:          ${totalPlayers}`);
   console.log(`  unique fcIds:           ${fcIdOwners.size}`);
   console.log(`  gameClubIds available:  ${gameClubIds.size}`);

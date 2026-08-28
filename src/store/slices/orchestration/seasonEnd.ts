@@ -714,16 +714,30 @@ function finalizeSeason(
 
 
   // ── Hall of Legends intake ──
-  // Every path below that DELETES a player (forced retirement, contract
-  // expiry past the FA age gate, the FA pool's silent evictions) runs him
-  // through this gate first. Retirement used to be pure deletion, which meant
-  // the save generated genuine legends every season and binned them; now the
+  // Every CAREER-END deletion below (forced retirement, contract expiry past
+  // the FA age gate, the FA pool's silent evictions) runs the player through
+  // this gate first. Retirement used to be pure deletion, which meant the
+  // save generated genuine legends every season and binned them; now the
   // worthy few are frozen into `retiredLegends`, which is the pool the
   // Legend-chance packs deal from. Idempotent per player and capped — see
   // `addLegendToArchive`.
+  //
+  // Deliberately NOT gated: the bookkeeping deletions — Ballon d'Or ghost
+  // holders GC'd when their reign ends, replaced bottom-tier clubs' squads,
+  // and the orphan/clubless data-repair prunes. Those delete a RECORD, not a
+  // career: a 26-year-old ghost who loses his top-10 spot has not retired,
+  // and stamping him into the hall with a fabricated retirement season would
+  // be a lie the card then repeats forever. The real elite players those
+  // ghosts mirror are loaded club players in this save, and they reach the
+  // hall through the forced-retirement gate like everyone else.
   let legendArchive: RetiredLegend[] = state.retiredLegends ?? [];
   const newLegendLines: string[] = [];
   const maybeArchiveLegend = (pl: Player) => {
+    // A pulled Legend CARD retiring again must not re-enter the hall as a
+    // duplicate person under a fresh id — `legendId` says the hall already
+    // remembers him (seed or archived), and the card was a reissue, not a
+    // second career.
+    if (pl.legendId) return;
     if (!isLegendWorthy(pl)) return;
     const clubName = newClubs[pl.clubId]?.name ?? state.clubs[pl.clubId]?.name;
     const record = buildRetiredLegend(pl, season, clubName);
@@ -869,7 +883,8 @@ function finalizeSeason(
           } else {
             // Not better than anyone in the pool — released and deleted, so
             // this is a hall gate too (practically unreachable for a legend-
-            // grade player, but deletion points and hall gates must stay 1:1).
+            // grade player, but career-end deletions and hall gates stay 1:1;
+            // the bookkeeping deletions are the documented exception above).
             maybeArchiveLegend(aged);
           }
         } else {
@@ -877,8 +892,8 @@ function finalizeSeason(
           freeAgentIds.push(aged.id);
         }
       } else {
-        // Too old or too weak for the FA pool — the other deletion point a
-        // career can end at.
+        // Too old or too weak for the FA pool — the other career-end
+        // deletion point.
         maybeArchiveLegend(aged);
       }
       return;
@@ -1043,8 +1058,12 @@ function finalizeSeason(
   // pack happens to deal from it. Rare by construction (a 93+ peak retires a
   // handful of times per decade world-wide), so this never spams the inbox.
   if (newLegendLines.length > 0) {
+    // Type 'general', not 'board': a board message gets a hardwired "Board"
+    // CTA in the inbox that would send the reader to the objectives page.
+    // 'general' routes by title, and InboxPage maps 'hall of legends' to the
+    // Manager Profile hall list.
     newMessages = addMsg(newMessages, {
-      week: 1, season, type: 'board',
+      week: 1, season, type: 'general',
       title: 'Hall of Legends',
       body: `${newLegendLines.join(', ')} ${newLegendLines.length > 1 ? 'have' : 'has'} retired and entered the Hall of Legends. Their cards can now appear in Legend-chance packs.`,
     });

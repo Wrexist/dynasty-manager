@@ -138,7 +138,7 @@ describe('Pack opening — generation', () => {
     for (const tier of Object.values(PACK_TIER_MAP)) {
       const cap = tier.ovrMax + PACK_PITY_MAX_OVERSHOOT;
       for (let run = 0; run < 30; run++) {
-        const players = generatePackContents(tier.key, 1, { pityTriggered: true });
+        const players = generatePackContents(tier.key, 1, { forceLegendRoll: false, pityTriggered: true });
         const topOvr = Math.max(...players.map(p => p.overall));
         expect(topOvr, `${tier.key} pity pull ${topOvr} exceeded cap ${cap}`).toBeLessThanOrEqual(cap);
         expect(topOvr).toBeGreaterThanOrEqual(tier.guaranteedMinOvr);

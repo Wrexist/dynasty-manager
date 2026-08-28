@@ -881,7 +881,13 @@ const PacksPage = () => {
                 const tier = PACK_TIER_MAP[rec.tier];
                 const pulled = rec.playerIds.map(id => players[id]).filter(Boolean) as Player[];
                 if (pulled.length === 0) return null;
-                const best = pulled.reduce((top, p) => (p.overall > top.overall ? p : top), pulled[0]);
+                // A hall card headlines its pack even against a marginally
+                // higher-rated ordinary pull — provenance outranks one point
+                // of OVR on a history card.
+                const best = pulled.reduce((top, p) => {
+                  if (!!p.legendId !== !!top.legendId) return p.legendId ? p : top;
+                  return p.overall > top.overall ? p : top;
+                }, pulled[0]);
                 const ptier = playerTier(best.overall);
                 return (
                   <button
@@ -934,7 +940,7 @@ const PacksPage = () => {
                           {best.firstName.charAt(0)}. {best.lastName}
                         </p>
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight mt-0.5 truncate">
-                          {ptier.label}
+                          {best.legendId ? 'Hall of Legends' : ptier.label}
                         </p>
                       </div>
                     </div>

@@ -25,7 +25,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { readSaveSlot, __resetSaveStorageForTests } from '@/store/helpers/persistence';
+import { readSaveSlot, writeSaveSlot, __resetSaveStorageForTests } from '@/store/helpers/persistence';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 import { getPlayerPlayoffCandidates } from '@/store/slices/orchestration/playoff';
 
@@ -89,6 +89,51 @@ describe('save payload carries every field the store declares persisted', () => 
     const data = savedPayload();
     expect(data.seasonPhase).toBe('playoff');
     expect('playoffState' in data).toBe(true);
+  });
+
+  it('writes retiredLegends and round-trips it', () => {
+    // Same omission class as playoffState/careerRetired, caught by audit one
+    // commit after v92 introduced the field: the migration and the state
+    // default existed, but the performSave whitelist never listed it, so the
+    // Hall of Legends archive was dropped on every save.
+    const hall = [{
+      id: 'legend-t1', firstName: 'Test', lastName: 'Legend', nationality: 'England',
+      position: 'ST' as const, peakOverall: 94,
+      attributes: { pace: 90, shooting: 95, passing: 85, defending: 40, physical: 88, mental: 92 },
+      retiredSeason: 4, era: 'Test great, seasons 1–4.',
+      careerGoals: 300, careerAssists: 90, careerApps: 500,
+      ballonDorTop10: true, source: 'career' as const,
+    }];
+    useGameStore.setState({ retiredLegends: hall });
+    useGameStore.getState().saveGame(SLOT);
+    const data = savedPayload();
+    expect('retiredLegends' in data).toBe(true);
+    expect(data.retiredLegends).toHaveLength(1);
+
+    // Round-trip: wipe the live archive, load, and the hall must come back.
+    useGameStore.setState({ retiredLegends: [] });
+    useGameStore.getState().loadGame(SLOT);
+    expect(useGameStore.getState().retiredLegends).toHaveLength(1);
+    expect(useGameStore.getState().retiredLegends[0].id).toBe('legend-t1');
+  });
+
+  it('a save without the field never inherits the previous session\'s hall', () => {
+    // Cross-slot leak: loadGame spreads the payload over live state, so a
+    // payload missing `retiredLegends` used to leave slot A's hall standing
+    // when slot B loaded — and the next endSeason would commit it into B.
+    useGameStore.getState().saveGame(SLOT);
+    const data = savedPayload();
+    delete data.retiredLegends; // simulate a pre-fix v92 save
+    writeSaveSlot(SLOT, JSON.stringify(data));
+    useGameStore.setState({ retiredLegends: [{
+      id: 'legend-leak', firstName: 'Leaky', lastName: 'Ghost', nationality: 'England',
+      position: 'ST' as const, peakOverall: 93,
+      attributes: { pace: 90, shooting: 95, passing: 85, defending: 40, physical: 88, mental: 92 },
+      retiredSeason: 2, era: 'Wrong save.', careerGoals: 1, careerAssists: 1, careerApps: 1,
+      ballonDorTop10: false, source: 'career' as const,
+    }] });
+    useGameStore.getState().loadGame(SLOT);
+    expect(useGameStore.getState().retiredLegends).toEqual([]);
   });
 });
 

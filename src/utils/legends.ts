@@ -1,6 +1,6 @@
 import type { Player, PlayerAttributes, RetiredLegend } from '@/types/game';
 import { SEED_LEGENDS } from '@/data/legends';
-import { generatePlayer } from '@/utils/playerGen';
+import { generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { clamp } from '@/utils/helpers';
 import { recomputeDerivedEconomics } from '@/utils/playerEconomics';
 import {
@@ -27,7 +27,11 @@ import { PACK_WAGE_FACTOR, LEGEND_OWN_ARCHIVE_BIAS } from '@/config/packs';
 const ATTR_KEYS: (keyof PlayerAttributes)[] = ['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'];
 
 /** The peak this player should be remembered at. `peakOverall` is sampled at
- *  season rollovers, so the live overall can briefly exceed it mid-season. */
+ *  season rollovers, so the live overall can briefly exceed it mid-season —
+ *  and a week-10 high that decays by week 38 is never seen at all; rollover
+ *  sampling is deliberately coarse. A reigning Ballon d'Or top-10 boost IS
+ *  included when the rollover catches it: the peak records the highest rating
+ *  the player ever actually played at, boosts and all. */
 export function peakOf(p: Pick<Player, 'overall' | 'peakOverall'>): number {
   return Math.max(p.peakOverall ?? 0, p.overall);
 }
@@ -52,12 +56,31 @@ export function isLegendWorthy(
  * once here instead of on every open.
  */
 export function buildRetiredLegend(p: Player, season: number, clubName?: string): RetiredLegend {
-  const peak = peakOf(p);
-  const ratio = p.overall > 0 ? peak / p.overall : 1;
+  const targetPeak = peakOf(p);
   const attributes = { ...p.attributes };
-  for (const key of ATTR_KEYS) {
-    attributes[key] = clamp(Math.round(attributes[key] * ratio));
+  // Converge the derived overall onto the peak, not just one blind ratio pass:
+  // a deep-declined retiree needs a large ratio, the top attributes saturate
+  // at 99, and a single pass then lands well short (measured: peak 94 from a
+  // 72 final shape derived at 91). Iterating re-spends the shortfall on the
+  // attributes that still have headroom, the same loop shape rollPackPlayer
+  // uses for its scale-to-fit fallback.
+  let derived = calculateOverall(attributes, p.position);
+  for (let i = 0; i < 6 && derived > 0 && derived < targetPeak; i++) {
+    const ratio = targetPeak / derived;
+    for (const key of ATTR_KEYS) {
+      attributes[key] = clamp(Math.round(attributes[key] * ratio));
+    }
+    const next = calculateOverall(attributes, p.position);
+    if (next === derived) break; // fully saturated — no headroom left
+    derived = next;
   }
+  // Print what the attributes actually support. When saturation stops the
+  // climb short of the sampled peak, the RECORD comes down to the card the
+  // engine will really play — a hall card whose printed rating outruns its
+  // attributes is exactly the desync rollPackPlayer exists to prevent. The
+  // eligibility judgement (isLegendWorthy) has already been made on the true
+  // sampled peak, which is correct: worthiness is history, the card is maths.
+  const peak = Math.min(targetPeak, Math.max(derived, p.overall));
   const debut = typeof p.joinedSeason === 'number' ? p.joinedSeason : null;
   const span = debut !== null && debut < season ? `seasons ${debut}–${season}` : `season ${season}`;
   return {
@@ -66,6 +89,7 @@ export function buildRetiredLegend(p: Player, season: number, clubName?: string)
     lastName: p.lastName,
     nationality: p.nationality,
     position: p.position,
+    altPos: p.alternatePositions,
     peakOverall: peak,
     attributes,
     skillMoves: p.skillMoves,
@@ -117,6 +141,24 @@ export function drawLegend(
 }
 
 /**
+ * Resolve a card's `legendId` back to its hall record — seed set first, then
+ * the save's archive. Null for an unknown id, per the degrade contract on
+ * `Player.legendId`: a retired or missing record simply stops badging, it
+ * never breaks a card. Shared by every surface that shows provenance (the
+ * walkout, PlayerDetail, the hall list), so the lookup order can never drift
+ * between them.
+ */
+export function resolveLegend(
+  legendId: string | null | undefined,
+  archive: RetiredLegend[] = [],
+): RetiredLegend | null {
+  if (!legendId) return null;
+  return SEED_LEGENDS.find(l => l.id === legendId)
+    ?? archive.find(l => l.id === legendId)
+    ?? null;
+}
+
+/**
  * Mint the playable card. Issued at the legend's own peak with NO version
  * boost — the legend IS the version (a +4 on a 95 peak would out-rate
  * everything the living game can produce). Age is `LEGEND_CARD_AGE`, not the
@@ -134,6 +176,7 @@ export function buildPlayerFromLegend(legend: RetiredLegend, season: number): Pl
   player.attributes = { ...legend.attributes };
   player.overall = legend.peakOverall;
   player.potential = legend.peakOverall;
+  if (legend.altPos?.length) player.alternatePositions = [...legend.altPos];
   if (legend.skillMoves !== undefined) player.skillMoves = legend.skillMoves;
   if (legend.appearance) player.appearance = { ...legend.appearance };
   player.legendId = legend.id;

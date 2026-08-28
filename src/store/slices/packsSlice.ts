@@ -347,8 +347,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const versionBoost = packVersionBoostFor(tierKey, weekIndex);
     const players = generatePackContents(tierKey, state.season, {
       pityTriggered, freeOpen, streak, extraCards: bonusCards, versionBoost,
-      // The Hall of Legends pool this open can deal from. The generator merges
-      // it with the authored seed set; an empty archive is normal for the
+      // The Hall of Legends pool this open can deal from. On a legend deal,
+      // `drawLegend` picks this archive or the authored seed set (biased
+      // toward the save's own history); an empty archive is normal for the
       // first seasons of a save.
       legendArchive: state.retiredLegends,
     });

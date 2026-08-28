@@ -59,7 +59,7 @@ const CareerOverviewSkeleton = () => (
 
 const ManagerProfile = () => {
   const { t } = useTranslation();
-  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode } = useGameStore(useShallow((s) => ({
+  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, retiredLegends, monetization, gameMode } = useGameStore(useShallow((s) => ({
     season: s.season,
     seasonHistory: s.seasonHistory,
     unlockedAchievements: s.unlockedAchievements,
@@ -68,6 +68,7 @@ const ManagerProfile = () => {
     playerClubId: s.playerClubId,
     clubRecords: s.clubRecords,
     careerTimeline: s.careerTimeline,
+    retiredLegends: s.retiredLegends,
     monetization: s.monetization,
     gameMode: s.gameMode,
   })));
@@ -275,6 +276,41 @@ const ManagerProfile = () => {
               </div>
             </div>
           )}
+        </GlassPanel>
+      )}
+
+      {/* Hall of Legends — greats who retired IN THIS SAVE and can now be
+          dealt back as Legend cards. Deliberately OUTSIDE the Pro record-book
+          gate: the storefront sells the hall (Legend-chance packs), so gating
+          the list behind Pro would paywall a feature players already paid
+          for. The authored seed legends are not listed here — this panel is
+          the save's own history, and the founding class lives in the packs. */}
+      {(retiredLegends?.length ?? 0) > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Crown className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Hall of Legends</h3>
+            <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">{retiredLegends.length}</span>
+          </div>
+          <div className="space-y-2">
+            {[...retiredLegends]
+              .sort((a, b) => b.peakOverall - a.peakOverall)
+              .slice(0, 10)
+              .map(l => (
+                <div key={l.id} className="flex items-start justify-between gap-3 text-[11px]">
+                  <div className="min-w-0">
+                    <p className="text-foreground font-semibold truncate">{l.firstName} {l.lastName}</p>
+                    <p className="text-muted-foreground truncate">{l.era}</p>
+                  </div>
+                  <span className="text-primary font-bold tabular-nums shrink-0">
+                    {l.peakOverall}{l.retiredSeason !== null ? ` · S${l.retiredSeason}` : ''}
+                  </span>
+                </div>
+              ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/30">
+            Hall legends can return as Legend cards in Elite, World Class and Legends packs.
+          </p>
         </GlassPanel>
       )}
 

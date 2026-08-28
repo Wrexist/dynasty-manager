@@ -197,10 +197,11 @@ export interface PackContentsOptions {
    *  week's +1 reaches the cards. Must default from config rather than 0, or
    *  a caller that forgets it silently deals base cards from a paid pack. */
   versionBoost?: number;
-  /** The save's Hall of Legends archive (`state.retiredLegends`), merged with
-   *  the authored seed set when a legend deal fires. Optional because the
-   *  generator must stay callable without a store — an absent archive just
-   *  means every legend deal draws from the seeds. */
+  /** The save's Hall of Legends archive (`state.retiredLegends`). When a
+   *  legend deal fires, `drawLegend` picks the archive OR the authored seed
+   *  set (`LEGEND_OWN_ARCHIVE_BIAS` decides which — not a merged uniform
+   *  draw, by design). Optional because the generator must stay callable
+   *  without a store — an absent archive just means every deal seeds. */
   legendArchive?: RetiredLegend[];
   /** Test hook: forces the legend roll's outcome. Production callers never
    *  pass it — the roll comes from `packLegendChance(tierKey)`. */
@@ -257,10 +258,13 @@ export function generatePackContents(
   // field's doc in types/game.ts). It replaces only the guaranteed slot, so
   // the rarity table for the remaining cards — and therefore the main odds
   // rows — is untouched; the legend chance is disclosed as its own line in
-  // the odds sheet. Always satisfies the floor: every legend peaks 88+.
-  // Never rolled for a pity open — pity is a promise about the guaranteed
-  // slot's rating, and swapping the slot's nature under it muddies both.
-  const legendRoll = opts.forceLegendRoll ?? (!pityOn && Math.random() < packLegendChance(tierKey));
+  // the odds sheet. The roll runs on pity opens too, and must: every legend
+  // is 88+, which over-delivers the pity promise (a guaranteed card raised
+  // toward PACK_PITY_MIN_OVR), and an unconditional roll is the only shape
+  // the flat disclosed chance stays true under — suppressing it on pity
+  // opens quietly made the odds sheet overstate the chance for exactly the
+  // users the pity system exists to compensate.
+  const legendRoll = opts.forceLegendRoll ?? (Math.random() < packLegendChance(tierKey));
   const guaranteedPosition = pick(PACK_POSITION_POOL);
   if (legendRoll) {
     players.push(buildPlayerFromLegend(drawLegend(opts.legendArchive), season));
