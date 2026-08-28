@@ -54,11 +54,12 @@ function main() {
 
     // buildPlayer splits the name on the last space, which turns every mononym
     // into a doubled name — "Rodri Rodri", "Raphinha Raphinha". 206 of those
-    // shipped in the FC26 pack. `extractName` is the splitter the game's own
-    // squad files were built with: it reads EA's long name to recover the real
-    // given name, giving fn "Rodrigo" / ln "Rodri", which is exactly what
-    // src/data/squads carries today.
-    const { fn, ln } = extractName(gameRow.long_name, gameRow.short_name);
+    // shipped in the FC26 pack. `extractName` is the one splitter every
+    // generator shares: it reads EA's long name to recover the family name EA
+    // does not print ("Alisson" -> Alisson Becker), keeps the label for players
+    // who genuinely go by one name (Rodri, Pedri), and needs the nationality
+    // because Spanish names use the FIRST surname and Portuguese the last.
+    const { fn, ln } = extractName(gameRow.long_name, gameRow.short_name, gameRow.nationality_name);
     player.fn = fn;
     player.ln = ln;
 
