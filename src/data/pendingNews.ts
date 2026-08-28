@@ -48,6 +48,7 @@ export const PENDING_NEWS: PendingRelease = {
   ],
   improved: [
     'FC27 player database + Hall of Legends.',
+    'Fixed player cards showing a doubled name for suffix-only surnames (e.g. "VINI / Vini" for Vini Jr.).',
   ],
   fixed: [],
   headline: null,
