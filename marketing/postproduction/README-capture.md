@@ -55,26 +55,31 @@ Captions are rendered in the DOM, not burned by ffmpeg — the bundled Playwrigh
 ffmpeg is a stripped build with no `drawtext`. Doing them in the DOM also keeps
 them in the app's own font and palette.
 
-## Output format — do not ship WebM
+## Output format — MP4, and why it is not automatic everywhere
 
-The Playwright-bundled ffmpeg has **no libx264**, so `encode-ad.mjs` emits VP8
-WebM. YouTube Shorts accepts that; **TikTok's uploader does not** (MP4, MOV,
-MPEG, 3GP, AVI only). A WebM deliverable is unusable for the channel this kit
-targets, which is how the first cut of these ads shipped in a format that could
-not be uploaded.
+**TikTok's uploader accepts MP4/MOV/MPEG/3GP/AVI and rejects WebM.** The
+Playwright-bundled ffmpeg is a stripped build with no libx264, so a rig using
+only that binary can produce nothing TikTok will take — which is exactly how
+the first cut of these ads shipped in an unusable format.
 
-For anything going to TikTok, encode H.264 with a full ffmpeg build:
+`encode-ad.mjs` now picks its container from what it can actually do. It tries,
+best first: `$FFMPEG`, `.cache/ffmpeg`, `node_modules/ffmpeg-static/ffmpeg`,
+`ffmpeg` on PATH, then Playwright's. The first build that reports `libx264`
+wins and the output is H.264 MP4 (`setsar=1`, `+faststart`, high profile,
+CRF 18). If only a VP8 build is found it still encodes, but names the file
+`.webm` and warns that TikTok will refuse it — it will not hand you an `.mp4`
+containing VP8.
+
+To get the H.264 path on a machine without ffmpeg:
 
 ```bash
-curl -sL -o /tmp/ffmpeg-x264 \
-  https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/ffmpeg-linux-x64
-chmod +x /tmp/ffmpeg-x264
+npm run ads:ffmpeg     # ~79 MB into .cache/ffmpeg, gitignored
 ```
 
-then swap the encoder args in `encode-ad.mjs` for
-`-c:v libx264 -profile:v high -preset slow -crf 18 -movflags +faststart`, and
-keep `setsar=1` in the filter chain — the scale-then-crop leaves a non-square
-SAR that some uploaders mishandle.
+That is a fetch-on-demand rather than a dependency on purpose: `ffmpeg-static`
+in `package.json` would put a 79 MB postinstall in front of every contributor
+and every CI run to serve one marketing script, and committing the binary would
+put it in every clone forever.
 
 ## Real players only — the trap this rig fell into
 

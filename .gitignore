@@ -67,3 +67,7 @@ data/fc27/*.json
 # The reconciliation report is the evidence behind the club/league coverage
 # claims, and small enough to review in a diff.
 !data/fc27/reconciliation.json
+
+# On-demand tool cache (marketing ad encoder's ffmpeg — see
+# marketing/postproduction/fetch-ffmpeg.mjs). Never committed: 79 MB.
+.cache

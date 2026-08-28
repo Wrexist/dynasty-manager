@@ -36,6 +36,7 @@
     "analyze-fc26": "node scripts/analyzeFC26.mjs",
     "process-fc26": "node scripts/processFC26.mjs",
     "validate-cp": "node scripts/validateCommunityPack.mjs",
+    "ads:ffmpeg": "node marketing/postproduction/fetch-ffmpeg.mjs",
     "fc27:discover": "node scripts/fc27/discover_sources.mjs",
     "fc27:extract": "node scripts/fc27/extract_fc27.mjs",
     "fc27:normalize": "node scripts/fc27/normalize_fc27.mjs",
