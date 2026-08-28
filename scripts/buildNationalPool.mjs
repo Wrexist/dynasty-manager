@@ -12,6 +12,7 @@
  * have enough candidates to cover all club fillers without exhausting
  * the pool and falling back to procedural generation.
  */
+import { extractName, nameDedupKey } from './lib/playerName.mjs';
 import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -146,81 +147,6 @@ function parsePositions(playerPositions) {
   return { primary, alts };
 }
 
-const NAME_SUFFIXES = new Set(['Jr.', 'Sr.', 'Jr', 'Sr', 'II', 'III', 'IV', 'Júnior']);
-// Latin-1 + Latin Extended-A so Š./Ž./Č. initials don't fall through.
-const ABBREV_RE = /^([A-ZÀ-ÖØ-öø-ÿĀ-ſ])\.\s+(.+)$/;
-
-// Lowercase + strip whitespace and hyphens so "Gue-sung" / "Gue Sung"
-// collapse to the same key — used to dedupe hyphenated mononyms.
-function nameDedupKey(s) {
-  return (s || '').toLowerCase().replace(/[\s-]+/g, '');
-}
-
-/**
- * Extract first + last name from FC26 long_name + short_name.
- *  - Abbreviated short ("J. Bellingham"): full fn from long_name,
- *    ln from the part after the dot.
- *  - Multi-token short ("Lautaro Martínez"): split short, pull fn
- *    from long_name so multi-word first names survive.
- *  - Mononym short ("Carvajal", "Rodrygo"): treat short as the
- *    family name and pull fn from long_name's first token that
- *    differs (so we get "Daniel Carvajal", not "Daniel Ramos").
- *  - Falls back to long_name if short is missing entirely.
- *  - If fn and ln still match (hyphenated mononyms like "Gue-sung"
- *    vs "Gue Sung"), collapses to a single mononym.
- */
-function extractName(longName, shortName) {
-  const longParts = (longName || '').trim().split(/\s+/).filter(Boolean);
-  const shortParts = (shortName || '').trim().split(/\s+/).filter(Boolean);
-  const fallback = longParts[0] || shortParts[0] || 'Unknown';
-
-  let fn;
-  let ln;
-
-  const m = (shortName || '').match(ABBREV_RE);
-  if (m) {
-    fn = longParts[0] || fallback;
-    ln = m[2].trim();
-  } else if (shortParts.length >= 2) {
-    // EA's short_name encodes how the player is labelled (Western
-    // "Lautaro Martínez" or Korean "Cho Gue Sung"). Trust it: first
-    // token = fn, rest = ln. Multi-word first names like
-    // "Pierre-Emerick" already arrive hyphenated as one token.
-    fn = shortParts[0];
-    ln = shortParts.slice(1).join(' ');
-  } else if (shortParts.length === 1 && longParts.length >= 2) {
-    // Single-token short_name. Two cases:
-    //   a) True mononym — long_name starts with the short token
-    //      (Rodrygo / Endrick / Brahim). Emit fn = ln = short.
-    //   b) Surname-only short — long_name starts with a different
-    //      given name (Carvajal → "Daniel Carvajal Ramos"). Use
-    //      short as ln and pull fn from long_name's first token.
-    const shortKey = nameDedupKey(shortParts[0]);
-    if (longParts.length > 0 && nameDedupKey(longParts[0]) === shortKey) {
-      fn = shortParts[0];
-      ln = shortParts[0];
-    } else {
-      ln = shortParts[0];
-      const firstDifferent = longParts.find(p => nameDedupKey(p) !== shortKey);
-      fn = firstDifferent ?? longParts[0] ?? ln;
-    }
-  } else {
-    fn = fallback;
-    if (longParts.length >= 2) {
-      let i = longParts.length - 1;
-      while (i > 0 && NAME_SUFFIXES.has(longParts[i])) i--;
-      ln = longParts[i];
-    } else {
-      ln = shortParts[0] || longParts[0] || 'Unknown';
-    }
-  }
-
-  if (nameDedupKey(fn) === nameDedupKey(ln)) {
-    fn = ln;
-  }
-  return { fn, ln };
-}
-
 function intOr(s, fallback) {
   const n = parseInt(s, 10);
   return Number.isFinite(n) ? n : fallback;
@@ -280,7 +206,7 @@ function buildTemplate(row) {
   const ovr = intOr(row['overall'], 60);
   const age = intOr(row['age'], 25);
   const { primary: pos, alts } = parsePositions(row['player_positions']);
-  const { fn, ln } = extractName(row['long_name'], row['short_name']);
+  const { fn, ln } = extractName(row['long_name'], row['short_name'], row['nationality_name']);
   const heightCm = intOr(row['height_cm'], 0);
   const weightKg = intOr(row['weight_kg'], 0);
   const skillMoves = intOr(row['skill_moves'], 2);

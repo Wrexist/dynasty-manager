@@ -347,7 +347,7 @@ function buildTemplate(row) {
   const ovr = intOr(row['overall'], 60);
   const age = intOr(row['age'], 25);
   const { primary: pos, alts } = parsePositions(row['player_positions']);
-  const { fn, ln } = extractName(row['long_name'], row['short_name']);
+  const { fn, ln } = extractName(row['long_name'], row['short_name'], row['nationality_name']);
   const heightCm = intOr(row['height_cm'], 0);
   const weightKg = intOr(row['weight_kg'], 0);
   const skillMoves = intOr(row['skill_moves'], 2);

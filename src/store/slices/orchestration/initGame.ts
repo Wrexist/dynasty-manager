@@ -51,7 +51,7 @@ import type { Message } from '@/types/game';
 import { drawForFaPoolSeed, drawForMarket, getActivePool } from '@/utils/communityPackPool';
 import { createDefaultProgression } from '@/utils/managerPerks';
 import { getDefaultMerchState } from '@/utils/merchandise';
-import { buildPlayerFromTemplate } from '@/utils/playerGen';
+import { buildPlayerFromTemplate, topUpSquad } from '@/utils/playerGen';
 import { claimRealPlayer, resetRealPlayerClaims } from '@/utils/realPlayerPicker';
 import { generateInitialStaff } from '@/utils/staff';
 import { initializeClubPowerRankings } from '@/utils/teamRankings';
@@ -271,11 +271,17 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     const club: Club = buildClubEntity(cd);
 
     const cpTemplates = communityPackEnabled ? cpByClub?.[club.id] : undefined;
+    // The community-pack path maps real-world roster data straight to players,
+    // so it never runs generateSquad's filler — `topUpSquad` applies the same
+    // playable-minimum guarantee (2 keepers, 16 players) that path would have.
     const squad = cpTemplates && cpTemplates.length > 0
-      ? cpTemplates.map(t => {
-          if (t.fcId) assignedFcIds.push(t.fcId);
-          return buildPlayerFromTemplate(t, club.id, 1);
-        })
+      ? topUpSquad(
+          cpTemplates.map(t => {
+            if (t.fcId) assignedFcIds.push(t.fcId);
+            return buildPlayerFromTemplate(t, club.id, 1);
+          }),
+          club.id, cd.squadQuality, 1, cd.divisionId, /* useRealNames */ true,
+        )
       : generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true, /* useRealNames */ communityPackEnabled);
     let totalWages = 0;
     squad.forEach(p => {

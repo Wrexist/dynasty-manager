@@ -122,6 +122,13 @@ export const AGE_BUCKETS: { min: number; max: number; count: number }[] = [
 // extra filler — the world still grows organically via weekly mechanics.
 export const INITIAL_SQUAD_MIN_TARGET = 16;
 
+// Every club must be able to put a keeper in goal, and survive that keeper
+// picking up a knock. Community-pack squads come from real-world roster data
+// that occasionally ships a club with no goalkeeper at all (FC27 has two), and
+// an outfield player in goal is scored by the match engine's GK formula —
+// a permanent, invisible handicap for that club's whole save.
+export const MIN_SQUAD_GOALKEEPERS = 2;
+
 // ── Star/Veteran Generation ──
 export const STAR_PLAYER_BOOST_MIN = 8;
 export const STAR_PLAYER_BOOST_MAX = 12;
