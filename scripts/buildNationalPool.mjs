@@ -338,9 +338,17 @@ for (const [nation, rows] of Object.entries(byNation)) {
   totalPlayers += top.length;
 }
 // Mirror in-game alias labels so consumers can look up either form.
+//
+// The mirror shares the SAME templates rather than copying them with `nat`
+// rewritten to the alias. Rewriting was actively harmful: it manufactured
+// wrong-nationality copies out of correct data, and `dedupedPool` in
+// realPlayerPicker keeps whichever key it reaches first — so a pack could deal
+// van Dijk carrying nat "Holland", which `international.ts` then cannot match
+// to the Netherlands. The alias is a way to LOOK UP a nation, not a different
+// nationality for the player.
 for (const [gameLabel, csvLabel] of Object.entries(NATIONALITY_GAME_ALIAS)) {
   if (pool[csvLabel] && !pool[gameLabel]) {
-    pool[gameLabel] = pool[csvLabel].map(t => ({ ...t, nat: gameLabel }));
+    pool[gameLabel] = pool[csvLabel];
   }
 }
 

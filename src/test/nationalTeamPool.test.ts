@@ -66,9 +66,15 @@ describe('National Team Real-Player Pool', () => {
     expect(Object.keys(pool).length).toBeGreaterThan(0);
     // All new players should be normalized to the canonical name
     Object.values(pool).forEach(p => expect(p.nationality).toBe('Ivory Coast'));
-    // Should contain real Ivorian stars — e.g. Kessié is at the top of the FC26 pool
+    // Should contain real Ivorian stars. Which KEY the data sits under is not
+    // part of the contract — the source CSV may label the nation either way, and
+    // only `resolveNationalityAliases` is allowed to know that. Merge across the
+    // aliases exactly as `getRealPoolForNationality` does, or this test starts
+    // failing the day the dataset switches to the canonical label (it did: the
+    // FC27 export writes "Ivory Coast", so the "Côte d'Ivoire" key is absent).
     const names = Object.values(pool).map(p => p.lastName);
-    const realPool = NATIONAL_PLAYER_POOL["Côte d'Ivoire"] ?? [];
+    const realPool = resolveNationalityAliases('Ivory Coast')
+      .flatMap(n => NATIONAL_PLAYER_POOL[n] ?? []);
     expect(realPool.length).toBeGreaterThan(0);
     expect(names).toContain(realPool[0].ln);
   });
