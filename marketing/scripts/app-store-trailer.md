@@ -141,7 +141,7 @@ tear and the flip carry the rhythm.
 
 ---
 
-## 3b. What was actually shot — `app-preview-v8` (27.8s)
+## 3b. What was actually shot — `app-preview-v8.1` (27.5s)
 
 The v1 plan above opened on the walkout at full burst. It was reworked after a
 read of the surface: a preview autoplays MUTED in search and frame 1 is frozen
@@ -238,6 +238,28 @@ caption laid over it reads as a mistake, so those sections carry none.
   thing to read) → the squad given room → fast payoff. Cutting everything fast
   makes the middle unreadable.
 - **The card wall lost a second** and now pans across the strongest rows only.
+
+---
+
+
+### v8 → v8.1 — micro-polish only, structure frozen
+
+- 94 payoff held ~0.2s longer before the card settles.
+- `BUY. SELL. PROFIT.` lands word by word inside 0.56s — one persistent box
+  sized to the full line (an invisible copy of the text carries it), the words
+  drawn boxless on top at measured x-offsets so the line never re-centres as it
+  grows.
+- The cuts into the market and the squad arrive with a slight settle
+  (zoompan 1.05 → 1.0) instead of a static frame, so the transition inherits
+  motion from the cut before it.
+- 0.6s trimmed from the densest middle (F11 zoom, card-wall pan).
+- Final branding on screen ~0.3s earlier and holds to the last frame.
+- The DISCOVER caption now ends before the walkout starts — it was overlapping
+  the walkout's own nameplate.
+
+**Iteration stops here** pending real store data. The poster frame is chosen in
+App Store Connect (frame 1 is only the default), so pick the pack-at-peak-charge
+frame there.
 
 ---
 
