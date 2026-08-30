@@ -20,13 +20,19 @@ const SLOW = Number(process.argv[4] || 4);
 const PLAN = process.argv[5] || 'pack';
 mkdirSync(DIR, { recursive: true });
 
+// Device pixel ratio of the capture. 2 is the phone's own ratio and gives a
+// 780x1688 frame — fine for a full-frame shot, but the App Preview is 886 wide
+// and an edit that punches in on a single card is then upscaling past 1:1 and
+// showing render pixels. CAP_SCALE=3 gives 1170x2532, which is 1.3x the
+// delivery width and leaves real room to crop into a card or a number.
+const SCALE = Number(process.env.CAP_SCALE || 2);
 const b = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--force-device-scale-factor=2'],
+  args: [`--force-device-scale-factor=${SCALE}`],
 });
 // deviceScaleFactor matters for `page.screenshot` (the still plan): the
 // launch-arg forced factor reaches the screencast but not screenshots.
-const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: SCALE, hasTouch: true });
 
 await ctx.addInitScript(`(() => {
   const SLOW = ${SLOW};
@@ -81,7 +87,13 @@ await page.route('https://flagcdn.com/**', async route => {
 page.on('pageerror', e => console.log('PAGE ERR:', String(e).slice(0, 200)));
 page.on('console', m => { const t = m.text(); if (t.startsWith('[capture]') || m.type() === 'error') console.log('[page]', t.slice(0, 160)); });
 await page.goto(URL, { waitUntil: 'networkidle' });
-await page.waitForTimeout(1500 * SLOW);
+// Pre-roll before the screencast starts, so the scene has mounted and is not
+// mid-layout on frame 1. The single-card Legends pack is the exception: it
+// auto-plays its rip and walkout the moment it mounts, with no tap, so a 6s
+// pre-roll swallows the entire animation and the take opens on the summary
+// card. Start recording almost immediately there and trim the blank lead-in
+// at encode time instead.
+await page.waitForTimeout((PLAN === 'icon' ? 120 : 1500) * SLOW);
 
 const cdp = await ctx.newCDPSession(page);
 // CSS keyframes/transitions run on the compositor clock, which the JS patch
@@ -126,6 +138,96 @@ if (PLAN === 'preview') {
   await wait(10500);
 }
 
+if (PLAN === 'icon') {
+  // Single-card Legends take. The 5-card packs deal four unknowns beside the
+  // hero — forcing every card above 84 succeeds 0.8% of the time and still
+  // deals Tapsoba and Burkardt, because rating is not fame. The Icon tier
+  // deals ONE card at a guaranteed 88+, and the whole 88+ band is Salah,
+  // Mbappe, Bellingham, Haaland. One card, every name a household name.
+  //
+  // NO TAPS. A one-card pack rips and walks out on its own as soon as it
+  // mounts; the blind tap loop the 5-card plans use skipped straight past the
+  // walkout to the summary. Just hold and let it play.
+  await wait(9000);
+}
+
+if (PLAN === 'squad') {
+  // The lineup board: your XI of real stars. Held, not driven — the beat
+  // exists to say "this is a management game", and a cursor jumping around
+  // the pitch reads as a demo rather than a game.
+  await wait(2500);
+  // One considered tap on a starter opens the detail sheet, which is where
+  // the card art and the rating actually read at phone size.
+  await tap(195, 300); await wait(3000);
+  await tap(195, 300); await wait(2500);
+}
+
+if (PLAN === 'tall') {
+  // One FULL-PAGE screenshot, for shots that pan rather than animate.
+  // Scrolling in the browser under time dilation yields one repaint per
+  // discrete jump — measured at 7.7fps, which judders at 60. Panning a tall
+  // still in the encoder is perfectly smooth at any frame rate, the same
+  // reason `still` exists for push-ins.
+  await wait(15000);
+  const mounted = await page.evaluate(() => document.body.innerText.length > 200);
+  if (!mounted) console.error('[capture] tall: scene did not mount');
+  // Walk the whole page before shooting. A fullPage screenshot does NOT
+  // trigger lazy loading, so card art below the fold stayed unloaded and
+  // rendered as black cards in the lower half of the pan.
+  const pageH = await page.evaluate(() => (document.scrollingElement || document.documentElement).scrollHeight);
+  for (let y = 0; y < pageH; y += 700) {
+    await page.evaluate(v => {
+      const sc = document.scrollingElement || document.documentElement;
+      sc.scrollTop = v;
+      document.querySelectorAll('*').forEach(el => {
+        if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = v;
+      });
+    }, y);
+    await wait(160);
+  }
+  await page.evaluate(() => {
+    const sc = document.scrollingElement || document.documentElement;
+    sc.scrollTop = 0;
+    document.querySelectorAll('*').forEach(el => { if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = 0; });
+  });
+  // Let every warmed image decode before the frame is taken.
+  await page.evaluate(() => Promise.all(
+    [...document.images].filter(i => !i.complete).map(i => i.decode().catch(() => {})),
+  ));
+  await wait(1500);
+  await page.screenshot({ path: `${DIR}/tall.png`, fullPage: true });
+  console.log('tall ->', `${DIR}/tall.png`);
+  await b.close();
+  process.exit(0);
+}
+
+if (PLAN === 'grid') {
+  // A slow scroll down the squad grid. Better than a push-in on a still: the
+  // cards are the content, and scrolling shows eight of them instead of two.
+  // Driven from here in small steps rather than by CSS smooth-scroll, because
+  // the page clock is dilated and a scroll animation would stretch with it.
+  const startY = Number((URL.match(/[?&]scroll=(\d+)/) || [])[1] || 560);
+  await page.evaluate(y => {
+    const sc = document.scrollingElement || document.documentElement;
+    sc.scrollTop = y;
+    document.querySelectorAll('*').forEach(el => {
+      if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = y;
+    });
+  }, startY);
+  await wait(1200);
+  for (let i = 0; i < 44; i++) {
+    await page.evaluate(dy => {
+      const sc = document.scrollingElement || document.documentElement;
+      sc.scrollTop += dy;
+      document.querySelectorAll('*').forEach(el => {
+        if (el.scrollHeight > el.clientHeight + 40) el.scrollTop += dy;
+      });
+    }, 26);
+    await wait(105);
+  }
+  await wait(900);
+}
+
 if (PLAN === 'still') {
   // Single full-quality frame, no screencast — the source for encoder-side
   // motion (a zoompan push-in beats a screencast of a static page, whose
@@ -134,6 +236,19 @@ if (PLAN === 'still') {
   // loads before mounting — give it real headroom, then confirm the scene
   // actually mounted rather than shipping a frame of empty backdrop.
   await wait(15000);
+  // Scroll past page chrome when the URL asks for it — a squad grid's cards
+  // start well below the header, filters and advice banners.
+  const scrollTo = Number((URL.match(/[?&]scroll=(\d+)/) || [])[1] || 0);
+  if (scrollTo) {
+    await page.evaluate(y => {
+      const sc = document.scrollingElement || document.documentElement;
+      sc.scrollTop = y;
+      document.querySelectorAll('*').forEach(el => {
+        if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = y;
+      });
+    }, scrollTo);
+    await wait(700);
+  }
   const mounted = await page.evaluate(() => document.body.innerText.length > 200);
   if (!mounted) console.error('[capture] still: scene did not mount — frame is likely empty');
   await page.screenshot({ path: `${DIR}/still.png` });
@@ -157,11 +272,14 @@ if (PLAN === 'pack') {
     await tap(195, 422); await wait(700);
   }
   await wait(900);
-  for (const [x, y] of [[113, 150], [276, 150], [113, 392], [276, 392]]) {
+  // The walkout auto-fires the moment every ordinary card is revealed, and a
+  // tap on a running walkout means SKIP — the take that shipped v8 had its
+  // hero walkout skipped by its own final tap, which is why no Wirtz card was
+  // ever on screen. Stop tapping the instant the walkout is up.
+  for (const [x, y] of [[113, 150], [276, 150], [113, 392], [276, 392], [195, 620]]) {
+    if (await page.getByText('SKIP', { exact: false }).count()) break;
     await tap(x, y); await wait(700);
   }
-  await wait(400);
-  await tap(195, 620);
   await wait(15000);
 }
 

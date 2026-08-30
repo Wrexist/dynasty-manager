@@ -3,8 +3,10 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { Player } from '@/types/game';
+import { CardBack } from '@/components/game/pack/CardBack';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
 import { PlayerCard } from '@/components/game/PlayerCard';
-import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
+import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { tierForOvr } from './packHelpers';
 import { PackConfetti } from './PackConfetti';
 import { WalkoutStadium } from './WalkoutStadium';
@@ -89,49 +91,87 @@ function ParticleDrift({ accent, count = 14 }: { accent: string; count?: number 
  *  rating dictates everything downstream — so it gets the biggest
  *  visual treatment: scale-in, fast tick from 0, golden glow, then a
  *  graceful fade as the stats start landing. */
-function OvrOverlay({ value, accent, durationMs }: {
+/** Where the count-up starts. A walkout only ever fires at
+ *  {@link WALKOUT_OVR_THRESHOLD}+, so a roll from 0 spends most of its visible
+ *  life showing ratings this cinematic cannot be about — the viewer reads a
+ *  27 as a rating, not as a counter passing through. Starting just under the
+ *  walkout floor makes every intermediate frame a rating the card could
+ *  plausibly have, and turns the beat from "counting" into "this is already
+ *  good, and it is still climbing". */
+const OVR_ROLL_FLOOR = WALKOUT_OVR_THRESHOLD - 6;
+
+function OvrOverlay({ value, accent, durationMs, rollMs }: {
   value: number;
   accent: string;
   durationMs: number;
+  rollMs: number;
 }) {
-  const [display, setDisplay] = useState(0);
+  const from = Math.min(OVR_ROLL_FLOOR, value - 1);
+  const [display, setDisplay] = useState(from);
 
   useEffect(() => {
     const start = performance.now();
-    const dur = Math.max(280, durationMs - 150);
+    // The count itself is shorter than the overlay, so the number lands and
+    // is then HELD at its final value for the rest of the beat. A roll that
+    // runs the full overlay never rests on the answer.
+    const dur = Math.max(280, rollMs);
     let raf = 0;
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / dur);
+    // Read the clock rather than trusting rAF's argument. They are the same
+    // clock in a normal browser, but the marketing capture rig scales
+    // `performance.now` to slow the page down and cannot touch the rAF
+    // timestamp — mixing the two made the roll finish on its second frame, so
+    // every captured walkout landed on the final rating with no count at all.
+    const tick = () => {
+      const t = Math.min(1, (performance.now() - start) / dur);
       // Punchy easeOut quad so the number lands fast and settles slow.
       const eased = 1 - Math.pow(1 - t, 2);
-      setDisplay(Math.round(value * eased));
+      setDisplay(Math.round(from + (value - from) * eased));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, durationMs]);
+  }, [value, from, rollMs]);
 
   return (
     <motion.div
       className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      initial={{ opacity: 0, scale: 0.4 }}
-      animate={{ opacity: [0, 1, 1, 0], scale: [0.4, 1.05, 1, 1.05] }}
-      transition={{
-        duration: durationMs / 1000,
-        times: [0, 0.18, 0.72, 1],
-        ease: [0.22, 1, 0.36, 1],
-      }}
+      // Two plain tweens, not a keyframe track. The keyframed version
+      // (`opacity: [0, 1, 1, 0]` with a `times` array) measured 0.38 opacity a
+      // third of the way through the beat — the number was still fading in
+      // while it was already counting, and it never reached full before
+      // AnimatePresence tore it down. A snap-in tween plus an `exit` fade is
+      // both simpler and what the beat actually wants: land hard, hold, go.
+      initial={{ opacity: 0, scale: 0.55 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.1 }}
+      transition={{ duration: 0.16, ease: 'easeOut' }}
       aria-hidden
     >
-      <span
-        className="font-display font-black leading-none tabular-nums select-none"
+      {/* Scrim. The number lands ON the card, and a walkout card is often
+          near-white (icon marble, silver, the gold frames' highlights), so
+          white type needs its own ground to sit on. */}
+      <div
+        className="absolute"
         style={{
-          fontSize: 'clamp(120px, 38vw, 240px)',
+          width: 'min(86vw, 420px)',
+          height: 'min(86vw, 420px)',
+          background: 'radial-gradient(circle, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.34) 42%, transparent 68%)',
+          filter: 'blur(6px)',
+        }}
+      />
+      <span
+        className="relative font-display font-black leading-none tabular-nums select-none"
+        style={{
+          fontSize: 'clamp(140px, 46vw, 280px)',
           color: '#fff',
-          WebkitTextStroke: `2px ${accent}`,
-          textShadow: `0 0 60px ${accent}cc, 0 0 120px ${accent}55, 0 6px 28px rgba(0,0,0,0.55)`,
+          WebkitTextStroke: `3px ${accent}`,
+          // No mix-blend-mode. `screen` cannot darken, so over the white
+          // marble of an icon card the white number composited to exactly the
+          // card beneath it and the biggest beat in the walkout was invisible
+          // on every take. Legibility here is carried by the scrim + a hard
+          // dark shadow instead, which works on any card in the set.
+          textShadow: `0 0 24px rgba(0,0,0,0.92), 0 0 70px ${accent}dd, 0 0 140px ${accent}66, 0 8px 30px rgba(0,0,0,0.8)`,
           letterSpacing: '-0.03em',
-          mixBlendMode: 'screen',
         }}
       >
         {display}
@@ -360,6 +400,13 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
   // Held-breath beat — visual cue is that we briefly de-saturate the halo
   // / dim the particles so the moment really lands as silence.
   const isBreath = phase === 'breath';
+  // The back is masked with the SAME art the face renders, so the flip is
+  // shape-perfect whatever shield or frame this player carries. Mirrors the
+  // getPlayerCardArt call inside PlayerCard (never a chip at this size).
+  const backMaskSrc = getPlayerCardArt(player.overall, {
+    ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+    packFrame: player.packFrame,
+  }).src;
   const tierGradient = `linear-gradient(135deg, ${tier.gradientFrom} 0%, ${tier.gradientVia} 45%, ${tier.gradientTo} 100%)`;
 
   return (
@@ -472,21 +519,6 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
         )}
       </AnimatePresence>
 
-      {/* Massive OVR overlay — the biggest dopamine number ticks up over
-          the card at the flip moment, then fades to let the stats land.
-          Composed with mix-blend-mode: screen so it adds light without
-          obscuring the card behind it. */}
-      <AnimatePresence>
-        {ovrOverlayActive && !prefersReducedMotion && (
-          <OvrOverlay
-            key="ovr-overlay"
-            value={player.overall}
-            accent={tier.gradientVia}
-            durationMs={PACK_ANIM.walkout.ovrOverlayMs}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Crescendo halo pulse — fires when the LAST stat pill lands. A
           brief bright bloom centred on the card closes the stats reveal
           with a "yes!" moment before settling into the hold phase. */}
@@ -545,7 +577,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
         className="relative"
         style={{
           width: WALKOUT_CARD_W,
-          aspectRatio: '3 / 4',
+          aspectRatio: '2 / 3',
           perspective: 1400,
           willChange: 'transform, opacity',
         }}
@@ -583,69 +615,10 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           animate={{ rotateY: revealed ? 180 : 0 }}
           transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* Back — tier-gradient with marble specular, monogram crest,
-              Dynasty Pack / tier typography, shimmer sweep. */}
-          <div
-            className="absolute inset-0 rounded-2xl overflow-hidden border border-white/15 shadow-[0_24px_56px_rgba(0,0,0,0.65)]"
-            style={{ backfaceVisibility: 'hidden', background: tierGradient }}
-          >
-            {/* Specular sheen — top-left bright, bottom-right dark — gives
-                the back an inherent light direction. */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  'linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 40%),' +
-                  'radial-gradient(circle at 50% 118%, rgba(0,0,0,0.55), transparent 60%)',
-              }}
-            />
-            {/* Inset rule for the framed ornate feel */}
-            <div className="absolute inset-[10px] rounded-[14px] border border-white/25 pointer-events-none" />
-
-            {/* Monogram crest — simple crown silhouette in a glass disc. */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white text-center px-6 pointer-events-none">
-              <div className="w-[72px] h-[72px] rounded-full bg-black/35 border border-white/30 flex items-center justify-center backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_8px_24px_rgba(0,0,0,0.5)]">
-                <svg viewBox="0 0 24 24" className="w-9 h-9 text-white/95" aria-hidden>
-                  <path
-                    d="M3 16 L5 8 L9 12 L12 5.5 L15 12 L19 8 L21 16 L21 19 L3 19 Z"
-                    fill="currentColor"
-                    stroke="currentColor"
-                    strokeWidth="0.75"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="5" cy="7" r="1.1" fill="currentColor" />
-                  <circle cx="12" cy="4.2" r="1.2" fill="currentColor" />
-                  <circle cx="19" cy="7" r="1.1" fill="currentColor" />
-                </svg>
-              </div>
-              <div>
-                <p
-                  className="text-[10px] uppercase tracking-[0.42em] font-semibold text-white/85"
-                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
-                >
-                  Opening
-                </p>
-                <p
-                  className="mt-1 text-xl font-display font-black tracking-[0.08em] uppercase"
-                  style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}
-                >
-                  {tier.label}
-                </p>
-              </div>
-            </div>
-
-            {/* Shimmer sweep — only before the flip, keeps the back alive. */}
-            {!prefersReducedMotion && !revealed && (
-              <motion.div
-                className="absolute inset-0 pointer-events-none overflow-hidden"
-                style={{
-                  background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)',
-                }}
-                initial={{ x: '-100%' }}
-                animate={{ x: '120%' }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-              />
-            )}
+          {/* Back — one universal card back, same silhouette and aspect as
+              the face it turns into (see CardBack). */}
+          <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
+            <CardBack maskSrc={backMaskSrc} revealed={revealed} />
           </div>
 
           {/* Face — the real PlayerCard, reused across the app. Scaled up to
@@ -667,6 +640,27 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Massive OVR overlay — the biggest dopamine number ticks up over the
+          card at the flip moment, then fades to let the stats land.
+
+          It MUST stay below the hero card in this tree. Declared above it (as
+          it was until measured) the card simply paints over it: the element
+          mounts, sizes and reaches full opacity dead centre on the card, and
+          nothing of it ever reaches the screen. Every walkout take ever
+          captured is missing the number for that reason. */}
+      <AnimatePresence>
+        {ovrOverlayActive && !prefersReducedMotion && (
+          <OvrOverlay
+            key="ovr-overlay"
+            value={player.overall}
+            accent={tier.gradientVia}
+            durationMs={PACK_ANIM.walkout.ovrOverlayMs}
+            rollMs={PACK_ANIM.walkout.ovrRollMs}
+          />
+        )}
+      </AnimatePresence>
+
 
       {/* Nameplate + potential below the card. Anchored to the safe area
           (with a small buffer) instead of a viewport percentage so the

@@ -15,9 +15,11 @@ import { useEffect, useState } from 'react';
 import '@/index.css';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
+import { LineupEditor } from '@/components/game/LineupEditor';
+import SquadPage from '@/pages/SquadPage';
 import { pickRealPlayerForPack } from '@/utils/realPlayerPicker';
 import { buildPlayerFromTemplate } from '@/utils/playerGen';
-import type { Club, IncomingOffer } from '@/types/game';
+import type { Club, IncomingOffer, Position } from '@/types/game';
 import { generatePackContents } from '@/utils/packGeneration';
 import { useGameStore } from '@/store/gameStore';
 import { getFlagUrl } from '@/utils/nationality';
@@ -57,7 +59,9 @@ function preloadFlags(players: Player[]): Promise<void> {
 
 const params = new URLSearchParams(location.search);
 /** Which capture scene to mount: `pack` (the store overlay) or `transfer`
- *  (an incoming-offer negotiation frozen mid-drama, for POV text-wall ads). */
+ *  (an incoming-offer negotiation frozen mid-drama, for POV text-wall ads),
+ *  or `squad` (your XI of real stars on the pitch — the beat that shows this
+ *  is a management game and not a card-pack game). */
 const SCENE = params.get('scene') || 'pack';
 /** POV text wall — the BitLife-style meme caption. Newlines via `|`. */
 const POV = params.get('pov') || '';
@@ -69,11 +73,24 @@ const POV_POS = params.get('povPos') || 'top';
  *  12s scale from 1.0 to 1.06 keeps the compositor painting and reads as
  *  cinematic tension rather than a still. */
 const KENBURNS = params.get('kenburns') === '1';
+/** `grid` renders the real squad page (cards at `lg`, pack frames visible);
+ *  anything else renders the lineup pitch. */
+const SQUAD_VIEW = params.get('view') || 'pitch';
+/** How many of the XI are on the pitch (1-11, default 11). The squad-building
+ *  beat wants the board FILLING, not a finished board held for four seconds,
+ *  and the app already renders a part-filled lineup with empty slots — so the
+ *  fill is captured as a few genuine app states and cut between, rather than
+ *  faked in the edit with masks. */
+const XI_FILL = Math.max(1, Math.min(11, Number(params.get('fill') || 11)));
 const TIER = (params.get('tier') || 'rare') as 'rare' | 'icon' | 'premium';
 const LEGEND = params.get('legend') === '1';
 /** Minimum OVR for the card that closes the reveal. The hero has to be a name
  *  the viewer recognises, so the capture re-rolls until the pack deals one. */
 const MIN_HERO = Number(params.get('minHero') || 0);
+/** Pin the hero by (last) name, e.g. `hero=Wirtz`. Case-insensitive substring
+ *  against the closing card's name; the re-roll loop keeps rolling until this
+ *  player headlines the pack. Combine with minHero. */
+const HERO_NAME = (params.get('hero') || '').toLowerCase();
 /** Reject any pack containing an invented player. `rollPackPlayer` falls back
  *  to a generated card when a band has no real player at the rolled position —
  *  correct in the game, wrong in an ad whose whole claim is "these are real
@@ -222,6 +239,153 @@ function TransferScene() {
   return <IncomingOfferNegotiation offer={offer} onClose={() => {}} />;
 }
 
+/**
+ * The squad beat: a starting XI of recognisable players on the pitch board.
+ *
+ * The App Preview cannot be a pack opening alone. A walkout is the biggest
+ * dopamine hit the game has, but a store visitor who installs expecting a
+ * card game churns on day one — and D7 is the number that needs help, not
+ * install count. So the walkout opens and THIS is what it opens onto.
+ *
+ * Players are drawn from the top of the real pool by position, because rating
+ * is not fame: a pack rolled to "everyone above 84" deals Tapsoba and
+ * Burkardt, whereas the 88+ band is Salah, Mbappe, Bellingham, Haaland.
+ */
+function SquadScene() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    loadNationalPool().then(() => {
+      // Card art per slot, parallel to SHAPE below. `null` means "leave the
+      // tier art alone", which for a 90+ is the white marble that says he is
+      // a 90+. Everyone else wears a different premium frame so the pitch
+      // reads as a collection rather than one card printed eleven times.
+      const XI_ART: (string | null)[] = [
+        'elite',          // GK    — navy blue
+        'royal-reserve',  // LB    — emerald
+        null,             // CB    — marble (90)
+        'world-class',    // CB    — royal blue
+        'dynasty',        // RB    — purple
+        null,             // CM    — marble (90)
+        'golden-era',     // CM    — deco gold
+        'legends',        // CM    — antique bronze
+        null,             // LW    — marble (90)
+        'ballondor',      // ST    — black and gold starburst, the hero card
+        null,             // RW    — marble (91)
+      ];
+      const BENCH_ART: (string | null)[] = [
+        'champions', 'world-class', 'legends', 'dynasty', 'elite', 'golden-era',
+      ];
+      // Slot order and positions must match FORMATION_POSITIONS['4-3-3']
+      // exactly, or the editor's own audit reports "N players in wrong
+      // position" over the shot — true, and the last thing a store preview
+      // should say about your team.
+      //
+      // Floors start at 90 wherever the pool can pay it: at 90+ the card art
+      // goes white marble (the icon tier), and a pitch that is half marble,
+      // half top-gold is the "team of legends" read this beat exists for.
+      // Walk-down keeps thin positions honest rather than inventing anyone.
+      const SHAPE: { pos: Position; min: number }[] = [
+        { pos: 'GK', min: 90 },
+        { pos: 'LB', min: 88 }, { pos: 'CB', min: 90 }, { pos: 'CB', min: 89 }, { pos: 'RB', min: 89 },
+        { pos: 'CM', min: 90 }, { pos: 'CM', min: 90 }, { pos: 'CM', min: 89 },
+        { pos: 'LW', min: 90 }, { pos: 'ST', min: 91 }, { pos: 'RW', min: 91 },
+      ];
+      const used = new Set<string>();
+      const squad: Player[] = [];
+      for (const { pos, min } of SHAPE) {
+        let t = null;
+        // Walk the floor down rather than fail: a thin position at 88 still
+        // yields a name worth showing at 84.
+        for (let floor = min; floor >= 80 && !t; floor -= 1) {
+          for (let i = 0; i < 30 && !t; i++) {
+            const c = pickRealPlayerForPack(pos, floor, 95);
+            // The picker widens to RELATED positions when a band is thin,
+            // which puts "1 player in wrong position" over the shot. Only
+            // accept a natural or listed-alternate fit for this slot.
+            if (c && (c.pos === pos || (c.altPos ?? []).includes(pos))
+              && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
+          }
+        }
+        if (!t) continue;
+        used.add(t.fcId ?? `${t.fn}|${t.ln}`);
+        const built = buildPlayerFromTemplate(t, 'my-club', 1);
+        // Card ART is the whole look of this beat, and one frame for everyone
+        // reads as a wall of the same card. `XI_ART` deals a different premium
+        // frame to each slot, and leaves the very top players frameless so
+        // their 90+ white-marble tier art survives — a pack frame OUTRANKS
+        // tier art in getPlayerCardArt, so framing a 91 would hide the
+        // marble that makes him look like a 91.
+        const art = XI_ART[squad.length];
+        if (art === 'ballondor') built.ballonDOrTop10HoldSeason = 1;
+        else if (art) built.packFrame = art;
+        built.form = 96; built.morale = 98; built.fitness = 100;
+        squad.push(built);
+      }
+      if (squad.length < 11) {
+        console.error(`[capture] squad scene only filled ${squad.length}/11 slots`);
+      }
+      // A bench, not just an XI: BENCH & RESERVES sits directly under the
+      // pitch, and leaving it empty put a black band across the bottom third
+      // of every 9:16 crop.
+      const BENCH: { pos: Position; min: number }[] = [
+        { pos: 'GK', min: 88 }, { pos: 'CB', min: 88 }, { pos: 'CM', min: 89 },
+        { pos: 'ST', min: 89 }, { pos: 'LW', min: 89 }, { pos: 'RW', min: 88 },
+      ];
+      const bench: Player[] = [];
+      for (const { pos, min } of BENCH) {
+        let t = null;
+        for (let floor = min; floor >= 80 && !t; floor -= 1) {
+          for (let i = 0; i < 30 && !t; i++) {
+            const c = pickRealPlayerForPack(pos, floor, 95);
+            // The picker widens to RELATED positions when a band is thin,
+            // which puts "1 player in wrong position" over the shot. Only
+            // accept a natural or listed-alternate fit for this slot.
+            if (c && (c.pos === pos || (c.altPos ?? []).includes(pos))
+              && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
+          }
+        }
+        if (!t) continue;
+        used.add(t.fcId ?? `${t.fn}|${t.ln}`);
+        const built = buildPlayerFromTemplate(t, 'my-club', 1);
+        const bart = BENCH_ART[bench.length];
+        if (bart) built.packFrame = bart;
+        built.form = 94; built.morale = 96; built.fitness = 100;
+        bench.push(built);
+      }
+      const club = {
+        id: 'my-club', name: 'Your Club', shortName: 'YOU',
+        budget: 200_000_000, wageBill: 2_000_000,
+        formation: '4-3-3',
+        playerIds: [...squad, ...bench].map(p => p.id),
+        lineup: squad.map(p => p.id).slice(0, XI_FILL),
+        subs: bench.map(p => p.id),
+      } as unknown as Club;
+      useGameStore.setState({
+        players: Object.fromEntries([...squad, ...bench].map(p => [p.id, p])),
+        clubs: { 'my-club': club },
+        playerClubId: 'my-club',
+        season: 1, week: 8, totalWeeks: 38,
+        pairFamiliarity: {},
+      } as never);
+      for (const src of ['/player-cards/icon.webp', '/player-cards/gold.webp', '/player-cards/legends.webp']) {
+        const img = new Image(); img.src = src;
+      }
+      preloadFlags([...squad, ...bench]).then(() => setReady(true));
+    });
+  }, []);
+  if (!ready) return null;
+  // The lineup pitch draws `xs` chips, and PlayerCard deliberately suppresses
+  // pack frames on chips (a chip crops to 3:4 and would eat a frame's pointed
+  // top). So the frames that make this squad look like a collection can ONLY
+  // be seen on the squad grid, which renders at `lg`. `?view=grid` picks it.
+  if (SQUAD_VIEW === 'grid') return <SquadPage />;
+  // No CSS scale: the flank cards already sit near the edge at 1.0, and any
+  // zoom pushes LW/RW half out of frame. The lower third is filled by giving
+  // the club a real bench instead — an empty BENCH & RESERVES strip is what
+  // left a black band under the pitch.
+  return <LineupEditor />;
+}
+
 function Harness() {
   const [players, setPlayers] = useState<Player[] | null>(null);
   const t = useClock();
@@ -243,11 +407,14 @@ function Harness() {
   function build() {
     // Re-roll until the pack produces a hero worth headlining. Cheap (pure
     // generation, no store) and bounded, so a thin band cannot hang the run.
-    const acceptable = (cards: Player[]) =>
-      Math.max(...cards.map(p => p.overall)) >= MIN_HERO
-      && (!REAL_ONLY || cards.every(p => p.source === 'real' || p.legendId));
+    const acceptable = (cards: Player[]) => {
+      const best = cards.reduce((a, b) => (b.overall > a.overall ? b : a));
+      return best.overall >= MIN_HERO
+        && (!HERO_NAME || `${best.firstName} ${best.lastName}`.toLowerCase().includes(HERO_NAME))
+        && (!REAL_ONLY || cards.every(p => p.source === 'real' || p.legendId));
+    };
     let pack = generatePackContents(TIER, 5, { forceLegendRoll: LEGEND });
-    for (let i = 0; i < 400 && !acceptable(pack); i++) {
+    for (let i = 0; i < (HERO_NAME ? 20000 : 400) && !acceptable(pack); i++) {
       pack = generatePackContents(TIER, 5, { forceLegendRoll: LEGEND });
     }
     if (!acceptable(pack)) {
@@ -287,7 +454,9 @@ if (KENBURNS) {
 }
 createRoot(document.getElementById('root')!).render(
   <>
-    {SCENE === 'transfer' ? <TransferScene /> : <Harness />}
+    {SCENE === 'transfer' ? <TransferScene />
+      : SCENE === 'squad' ? <SquadScene />
+      : <Harness />}
     {POV && <PovWall text={POV} />}
   </>,
 );

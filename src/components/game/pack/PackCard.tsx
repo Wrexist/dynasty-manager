@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { Player } from '@/types/game';
 import { cn } from '@/lib/utils';
-import { tierForOvr, tierGradient } from './packHelpers';
+import { tierForOvr } from './packHelpers';
 import { PACK_ANIM } from '@/config/packs';
 import { hapticMedium } from '@/utils/haptics';
+import { CardBack } from '@/components/game/pack/CardBack';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
 import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { PackCardAura } from './PackCardAura';
 
@@ -45,6 +47,12 @@ interface PackCardProps {
  */
 export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
   const tier = tierForOvr(player.overall);
+  // Mask the back with the face's own art so the flip never changes shape —
+  // fronts do not share one silhouette (tier shields vs pack frames).
+  const backMaskSrc = getPlayerCardArt(player.overall, {
+    ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+    packFrame: player.packFrame,
+  }).src;
   const prefersReducedMotion = useReducedMotionPref();
   // The reveal renders PlayerCard at `lg`, which is a 2:3 card whose artwork
   // supplies its own edge. So the wrapper must not put a rounded box or a glow
@@ -113,65 +121,12 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
             : { duration: 0.18, ease: 'easeOut' },
         }}
       >
-        {/* Back — tier-gradient foil with dynasty crown monogram, inset
-            rule, specular sheen and a shimmer sweep. Same visual language
-            as the walkout back so the reveal feels coherent. */}
-        <div
-          className="absolute inset-0 rounded-2xl border border-white/15 overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.6)]"
-          style={{ backfaceVisibility: 'hidden', background: tierGradient(tier) }}
-        >
-          {/* Specular sheen — gives the foil a top-left light direction. */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                'linear-gradient(160deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 42%),' +
-                'radial-gradient(circle at 50% 120%, rgba(0,0,0,0.5), transparent 60%)',
-            }}
-          />
-          <div className="absolute inset-[6px] rounded-[10px] border border-white/25 pointer-events-none" />
-
-          <div className="relative h-full flex flex-col items-center justify-center gap-2 text-center px-3 text-white">
-            <div className="w-11 h-11 rounded-full bg-black/35 border border-white/30 flex items-center justify-center backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_6px_16px_rgba(0,0,0,0.45)]">
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-white/95" aria-hidden>
-                <path
-                  d="M3 16 L5 8 L9 12 L12 5.5 L15 12 L19 8 L21 16 L21 19 L3 19 Z"
-                  fill="currentColor"
-                  stroke="currentColor"
-                  strokeWidth="0.75"
-                  strokeLinejoin="round"
-                />
-                <circle cx="5" cy="7" r="0.9" fill="currentColor" />
-                <circle cx="12" cy="4.4" r="1" fill="currentColor" />
-                <circle cx="19" cy="7" r="0.9" fill="currentColor" />
-              </svg>
-            </div>
-            <span
-              className="text-[9px] uppercase tracking-[0.35em] text-white/85 font-semibold"
-              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
-            >
-              Opening
-            </span>
-            <span
-              className="text-[9px] uppercase tracking-widest text-white/60 font-semibold mt-0.5"
-              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
-            >
-              Tap to reveal
-            </span>
-          </div>
-          {!revealed && !prefersReducedMotion && (
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.16) 50%, transparent 62%)' }}
-              initial={{ x: '-100%' }}
-              animate={{ x: '120%' }}
-              transition={{ repeat: Infinity, repeatDelay: 4, duration: 1.4, ease: 'easeInOut' }}
-            />
-          )}
+        {/* Back — the shared universal card back. Same asset the walkout
+            uses, so the grid reveal and the hero reveal are one language. */}
+        <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
+          <CardBack maskSrc={backMaskSrc} revealed={revealed} />
         </div>
 
-        {/* Face — shared PlayerCard handles the shield visual + stat-view
-            cycle. Condition view is hidden here (fresh pull = full bars). */}
         <div
           className="absolute inset-0"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
