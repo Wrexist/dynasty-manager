@@ -1,40 +1,46 @@
 # Card backs — GPT image prompts
 
-Thirteen backs, one per card front. Written for **ChatGPT / GPT image generation**:
-no `--ar` flags, no negative-prompt field, every exclusion written into the prose
-because GPT has nowhere else to put it.
+Thirteen backs, one per card front. Written for **ChatGPT image generation**.
+
+## The rule that makes these work
+
+**The artwork must contain no card shape and no border.**
+
+The game crops every back to its front's exact curved silhouette when it renders.
+So the art only ever needs to be a full-bleed, edge-to-edge design — texture,
+a central motif, something radiating outward. The crop then produces a perfectly
+shaped card every time, for every tier and every pack frame.
+
+Two earlier attempts failed for opposite reasons, and both were my briefing error:
+
+| Brief said | GPT drew | Result after crop |
+|---|---|---|
+| "fill the frame edge to edge" | a rounded rectangle | fine, but a rectangular frame got sliced |
+| "border traces the card outline" | the outline as a line on a rectangle | border fragments stranded at the edges |
+
+Neither asked for the right thing. The right thing is simply: **no border at all.**
 
 ## How to run one
 
-1. Open a **new chat** for each card (GPT drifts toward the previous image otherwise).
-2. **Attach the front card** named in the block — GPT reads its palette and material off it.
-3. Paste the block **exactly as-is** and send. Nothing to configure.
-4. Save the result as the filename given, any format, then drop it to me.
+1. **New chat** for each card — GPT drifts toward the previous image otherwise.
+2. **Attach the front card** named in the block; GPT reads its palette and material off it.
+3. Paste the block **exactly as-is**. Nothing to configure, no flags.
+4. Save as the given filename, any format, and send it to me.
 
-If a result comes back as a rectangle, reply in that same chat with:
-`Not a rectangle. Redraw with the arched, scooped shoulders and the pointed base
-described in the prompt, and let the material run off all four edges.`
+If a result comes back with a frame or a card shape in it, reply in that same chat:
 
-## Why each prompt insists on two things at once
-
-The game cuts each back to its front's exact silhouette when it renders, so the art
-has to satisfy both:
-
-- the **ornamental border traces the plaque outline** — so the decoration follows the
-  card's real shape instead of being sliced by the cut;
-- the **material still bleeds off all four edges** — so the cut lands on plain
-  material and never leaves a transparent gap.
-
-Which is why these do NOT ask for transparency or a flat black backdrop. A shape
-floating on black gets its corners cut into emptiness. A plain full-bleed rectangle
-gets its border sliced. This does neither.
+```
+Remove the border and the card outline completely. Fill the entire image edge to
+edge with the material and the design. There must be no frame, no outline and no
+card shape anywhere in the picture.
+```
 
 ## Priority
 
-If you would rather not run all thirteen: **gold, icon, legends, silver and
-rise-to-glory** cover roughly 95% of every card a player ever sees face-down. The
-three promo backs can wait for their featured weeks — anything not yet drawn falls
-back to the universal back already shipping.
+If you would rather not run all thirteen, these five cover roughly 95% of every
+card a player sees face-down: **gold, icon, legends, silver, rise-to-glory**.
+The three promo backs can wait for their featured weeks; anything not yet drawn
+falls back to the universal back already shipping.
 
 ---
 
@@ -43,13 +49,21 @@ back to the universal back already shipping.
 **Attach:** `bronze.webp`  ·  **Save as:** `card-back-bronze`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Hammered dark bronze, matte and workmanlike, with a finely pitted cast surface — an apprentice's card: humble but honestly made.
 
-DESIGN — Hammered dark bronze metal with a matte, workmanlike finish — an apprentice's card: humble, but honestly made. In the exact centre, a single plain laurel ring in raised bronze relief encircling a small five-sided shield. Sparse tooling marks radiate outward. Dim warm light from the upper left, deep shadow at the lower right. A thin single-rule bronze border follows the plaque outline. Take the bronze colour and pitted metal texture from the attached card. Keep it deliberately simple — this is the lowest tier and should look modest next to gold.
+CENTRE — A single plain laurel ring in raised bronze relief encircling a small five-sided shield.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Sparse tooling marks radiating outward from behind the centre, fading into the metal.
+
+LIGHT — Dim warm light from the upper left, deep shadow at the lower right.
+
+Take the bronze colour and pitted texture from the attached card. Keep it deliberately simple — this is the lowest tier and should look modest beside gold.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -59,13 +73,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `silver.webp`  ·  **Save as:** `card-back-silver`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Brushed steel and cool slate blue: deep #465a6d in the shadows rising to bright #dde6f0 highlights, with a fine machined grain.
 
-DESIGN — Brushed steel and cool slate blue: deep #465a6d at the edges, bright #dde6f0 highlights. Crisp machined chevron lines fold inward toward the centre. In the exact centre, a polished silver roundel holding a minimal geometric football. A cold, faint specular sheen from the upper left. A thin double-rule steel border follows the plaque outline. Take the silver colour and brushed-metal finish from the attached card. Precise, cool and professional — clearly a step above bronze and below gold.
+CENTRE — A polished silver roundel holding a minimal geometric football.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Crisp machined chevron lines folding inward toward the centre, tightening as they approach it.
+
+LIGHT — Cold, faint specular sheen raking from the upper left.
+
+Take the silver colour and brushed-metal finish from the attached card. Precise, cool and professional — clearly above bronze and below gold.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -75,13 +97,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `gold.webp`  ·  **Save as:** `card-back-gold`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Radiant metallic gold, deep amber #91400d at the outside rising to brilliant #fbd350 toward the middle — the same radiance as the attached card.
 
-DESIGN — Radiant metallic gold: a sunburst of sharp golden fan rays exploding outward from a single point in the centre, deep amber #91400d at the edges rising to brilliant #fbd350 at the core — the same radiance as the attached card. In the exact centre, a bold gold laurel crest around a faceted football in raised relief. A hot specular bloom at the middle. A thin double-rule gold border follows the plaque outline. Rich and triumphant.
+CENTRE — A bold gold laurel crest around a faceted football in raised relief.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — A sunburst of sharp golden fan rays exploding outward from directly behind the crest, reaching the edges of the image.
+
+LIGHT — A hot specular bloom at the centre, falling off toward the outside.
+
+Rich and triumphant, unmistakably the gold tier.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -91,13 +121,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `icon.webp`  ·  **Save as:** `card-back-icon`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Sculpted white Carrara marble with fine grey veining and polished antique-gold inlay (#fde587, shadowed #a66c07) — the same white-marble material as the attached card.
 
-DESIGN — Sculpted white Carrara marble with fine grey veining and polished antique-gold inlay (#fde587, shadowed with #a66c07) — the same white-marble material as the attached card. In the exact centre, a carved marble wing sweeping upward inside a gold ring, with real bas-relief depth. Fine gold guilloche filigree radiates outward from it. Museum lighting from the upper left, soft shadows inside the carving. A thin double gold rule follows the plaque outline. Immaculate and exclusive — the very top of the game.
+CENTRE — A carved marble wing sweeping upward inside a gold ring, with real bas-relief depth.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Fine gold guilloche filigree radiating outward from the centre across the marble.
+
+LIGHT — Museum lighting from the upper left, soft shadows inside the carving.
+
+Immaculate and exclusive — the very top of the game.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -107,13 +145,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `ballondor.webp`  ·  **Save as:** `card-back-ballondor`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Deep midnight-black lacquer, glassy and dark, lit almost entirely by what sits at its centre.
 
-DESIGN — Deep midnight-black lacquer with a blinding golden starburst at the centre: a perfectly round golden football resting on a small pedestal, throwing fine gold light rays outward, gold #e6a605 to #fbc641 with deep #a66c07 shadows, matching the attached card. Tiny gold stars scattered evenly through the dark field. A thin double gold rule follows the plaque outline. Ceremonial and rare — a once-a-season honour.
+CENTRE — A perfectly round golden football on a small pedestal, gold #e6a605 to #fbc641 with deep #a66c07 shadows, matching the attached card.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — A blinding starburst of fine gold light rays thrown outward from the ball, with tiny gold stars scattered evenly through the dark field.
+
+LIGHT — All light emanating from the centre outward; the corners fall to near black.
+
+Ceremonial and rare — a once-a-season honour.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -123,13 +169,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `rise-to-glory.webp`  ·  **Save as:** `card-back-rise-to-glory`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — A modest metallic finish washed in a warm bronze-to-silver gradient, like dawn light on brushed metal.
 
-DESIGN — Dawn breaking over a stylised pitch horizon: a warm bronze-to-silver gradient sky, thin sunrise rays fanning upward from a small sun disc at the centre, and the pitch suggested by two minimal engraved lines low in the field. A modest metallic finish — hopeful and fresh rather than opulent, the beginning of a career. A thin single-rule border follows the plaque outline. Take the colour palette from the attached card.
+CENTRE — A small sun disc low in the middle of the image, with two minimal engraved pitch lines beneath it.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Thin sunrise rays fanning upward and outward from the disc, spreading to the top corners.
+
+LIGHT — Soft low-angle dawn light rising from below the centre.
+
+Take the palette from the attached card. Hopeful and fresh rather than opulent — the beginning of a career.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -139,13 +193,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `champions.webp`  ·  **Save as:** `card-back-champions`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Deep amber-gold metal, #91400d deepening at the outside and rising to #f59f0a toward the middle.
 
-DESIGN — Deep amber-gold metal, #91400d rising to #f59f0a. In the exact centre, a proud engraved trophy cup flanked by two laurel branches in raised gold relief, with fine engraved rays radiating behind it. A warm stadium-glow bloom at the centre. A thin double-rule gold border follows the plaque outline. Take the colour and metal finish from the attached card. Victorious, classic, earned.
+CENTRE — A proud engraved trophy cup flanked by two laurel branches in raised gold relief.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Fine engraved rays radiating outward behind the trophy, with a warm stadium-glow bloom around it.
+
+LIGHT — Warm golden light from above, glowing strongest just behind the cup.
+
+Take the colour and metal finish from the attached card. Victorious, classic, earned.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -155,13 +217,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `elite.webp`  ·  **Save as:** `card-back-elite`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Near-black bronze lacquer with bright gold detailing: #78400f in the depths, #fde9a6 in the highlights.
 
-DESIGN — Near-black bronze lacquer with bright gold detailing: #78400f in the depths, #fde9a6 in the highlights. In the exact centre, a faceted diamond-cut emblem — an abstract gem cut in the shape of a shield — surrounded by sharp angular art-deco linework folding inward. Sleeker and harder-edged than a classic gold card: fewer curves, more negative space, controlled glints on the facets. A thin double gold rule follows the plaque outline. Take the palette from the attached card.
+CENTRE — A faceted diamond-cut emblem — an abstract gem cut in the shape of a shield.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Sharp angular art-deco linework folding inward toward the gem, with generous empty lacquer between the lines.
+
+LIGHT — Controlled hard glints catching individual facets; the field stays dark.
+
+Take the palette from the attached card. Sleeker and harder-edged than the gold tier: fewer curves, more negative space.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -171,13 +241,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `world-class.webp`  ·  **Save as:** `card-back-world-class`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Royal violet deepening into magenta — #481d94 through a #f477c1 glow with #b775fb accents — with polished gold detailing and a cool iridescent sheen.
 
-DESIGN — Royal violet deepening into magenta — #481d94 through a #f477c1 glow with #b775fb accents — with polished gold detailing. In the exact centre, a gold-lined globe etched with fine latitude lines, a small football at its core, ringed by a gold orbit band: the world at this player's feet. Fine guilloche radiates outward. A cool iridescent sheen across the surface. A thin double gold rule follows the plaque outline. Take the palette from the attached card. Rare, electric, international.
+CENTRE — A gold-lined globe etched with fine latitude lines, a small football at its core, ringed by a gold orbit band.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Fine guilloche radiating outward from the globe, dissolving into the violet field.
+
+LIGHT — Cool iridescent light shifting across the surface, brightest around the orbit ring.
+
+Take the palette from the attached card. Rare, electric, international — the world at this player's feet.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -187,13 +265,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `legends.webp`  ·  **Save as:** `card-back-legends`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — White Carrara marble aged like a monument, inlaid with antique gold (#e6a605, shadowed #a66c07).
 
-DESIGN — White Carrara marble aged like a monument, inlaid with antique gold (#e6a605, shadowed with #a66c07). In the exact centre, a grand gold laurel wreath enclosing a classical sculpted football in deep bas-relief. Banknote-fine gold engraving radiates outward, with small ornamental flourishes exactly where the border turns at the shoulders and at the base point. A thin double gold rule follows the plaque outline. Take the white-marble-and-gold material from the attached card. Timeless and immortal — the best card in the game.
+CENTRE — A grand gold laurel wreath enclosing a classical sculpted football in deep bas-relief.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Banknote-fine gold engraving radiating outward from the wreath across the marble.
+
+LIGHT — Reverent museum light from the upper left, deep shadow pooling in the carved recesses.
+
+Take the white-marble-and-gold material from the attached card. Timeless and immortal — the best card in the game.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -203,13 +289,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `dynasty.webp`  ·  **Save as:** `card-back-dynasty`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Deep royal purple velvet-lacquer with rich gold detailing.
 
-DESIGN — Deep royal purple velvet-lacquer with rich gold. In the exact centre, an ornate gold crown above a shield bearing an abstract interlocking knot motif — a pure ornament, not a letter — in raised relief. Gold scrollwork folds inward from the border. A regal specular sheen from the upper left. A thin double gold rule follows the plaque outline. Take the palette from the attached card. It should feel like a ruling house's heirloom.
+CENTRE — An ornate gold crown above a shield bearing an abstract interlocking knot motif — a pure ornament, never a letter — in raised relief.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Gold scrollwork unfurling outward from the crest across the purple field.
+
+LIGHT — Regal specular sheen from the upper left, the velvet drinking the light elsewhere.
+
+Take the palette from the attached card. It should feel like a ruling house's heirloom.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -219,13 +313,21 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `golden-era.webp`  ·  **Save as:** `card-back-golden-era`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Vintage art-deco gold on warm sepia-black, with an aged patina settled into every recess.
 
-DESIGN — Vintage art-deco gold on warm sepia-black: a grand sunburst of alternating polished and matte gold rays spreading from a central medallion that holds a classic leather football, drawn with 1930s poster geometry. Stepped deco frame lines follow the plaque outline. Aged patina settled into the recesses, a warm nostalgic glow overall. Take the palette from the attached card. The golden age of the game, remembered.
+CENTRE — A central medallion holding a classic leather football, drawn with 1930s poster geometry.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — A grand sunburst of alternating polished and matte gold rays spreading from the medallion to every edge.
+
+LIGHT — Warm nostalgic glow, like a lithograph poster under lamplight.
+
+Take the palette from the attached card. The golden age of the game, remembered.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
@@ -235,22 +337,30 @@ Also required: perfectly symmetrical left to right. One bold central motif that 
 **Attach:** `royal-reserve.webp`  ·  **Save as:** `card-back-royal-reserve`
 
 ```
-Create the back of a collectible football trading card.
+Create the back of a collectible football trading card. Portrait orientation, 2:3 ratio, 1024x1536.
 
-SHAPE — this is the most important instruction. The card is NOT a rectangle. It is a heraldic plaque: the left and right sides are perfectly straight and vertical; the top edge is a broad gentle arch across the middle that sweeps down and outward at each shoulder into a small concave scoop before it meets the side; the bottom edge curves inward from both corners in a long concave sweep, the two curves meeting at a soft downward point in the centre. The ornamental border must follow that outline exactly, all the way around, centred, about 76% of the image width and 78% of the image height. Outside that border the same material keeps going and runs off all four edges of the image — there must be no flat backdrop, no empty margin, and no visible rectangle edge anywhere.
+MATERIAL — Deep emerald-green lacquer with polished gold, quiet and expensive.
 
-DESIGN — Deep emerald-green lacquer with polished gold. In the exact centre, a formal royal wax-seal medallion in gold — an embossed football ringed by a fine rope-and-laurel border — in raised relief. Quiet diamond-pattern engraving runs across the emerald field. Discreet specular light from the upper left. A thin double gold rule follows the plaque outline. Take the palette from the attached card. Private-cellar exclusivity, understated wealth.
+CENTRE — A formal royal wax-seal medallion in gold — an embossed football ringed by a fine rope-and-laurel border — in raised relief.
 
-Also required: perfectly symmetrical left to right. One bold central motif that is still readable when the whole card is only 110 pixels tall. Viewed straight on and perfectly flat — no tilt, no perspective, no 3D angle, no drop shadow, no table or room behind it. Do not include any text, letters, numbers, signatures or logos anywhere in the image. Do not draw a player, a face or a person. This is the BACK of the card, so it must not resemble the front — no rating corner, no stat rows, no name plate. Portrait orientation, 2:3, 1024x1536.
+FIELD — Quiet diamond-pattern engraving running across the emerald field behind the seal.
+
+LIGHT — Discreet specular light from the upper left; nothing glares.
+
+Take the palette from the attached card. Private-cellar exclusivity, understated wealth.
+
+CRITICAL — FILL THE WHOLE IMAGE. The artwork must run right off all four edges. Do NOT draw a border, a frame, an outline, an edge line, a corner ornament, or the shape of a card. Do not place the design on a backdrop. The image is cropped to a curved shield silhouette afterwards, so anything drawn near the edge is destroyed — keep every important element inside the middle 70% and let only texture reach the edges.
+
+NEVER — no text, letters, numbers, signatures or logos anywhere. No player, face or person. No perspective, tilt or 3D angle. No drop shadow, no table, no room, no scene behind it. Perfectly symmetrical left to right. Must not resemble the FRONT of a card: no rating corner, no stat rows, no name plate.
 ```
 
 ---
 
 ## Checklist when they come back
 
-Per image: not a rectangle · border follows the arched shoulders and pointed base ·
-material runs off all four edges · symmetrical · motif readable small · no text ·
-doesn't look like a card front.
+Per image: no border, no frame, no card shape · design reaches all four edges ·
+main motif inside the middle 70% · symmetrical · readable when small · no text ·
+doesn't resemble a card front.
 
-Conversion to webp and the front-to-back registry wiring is my side — the files
-themselves need no masking or transparency.
+Conversion and wiring is my side — the files need no masking, no transparency
+and no cropping from you.
