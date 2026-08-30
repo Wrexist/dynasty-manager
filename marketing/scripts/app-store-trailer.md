@@ -141,7 +141,7 @@ tear and the flip carry the rhythm.
 
 ---
 
-## 3b. What was actually shot — `app-preview-v6` (29.2s)
+## 3b. What was actually shot — `app-preview-v7` (28.2s)
 
 The v1 plan above opened on the walkout at full burst. It was reworked after a
 read of the surface: a preview autoplays MUTED in search and frame 1 is frozen
@@ -180,6 +180,40 @@ would have shown an animation the app does not have.
 `WalkoutReveal.tsx` — the overlay was declared above the hero card in the tree
 and the card painted straight over it, so it had never once reached a screen.
 It is now the strongest muted-autoplay beat in the video, and in the app.
+
+---
+
+
+### v6 → v7
+
+Five changes, all precision rather than concept.
+
+- **The OVR climb starts at a plausible rating.** It rolled from 0, which meant
+  a viewer read the 27 it passed through as a rating. A walkout only fires at
+  84+, so the roll now starts just under that floor and reads
+  79 → 84 → 87 → 90 → 92 → 94 → 95. See `OVR_ROLL_FLOOR`.
+- **The card section escalates.** The old take dealt 80 / 81 / 83 — three cards
+  that look the same at a glance. The take used now runs
+  **79 → 83 → 87 → two 92s, £270.2M combined**, and each reveal is a punch-in
+  on the card that just flipped rather than another shot of the same grid.
+  Re-rolling is the only lever here: a pack's floor guarantees ONE card, not
+  the fillers, so a flat spread is re-shot, not fixed in the edit.
+- **The market punches in twice** — wide, then 1.3x, then 1.8x onto the
+  figures. Small right-aligned values are not read on an App Store preview;
+  the shot has to hand over BIG PLAYER → BIG NUMBER → BIG ACTION. Note the
+  crops are right-anchored: a centred punch clips exactly the numbers the shot
+  exists to show.
+- **The squad fills in four steps** (3 → 6 → 9 → 11), not two.
+- **Everything is captured at `CAP_SCALE=3`** — 1170x2532 instead of 780x1688.
+  The delivery is 886 wide, so a 2x capture was already at 1:1 and every
+  punch-in was upscaling into render pixels. At 3x the crops are downsamples.
+  Set it as an env var on `capture-ad.mjs`; it costs capture fps, so raise
+  `SLOW` to compensate and never run two captures in parallel (measured: two
+  at once dropped a take to 20fps page-time, below the 30fps delivery).
+
+Two captions only, both in measured dead space. There is no clear band over the
+market panel or the pack summary — the app's own chrome fills the frame — and a
+caption laid over it reads as a mistake, so those sections carry none.
 
 ---
 

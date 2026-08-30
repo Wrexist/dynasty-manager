@@ -20,13 +20,19 @@ const SLOW = Number(process.argv[4] || 4);
 const PLAN = process.argv[5] || 'pack';
 mkdirSync(DIR, { recursive: true });
 
+// Device pixel ratio of the capture. 2 is the phone's own ratio and gives a
+// 780x1688 frame — fine for a full-frame shot, but the App Preview is 886 wide
+// and an edit that punches in on a single card is then upscaling past 1:1 and
+// showing render pixels. CAP_SCALE=3 gives 1170x2532, which is 1.3x the
+// delivery width and leaves real room to crop into a card or a number.
+const SCALE = Number(process.env.CAP_SCALE || 2);
 const b = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--force-device-scale-factor=2'],
+  args: [`--force-device-scale-factor=${SCALE}`],
 });
 // deviceScaleFactor matters for `page.screenshot` (the still plan): the
 // launch-arg forced factor reaches the screencast but not screenshots.
-const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: SCALE, hasTouch: true });
 
 await ctx.addInitScript(`(() => {
   const SLOW = ${SLOW};

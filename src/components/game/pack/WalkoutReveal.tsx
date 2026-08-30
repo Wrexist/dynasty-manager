@@ -6,7 +6,7 @@ import type { Player } from '@/types/game';
 import { CardBack } from '@/components/game/pack/CardBack';
 import { getPlayerCardArt } from '@/utils/uiHelpers';
 import { PlayerCard } from '@/components/game/PlayerCard';
-import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
+import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { tierForOvr } from './packHelpers';
 import { PackConfetti } from './PackConfetti';
 import { WalkoutStadium } from './WalkoutStadium';
@@ -91,13 +91,23 @@ function ParticleDrift({ accent, count = 14 }: { accent: string; count?: number 
  *  rating dictates everything downstream — so it gets the biggest
  *  visual treatment: scale-in, fast tick from 0, golden glow, then a
  *  graceful fade as the stats start landing. */
+/** Where the count-up starts. A walkout only ever fires at
+ *  {@link WALKOUT_OVR_THRESHOLD}+, so a roll from 0 spends most of its visible
+ *  life showing ratings this cinematic cannot be about — the viewer reads a
+ *  27 as a rating, not as a counter passing through. Starting just under the
+ *  walkout floor makes every intermediate frame a rating the card could
+ *  plausibly have, and turns the beat from "counting" into "this is already
+ *  good, and it is still climbing". */
+const OVR_ROLL_FLOOR = WALKOUT_OVR_THRESHOLD - 6;
+
 function OvrOverlay({ value, accent, durationMs, rollMs }: {
   value: number;
   accent: string;
   durationMs: number;
   rollMs: number;
 }) {
-  const [display, setDisplay] = useState(0);
+  const from = Math.min(OVR_ROLL_FLOOR, value - 1);
+  const [display, setDisplay] = useState(from);
 
   useEffect(() => {
     const start = performance.now();
@@ -115,12 +125,12 @@ function OvrOverlay({ value, accent, durationMs, rollMs }: {
       const t = Math.min(1, (performance.now() - start) / dur);
       // Punchy easeOut quad so the number lands fast and settles slow.
       const eased = 1 - Math.pow(1 - t, 2);
-      setDisplay(Math.round(value * eased));
+      setDisplay(Math.round(from + (value - from) * eased));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, rollMs]);
+  }, [value, from, rollMs]);
 
   return (
     <motion.div
