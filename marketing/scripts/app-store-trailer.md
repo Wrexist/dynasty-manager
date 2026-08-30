@@ -141,7 +141,7 @@ tear and the flip carry the rhythm.
 
 ---
 
-## 3b. What was actually shot — `app-preview-v8.2` (28.8s)
+## 3b. What was actually shot — `app-preview-v8.3` (28.8s)
 
 The v1 plan above opened on the walkout at full burst. It was reworked after a
 read of the surface: a preview autoplays MUTED in search and frame 1 is frozen
@@ -282,6 +282,32 @@ only text on the reveal. +1.3s total, still under 30.
 The harness also takes `hero=<name>` (case-insensitive substring, e.g.
 `hero=Wirtz`) so a take can pin WHO walks out instead of re-rolling captures
 until the right name appears.
+
+---
+
+
+### v8.2 → v8.3 — one climax, not five
+
+The payoff montage was recapping features: pack → walkout → OVR → a market
+punch → a squad punch → a giant 92 → then the 94. Every shot was good and the
+sequence was wrong. By 22s the viewer already knows what the app does, so a
+market flash there reads as "remember this too", not as an ending — and a
+giant 92 landing three seconds before the giant 94 makes the eye ask which
+one is the climax.
+
+The last six seconds are now a single line: **pack callback → the OVR climbs
+78 · 85 · 92 · 94 → a 0.35s hold on the 94 → the card → BUILD YOUR DYNASTY →
+DYNASTY MANAGER.** No other interface after the second pack callback, and no
+competing number.
+
+The climb is the whole climb — 6.02→6.92 in the take, which is where the roll
+actually runs. v8.2's ending opened at 6.35 and so began already at 94, which
+is the same failure as the original bug in a different costume: the count was
+there and nobody saw it.
+
+The card-wall shot gets +0.25s (premium visuals need a beat to register as
+premium), and `DYNASTY MANAGER` no longer fades out — it is on screen when the
+last frame freezes.
 
 ---
 
