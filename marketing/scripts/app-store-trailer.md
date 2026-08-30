@@ -141,7 +141,7 @@ tear and the flip carry the rhythm.
 
 ---
 
-## 3b. What was actually shot — `app-preview-v7` (28.2s)
+## 3b. What was actually shot — `app-preview-v8` (27.8s)
 
 The v1 plan above opened on the walkout at full burst. It was reworked after a
 read of the surface: a preview autoplays MUTED in search and frame 1 is frozen
@@ -214,6 +214,30 @@ Five changes, all precision rather than concept.
 Two captions only, both in measured dead space. There is no clear band over the
 market panel or the pack summary — the app's own chrome fills the frame — and a
 caption laid over it reads as a mistake, so those sections carry none.
+
+---
+
+
+### v7 → v8
+
+- **Four overlays, and only four.** `DISCOVER RARE PLAYERS` · `BUY. SELL.
+  PROFIT.` · `BUILD YOUR XI` · `BUILD YOUR DYNASTY` → `DYNASTY MANAGER`. The
+  visuals carry excitement on their own; what they do not carry is *what the
+  system is*. A viewer three seconds into the market panel does not know they
+  are watching an economy. Nothing over the pack open — it needs no caption and
+  a caption there would only cheapen it.
+- **They sit ON the footage, never instead of it.** No cut to black, no full
+  slide. Captions that overlap app chrome get a tight box behind the text
+  (`boxborderw`, not a full-width band); the two that land in genuine dead
+  space get none. Earlier versions refused any caption that could not find
+  clear space, which is why v6 carried two — a box solves it better.
+- **A 7-frame hold on the OVR at its final value**, before the card settles.
+  The climb is the anticipation; letting it land and rest makes the payoff read
+  bigger and costs a quarter of a second.
+- **Rhythm, not uniform speed.** Fast open → slower market (it is the hardest
+  thing to read) → the squad given room → fast payoff. Cutting everything fast
+  makes the middle unreadable.
+- **The card wall lost a second** and now pans across the strongest rows only.
 
 ---
 
