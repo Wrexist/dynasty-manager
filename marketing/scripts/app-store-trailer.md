@@ -311,6 +311,56 @@ last frame freezes.
 
 ---
 
+
+## 3c. Encoding for App Store Connect — the audio spec is a rejection risk
+
+ASC rejected `app-preview-v8.3` with **"Your app preview contains unsupported
+or corrupted audio."** The video was fine; the audio track was **mono, 44.1 kHz,
+88 kb/s**, written by a plain `ffmpeg -c:a aac` with no channel or rate flags.
+
+Two things were wrong, and the second is the one that is easy to miss:
+
+1. **Mono.** App Preview audio must be **stereo**. A mono track is the most
+   likely single cause of that message.
+2. **A non-zero start offset.** ffmpeg's AAC encoder has ~2048 samples of
+   priming delay and the mp4 muxer writes an **edit list** to compensate, so
+   the file reports `start: 0.045000`. Strict validators read a leading edit
+   list as a malformed track. `-avoid_negative_ts`, `-muxdelay 0` and
+   `-muxpreload 0` do NOT remove it — the only reliable removal is to re-open
+   the finished file with `-ignore_editlist 1` and stream-copy it.
+
+Settings that produce an accepted file:
+
+```bash
+# 1. bed: stereo, 48 kHz, exactly the video's duration (frames / fps)
+ffmpeg -f lavfi -i "aevalsrc=exprs='<expr>':s=48000:d=28.766667" \
+  -af "highpass=f=28,alimiter=limit=0.9,pan=stereo|c0=c0|c1=c0" \
+  -c:a aac -profile:a aac_low -b:a 256k -ar 48000 -ac 2 bed.m4a
+
+# 2. mux, with explicit colour tags (the capture's mjpeg frames carry
+#    bt470bg otherwise) and an exact frame count
+ffmpeg -i cut.mp4 -i bed.m4a -map 0:v:0 -map 1:a:0 -frames:v 863 \
+  -c:v libx264 -profile:v high -level 4.2 -preset slow -crf 17 \
+  -pix_fmt yuv420p -r 30 \
+  -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv \
+  -c:a aac -profile:a aac_low -b:a 256k -ar 48000 -ac 2 \
+  -movflags +faststart -video_track_timescale 30000 out.mp4
+
+# 3. strip the AAC priming edit list — nothing else removes it
+ffmpeg -ignore_editlist 1 -i out.mp4 -c copy -movflags +faststart final.mp4
+```
+
+Verify with `ffmpeg -i final.mp4` before uploading: **`start: 0.000000`**,
+`886x1920`, `30 fps`, and `48000 Hz, stereo`.
+
+**A silent preview is also valid**, and it is the zero-risk option: an App
+Preview autoplays muted in search anyway, so the audio only ever reaches
+someone already on the product page. `-an` on the final copy produces it, and
+it cannot fail this check. Ship silent unless the bed is genuinely earning
+something.
+
+---
+
 ## 4. What needs building before this can be shot
 
 Three of the ten trailer shots have no capture scene yet. Honest estimate: they
