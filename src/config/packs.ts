@@ -925,7 +925,14 @@ export const PACK_ANIM = {
     slitMs: 700,
     silhouetteMs: 900,
     typewriterPerCharMs: 45,
-    ovrRollMs: 420,
+    /** How long the giant OVR number takes to count 0 → rating. Read by
+     *  `OvrOverlay`; it was dead config until then, and the roll ran for
+     *  `ovrOverlayMs - 150`. 420ms was too fast to register — with an easeOut
+     *  quad most of the range is covered in the first ~200ms, six frames at
+     *  30fps. The climb IS the beat, so it gets long enough to read, and
+     *  still lands well inside `ovrOverlayMs` so the number rests on its
+     *  final value rather than fading out mid-count. */
+    ovrRollMs: 620,
     enterMs: 600,
     /** Held-breath pause between name and flip — total stillness, no
      *  particles, no halo pulse. The brain reads silence as "something

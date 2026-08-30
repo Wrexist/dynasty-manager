@@ -91,19 +91,28 @@ function ParticleDrift({ accent, count = 14 }: { accent: string; count?: number 
  *  rating dictates everything downstream — so it gets the biggest
  *  visual treatment: scale-in, fast tick from 0, golden glow, then a
  *  graceful fade as the stats start landing. */
-function OvrOverlay({ value, accent, durationMs }: {
+function OvrOverlay({ value, accent, durationMs, rollMs }: {
   value: number;
   accent: string;
   durationMs: number;
+  rollMs: number;
 }) {
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
     const start = performance.now();
-    const dur = Math.max(280, durationMs - 150);
+    // The count itself is shorter than the overlay, so the number lands and
+    // is then HELD at its final value for the rest of the beat. A roll that
+    // runs the full overlay never rests on the answer.
+    const dur = Math.max(280, rollMs);
     let raf = 0;
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / dur);
+    // Read the clock rather than trusting rAF's argument. They are the same
+    // clock in a normal browser, but the marketing capture rig scales
+    // `performance.now` to slow the page down and cannot touch the rAF
+    // timestamp — mixing the two made the roll finish on its second frame, so
+    // every captured walkout landed on the final rating with no count at all.
+    const tick = () => {
+      const t = Math.min(1, (performance.now() - start) / dur);
       // Punchy easeOut quad so the number lands fast and settles slow.
       const eased = 1 - Math.pow(1 - t, 2);
       setDisplay(Math.round(value * eased));
@@ -111,29 +120,48 @@ function OvrOverlay({ value, accent, durationMs }: {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, durationMs]);
+  }, [value, rollMs]);
 
   return (
     <motion.div
       className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      initial={{ opacity: 0, scale: 0.4 }}
-      animate={{ opacity: [0, 1, 1, 0], scale: [0.4, 1.05, 1, 1.05] }}
-      transition={{
-        duration: durationMs / 1000,
-        times: [0, 0.18, 0.72, 1],
-        ease: [0.22, 1, 0.36, 1],
-      }}
+      // Two plain tweens, not a keyframe track. The keyframed version
+      // (`opacity: [0, 1, 1, 0]` with a `times` array) measured 0.38 opacity a
+      // third of the way through the beat — the number was still fading in
+      // while it was already counting, and it never reached full before
+      // AnimatePresence tore it down. A snap-in tween plus an `exit` fade is
+      // both simpler and what the beat actually wants: land hard, hold, go.
+      initial={{ opacity: 0, scale: 0.55 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.1 }}
+      transition={{ duration: 0.16, ease: 'easeOut' }}
       aria-hidden
     >
-      <span
-        className="font-display font-black leading-none tabular-nums select-none"
+      {/* Scrim. The number lands ON the card, and a walkout card is often
+          near-white (icon marble, silver, the gold frames' highlights), so
+          white type needs its own ground to sit on. */}
+      <div
+        className="absolute"
         style={{
-          fontSize: 'clamp(120px, 38vw, 240px)',
+          width: 'min(86vw, 420px)',
+          height: 'min(86vw, 420px)',
+          background: 'radial-gradient(circle, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.34) 42%, transparent 68%)',
+          filter: 'blur(6px)',
+        }}
+      />
+      <span
+        className="relative font-display font-black leading-none tabular-nums select-none"
+        style={{
+          fontSize: 'clamp(140px, 46vw, 280px)',
           color: '#fff',
-          WebkitTextStroke: `2px ${accent}`,
-          textShadow: `0 0 60px ${accent}cc, 0 0 120px ${accent}55, 0 6px 28px rgba(0,0,0,0.55)`,
+          WebkitTextStroke: `3px ${accent}`,
+          // No mix-blend-mode. `screen` cannot darken, so over the white
+          // marble of an icon card the white number composited to exactly the
+          // card beneath it and the biggest beat in the walkout was invisible
+          // on every take. Legibility here is carried by the scrim + a hard
+          // dark shadow instead, which works on any card in the set.
+          textShadow: `0 0 24px rgba(0,0,0,0.92), 0 0 70px ${accent}dd, 0 0 140px ${accent}66, 0 8px 30px rgba(0,0,0,0.8)`,
           letterSpacing: '-0.03em',
-          mixBlendMode: 'screen',
         }}
       >
         {display}
@@ -481,21 +509,6 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
         )}
       </AnimatePresence>
 
-      {/* Massive OVR overlay — the biggest dopamine number ticks up over
-          the card at the flip moment, then fades to let the stats land.
-          Composed with mix-blend-mode: screen so it adds light without
-          obscuring the card behind it. */}
-      <AnimatePresence>
-        {ovrOverlayActive && !prefersReducedMotion && (
-          <OvrOverlay
-            key="ovr-overlay"
-            value={player.overall}
-            accent={tier.gradientVia}
-            durationMs={PACK_ANIM.walkout.ovrOverlayMs}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Crescendo halo pulse — fires when the LAST stat pill lands. A
           brief bright bloom centred on the card closes the stats reveal
           with a "yes!" moment before settling into the hold phase. */}
@@ -617,6 +630,27 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Massive OVR overlay — the biggest dopamine number ticks up over the
+          card at the flip moment, then fades to let the stats land.
+
+          It MUST stay below the hero card in this tree. Declared above it (as
+          it was until measured) the card simply paints over it: the element
+          mounts, sizes and reaches full opacity dead centre on the card, and
+          nothing of it ever reaches the screen. Every walkout take ever
+          captured is missing the number for that reason. */}
+      <AnimatePresence>
+        {ovrOverlayActive && !prefersReducedMotion && (
+          <OvrOverlay
+            key="ovr-overlay"
+            value={player.overall}
+            accent={tier.gradientVia}
+            durationMs={PACK_ANIM.walkout.ovrOverlayMs}
+            rollMs={PACK_ANIM.walkout.ovrRollMs}
+          />
+        )}
+      </AnimatePresence>
+
 
       {/* Nameplate + potential below the card. Anchored to the safe area
           (with a small buffer) instead of a viewport percentage so the
