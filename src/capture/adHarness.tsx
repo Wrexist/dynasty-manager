@@ -87,6 +87,10 @@ const LEGEND = params.get('legend') === '1';
 /** Minimum OVR for the card that closes the reveal. The hero has to be a name
  *  the viewer recognises, so the capture re-rolls until the pack deals one. */
 const MIN_HERO = Number(params.get('minHero') || 0);
+/** Pin the hero by (last) name, e.g. `hero=Wirtz`. Case-insensitive substring
+ *  against the closing card's name; the re-roll loop keeps rolling until this
+ *  player headlines the pack. Combine with minHero. */
+const HERO_NAME = (params.get('hero') || '').toLowerCase();
 /** Reject any pack containing an invented player. `rollPackPlayer` falls back
  *  to a generated card when a band has no real player at the rolled position —
  *  correct in the game, wrong in an ad whose whole claim is "these are real
@@ -403,11 +407,14 @@ function Harness() {
   function build() {
     // Re-roll until the pack produces a hero worth headlining. Cheap (pure
     // generation, no store) and bounded, so a thin band cannot hang the run.
-    const acceptable = (cards: Player[]) =>
-      Math.max(...cards.map(p => p.overall)) >= MIN_HERO
-      && (!REAL_ONLY || cards.every(p => p.source === 'real' || p.legendId));
+    const acceptable = (cards: Player[]) => {
+      const best = cards.reduce((a, b) => (b.overall > a.overall ? b : a));
+      return best.overall >= MIN_HERO
+        && (!HERO_NAME || `${best.firstName} ${best.lastName}`.toLowerCase().includes(HERO_NAME))
+        && (!REAL_ONLY || cards.every(p => p.source === 'real' || p.legendId));
+    };
     let pack = generatePackContents(TIER, 5, { forceLegendRoll: LEGEND });
-    for (let i = 0; i < 400 && !acceptable(pack); i++) {
+    for (let i = 0; i < (HERO_NAME ? 20000 : 400) && !acceptable(pack); i++) {
       pack = generatePackContents(TIER, 5, { forceLegendRoll: LEGEND });
     }
     if (!acceptable(pack)) {

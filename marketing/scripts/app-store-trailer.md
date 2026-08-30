@@ -141,7 +141,7 @@ tear and the flip carry the rhythm.
 
 ---
 
-## 3b. What was actually shot — `app-preview-v8.1` (27.5s)
+## 3b. What was actually shot — `app-preview-v8.2` (28.8s)
 
 The v1 plan above opened on the walkout at full burst. It was reworked after a
 read of the surface: a preview autoplays MUTED in search and frame 1 is frozen
@@ -260,6 +260,28 @@ caption laid over it reads as a mistake, so those sections carry none.
 **Iteration stops here** pending real store data. The poster frame is chosen in
 App Store Connect (frame 1 is only the default), so pick the pack-at-peak-charge
 frame there.
+
+---
+
+
+### v8.1 → v8.2 — the DISCOVER hero was being skipped by the rig itself
+
+The DISCOVER section's walkout (Florian Wirtz, 92) was barely on screen — a
+fraction of a second of nameplate, no card. Root cause was in the capture
+plan, not the edit: the `pack` plan's blind tap loop kept tapping after the
+last reveal, **and a tap on a running walkout means SKIP**. Every 5-card take
+ever filmed had its hero walkout skipped by its own rig. The plan now stops
+tapping the moment the SKIP pill exists.
+
+With real walkout footage to cut, DISCOVER gets its own mini-payoff:
+82 → 84 → 87 reveals, then the full beat — silhouette, FLORIAN WIRTZ types
+out, the OVR spins to 92, the card holds — into the £269M summary. The
+caption ends before the walkout starts, so the app's own nameplate is the
+only text on the reveal. +1.3s total, still under 30.
+
+The harness also takes `hero=<name>` (case-insensitive substring, e.g.
+`hero=Wirtz`) so a take can pin WHO walks out instead of re-rolling captures
+until the right name appears.
 
 ---
 

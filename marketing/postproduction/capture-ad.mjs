@@ -272,11 +272,14 @@ if (PLAN === 'pack') {
     await tap(195, 422); await wait(700);
   }
   await wait(900);
-  for (const [x, y] of [[113, 150], [276, 150], [113, 392], [276, 392]]) {
+  // The walkout auto-fires the moment every ordinary card is revealed, and a
+  // tap on a running walkout means SKIP — the take that shipped v8 had its
+  // hero walkout skipped by its own final tap, which is why no Wirtz card was
+  // ever on screen. Stop tapping the instant the walkout is up.
+  for (const [x, y] of [[113, 150], [276, 150], [113, 392], [276, 392], [195, 620]]) {
+    if (await page.getByText('SKIP', { exact: false }).count()) break;
     await tap(x, y); await wait(700);
   }
-  await wait(400);
-  await tap(195, 620);
   await wait(15000);
 }
 
