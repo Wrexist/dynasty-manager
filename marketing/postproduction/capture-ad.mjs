@@ -156,6 +156,72 @@ if (PLAN === 'squad') {
   await tap(195, 300); await wait(2500);
 }
 
+if (PLAN === 'tall') {
+  // One FULL-PAGE screenshot, for shots that pan rather than animate.
+  // Scrolling in the browser under time dilation yields one repaint per
+  // discrete jump — measured at 7.7fps, which judders at 60. Panning a tall
+  // still in the encoder is perfectly smooth at any frame rate, the same
+  // reason `still` exists for push-ins.
+  await wait(15000);
+  const mounted = await page.evaluate(() => document.body.innerText.length > 200);
+  if (!mounted) console.error('[capture] tall: scene did not mount');
+  // Walk the whole page before shooting. A fullPage screenshot does NOT
+  // trigger lazy loading, so card art below the fold stayed unloaded and
+  // rendered as black cards in the lower half of the pan.
+  const pageH = await page.evaluate(() => (document.scrollingElement || document.documentElement).scrollHeight);
+  for (let y = 0; y < pageH; y += 700) {
+    await page.evaluate(v => {
+      const sc = document.scrollingElement || document.documentElement;
+      sc.scrollTop = v;
+      document.querySelectorAll('*').forEach(el => {
+        if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = v;
+      });
+    }, y);
+    await wait(160);
+  }
+  await page.evaluate(() => {
+    const sc = document.scrollingElement || document.documentElement;
+    sc.scrollTop = 0;
+    document.querySelectorAll('*').forEach(el => { if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = 0; });
+  });
+  // Let every warmed image decode before the frame is taken.
+  await page.evaluate(() => Promise.all(
+    [...document.images].filter(i => !i.complete).map(i => i.decode().catch(() => {})),
+  ));
+  await wait(1500);
+  await page.screenshot({ path: `${DIR}/tall.png`, fullPage: true });
+  console.log('tall ->', `${DIR}/tall.png`);
+  await b.close();
+  process.exit(0);
+}
+
+if (PLAN === 'grid') {
+  // A slow scroll down the squad grid. Better than a push-in on a still: the
+  // cards are the content, and scrolling shows eight of them instead of two.
+  // Driven from here in small steps rather than by CSS smooth-scroll, because
+  // the page clock is dilated and a scroll animation would stretch with it.
+  const startY = Number((URL.match(/[?&]scroll=(\d+)/) || [])[1] || 560);
+  await page.evaluate(y => {
+    const sc = document.scrollingElement || document.documentElement;
+    sc.scrollTop = y;
+    document.querySelectorAll('*').forEach(el => {
+      if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = y;
+    });
+  }, startY);
+  await wait(1200);
+  for (let i = 0; i < 44; i++) {
+    await page.evaluate(dy => {
+      const sc = document.scrollingElement || document.documentElement;
+      sc.scrollTop += dy;
+      document.querySelectorAll('*').forEach(el => {
+        if (el.scrollHeight > el.clientHeight + 40) el.scrollTop += dy;
+      });
+    }, 26);
+    await wait(105);
+  }
+  await wait(900);
+}
+
 if (PLAN === 'still') {
   // Single full-quality frame, no screencast — the source for encoder-side
   // motion (a zoompan push-in beats a screencast of a static page, whose
@@ -164,6 +230,19 @@ if (PLAN === 'still') {
   // loads before mounting — give it real headroom, then confirm the scene
   // actually mounted rather than shipping a frame of empty backdrop.
   await wait(15000);
+  // Scroll past page chrome when the URL asks for it — a squad grid's cards
+  // start well below the header, filters and advice banners.
+  const scrollTo = Number((URL.match(/[?&]scroll=(\d+)/) || [])[1] || 0);
+  if (scrollTo) {
+    await page.evaluate(y => {
+      const sc = document.scrollingElement || document.documentElement;
+      sc.scrollTop = y;
+      document.querySelectorAll('*').forEach(el => {
+        if (el.scrollHeight > el.clientHeight + 40) el.scrollTop = y;
+      });
+    }, scrollTo);
+    await wait(700);
+  }
   const mounted = await page.evaluate(() => document.body.innerText.length > 200);
   if (!mounted) console.error('[capture] still: scene did not mount — frame is likely empty');
   await page.screenshot({ path: `${DIR}/still.png` });

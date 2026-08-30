@@ -16,6 +16,7 @@ import '@/index.css';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { LineupEditor } from '@/components/game/LineupEditor';
+import SquadPage from '@/pages/SquadPage';
 import { pickRealPlayerForPack } from '@/utils/realPlayerPicker';
 import { buildPlayerFromTemplate } from '@/utils/playerGen';
 import type { Club, IncomingOffer, Position } from '@/types/game';
@@ -72,6 +73,9 @@ const POV_POS = params.get('povPos') || 'top';
  *  12s scale from 1.0 to 1.06 keeps the compositor painting and reads as
  *  cinematic tension rather than a still. */
 const KENBURNS = params.get('kenburns') === '1';
+/** `grid` renders the real squad page (cards at `lg`, pack frames visible);
+ *  anything else renders the lineup pitch. */
+const SQUAD_VIEW = params.get('view') || 'pitch';
 const TIER = (params.get('tier') || 'rare') as 'rare' | 'icon' | 'premium';
 const LEGEND = params.get('legend') === '1';
 /** Minimum OVR for the card that closes the reveal. The hero has to be a name
@@ -241,6 +245,26 @@ function SquadScene() {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     loadNationalPool().then(() => {
+      // Card art per slot, parallel to SHAPE below. `null` means "leave the
+      // tier art alone", which for a 90+ is the white marble that says he is
+      // a 90+. Everyone else wears a different premium frame so the pitch
+      // reads as a collection rather than one card printed eleven times.
+      const XI_ART: (string | null)[] = [
+        'elite',          // GK    — navy blue
+        'royal-reserve',  // LB    — emerald
+        null,             // CB    — marble (90)
+        'world-class',    // CB    — royal blue
+        'dynasty',        // RB    — purple
+        null,             // CM    — marble (90)
+        'golden-era',     // CM    — deco gold
+        'legends',        // CM    — antique bronze
+        null,             // LW    — marble (90)
+        'ballondor',      // ST    — black and gold starburst, the hero card
+        null,             // RW    — marble (91)
+      ];
+      const BENCH_ART: (string | null)[] = [
+        'champions', 'world-class', 'legends', 'dynasty', 'elite', 'golden-era',
+      ];
       // Slot order and positions must match FORMATION_POSITIONS['4-3-3']
       // exactly, or the editor's own audit reports "N players in wrong
       // position" over the shot — true, and the last thing a store preview
@@ -275,11 +299,15 @@ function SquadScene() {
         if (!t) continue;
         used.add(t.fcId ?? `${t.fn}|${t.ln}`);
         const built = buildPlayerFromTemplate(t, 'my-club', 1);
-        // A Legends-issue squad, in form: the pack frame shows on every
-        // full-size card surface, and maxed form/morale/fitness put the
-        // green surge arrows and full bars on every token. Capture-only
-        // dressing — ratings stay the template's own.
-        built.packFrame = 'legends';
+        // Card ART is the whole look of this beat, and one frame for everyone
+        // reads as a wall of the same card. `XI_ART` deals a different premium
+        // frame to each slot, and leaves the very top players frameless so
+        // their 90+ white-marble tier art survives — a pack frame OUTRANKS
+        // tier art in getPlayerCardArt, so framing a 91 would hide the
+        // marble that makes him look like a 91.
+        const art = XI_ART[squad.length];
+        if (art === 'ballondor') built.ballonDOrTop10HoldSeason = 1;
+        else if (art) built.packFrame = art;
         built.form = 96; built.morale = 98; built.fitness = 100;
         squad.push(built);
       }
@@ -309,7 +337,8 @@ function SquadScene() {
         if (!t) continue;
         used.add(t.fcId ?? `${t.fn}|${t.ln}`);
         const built = buildPlayerFromTemplate(t, 'my-club', 1);
-        built.packFrame = 'legends';
+        const bart = BENCH_ART[bench.length];
+        if (bart) built.packFrame = bart;
         built.form = 94; built.morale = 96; built.fitness = 100;
         bench.push(built);
       }
@@ -335,6 +364,11 @@ function SquadScene() {
     });
   }, []);
   if (!ready) return null;
+  // The lineup pitch draws `xs` chips, and PlayerCard deliberately suppresses
+  // pack frames on chips (a chip crops to 3:4 and would eat a frame's pointed
+  // top). So the frames that make this squad look like a collection can ONLY
+  // be seen on the squad grid, which renders at `lg`. `?view=grid` picks it.
+  if (SQUAD_VIEW === 'grid') return <SquadPage />;
   // No CSS scale: the flank cards already sit near the edge at 1.0, and any
   // zoom pushes LW/RW half out of frame. The lower third is filled by giving
   // the club a real bench instead — an empty BENCH & RESERVES strip is what
