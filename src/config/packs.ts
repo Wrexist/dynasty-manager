@@ -390,6 +390,44 @@ export const WEEKLY_PACK_SKINS: WeeklyPackSkin[] = [
  */
 export const CARD_BACK_SRC = '/player-cards/card-back.webp';
 
+/**
+ * The back that belongs to each card FRONT, keyed by the front's art file.
+ *
+ * Every tier shield and every pack frame has its own back, so a face-down card
+ * still tells you which tier is coming — the anticipation signal a single
+ * universal back had thrown away. The key is the exact `src` that
+ * `getPlayerCardArt` returns for that card, so the two can never drift: the
+ * same lookup that decides the face decides the back.
+ *
+ * Each back is drawn slightly LARGER than its front and is then cut to the
+ * front's own silhouette at render time (see CardBack). Measured overlap
+ * front-to-back is 77-98%, with the front never extending past the back on the
+ * tier shields, so the cut trims a sliver of outer border and never leaves a
+ * transparent gap.
+ *
+ * A front with no entry here falls back to `CARD_BACK_SRC`.
+ */
+export const CARD_BACKS: Record<string, string> = {
+  '/player-cards/bronze.webp': '/player-cards/bronze-back.webp',
+  '/player-cards/silver.webp': '/player-cards/silver-back.webp',
+  '/player-cards/gold.webp': '/player-cards/gold-back.webp',
+  '/player-cards/icon.webp': '/player-cards/icon-back.webp',
+  '/player-cards/ballondor.webp': '/player-cards/ballondor-back.webp',
+  '/player-cards/rise-to-glory.webp': '/player-cards/rise-to-glory-back.webp',
+  '/player-cards/champions.webp': '/player-cards/champions-back.webp',
+  '/player-cards/elite.webp': '/player-cards/elite-back.webp',
+  '/player-cards/world-class.webp': '/player-cards/world-class-back.webp',
+  '/player-cards/legends.webp': '/player-cards/legends-back.webp',
+  '/player-cards/dynasty.webp': '/player-cards/dynasty-back.webp',
+  '/player-cards/golden-era.webp': '/player-cards/golden-era-back.webp',
+  '/player-cards/royal-reserve.webp': '/player-cards/royal-reserve-back.webp',
+};
+
+/** The back for a given front-art url, falling back to the universal back. */
+export function cardBackFor(frontSrc: string | null | undefined): string {
+  return (frontSrc && CARD_BACKS[frontSrc]) || CARD_BACK_SRC;
+}
+
 export const PACK_CARD_FRAMES: Record<string, string> = {
   'rise-to-glory': '/player-cards/rise-to-glory.webp',
   champions: '/player-cards/champions.webp',

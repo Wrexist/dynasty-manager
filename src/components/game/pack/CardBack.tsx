@@ -1,9 +1,8 @@
 /**
  * The face-down side of a player card.
  *
- * One universal FULL-BLEED artwork (`CARD_BACK_SRC`, 1024x1536, no alpha),
- * masked at render time to the silhouette of the card it is about to flip
- * into. The mask is not decorative: card fronts do NOT share one outline —
+ * Each card front has its OWN back art (`CARD_BACKS`), masked at render time
+ * to the silhouette of the card it is about to flip into. The mask is not decorative: card fronts do NOT share one outline —
  * gold/silver are plain shields, icon carries an inner cut-out ring, and each
  * pack frame is notched differently. A back baked to any single silhouette
  * (the first cut used the Legends outline) pokes out past or falls short of
@@ -16,7 +15,7 @@
  * corners the card does not have.
  */
 import { motion } from 'framer-motion';
-import { CARD_BACK_SRC } from '@/config/packs';
+import { cardBackFor } from '@/config/packs';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +33,8 @@ interface CardBackProps {
 
 export function CardBack({ maskSrc, revealed = false, className }: CardBackProps) {
   const prefersReducedMotion = useReducedMotionPref();
+  // Each front has its own back, so a face-down card still signals its tier.
+  const backSrc = cardBackFor(maskSrc);
   return (
     <div
       className={cn('absolute inset-0 overflow-hidden', className)}
@@ -47,7 +48,7 @@ export function CardBack({ maskSrc, revealed = false, className }: CardBackProps
       }}
     >
       <img
-        src={CARD_BACK_SRC}
+        src={backSrc}
         alt=""
         aria-hidden
         draggable={false}

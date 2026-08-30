@@ -28,6 +28,8 @@ import {
   packFrameFor,
   PACK_CARD_FRAMES,
   CARD_BACK_SRC,
+  CARD_BACKS,
+  cardBackFor,
   PACK_WAGE_FACTOR,
   resolvePackTier,
 } from '@/config/packs';
@@ -552,6 +554,33 @@ describe('Market — pack artwork', () => {
       expect(ref.startsWith('/player-cards/'), `${id} must live under /player-cards/`).toBe(true);
       expect(existsSync(path.join(cardDir, path.basename(ref))), `missing card frame: ${ref}`).toBe(true);
     }
+  });
+
+  it('every card front has a back, and every back exists as a webp', () => {
+    // A back per front is what keeps the tier tell alive while a card is face
+    // down: a single universal back threw that signal away. The key must be the
+    // exact src getPlayerCardArt returns, or the lookup silently falls through
+    // to the universal back and the card flips out of the wrong artwork.
+    const cardDir = path.resolve(process.cwd(), 'public/player-cards');
+    const fronts = [
+      ...Object.values(PACK_CARD_FRAMES),
+      '/player-cards/bronze.webp', '/player-cards/silver.webp',
+      '/player-cards/gold.webp', '/player-cards/icon.webp',
+      '/player-cards/ballondor.webp',
+    ];
+    for (const front of fronts) {
+      const back = CARD_BACKS[front];
+      expect(back, `no card back registered for ${front}`).toBeTruthy();
+      expect(back.endsWith('.webp'), `${back} must be a webp`).toBe(true);
+      expect(existsSync(path.join(cardDir, path.basename(back))),
+        `missing card back art: ${back}`).toBe(true);
+    }
+  });
+
+  it('an unknown front falls back to the universal back', () => {
+    // A frame this build no longer knows must not render a broken image.
+    expect(cardBackFor('/player-cards/does-not-exist.webp')).toBe(CARD_BACK_SRC);
+    expect(cardBackFor(undefined)).toBe(CARD_BACK_SRC);
   });
 
   it('the card back exists, is a webp, and matches the front geometry', () => {

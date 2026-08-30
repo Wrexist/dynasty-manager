@@ -328,7 +328,7 @@ function SquadScene() {
         season: 1, week: 8, totalWeeks: 38,
         pairFamiliarity: {},
       } as never);
-      for (const src of ['/player-cards/icon.webp', '/player-cards/gold.webp', '/player-cards/premium.webp']) {
+      for (const src of ['/player-cards/icon.webp', '/player-cards/gold.webp', '/player-cards/legends.webp']) {
         const img = new Image(); img.src = src;
       }
       preloadFlags([...squad, ...bench]).then(() => setReady(true));
