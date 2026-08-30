@@ -76,6 +76,12 @@ const KENBURNS = params.get('kenburns') === '1';
 /** `grid` renders the real squad page (cards at `lg`, pack frames visible);
  *  anything else renders the lineup pitch. */
 const SQUAD_VIEW = params.get('view') || 'pitch';
+/** How many of the XI are on the pitch (1-11, default 11). The squad-building
+ *  beat wants the board FILLING, not a finished board held for four seconds,
+ *  and the app already renders a part-filled lineup with empty slots — so the
+ *  fill is captured as a few genuine app states and cut between, rather than
+ *  faked in the edit with masks. */
+const XI_FILL = Math.max(1, Math.min(11, Number(params.get('fill') || 11)));
 const TIER = (params.get('tier') || 'rare') as 'rare' | 'icon' | 'premium';
 const LEGEND = params.get('legend') === '1';
 /** Minimum OVR for the card that closes the reveal. The hero has to be a name
@@ -347,7 +353,7 @@ function SquadScene() {
         budget: 200_000_000, wageBill: 2_000_000,
         formation: '4-3-3',
         playerIds: [...squad, ...bench].map(p => p.id),
-        lineup: squad.map(p => p.id),
+        lineup: squad.map(p => p.id).slice(0, XI_FILL),
         subs: bench.map(p => p.id),
       } as unknown as Club;
       useGameStore.setState({

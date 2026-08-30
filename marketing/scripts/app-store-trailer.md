@@ -141,6 +141,48 @@ tear and the flip carry the rhythm.
 
 ---
 
+## 3b. What was actually shot — `app-preview-v6` (29.2s)
+
+The v1 plan above opened on the walkout at full burst. It was reworked after a
+read of the surface: a preview autoplays MUTED in search and frame 1 is frozen
+as the poster, so the opening has to create anticipation with no sound and no
+spoiler. Opening on a 95 gives the reward away in the poster; opening on black
+makes the poster black. **The sealed pack at peak charge does both jobs** — it
+is the brightest, most saturated frame in the app, it is visibly mid-motion,
+and it withholds the card.
+
+| # | In | Shot | Source |
+|---|---|---|---|
+| 1 | 0.00 | **Pack at peak charge → tear.** Poster frame. | `icon` |
+| 2 | 1.25 | Card back rises out of the bloom, face-down | `icon` |
+| 3 | 1.95 | Name lands → flip → **OVR counts 15 → 87 → 94** | `icon` |
+| 4 | 3.38 | The finished 94, stats in, potential bar | `icon` |
+| 5 | 4.68 | Five cards land face-down — four gold, one marble | `pack` |
+| 6-8 | 5.52 | Reveal escalation: **80 → 81 → 83**, marble still down | `pack` |
+| 9 | 7.46 | The marble walks out | `pack` |
+| 10 | 8.24 | Summary: 92 / 89 / £125.6M | `pack` |
+| 11-12 | 10.44 | **£150M bid, +60% over value**, counter at £157.5M | `transfer` |
+| 13-16 | 13.44 | **The XI fills: 4 → 7 → 9 → 11** | `squad&fill=N` |
+| 17 | 19.29 | Pan down the card wall | `tall` |
+| 18-23 | 22.19 | Payoff montage, 0.5–0.7s cuts | mixed |
+| 24 | 25.89 | Hold on the hero card | still |
+
+Two captions only, both placed in measured dead space (`NOW BUILD THE XI` under
+the chemistry bar, `DYNASTY MANAGER` in the dark band above the hero card).
+Everything else the app already says better than an overlay would.
+
+**The squad-building beat is real app state, not a mask trick.** `SquadScene`
+takes `?fill=N` and puts N of the XI on the pitch; the empty slots are the
+app's own placeholders. Faking the fill in the edit would have been quicker and
+would have shown an animation the app does not have.
+
+**The OVR count-up did not exist on screen until this cut.** See
+`WalkoutReveal.tsx` — the overlay was declared above the hero card in the tree
+and the card painted straight over it, so it had never once reached a screen.
+It is now the strongest muted-autoplay beat in the video, and in the app.
+
+---
+
 ## 4. What needs building before this can be shot
 
 Three of the ten trailer shots have no capture scene yet. Honest estimate: they
