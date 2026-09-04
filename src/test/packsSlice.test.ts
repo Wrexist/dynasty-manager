@@ -389,3 +389,72 @@ describe('packsSlice — undoLastQuickSell', () => {
     expect(useGameStore.getState().undoLastQuickSell()).toBe(false);
   });
 });
+
+/**
+ * The Sell All contract the reveal screen depends on.
+ *
+ * `quickSellPackedPlayer` pays out of a per-open cap drawn down sale by sale,
+ * so a pack worth more than the cap sells a PREFIX of its cards and refuses
+ * the rest. PacksPage's Sell All loops the action once per card, and it used
+ * to clear the whole reveal grid afterwards regardless of what the slice
+ * agreed to — telling the user cards were sold while they sat on the squad.
+ *
+ * These pin the two halves of that: the refusal is a normal outcome at real
+ * pack values (not a synthetic edge case), and refused cards stay owned.
+ */
+describe('packsSlice — Sell All partial refusal', () => {
+  it('a paid pack is worth more than one open of quick-sell cap', () => {
+    // The precondition that makes partial refusal the COMMON path. Champions
+    // guarantees 78+, and a prime 78 books ~£10M — so two cards exhaust a
+    // £10M cap and the tail of every Sell All gets refused. If a rebalance
+    // ever makes this false, the partial-sale UI below stops being reachable
+    // and this test says so out loud rather than leaving it dead.
+    const open = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
+    expect(open.success).toBe(true);
+    const book = open.players!.reduce(
+      (sum, p) => sum + Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)),
+      0,
+    );
+    expect(book).toBeGreaterThan(PACK_QUICK_SELL_CAP);
+  });
+
+  it('sells a prefix and leaves every refused card on the squad', () => {
+    const open = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
+    expect(open.success).toBe(true);
+    const dealt = open.players!;
+    const clubId = useGameStore.getState().playerClubId;
+    const budgetBefore = useGameStore.getState().clubs[clubId].budget;
+
+    // Exactly the loop PacksPage.handleSellAll runs.
+    const soldIds = new Set<string>();
+    let total = 0;
+    for (const p of dealt) {
+      const result = useGameStore.getState().quickSellPackedPlayer(p.id);
+      if (result.success && typeof result.amount === 'number') {
+        soldIds.add(p.id);
+        total += result.amount;
+      }
+    }
+
+    // Partial, not total — that is the whole point of the cap.
+    expect(soldIds.size).toBeGreaterThan(0);
+    expect(soldIds.size).toBeLessThan(dealt.length);
+
+    // The payout is the cap, and the budget moved by exactly that much.
+    expect(total).toBe(PACK_QUICK_SELL_CAP);
+    expect(useGameStore.getState().clubs[clubId].budget - budgetBefore).toBe(total);
+
+    // Every card the slice refused is still a squad player. The reveal grid
+    // must keep showing these; dropping them was the trust bug.
+    const state = useGameStore.getState();
+    for (const p of dealt) {
+      if (soldIds.has(p.id)) {
+        expect(state.players[p.id].clubId).toBe('');
+        expect(state.clubs[clubId].playerIds).not.toContain(p.id);
+      } else {
+        expect(state.players[p.id].clubId).toBe(clubId);
+        expect(state.clubs[clubId].playerIds).toContain(p.id);
+      }
+    }
+  });
+});

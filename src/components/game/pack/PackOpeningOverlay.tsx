@@ -1571,7 +1571,13 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             )}
           >
             {displayPlayers.map((p, i) => {
-              const quickSellAmount = Math.min(quickSellRemaining, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)));
+              const uncappedSell = Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE));
+              const quickSellAmount = Math.min(quickSellRemaining, uncappedSell);
+              // A card worth something that the cap can no longer pay for.
+              // It must not render as "SELL £0" — the card is not worthless,
+              // this pack's quick-sell budget is simply spent, and the honest
+              // next move is the transfer market.
+              const sellCapSpent = uncappedSell > 0 && quickSellAmount <= 0;
               const upgrade = improvement?.[p.id];
               const placementLabel = placement?.[p.id] ? PLACEMENT_LABEL[placement[p.id]] : null;
               return (
@@ -1651,7 +1657,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                         type="button"
                         onClick={() => onQuickSell?.(p.id)}
                         disabled={!onQuickSell || quickSellAmount <= 0}
-                        aria-label={`Quick sell for ${formatMoney(quickSellAmount)}`}
+                        aria-label={
+                          sellCapSpent
+                            ? `${p.firstName} ${p.lastName}: this pack's quick-sell cap is spent — list him on the transfer market instead`
+                            : `Quick sell for ${formatMoney(quickSellAmount)}`
+                        }
                         className={cn(
                           'flex-1 py-2 rounded-xl text-[10px] font-display font-bold uppercase tracking-[0.08em] leading-tight',
                           'text-amber-950 bg-gradient-to-b from-amber-300 to-amber-500 border border-amber-200/70',
@@ -1661,9 +1671,9 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                           'flex flex-col items-center justify-center',
                         )}
                       >
-                        <span>{t('packOpeningOverlay.sell')}</span>
+                        <span>{sellCapSpent ? t('packOpeningOverlay.sellCapSpent') : t('packOpeningOverlay.sell')}</span>
                         <span className="tabular-nums tracking-tight text-[9px] font-black">
-                          {formatMoney(quickSellAmount)}
+                          {sellCapSpent ? t('packOpeningOverlay.sellCapSpentHint') : formatMoney(quickSellAmount)}
                         </span>
                       </button>
                     </motion.div>

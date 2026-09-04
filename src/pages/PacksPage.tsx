@@ -274,24 +274,40 @@ const PacksPage = () => {
     // twice and mutate openedPacks records out from under the iteration.
     setBusy(true);
     let total = 0;
-    let sold = 0;
+    const soldIds = new Set<string>();
     let lastError: string | undefined;
     for (const p of remaining) {
       const result = quickSellPackedPlayer(p.id);
       if (result.success && typeof result.amount === 'number') {
         total += result.amount;
-        sold += 1;
+        soldIds.add(p.id);
       } else if (!result.success) {
         lastError = result.message;
       }
     }
     setBusy(false);
-    if (sold > 0) {
+    // ONLY the cards the slice actually took leave the reveal. The quick-sell
+    // cap is a budget for the whole open drawn down sale by sale, so a pack
+    // worth more than the cap sells its first cards and REFUSES the tail
+    // (`quickSellPackedPlayer` returns success: false rather than taking a
+    // player for £0). Clearing the grid unconditionally told the user those
+    // refused cards were sold when they were still on the squad — the reveal
+    // was reporting an outcome the store never agreed to.
+    setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => !soldIds.has(p.id)) } : prev);
+    const sold = soldIds.size;
+    const unsold = remaining.length - sold;
+    if (sold > 0 && unsold > 0) {
+      // Partial is not a success — say what was sold, what was kept, and why,
+      // using the slice's own refusal message rather than assuming the cap.
+      infoToast(
+        `Sold ${sold} of ${remaining.length}`,
+        `+${formatMoney(total)} to budget. ${unsold} still in your squad.${lastError ? ` ${lastError}` : ''}`,
+      );
+    } else if (sold > 0) {
       successToast(`Sold ${sold} player${sold === 1 ? '' : 's'}`, `+${formatMoney(total)} to budget.`);
     } else if (lastError) {
       errorToast('Cannot sell all', lastError);
     }
-    setOpening(prev => prev ? { ...prev, players: [] } : prev);
   };
 
   useEffect(() => {

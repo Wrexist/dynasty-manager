@@ -550,6 +550,8 @@ export const en = {
   'transferNegotiation.yourTransferOffer': 'Your transfer offer',
   'welcomeOverlay.skipTutorial': 'Skip tutorial',
   'packOpeningOverlay.sell': 'Sell',
+  'packOpeningOverlay.sellCapSpent': 'Cap Spent',
+  'packOpeningOverlay.sellCapSpentHint': 'List Instead',
   'packOpeningOverlay.guaranteeUnlocked': 'Guarantee Unlocked',
   'walkoutReveal.skip': 'Skip',
   'walkoutReveal.skipCinematic': 'Skip cinematic',
