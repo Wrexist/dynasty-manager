@@ -61,6 +61,15 @@ export function errorToast(title: string, description?: string) {
 
 /** Blue info toast matching the game's dark theme. No haptic — purely
  *  informational. */
-export function infoToast(title: string, description?: string) {
-  toast(title, { description, duration: 3000, style: INFO_STYLE });
+export function infoToast(
+  title: string,
+  description?: string,
+  options?: { action?: { label: string; duration?: number; onClick: () => void }; duration?: number },
+) {
+  toast(title, {
+    description,
+    duration: options?.duration ?? 3000,
+    style: INFO_STYLE,
+    ...(options?.action ? { action: { label: options.action.label, onClick: options.action.onClick } } : {}),
+  });
 }
