@@ -568,33 +568,58 @@ export const MAX_WALKOUTS_PER_PACK = 1;
  */
 export const PACK_WAGE_FACTOR = 0.55;
 
-/** Fraction of a pulled player's market value returned by quick-sell.
- *  Lives here rather than inline in `packsSlice` per the no-hardcoded-balance
- *  rule — it is the exchange rate between the pack economy and the transfer
- *  budget, and it belongs next to the packs it prices. */
+/** Rate quick-sell pays on the first {@link PACK_QUICK_SELL_TAPER_ABOVE} of a
+ *  card's market value. Lives here rather than inline in `packsSlice` per the
+ *  no-hardcoded-balance rule — it is the exchange rate between the pack economy
+ *  and the transfer budget, and it belongs next to the packs it prices. */
 export const PACK_QUICK_SELL_RATE = 0.65;
 
-/** Hard ceiling on a single quick-sell refund.
+/** Where the quick-sell rate steps down. Value up to here pays
+ *  `PACK_QUICK_SELL_RATE`; every pound above it pays
+ *  `PACK_QUICK_SELL_TAPER_RATE`. */
+export const PACK_QUICK_SELL_TAPER_ABOVE = 10_000_000;
+
+/** Rate paid on the portion of a card's value above the taper threshold. */
+export const PACK_QUICK_SELL_TAPER_RATE = 0.20;
+
+/**
+ * What quick-sell pays for one card. THE single source of truth for that
+ * number — the reveal screen's SELL labels and the slice's actual payout both
+ * call this, so a displayed price can never drift from the credited amount.
  *
- *  Quick-sell exists so a pull you don't want never clogs the squad — it is a
- *  convenience for clearing filler, and filler (60s–70s, £2–20M book) passes
- *  under this cap untouched. What it must NOT be is a liquidation channel:
- *  measured before the cap, one $9.99 Legends pull carried ~£196M of book
- *  value, which quick-sold for ~£127M — more cash than most clubs' entire
- *  transfer budget, minted at reveal time by a tap. Real money must never
- *  convert into decisive in-game cash on the spot.
+ * Quick-sell exists so a pull you don't want never clogs the squad. Filler
+ * (60s–70s, £2–20M book) is the case it is FOR, and it passes at the full
+ * rate. What it must NOT be is a liquidation channel: measured before any
+ * clipping, one $9.99 Legends pull carried ~£196M of book value, which
+ * quick-sold for ~£127M — more cash than most clubs' entire transfer budget,
+ * minted at reveal time by a tap. Real money must never convert into decisive
+ * in-game cash on the spot.
  *
- *  Selling a star the slow way still works where a buyer exists: list him and
- *  wait for a club that can afford him, like any other transfer. At the very
- *  top that buyer may never come — AI bids require a budget ~1.2× the fee, and
- *  no club can bid on a £600M Legends card — and that is accepted: a card like
- *  that IS squad strength, not a cash instrument, and giving it a guaranteed
- *  cash exit is precisely the faucet this cap closes.
+ * This used to be a flat £10M ceiling on the whole open (PACK_QUICK_SELL_CAP,
+ * removed). That clipped the jackpot correctly but punished the CHEAP packs
+ * hardest, which is backwards: a $2.99 Champions pack books ~£35M across five
+ * ordinary cards and could only ever realise £10M of it, so the tail of every
+ * Sell All was refused. The taper fixes the shape. Because it applies per card
+ * on VALUE — not per open on sale order — it is order-independent, nothing is
+ * ever refused or dimmed, a whole pack always sells, and the clipping still
+ * lands where it was always aimed:
  *
- *  The cap is PER OPEN, drawn down sale by sale (see
- *  `OpenedPackRecord.quickSoldTotal`). Per card it degenerated into a flat
- *  n × cap payout on Sell All. */
-export const PACK_QUICK_SELL_CAP = 10_000_000;
+ *   £4M filler   → £2.6M   (full rate — unchanged, this is the common case)
+ *   £12M card    → £6.9M
+ *   £25M card    → £9.5M
+ *   £130M icon   → £30.5M  (was ~£85M uncapped, ~£10M under the flat cap)
+ *
+ * Selling a star the slow way still works where a buyer exists: list him and
+ * wait for a club that can afford him, like any other transfer. At the very
+ * top that buyer may never come — AI bids require a budget ~1.2× the fee — and
+ * that is accepted: a card like that IS squad strength, not a cash instrument.
+ */
+export function quickSellValue(marketValue: number): number {
+  const value = Math.max(0, marketValue || 0);
+  const atFullRate = Math.min(value, PACK_QUICK_SELL_TAPER_ABOVE);
+  const aboveThreshold = Math.max(0, value - PACK_QUICK_SELL_TAPER_ABOVE);
+  return Math.round(atFullRate * PACK_QUICK_SELL_RATE + aboveThreshold * PACK_QUICK_SELL_TAPER_RATE);
+}
 
 /** ── AI counter-signings (league-balance scaling) ──
  *  Each pack the user opens triggers a small set of AI signings that keep

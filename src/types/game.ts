@@ -2569,6 +2569,23 @@ export interface QuickSellPackedPlayerResult {
   amount?: number;
 }
 
+/** Outcome of selling a SELECTED set of just-packed cards in one action.
+ *  Reports the sales that actually happened rather than assuming the whole
+ *  selection went through — the reveal screen may only drop the cards named in
+ *  `soldIds`, and anything refused is still a squad player. */
+export interface QuickSellPackedPlayersResult {
+  /** True when at least one card sold. */
+  success: boolean;
+  /** Ids the store actually sold, in the order they were sold. */
+  soldIds: string[];
+  /** Total credited to the club budget across the batch. */
+  total: number;
+  /** How many of the requested ids were refused. */
+  refusedCount: number;
+  /** The last refusal reason, when anything was refused. */
+  message?: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Page-local UI types — centralized here per CLAUDE.md single-source-of-truth
 // rule ("NEVER create type files outside src/types/game.ts"). Each block notes
