@@ -7,7 +7,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { writeDailyPackOpens, currentDayIndex } from '@/store/helpers/persistence';
-import { PACK_QUICK_SELL_CAP, PACK_QUICK_SELL_RATE } from '@/config/packs';
+import { PACK_QUICK_SELL_RATE, PACK_QUICK_SELL_TAPER_ABOVE, PACK_QUICK_SELL_TAPER_RATE, quickSellValue } from '@/config/packs';
+import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
 
 const CLUB_ID = 'celtic';
 
@@ -32,7 +33,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     const target = open.players![0];
 
     const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
-    const expectedAmount = Math.max(0, Math.round((target.value || 0) * 0.65));
+    const expectedAmount = quickSellValue(target.value);
 
     const result = useGameStore.getState().quickSellPackedPlayer(target.id);
     expect(result.success).toBe(true);
@@ -167,70 +168,63 @@ describe('packsSlice — quickSellPackedPlayer', () => {
   });
 });
 
-describe('packsSlice — quick-sell cap', () => {
-  it('the cap is a budget for the whole open, not a per-card rate', () => {
-    // Per card, every Elite-or-better card from ~75 OVR up hit the cap, so
-    // Sell All paid n × cap and a $4.99 pack still minted ~£50M at reveal —
-    // the exact faucet the cap exists to close, at a 4× discount. Per open,
-    // however the cards are sold, the pack refunds at most one cap in total.
-    const open = useGameStore.getState().openPack('daily');
+describe('packsSlice — quick-sell taper', () => {
+  it('pays the full rate below the threshold and the taper rate above it', () => {
+    // The pricing model in one assertion. A flat cap used to clip the CHEAP
+    // packs hardest — a $2.99 pack booking ~£35M could only ever realise £10M
+    // — so the clip moved onto each card's value instead. Order-independent by
+    // construction, which is what lets a whole pack sell in one action.
+    expect(quickSellValue(4_000_000)).toBe(Math.round(4_000_000 * PACK_QUICK_SELL_RATE));
+    expect(quickSellValue(PACK_QUICK_SELL_TAPER_ABOVE)).toBe(
+      Math.round(PACK_QUICK_SELL_TAPER_ABOVE * PACK_QUICK_SELL_RATE),
+    );
+    expect(quickSellValue(PACK_QUICK_SELL_TAPER_ABOVE + 20_000_000)).toBe(
+      Math.round(PACK_QUICK_SELL_TAPER_ABOVE * PACK_QUICK_SELL_RATE + 20_000_000 * PACK_QUICK_SELL_TAPER_RATE),
+    );
+    expect(quickSellValue(0)).toBe(0);
+    expect(quickSellValue(undefined as unknown as number)).toBe(0);
+  });
+
+  it('still clips a jackpot card hard — real money must not mint decisive cash', () => {
+    // The reason any clipping exists: an unclipped £196M Legends pull
+    // quick-sold for ~£127M, more than most clubs' entire transfer budget.
+    const jackpot = quickSellValue(196_000_000);
+    expect(jackpot).toBeLessThan(196_000_000 * PACK_QUICK_SELL_RATE * 0.5);
+    expect(jackpot).toBeGreaterThan(0);
+  });
+
+  it('is monotonic — a better card is never worth less', () => {
+    let prev = -1;
+    for (const v of [0, 1_000_000, 9_999_999, 10_000_000, 10_000_001, 50_000_000, 200_000_000]) {
+      const paid = quickSellValue(v);
+      expect(paid).toBeGreaterThanOrEqual(prev);
+      prev = paid;
+    }
+  });
+
+  it('never refuses a sale on price — every card in a pack can be sold', () => {
+    // What the flat per-open cap got wrong: after it was spent the slice had to
+    // REFUSE, so the tail of every Sell All silently failed. Nothing about
+    // price can refuse a sale now.
+    const open = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
     expect(open.success).toBe(true);
-    const [a, b, c] = open.players!;
-
-    // Three stars: the first sale drains the whole cap; every later sale is
-    // REFUSED rather than silently taking the player for £0 — a £0 "sale"
-    // would also burn the undo snapshot on nothing.
-    const inflate = (p: typeof a, value: number) => useGameStore.setState({
-      players: { ...useGameStore.getState().players, [p.id]: { ...useGameStore.getState().players[p.id], value } },
+    const dealt = open.players!;
+    // Inflate every card past the threshold so each one exercises the taper.
+    useGameStore.setState({
+      players: Object.fromEntries(
+        Object.entries(useGameStore.getState().players).map(([id, pl]) => [
+          id,
+          dealt.some(d => d.id === id) ? { ...pl, value: 200_000_000 } : pl,
+        ]),
+      ),
     });
-    inflate(a, 200_000_000);
-    inflate(b, 200_000_000);
-    inflate(c, 4_000_000);
-
-    const first = useGameStore.getState().quickSellPackedPlayer(a.id);
-    expect(first.success).toBe(true);
-    expect(first.amount).toBe(PACK_QUICK_SELL_CAP);
-
-    const second = useGameStore.getState().quickSellPackedPlayer(b.id);
-    expect(second.success).toBe(false);
-    expect(second.message).toMatch(/cap/i);
-    // The refused player is still on the squad, untouched.
+    for (const p of dealt) {
+      expect(useGameStore.getState().quickSellPackedPlayer(p.id).success).toBe(true);
+    }
     const clubId = useGameStore.getState().playerClubId;
-    expect(useGameStore.getState().players[b.id].clubId).toBe(clubId);
-    expect(useGameStore.getState().clubs[clubId].playerIds).toContain(b.id);
-
-    // The ledger is on the record, so the UI can reprice its SELL labels.
-    expect(useGameStore.getState().openedPacks[0].quickSoldTotal).toBe(PACK_QUICK_SELL_CAP);
-
-    const third = useGameStore.getState().quickSellPackedPlayer(c.id);
-    expect(third.success).toBe(false);
-  });
-
-  it('filler passes under the cap untouched — quick-sell is FOR filler', () => {
-    const open = useGameStore.getState().openPack('daily');
-    const filler = open.players![0];
-    useGameStore.setState({
-      players: { ...useGameStore.getState().players, [filler.id]: { ...useGameStore.getState().players[filler.id], value: 4_000_000 } },
-    });
-    const sold = useGameStore.getState().quickSellPackedPlayer(filler.id);
-    expect(sold.success).toBe(true);
-    expect(sold.amount).toBe(Math.round(4_000_000 * PACK_QUICK_SELL_RATE));
-    expect(useGameStore.getState().openedPacks[0].quickSoldTotal).toBe(sold.amount);
-  });
-
-  it('undo restores the drawn-down cap along with everything else', () => {
-    // The refund ledger rides on openedPacks[0], which the undo snapshot
-    // already captures — this pins that a reverted sale re-arms the cap
-    // rather than leaving it half-spent against a sale that never happened.
-    const open = useGameStore.getState().openPack('daily');
-    const target = open.players![0];
-    useGameStore.setState({
-      players: { ...useGameStore.getState().players, [target.id]: { ...useGameStore.getState().players[target.id], value: 200_000_000 } },
-    });
-    useGameStore.getState().quickSellPackedPlayer(target.id);
-    expect(useGameStore.getState().openedPacks[0].quickSoldTotal).toBe(PACK_QUICK_SELL_CAP);
-    expect(useGameStore.getState().undoLastQuickSell()).toBe(true);
-    expect(useGameStore.getState().openedPacks[0].quickSoldTotal ?? 0).toBe(0);
+    for (const p of dealt) {
+      expect(useGameStore.getState().clubs[clubId].playerIds).not.toContain(p.id);
+    }
   });
 });
 
@@ -387,5 +381,115 @@ describe('packsSlice — undoLastQuickSell', () => {
     useGameStore.getState().quickSellPackedPlayer(target.id);
     useGameStore.getState().openPack('daily'); // invalidates the snapshot
     expect(useGameStore.getState().undoLastQuickSell()).toBe(false);
+  });
+});
+
+/**
+ * Selling a SELECTED set of cards in one action.
+ *
+ * The reveal screen is opt-in: nothing is pre-ticked, and `quickSellPackedPlayers`
+ * sells exactly the ids handed to it. The two things that must hold are that
+ * the money it reports is the money the budget receives, and that ONE Undo
+ * reverts the WHOLE batch — a per-sale snapshot would revert only the last
+ * card and leave the rest sold, which is not what a batch Undo means.
+ */
+describe('packsSlice — quickSellPackedPlayers (batch)', () => {
+  it('sells exactly the selected ids and leaves the rest on the squad', () => {
+    const open = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
+    const dealt = open.players!;
+    const picked = [dealt[0].id, dealt[2].id];
+    const clubId = useGameStore.getState().playerClubId;
+
+    const result = useGameStore.getState().quickSellPackedPlayers(picked);
+
+    expect(result.success).toBe(true);
+    expect(result.soldIds).toEqual(picked);
+    expect(result.refusedCount).toBe(0);
+
+    const state = useGameStore.getState();
+    for (const p of dealt) {
+      const shouldBeSold = picked.includes(p.id);
+      expect(state.clubs[clubId].playerIds.includes(p.id)).toBe(!shouldBeSold);
+    }
+  });
+
+  it('the reported total is exactly what the budget receives', () => {
+    // The trust invariant. The sell bar renders this same sum from the same
+    // per-card function, so the button cannot promise a number the store
+    // will not pay.
+    const open = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
+    const dealt = open.players!;
+    const ids = dealt.map(p => p.id);
+    const clubId = useGameStore.getState().playerClubId;
+    const expected = dealt.reduce((sum, p) => sum + quickSellValue(p.value), 0);
+    const budgetBefore = useGameStore.getState().clubs[clubId].budget;
+
+    const result = useGameStore.getState().quickSellPackedPlayers(ids);
+
+    expect(result.total).toBe(expected);
+    expect(useGameStore.getState().clubs[clubId].budget - budgetBefore).toBe(result.total);
+  });
+
+  it('one Undo reverts the WHOLE batch, not just the last card', () => {
+    const open = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
+    const dealt = open.players!;
+    const ids = dealt.map(p => p.id);
+    const clubId = useGameStore.getState().playerClubId;
+    const budgetBefore = useGameStore.getState().clubs[clubId].budget;
+
+    const result = useGameStore.getState().quickSellPackedPlayers(ids);
+    expect(result.soldIds.length).toBe(dealt.length);
+
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(true);
+
+    const state = useGameStore.getState();
+    expect(state.clubs[clubId].budget).toBe(budgetBefore);
+    for (const p of dealt) {
+      expect(state.clubs[clubId].playerIds).toContain(p.id);
+      expect(state.players[p.id].clubId).toBe(clubId);
+    }
+    // Snapshot consumed — a second Undo must not double-restore.
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(false);
+  });
+
+  it('reports a partial batch honestly when the squad floor refuses the tail', () => {
+    // Price can no longer refuse anything, but MIN_SQUAD_SIZE still can. The
+    // caller must be able to tell which cards it may drop from the reveal, so
+    // a refused card is never cleared as if it had sold.
+    const open = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
+    const dealt = open.players!;
+    const clubId = useGameStore.getState().playerClubId;
+    const club = useGameStore.getState().clubs[clubId];
+
+    // Sit the squad exactly one player above the floor, with two pack cards on
+    // it: the first sale is allowed, the second drops below and is refused.
+    const packIds = dealt.map(p => p.id);
+    const others = club.playerIds.filter(id => !packIds.includes(id)).slice(0, MIN_SQUAD_SIZE - 1);
+    const sellable = packIds.slice(0, 2);
+    const keep = [...others, ...sellable];
+    expect(keep.length).toBe(MIN_SQUAD_SIZE + 1);
+    useGameStore.setState({
+      clubs: { ...useGameStore.getState().clubs, [clubId]: { ...club, playerIds: keep } },
+    });
+
+    const result = useGameStore.getState().quickSellPackedPlayers(sellable);
+
+    expect(result.success).toBe(true);
+    expect(result.soldIds).toEqual([sellable[0]]);
+    expect(result.refusedCount).toBe(1);
+    expect(result.message).toMatch(/minimum size/i);
+    // The refused card is untouched — still owned, still on the squad.
+    expect(useGameStore.getState().players[sellable[1]].clubId).toBe(clubId);
+    expect(useGameStore.getState().clubs[clubId].playerIds).toContain(sellable[1]);
+  });
+
+  it('an empty selection is a no-op', () => {
+    useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
+    const clubId = useGameStore.getState().playerClubId;
+    const before = useGameStore.getState().clubs[clubId].budget;
+    const result = useGameStore.getState().quickSellPackedPlayers([]);
+    expect(result.success).toBe(false);
+    expect(result.total).toBe(0);
+    expect(useGameStore.getState().clubs[clubId].budget).toBe(before);
   });
 });

@@ -18,6 +18,8 @@ import { PlayerCard } from './PlayerCard';
 import { PlayerStatusBadges } from './PlayerStatusBadges';
 import { cn } from '@/lib/utils';
 import { getPlayerTier } from '@/utils/uiHelpers';
+import { derivePlayerStanding } from '@/utils/playerStanding';
+import { useGameStore } from '@/store/gameStore';
 
 interface PlayerHeroCardProps {
   player: Player;
@@ -40,6 +42,14 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
   const potentialGap = Math.max(0, player.potential - player.overall);
   const skillMoves = player.skillMoves ?? 0;
   const growth = player.growthDelta;
+  // Season-cumulative growth. The tracker has always held this — the growth cap
+  // maintains it per player and it is saved with the game — but nothing ever
+  // read it, so the one number that says "this player is becoming someone"
+  // never reached the screen. `growthDelta` above is only THIS WEEK's tick.
+  const seasonGrowth = useGameStore(s => s.seasonGrowthTracker?.[player.id] ?? 0);
+  const standing = season != null
+    ? derivePlayerStanding(player, { season, seasonGrowth })
+    : null;
   const tier = getPlayerTier(player.overall);
 
   const ariaLabel = [
@@ -117,6 +127,16 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
                 Maxed out
               </span>
             </div>
+          )}
+
+          {/* Standing — the one thing worth saying about this player, or
+              nothing at all. Most of the squad, most of the time, has no
+              headline, and that restraint is what makes the ones that do
+              land. Derived, never persisted. */}
+          {standing?.headline && (
+            <p className="mt-2 text-[11px] font-semibold text-primary/90 leading-snug">
+              {standing.headline}
+            </p>
           )}
 
           {/* Meta rows — age, nationality, body, skill moves */}

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, animate, useAnimationFrame, useMotionValue, useTransform } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
-import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_QUICK_SELL_CAP, PACK_QUICK_SELL_RATE, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_QUICK_SELL_RATE, PACK_QUICK_SELL_TAPER_ABOVE, PACK_QUICK_SELL_TAPER_RATE, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD, quickSellValue } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { formatMoney } from '@/utils/helpers';
@@ -56,14 +56,13 @@ interface PackOpeningOverlayProps {
   players: Player[];
   pityTriggered?: boolean;
   onClose: () => void;
-  /** Keep the pulled player — just removes them from the summary view. */
-  onKeep?: (playerId: string) => void;
-  /** Quick-sell the pulled player at the config rate, capped — see PACK_QUICK_SELL_CAP. */
-  onQuickSell?: (playerId: string) => void;
   /** Bulk-keep every remaining player in the summary. */
   onKeepAll?: () => void;
-  /** Bulk quick-sell every remaining player in the summary. */
-  onSellAll?: () => void;
+  /** Quick-sell exactly the cards the user selected, in selection order.
+   *  Selection is the ONLY sell path on this screen: anything the user does
+   *  not tick is kept, so there is no way to sell a card without having
+   *  pointed at it. Omit to disable selling entirely (replays, ad capture). */
+  onSellSelected?: (playerIds: string[]) => void;
   /** Per-player placement map from openPack so the reveal modal can badge pulls. */
   placement?: Record<string, PackPlayerPlacement>;
   /** Optional "+X OVR vs current best at this position" map. Only entries
@@ -71,12 +70,6 @@ interface PackOpeningOverlayProps {
    *  on key presence alone. Computed by the parent (which has the squad in
    *  state) and passed in. */
   improvement?: Record<string, { delta: number; currentBestOvr: number }>;
-  /** What is left of this open's quick-sell cap (PACK_QUICK_SELL_CAP minus
-   *  refunds already taken). The cap is per OPEN, so every SELL label must be
-   *  priced against the live remainder — a per-card min(cap, value×rate) would
-   *  promise money the slice will not pay. Defaults to the full cap for
-   *  replays, where selling is disabled anyway. */
-  quickSellRemaining?: number;
 }
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -99,7 +92,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement, quickSellRemaining = PACK_QUICK_SELL_CAP }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeepAll, onSellSelected, placement, improvement }: PackOpeningOverlayProps) {
   const { t } = useTranslation();
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotionPref();
@@ -111,6 +104,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   const [lastRevealedId, setLastRevealedId] = useState<string | null>(null);
   const [walkoutQueue, setWalkoutQueue] = useState<Player[]>([]);
   const [currentWalkout, setCurrentWalkout] = useState<Player | null>(null);
+  // Cards the user has ticked for sale. Starts EMPTY and stays opt-in: nothing
+  // is ever pre-selected, so a mistap can't sell a card the user never looked
+  // at, and the Sell button is disabled until they point at something.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Whether the "how is this priced?" line is expanded on the sell bar.
+  const [showSellPricing, setShowSellPricing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   // Charge-phase scheduling lives in refs so a user tap-to-rip can cancel
   // the auto-advance timer/interval without depending on stale state.
@@ -141,6 +140,21 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       chargeRumbleRef.current = null;
     }
   }, []);
+
+  // Drop ids the parent has removed (sold, or the pack closed) so a stale
+  // selection can never price or sell a card that is no longer on screen.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const live = new Set(players.map(p => p.id));
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (live.has(id)) next.add(id); else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [players]);
 
   // Auto-close once the user has dismissed every card from the summary.
   // Without this they're left staring at "Added to Squad" with no cards.
@@ -1571,12 +1585,24 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             )}
           >
             {displayPlayers.map((p, i) => {
-              const quickSellAmount = Math.min(quickSellRemaining, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)));
+              // Priced by the SAME function the store pays out with, so the
+              // number under the card is the number that reaches the budget.
+              const quickSellAmount = quickSellValue(p.value);
+              const selected = selectedIds.has(p.id);
               const upgrade = improvement?.[p.id];
               const placementLabel = placement?.[p.id] ? PLACEMENT_LABEL[placement[p.id]] : null;
               return (
                 <motion.div key={p.id} layout="position" className="flex flex-col items-center gap-2">
-                  <div className="relative" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
+                  <div
+                    className={cn(
+                      'relative rounded-2xl transition-[box-shadow,transform] duration-200',
+                      // The ring is the selection state on the artwork itself,
+                      // so a glance at the grid answers "what am I selling?"
+                      // without reading five price chips.
+                      phase === 'summary' && selected && 'shadow-[0_0_0_3px_rgba(251,191,36,0.95),0_10px_30px_-10px_rgba(251,191,36,0.6)]',
+                    )}
+                    style={{ width: PLAYER_CARD_SIZE_PX.lg }}
+                  >
                     <PackCard
                       player={p}
                       revealed={revealedSet.has(p.id) || phase === 'summary'}
@@ -1625,127 +1651,146 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                       </motion.div>
                     )}
                   </div>
-                  {phase === 'summary' && (onKeep || onQuickSell) && (
-                    <motion.div
-                      className="flex gap-1.5"
+                  {phase === 'summary' && onSellSelected && (
+                    <motion.button
+                      type="button"
+                      onClick={() => {
+                        hapticLight();
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                          return next;
+                        });
+                      }}
+                      aria-pressed={selected}
+                      aria-label={`${selected ? 'Deselect' : 'Select'} ${p.firstName} ${p.lastName} to sell for ${formatMoney(quickSellAmount)}`}
+                      className={cn(
+                        'flex items-center justify-center gap-1.5 py-1.5 rounded-xl',
+                        'text-[10px] font-display font-bold uppercase tracking-[0.14em] leading-none',
+                        'border transition-[background-color,border-color,color] duration-150 active:scale-[0.97]',
+                        selected
+                          ? 'text-amber-950 bg-gradient-to-b from-amber-300 to-amber-500 border-amber-200/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_6px_16px_-8px_rgba(251,191,36,0.55)]'
+                          : 'text-white/80 bg-white/10 border-white/25 backdrop-blur-xl',
+                      )}
                       style={{ width: PLAYER_CARD_SIZE_PX.lg }}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
                     >
-                      <button
-                        type="button"
-                        onClick={() => onKeep?.(p.id)}
-                        disabled={!onKeep}
-                        className={cn(
-                          'flex-1 py-2 rounded-xl text-[10px] font-display font-bold uppercase tracking-[0.18em]',
-                          'text-white bg-white/10 border border-white/25 backdrop-blur-xl backdrop-saturate-150',
-                          'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(0,0,0,0.55)]',
-                          'active:scale-[0.97] active:bg-white/15 transition-[transform,background-color] duration-150',
-                          'disabled:opacity-40 disabled:cursor-not-allowed',
-                        )}
-                      >
-                        Keep
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onQuickSell?.(p.id)}
-                        disabled={!onQuickSell || quickSellAmount <= 0}
-                        aria-label={`Quick sell for ${formatMoney(quickSellAmount)}`}
-                        className={cn(
-                          'flex-1 py-2 rounded-xl text-[10px] font-display font-bold uppercase tracking-[0.08em] leading-tight',
-                          'text-amber-950 bg-gradient-to-b from-amber-300 to-amber-500 border border-amber-200/70',
-                          'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(120,60,0,0.35),0_6px_16px_-8px_rgba(251,191,36,0.55)]',
-                          'active:scale-[0.97] transition-[transform] duration-150',
-                          'disabled:opacity-40 disabled:cursor-not-allowed',
-                          'flex flex-col items-center justify-center',
-                        )}
-                      >
-                        <span>{t('packOpeningOverlay.sell')}</span>
-                        <span className="tabular-nums tracking-tight text-[9px] font-black">
-                          {formatMoney(quickSellAmount)}
-                        </span>
-                      </button>
-                    </motion.div>
+                      <span className="tabular-nums tracking-tight font-black">{formatMoney(quickSellAmount)}</span>
+                      <span className="opacity-70">{selected ? t('packOpeningOverlay.selling') : t('packOpeningOverlay.sell')}</span>
+                    </motion.button>
                   )}
                 </motion.div>
               );
             })}
           </div>
 
-          {phase === 'summary' && players.length >= 2 && (onKeepAll || onSellAll) && (() => {
-            // Sell All pays out of the same per-open cap the singles do, so
-            // its total is the SUM clamped to what is left of the cap.
-            const sellAllTotal = Math.min(
-              quickSellRemaining,
-              players.reduce(
-                (sum, p) => sum + Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)),
-                0,
-              ),
-            );
+          {phase === 'summary' && (onKeepAll || onSellSelected) && (() => {
+            // The bar total is the SUM of the same per-card function the store
+            // pays with, over exactly the ids that will be sent. No cap, no
+            // clamp, no second formula: what this button says is what lands in
+            // the budget.
+            const selectedPlayers = players.filter(p => selectedIds.has(p.id));
+            const sellTotal = selectedPlayers.reduce((sum, p) => sum + quickSellValue(p.value), 0);
+            const count = selectedPlayers.length;
             return (
               <motion.div
-                className="shrink-0 flex items-center gap-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),16px)]"
+                className="shrink-0 w-full max-w-[480px] pt-2 pb-[max(env(safe-area-inset-bottom),16px)]"
                 initial={{ opacity: 0, y: 90 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 220, damping: 26, delay: 0.1 + players.length * 0.04 }}
               >
-                <button
-                  type="button"
-                  onClick={() => { hapticLight(); onKeepAll?.(); }}
-                  disabled={!onKeepAll}
-                  className={cn(
-                    'relative overflow-hidden flex items-center justify-center',
-                    'min-w-[120px] h-11 px-5 rounded-full',
-                    'text-[11px] font-display font-bold uppercase tracking-[0.22em] text-white',
-                    'bg-gradient-to-b from-white/[0.14] to-white/[0.06]',
-                    'border border-white/25 backdrop-blur-2xl backdrop-saturate-150',
-                    'shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.32),0_10px_24px_-12px_rgba(0,0,0,0.55)]',
-                    'active:scale-[0.97] active:bg-white/[0.18] transition-[transform,background-color] duration-150',
-                    'disabled:opacity-40 disabled:cursor-not-allowed',
-                  )}
-                >
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full"
-                    style={{
-                      background:
-                        'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 38%, rgba(255,255,255,0) 70%)',
-                      mixBlendMode: 'screen',
+                {/* How the number is reached. Part of the money button, not a
+                    buried FAQ — an unexplained figure on a sell control is the
+                    definition of an ambiguous value. */}
+                {onSellSelected && (
+                  <div className="flex justify-center pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSellPricing(v => !v)}
+                      aria-expanded={showSellPricing}
+                      className="px-2 py-1 rounded-md text-[10px] text-white/55 hover:text-white/80 active:text-white/90 transition-colors text-center max-w-[340px]"
+                    >
+                      {showSellPricing
+                        ? t('packOpeningOverlay.sellPricingDetail', {
+                            rate: Math.round(PACK_QUICK_SELL_RATE * 100),
+                            threshold: formatMoney(PACK_QUICK_SELL_TAPER_ABOVE),
+                            taper: Math.round(PACK_QUICK_SELL_TAPER_RATE * 100),
+                          })
+                        : t('packOpeningOverlay.sellPricingHint')}
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => { hapticLight(); onKeepAll?.(); }}
+                    disabled={!onKeepAll}
+                    className={cn(
+                      'relative overflow-hidden flex items-center justify-center',
+                      'min-w-[120px] h-11 px-5 rounded-full',
+                      'text-[11px] font-display font-bold uppercase tracking-[0.22em] text-white',
+                      'bg-gradient-to-b from-white/[0.14] to-white/[0.06]',
+                      'border border-white/25 backdrop-blur-2xl backdrop-saturate-150',
+                      'shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.32),0_10px_24px_-12px_rgba(0,0,0,0.55)]',
+                      'active:scale-[0.97] active:bg-white/[0.18] transition-[transform,background-color] duration-150',
+                      'disabled:opacity-40 disabled:cursor-not-allowed',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full"
+                      style={{
+                        background:
+                          'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 38%, rgba(255,255,255,0) 70%)',
+                        mixBlendMode: 'screen',
+                      }}
+                    />
+                    <span className="relative">{t('packOpeningOverlay.keepAll')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (count === 0) return;
+                      hapticMedium();
+                      onSellSelected?.(selectedPlayers.map(p => p.id));
                     }}
-                  />
-                  <span className="relative">Keep All</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { hapticMedium(); onSellAll?.(); }}
-                  disabled={!onSellAll || sellAllTotal <= 0}
-                  aria-label={`Sell all for ${formatMoney(sellAllTotal)}`}
-                  className={cn(
-                    'relative overflow-hidden flex flex-col items-center justify-center leading-tight',
-                    'min-w-[140px] h-11 px-5 rounded-full',
-                    'text-amber-950',
-                    'bg-gradient-to-b from-amber-200 via-amber-300 to-amber-500',
-                    'border border-amber-100/80',
-                    'shadow-[inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(120,60,0,0.4),0_10px_28px_-10px_rgba(251,191,36,0.6)]',
-                    'active:scale-[0.97] transition-[transform] duration-150',
-                    'disabled:opacity-40 disabled:cursor-not-allowed',
-                  )}
-                >
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full"
-                    style={{
-                      background:
-                        'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0) 72%)',
-                      mixBlendMode: 'screen',
-                    }}
-                  />
-                  <span className="relative text-[11px] font-display font-bold uppercase tracking-[0.18em]">Sell All</span>
-                  <span className="relative tabular-nums tracking-tight text-[10px] font-black">
-                    {formatMoney(sellAllTotal)}
-                  </span>
-                </button>
+                    // Disabled at zero selected — nothing is pre-ticked, so the
+                    // sell path cannot fire until the user has pointed at a card.
+                    disabled={!onSellSelected || count === 0}
+                    aria-label={
+                      count === 0
+                        ? 'Select cards to sell'
+                        : `Sell ${count} selected card${count === 1 ? '' : 's'} for ${formatMoney(sellTotal)}`
+                    }
+                    className={cn(
+                      'relative overflow-hidden flex-1 flex flex-col items-center justify-center leading-tight',
+                      'h-11 px-5 rounded-full',
+                      'text-amber-950',
+                      'bg-gradient-to-b from-amber-200 via-amber-300 to-amber-500',
+                      'border border-amber-100/80',
+                      'shadow-[inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(120,60,0,0.4),0_10px_28px_-10px_rgba(251,191,36,0.6)]',
+                      'active:scale-[0.97] transition-[transform,opacity] duration-150',
+                      'disabled:opacity-40 disabled:cursor-not-allowed',
+                    )}
+                  >
+                    {count === 0 ? (
+                      <span className="text-[11px] font-display font-bold uppercase tracking-[0.18em]">
+                        {t('packOpeningOverlay.selectToSell')}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-[11px] font-display font-bold uppercase tracking-[0.18em]">
+                          {t('packOpeningOverlay.sellCount', { count })}
+                        </span>
+                        <span className="text-[10px] font-black tabular-nums tracking-tight">
+                          +{formatMoney(sellTotal)}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </motion.div>
             );
           })()}
@@ -1773,7 +1818,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               (replay mode opens the overlay with only `onClose`), the grid
               otherwise offers no clickable way out and touch users are
               stuck. Keyboard users still have Escape. */}
-          {phase === 'summary' && !onKeep && !onQuickSell && (
+          {phase === 'summary' && !onKeepAll && !onSellSelected && (
             <motion.button
               type="button"
               onClick={onClose}

@@ -12,10 +12,26 @@
  * spells out exactly where to tap. Tapping "Take me there" navigates to
  * the actual screen.
  *
+ * The first row is a FOOTBALL decision, and the ordering is the point. The
+ * sponsor and scout rows are administration: worth doing, but neither changes
+ * how the team plays and neither has a consequence visible in the first match
+ * (a scout report lands weeks later). A new manager's opening lesson used to
+ * be "sign a sponsorship contract, then dispatch a scout", with the football
+ * itself filed under "optionally peek at Tactics".
+ *
+ * The game-plan row closes a loop that was already fully built and simply
+ * unadvertised: the match engine reads the plan, and PostMatchPopup renders a
+ * debrief line that only appears when a plan was set. Choose, play, find out
+ * whether it worked.
+ *
  * Visibility / completion rules — all derived from observable state, no
  * save migration:
  *   - Card hidden if: week !== 1, season !== 1, prestigeLevel > 0,
  *     settings.hideOnboarding === true, or session-dismissed.
+ *   - Game-plan row done when matchGamePlan !== 'none'; hidden entirely when
+ *     the club has no unplayed fixture this week, so a week-1 bye cannot
+ *     leave an un-tickable row (same problem the scout row solves by
+ *     swapping itself for the Staff hire row).
  *   - Sponsor row done when sponsorOffers.length === 0.
  *   - Scout row done when scouting.assignments.length > 0; hidden entirely
  *     when scouting.maxAssignments === 0 (user has no scout on staff
@@ -35,7 +51,7 @@ import { toast } from 'sonner';
 import { useGameStore } from '@/store/gameStore';
 import { ONBOARDING_COMPLETION_XP } from '@/config/gameBalance';
 import { useShallow } from 'zustand/react/shallow';
-import { Banknote, Search, Calendar, UserPlus, Check, X, ChevronRight, ArrowRight } from 'lucide-react';
+import { Banknote, Search, Calendar, UserPlus, ClipboardList, Check, X, ChevronRight, ArrowRight } from 'lucide-react';
 import type { GameScreen } from '@/types/game';
 import { hapticLight } from '@/utils/haptics';
 import { readSessionJson, writeSessionJson, STORAGE_KEYS } from '@/store/helpers/persistence';
@@ -64,7 +80,7 @@ interface ChecklistItem {
 
 export function OnboardingChecklist() {
   const { t } = useTranslation();
-  const { week, season, sponsorOffers, scouting, managerProgression, hideOnboarding } = useGameStore(
+  const { week, season, sponsorOffers, scouting, managerProgression, hideOnboarding, matchGamePlan, hasMatchThisWeek } = useGameStore(
     useShallow(s => ({
       week: s.week,
       season: s.season,
@@ -72,6 +88,15 @@ export function OnboardingChecklist() {
       scouting: s.scouting,
       managerProgression: s.managerProgression,
       hideOnboarding: s.settings.hideOnboarding,
+      matchGamePlan: s.matchGamePlan,
+      // The game-plan task is only offerable if there is actually a match to
+      // plan for. A club with a week-1 bye would otherwise get a row it
+      // cannot tick, which is the orphan-row problem the scout row already
+      // solves by swapping itself out.
+      hasMatchThisWeek: s.fixtures.some(
+        f => f.week === s.week && !f.played
+          && (f.homeClubId === s.playerClubId || f.awayClubId === s.playerClubId),
+      ),
     })),
   );
   const setScreen = useGameStore(s => s.setScreen);
@@ -94,7 +119,10 @@ export function OnboardingChecklist() {
   // the player to see it reach 2/2.
   const sponsorTaskDone = sponsorOffers.length === 0;
   const scoutTaskDone = scouting.maxAssignments > 0 && scouting.assignments.length > 0;
-  const allTasksDone = sponsorTaskDone && scoutTaskDone;
+  // Setting a plan is the one task that changes how the team plays, so it
+  // gates completion alongside the two admin rows.
+  const gamePlanTaskDone = !hasMatchThisWeek || matchGamePlan !== 'none';
+  const allTasksDone = gamePlanTaskDone && sponsorTaskDone && scoutTaskDone;
   const eligibleToShow =
     week === 1 && season === 1 &&
     (managerProgression?.prestigeLevel ?? 0) === 0 &&
@@ -136,6 +164,37 @@ export function OnboardingChecklist() {
   // scout from Staff" row when the user has no scout on payroll, so the
   // checklist never has an un-tickable orphan row.
   const items: ChecklistItem[] = [];
+
+  // FIRST, and deliberately so. The other two rows are administration — they
+  // are worth doing, but neither changes how the team plays and neither has a
+  // consequence the player can see in their first match. A new manager's
+  // opening lesson was "sign a sponsorship contract, then dispatch a scout
+  // whose report arrives in a month", with the football filed under
+  // "optionally peek at Tactics".
+  //
+  // This row is a football decision whose payoff is already built: the match
+  // engine reads the plan (counter-tactic bonuses in `engine/match.ts`) and
+  // `PostMatchPopup` renders a debrief line that ONLY appears when a plan was
+  // set. So choose -> play -> the game tells you whether it worked, which is
+  // the loop the first session has to teach. Nobody was being pointed at it.
+  if (hasMatchThisWeek) {
+    items.push({
+      id: 'game-plan',
+      label: 'Set a plan for your first match',
+      description: 'Read the opposition, then decide how you want to play them.',
+      icon: ClipboardList,
+      done: gamePlanTaskDone,
+      screen: 'match-prep',
+      whyItMatters: 'This is the job. Match Prep shows you what the opposition are good at, and your plan is how you answer it — shackle their danger man, target a weak flank, or sit deep and frustrate them. Every plan trades something away, so there is no free right answer. After the match, your debrief tells you whether the plan worked, so you learn something either way.',
+      steps: [
+        { text: 'Tap "Take me there" below, or tap the match card at the top of your Dashboard.' },
+        { text: 'Read the opposition panel first — it shows their form, their shape, and their danger man.' },
+        { text: 'Scroll to "Game Plan". You get four choices, including "No Special Plan".' },
+        { text: 'Tap the one that answers what you just read. Each card names what it costs you as well as what it gives.' },
+      ],
+      successCue: 'Your chosen plan stays highlighted and this row ticks. After the final whistle, the post-match summary adds a line telling you how the plan played out.',
+    });
+  }
 
   items.push({
     id: 'sponsor',
@@ -209,8 +268,8 @@ export function OnboardingChecklist() {
     screen: 'match-prep',
     whyItMatters: 'Time only moves when you advance it. The game pauses indefinitely between weeks so you can set tactics, manage transfers, and review scout reports. Once you advance, the next week begins and training fires.',
     steps: [
-      { text: 'Make sure you\'ve looked at Squad (bottom nav) — your starting XI is already set, but glance at it.' },
-      { text: 'Optionally peek at Tactics (bottom nav) — your default formation is 4-3-3.' },
+      { text: 'Check your starting XI under Squad (bottom nav) — one is already picked for you, but it is yours to change.' },
+      { text: 'Your game plan from the first task is already locked in for this match.' },
       // "Take me there" jumps straight to Match Prep; these steps describe
       // the manual route for users who prefer to navigate themselves.
       { text: 'Or tap "Take me there" below to jump straight to Match Prep.' },

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import type { RetiredLegend, OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
+import type { RetiredLegend, OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, Player, QuickSellPackedPlayerResult, QuickSellPackedPlayersResult, ReleasePackedPlayerResult } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
@@ -10,8 +10,6 @@ import {
   resolvePackTier,
   getFeaturedPackTier,
   WEEKLY_BONUS_CARDS,
-  PACK_QUICK_SELL_RATE,
-  PACK_QUICK_SELL_CAP,
   packFrameFor,
   packVersionBoostFor,
 } from '@/config/packs';
@@ -19,7 +17,7 @@ import { evaluateDailyStreak } from '@/utils/dailyStreak';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
 import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
-import { LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD, quickSellValue } from '@/config/packs';
 import { STAT_MAX as CAREER_STAT_MAX, GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_STAT_GROWTH } from '@/config/managerCareer';
 import { playPackSfx } from '@/utils/packAudio';
 import {
@@ -45,8 +43,36 @@ import {
  * few seconds while the "Undo" toast is on screen. Cleared on undo, on the next
  * pack open, or when the guard detects the world has moved on.
  */
-type QuickSellSnapshot = { playerId: string; week: number; season: number; patch: Partial<GameState> };
+type QuickSellSnapshot = { playerIds: string[]; week: number; season: number; patch: Partial<GameState> };
 let lastQuickSellSnapshot: QuickSellSnapshot | null = null;
+
+/** The slices a quick-sell touches, captured pre-sale so Undo can restore them
+ *  verbatim rather than recomputing a fragile inverse. Safe to hold by
+ *  reference: the store updates immutably, so these keep pointing at the
+ *  pre-sale data. Shared by the single and batch sell paths so a batch Undo
+ *  covers exactly the same ground as a single one. */
+function buildQuickSellSnapshotPatch(state: GameState): Partial<GameState> {
+  return {
+    players: state.players,
+    clubs: state.clubs,
+    freeAgents: state.freeAgents,
+    openedPacks: state.openedPacks,
+    messages: state.messages,
+    seasonTotalIncome: state.seasonTotalIncome,
+    transferMarket: state.transferMarket,
+    incomingOffers: state.incomingOffers,
+    incomingLoanOffers: state.incomingLoanOffers,
+    outgoingLoanRequests: state.outgoingLoanRequests,
+    activeLoans: state.activeLoans,
+    shortlist: state.shortlist,
+    scoutWatchList: state.scoutWatchList,
+    negotiationStrikes: state.negotiationStrikes,
+    contractStrikes: state.contractStrikes,
+    pendingFarewell: state.pendingFarewell,
+    pendingTransferTalk: state.pendingTransferTalk,
+    merchandise: state.merchandise,
+  };
+}
 
 /** Match transferSlice's challenge gate. Packs count as signings — respect
  *  noTransfers and youthOnly scenario flags. Returns a blocking message or
@@ -751,24 +777,14 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     if (club.playerIds.length <= MIN_SQUAD_SIZE) {
       return { success: false, message: `Cannot quick-sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
-    // The cap is a budget for the whole open, drawn down sale by sale. Per
-    // card it was a flat £10M exchange rate: every Elite-or-better card from
-    // ~75 OVR up hit it, so Sell All paid n × cap and a $4.99 pack still
-    // minted ~£50M at reveal (audit finding). Per open, a pack can refund at
-    // most one cap total, however it is sold.
+    // Priced by the shared taper — full rate on the first slice of the card's
+    // value, a low rate above it. `quickSellValue` is the ONE place that number
+    // is computed; the reveal screen's SELL label calls the same function, so a
+    // displayed price cannot drift from what the budget actually receives.
+    // Order-independent by construction, so no sale in a batch can be refused
+    // because an earlier one spent a shared budget.
     const alreadyRefunded = last.quickSoldTotal ?? 0;
-    const remainingCap = Math.max(0, PACK_QUICK_SELL_CAP - alreadyRefunded);
-    const uncapped = Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE));
-    // An exhausted cap must REFUSE, not silently take the player for £0 —
-    // that would also burn the undo snapshot on a sale worth nothing. A
-    // genuinely worthless card (uncapped 0) may still be cleared for £0.
-    if (uncapped > 0 && remainingCap === 0) {
-      return {
-        success: false,
-        message: 'Pack quick-sell cap reached for this pack — list the player on the transfer market or release them instead.',
-      };
-    }
-    const amount = Math.min(remainingCap, uncapped);
+    const amount = quickSellValue(player.value);
 
     const strippedClub = {
       ...club,
@@ -823,40 +839,17 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       season: state.season,
       type: 'transfer',
       title: `${player.lastName} Quick-Sold`,
-      // Only claim the rate when the payout actually followed it — a capped
-      // refund captioned "65% of market value" is a lie with arithmetic in it.
-      body: amount < uncapped
-        ? `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (pack quick-sell cap reached).`
-        : `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (${Math.round(PACK_QUICK_SELL_RATE * 100)}% of market value).`,
+      body: `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()}.`,
     });
 
     // Snapshot every slice this sale mutates so the "Undo" toast can revert it
     // exactly (rather than recomputing a fragile inverse). References are safe
     // to keep: the store updates immutably, so these point at the pre-sale data.
     lastQuickSellSnapshot = {
-      playerId,
+      playerIds: [playerId],
       week: state.week,
       season: state.season,
-      patch: {
-        players: state.players,
-        clubs: state.clubs,
-        freeAgents: state.freeAgents,
-        openedPacks: state.openedPacks,
-        messages: state.messages,
-        seasonTotalIncome: state.seasonTotalIncome,
-        transferMarket: state.transferMarket,
-        incomingOffers: state.incomingOffers,
-        incomingLoanOffers: state.incomingLoanOffers,
-        outgoingLoanRequests: state.outgoingLoanRequests,
-        activeLoans: state.activeLoans,
-        shortlist: state.shortlist,
-        scoutWatchList: state.scoutWatchList,
-        negotiationStrikes: state.negotiationStrikes,
-        contractStrikes: state.contractStrikes,
-        pendingFarewell: state.pendingFarewell,
-        pendingTransferTalk: state.pendingTransferTalk,
-        merchandise: state.merchandise,
-      },
+      patch: buildQuickSellSnapshotPatch(state),
     };
 
     set({
@@ -886,16 +879,63 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     };
   },
 
+  /**
+   * Quick-sell a selected set of just-packed players as ONE action.
+   *
+   * Delegates to `quickSellPackedPlayer` per id so the pricing, squad-floor
+   * guard, lineup refill and reference cleanup are all exactly the tested
+   * single-sale path — then collapses the per-sale undo snapshots into one
+   * covering the whole batch. Without that collapse, selling three cards and
+   * tapping Undo would revert only the last one and leave the other two sold,
+   * which is not what a batch action's Undo means.
+   *
+   * Reports what actually happened rather than assuming success: a sale can
+   * still be refused (the squad-size floor), and the caller must be able to
+   * tell which cards it may drop from the reveal.
+   */
+  quickSellPackedPlayers: (playerIds: string[]): QuickSellPackedPlayersResult => {
+    const pre = get();
+    const prePatch = buildQuickSellSnapshotPatch(pre);
+    const soldIds: string[] = [];
+    let total = 0;
+    let lastError: string | undefined;
+
+    for (const id of playerIds) {
+      const result = get().quickSellPackedPlayer(id);
+      if (result.success && typeof result.amount === 'number') {
+        soldIds.push(id);
+        total += result.amount;
+      } else if (!result.success) {
+        lastError = result.message;
+      }
+    }
+
+    lastQuickSellSnapshot = soldIds.length > 0
+      ? { playerIds: soldIds, week: pre.week, season: pre.season, patch: prePatch }
+      : null;
+
+    return {
+      success: soldIds.length > 0,
+      soldIds,
+      total,
+      refusedCount: playerIds.length - soldIds.length,
+      message: lastError,
+    };
+  },
+
   /** Revert the most recent quick-sell. Only valid immediately (before the week
    *  advances or the player is re-claimed); returns false if it's too late. */
   undoLastQuickSell: (): boolean => {
     const snap = lastQuickSellSnapshot;
     if (!snap) return false;
     const state = get();
+    // EVERY player in the batch must still be sold. If any one of them has been
+    // re-claimed the world has moved on, and restoring the snapshot would
+    // silently revert that too — refuse the whole undo rather than half of it.
     if (
       state.week !== snap.week
       || state.season !== snap.season
-      || state.players[snap.playerId]?.clubId !== ''
+      || snap.playerIds.some(id => state.players[id]?.clubId !== '')
     ) {
       lastQuickSellSnapshot = null;
       return false;

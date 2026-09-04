@@ -173,10 +173,7 @@ const CinematicCapturePage = () => {
           tier="rare"
           players={players}
           onClose={handlePackClose}
-          onKeep={noop}
-          onQuickSell={noop}
           onKeepAll={noop}
-          onSellAll={noop}
         />
       )}
 

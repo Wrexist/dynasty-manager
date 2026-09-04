@@ -17,7 +17,6 @@ import {
   RECENT_PULLS_LIMIT,
   getFeaturedPackTier,
   getFeaturedPackPresentation,
-  PACK_QUICK_SELL_CAP,
   FREE_PACK_TIER,
   PAID_PACK_TIERS,
   nextStreakBand,
@@ -135,7 +134,7 @@ const PacksPage = () => {
   const userIsPro = isPro(monetization);
   const openPack = useGameStore(s => s.openPack);
   const canOpenPack = useGameStore(s => s.canOpenPack);
-  const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
+  const quickSellPackedPlayers = useGameStore(s => s.quickSellPackedPlayers);
   const undoLastQuickSell = useGameStore(s => s.undoLastQuickSell);
   // Paid-pack durability uses `flushSave` (synchronous) rather than
   // `saveGame` (debounced idle) — see the purchase path below.
@@ -225,73 +224,72 @@ const PacksPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only reconciliation; deps would re-fire on every store change
   }, []);
 
-  // Keep just drops the card from the overlay view — the player stays on
-  // the squad (openPack already wrote them in). No store action needed.
-  const handleKeep = (playerId: string) => {
-    setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
-  };
-
-  const handleQuickSell = (playerId: string) => {
-    // Capture the card up front so Undo can drop it back into the reveal.
-    const soldPlayer = opening?.players.find(p => p.id === playerId);
-    const result = quickSellPackedPlayer(playerId);
-    if (!result.success) {
-      errorToast('Cannot quick-sell', result.message);
-      return;
-    }
-    setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
-    if (typeof result.amount === 'number') {
-      successToast('Quick-sold', `+${formatMoney(result.amount)} to budget.`, {
-        duration: 6000,
-        action: {
-          label: 'Undo',
-          onClick: () => {
-            if (undoLastQuickSell()) {
-              hapticLight();
-              if (soldPlayer) {
-                setOpening(prev => prev ? { ...prev, players: [soldPlayer, ...prev.players] } : prev);
-              }
-              infoToast('Sale reversed', soldPlayer ? `${soldPlayer.firstName} ${soldPlayer.lastName} is back in your squad.` : 'Player returned to your squad.');
-            } else {
-              errorToast('Too late to undo', 'That sale can no longer be reversed.');
-            }
-          },
-        },
-      });
-    }
-  };
-
+  // Keep All just clears the reveal — every player is already on the squad
+  // (openPack wrote them in), and anything the user did not select is kept by
+  // definition. No store action needed.
   const handleKeepAll = () => {
     setOpening(prev => prev ? { ...prev, players: [] } : prev);
   };
 
-  const handleSellAll = () => {
-    if (busy) return;
-    const remaining = opening?.players ?? [];
-    if (remaining.length === 0) return;
-    // Set busy for the duration of the loop — without it, a double-tap on
-    // Sell All while the toast is still pending could enter this function
-    // twice and mutate openedPacks records out from under the iteration.
+  /** Sell exactly the cards the user ticked, as one action with one Undo.
+   *
+   *  Every number here comes from the store's own result: the toast reports
+   *  `result.total`, and only `result.soldIds` leave the reveal. Nothing is
+   *  recomputed page-side, so the reveal can never claim an outcome the store
+   *  did not agree to. */
+  const handleSellSelected = (playerIds: string[]) => {
+    if (busy || playerIds.length === 0) return;
+    // Capture the cards up front so Undo can drop them back into the reveal.
+    const wasOnScreen = (opening?.players ?? []).filter(p => playerIds.includes(p.id));
+
     setBusy(true);
-    let total = 0;
-    let sold = 0;
-    let lastError: string | undefined;
-    for (const p of remaining) {
-      const result = quickSellPackedPlayer(p.id);
-      if (result.success && typeof result.amount === 'number') {
-        total += result.amount;
-        sold += 1;
-      } else if (!result.success) {
-        lastError = result.message;
-      }
-    }
+    const result = quickSellPackedPlayers(playerIds);
     setBusy(false);
-    if (sold > 0) {
-      successToast(`Sold ${sold} player${sold === 1 ? '' : 's'}`, `+${formatMoney(total)} to budget.`);
-    } else if (lastError) {
-      errorToast('Cannot sell all', lastError);
+
+    if (!result.success) {
+      errorToast('Cannot sell', result.message || 'Those players could not be sold.');
+      return;
     }
-    setOpening(prev => prev ? { ...prev, players: [] } : prev);
+
+    const soldSet = new Set(result.soldIds);
+    setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => !soldSet.has(p.id)) } : prev);
+
+    const restore = wasOnScreen.filter(p => soldSet.has(p.id));
+    const undoAction = {
+      label: 'Undo',
+      onClick: () => {
+        if (undoLastQuickSell()) {
+          hapticLight();
+          // The whole batch comes back, in the order it was shown.
+          setOpening(prev => prev ? { ...prev, players: [...restore, ...prev.players] } : prev);
+          infoToast(
+            'Sale reversed',
+            restore.length === 1
+              ? `${restore[0].firstName} ${restore[0].lastName} is back in your squad.`
+              : `${restore.length} players are back in your squad.`,
+          );
+        } else {
+          errorToast('Too late to undo', 'That sale can no longer be reversed.');
+        }
+      },
+    };
+
+    const money = `+${formatMoney(result.total)} to budget.`;
+    if (result.refusedCount > 0) {
+      // Partial is not a success. Name what stayed and why, and keep Undo
+      // available for the part that did go through.
+      infoToast(
+        `Sold ${result.soldIds.length} of ${playerIds.length}`,
+        `${money} ${result.refusedCount} still in your squad.${result.message ? ` ${result.message}` : ''}`,
+        { duration: 6000, action: undoAction },
+      );
+    } else {
+      successToast(
+        `Sold ${result.soldIds.length} player${result.soldIds.length === 1 ? '' : 's'}`,
+        money,
+        { duration: 6000, action: undoAction },
+      );
+    }
   };
 
   useEffect(() => {
@@ -1010,15 +1008,9 @@ const PacksPage = () => {
                 void maybeRequestReview('pack-elite-open');
               }
             }}
-            onKeep={handleKeep}
-            onQuickSell={handleQuickSell}
             onKeepAll={handleKeepAll}
-            onSellAll={handleSellAll}
+            onSellSelected={handleSellSelected}
             placement={openingPlacement}
-            // Live remainder of this open's quick-sell cap — openedPacks[0] is
-            // the pack on screen, and its quickSoldTotal ticks up as the slice
-            // pays refunds, so the SELL labels reprice after every sale.
-            quickSellRemaining={Math.max(0, PACK_QUICK_SELL_CAP - (openedPacks[0]?.quickSoldTotal ?? 0))}
           />
         )}
       </AnimatePresence>

@@ -50,6 +50,7 @@ import { ALL_CLUBS, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import { simulateMatch } from '@/engine/match';
 import { applyPlayerDevelopment, seasonGrowthTracker } from '@/store/helpers/development';
+import { crossedBreakthrough, describeGrowthArc } from '@/utils/playerStanding';
 import { aiDevelopmentSlices } from '@/config/aiSimulation';
 import { applyAIMatchEvents, generateAIInjuryDetails } from '@/store/slices/orchestration/helpers';
 import { endSeasonImpl, runPostSeasonTail } from '@/store/slices/orchestration/seasonEnd';
@@ -917,6 +918,19 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Digest tracking
   const digestInjuries: string[] = [];
+  // Players whose cumulative season growth crossed the breakthrough mark THIS
+  // week.
+  //
+  // The digest already reports development, but it reports MECHANICS — "Pace
+  // 78", per attribute, per week, capped at four players inside a collapsed
+  // panel. What no surface reported was SIGNIFICANCE: that a 19-year-old has
+  // gained five overall across the season and is turning into a first-team
+  // player. `seasonGrowthTracker` has held exactly that number all along, per
+  // player, saved with the game — and was read only to enforce the growth cap.
+  // Meanwhile the one development message in the weekly inbox fired when a
+  // youth prospect went BACKWARDS. Progress was a statistic; only failure got
+  // a sentence.
+  const digestBreakthroughs: { name: string; growth: number; arc: string }[] = [];
   const digestRecoveries: string[] = [];
   const prevMorale = (() => {
     const pc = clubs[playerClubId];
@@ -994,7 +1008,18 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST * dm : 0;
     const dnaCoachBoost = hasPerk(state.managerProgression, 'dna_coach') && p.age < 24 ? 0.1 : 0;
     const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
+    // Crossing the mark IS the event, so nothing has to remember it fired —
+    // no "already announced" flag, no new persisted state.
+    const growthBefore = seasonGrowthTracker[p.id] || 0;
     p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost);
+    const growthAfter = seasonGrowthTracker[p.id] || 0;
+    if (crossedBreakthrough(growthBefore, growthAfter)) {
+      digestBreakthroughs.push({
+        name: `${p.firstName} ${p.lastName}`,
+        growth: Math.round(growthAfter),
+        arc: describeGrowthArc(p.age),
+      });
+    }
 
     // Compute combined per-attribute changes from training + development
     const attrChanges: Partial<Record<keyof PlayerAttributes, number>> = {};
@@ -1682,6 +1707,25 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   newConferenceCup = processContinentalKnockout(newConferenceCup);
 
   const newWeek = week + 1;
+
+  // A breakthrough is the exception to the no-inbox-duplicates rule below: the
+  // digest lists attribute ticks, which is not the same as telling the manager
+  // a player has arrived. Crossing +N overall in a single season is rare enough
+  // that a message is a moment rather than noise.
+  for (const b of digestBreakthroughs) {
+    newMessages = addMsg(newMessages, {
+      week: newWeek, season, type: 'development',
+      title: b.arc === 'breakthrough'
+        ? `${b.name} Is Breaking Through`
+        : b.arc === 'late-bloomer'
+          ? `${b.name} Is Still Getting Better`
+          : `${b.name} Has Kicked On`,
+      body: b.arc === 'breakthrough'
+        ? `${b.name} has gained ${b.growth} overall this season. Keep giving him minutes and he could become a first-team regular.`
+        : `${b.name} has gained ${b.growth} overall this season — an unusual run of improvement at his age.`,
+    });
+  }
+
   const clubIds = Object.keys(clubs);
   const leagueTable = buildLeagueTable(updatedFixtures, state.divisionClubs[playerDiv] || clubIds);
   const transferWindows = getTransferWindows(state.totalWeeks);

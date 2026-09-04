@@ -435,7 +435,7 @@ function Harness() {
   if (!players) return null;
   return (
     <>
-      <PackOpeningOverlay tier={TIER} players={players} onClose={() => {}} onKeepAll={() => {}} onSellAll={() => {}} />
+      <PackOpeningOverlay tier={TIER} players={players} onClose={() => {}} onKeepAll={() => {}} />
       {HOOK && t < HOOK_UNTIL && <Caption text={HOOK} position="top" />}
       {MID && t >= MID_FROM && t < MID_UNTIL && <Caption text={MID} position="top" />}
       {CTA && t >= CTA_FROM && <Caption text={CTA} position="bottom" />}
