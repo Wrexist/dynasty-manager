@@ -52,6 +52,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed two clubs fielding a team with no goalkeeper.',
     'Players now show their full names — Alisson Becker, Gabriel Magalhães, Vinícius Júnior.',
     'Card backs, the walkout OVR beat, and the App Store preview rig.',
+    'Redesign pack quick-sell from per-open cap to per-card taper.',
   ],
   fixed: [],
   headline: null,
