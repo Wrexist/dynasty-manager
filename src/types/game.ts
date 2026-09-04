@@ -2562,6 +2562,36 @@ export interface ReleasePackedPlayerResult {
   message: string;
 }
 
+/** A career mark a player has passed. Derived from `careerAppearances` /
+ *  `careerGoals`, which fold in at season end — never persisted. */
+export interface PlayerMilestone {
+  kind: 'appearances' | 'goals';
+  /** The threshold passed (e.g. 100), not the player's exact total. */
+  value: number;
+  /** Player-facing line, e.g. "100 career goals". */
+  label: string;
+}
+
+/**
+ * What a player has become at this club, derived entirely from data the
+ * simulation already keeps. Never persisted and never fed back into the sim —
+ * see the header of `config/playerStanding.ts` for why that matters.
+ */
+export interface PlayerStanding {
+  /** Overall gained so far THIS season, from `GameState.seasonGrowthTracker`.
+   *  Resets at season end, so it is only meaningful in-season. */
+  seasonGrowth: number;
+  /** Seasons at the current club, or null when the record predates
+   *  `joinedSeason` (old saves) and tenure is genuinely unknown. */
+  seasonsAtClub: number | null;
+  academyGraduate: boolean;
+  /** Career marks already passed, largest first. */
+  milestones: PlayerMilestone[];
+  /** The single most interesting thing true about this player right now, or
+   *  null when he has no story yet — most of the squad, most of the time. */
+  headline: string | null;
+}
+
 export interface QuickSellPackedPlayerResult {
   success: boolean;
   message: string;
