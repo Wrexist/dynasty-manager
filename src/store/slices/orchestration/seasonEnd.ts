@@ -14,6 +14,7 @@ import {  } from '@/store/helpers/development';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
 import { addMsg, pick, shuffle, safeRandomUUID, formatMoney } from '@/utils/helpers';
+import { getMilestonesCrossed } from '@/utils/playerStanding';
 import { YOUNG_POTENTIAL_BOOST_BASE } from '@/config/playerGeneration';
 
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -776,6 +777,10 @@ function finalizeSeason(
     freeAgentIds.push(agedFa.id);
   }
   const farewells: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[] = [];
+  // Career marks the user's players passed in this rollover. Collected here
+  // and turned into messages further down, where the season's message list
+  // actually exists — same shape as `farewells` above.
+  const milestonesReached: { name: string; value: number; kind: 'appearances' | 'goals'; label: string }[] = [];
 
   // Detach a departing player from their club: drop from playerIds/lineup/
   // subs and reduce wageBill. Used by both the forced-retirement and
@@ -832,6 +837,23 @@ function finalizeSeason(
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
       listedForSale: false,
     };
+
+    // Career marks passed this season. Career totals only move HERE — the fold
+    // above is the single moment `careerAppearances` / `careerGoals` change —
+    // so this is where a milestone can be caught, and `getMilestonesCrossed`
+    // reports only marks newly reached. Without that diff a 300-appearance
+    // veteran would re-announce 50, 100 and 200 every season for the rest of
+    // his career. Only the user's own squad is worth an inbox message.
+    if (p.clubId === playerClubId) {
+      for (const milestone of getMilestonesCrossed(p, aged)) {
+        milestonesReached.push({
+          name: `${p.firstName} ${p.lastName}`,
+          value: milestone.value,
+          kind: milestone.kind,
+          label: milestone.label,
+        });
+      }
+    }
 
     // Forced retirement — age cap overrides remaining contract years. Without
     // this a 35-year-old who signs a 5-year deal would play indefinitely.
@@ -1032,6 +1054,16 @@ function finalizeSeason(
   }
 
   let newMessages = [...inputMessages];
+
+  // A career mark is a season-end moment: it says this player has been at the
+  // club long enough to have a history here.
+  for (const m of milestonesReached) {
+    newMessages = addMsg(newMessages, {
+      week: state.week, season, type: 'development',
+      title: `${m.name} Reaches ${m.value} ${m.kind === 'goals' ? 'Goals' : 'Appearances'}`,
+      body: `${m.name} has passed ${m.label}.`,
+    });
+  }
 
   // Clean up aged-out national team pool players (36+) and update poolPlayerIds
   let updatedNTPoolIds = currentNT?.poolPlayerIds || [];
