@@ -518,16 +518,32 @@ describe('Pack opening — what a pull costs to run', () => {
     expect(discounted / market).toBeLessThan(PACK_WAGE_FACTOR * 1.1);
   });
 
-  it('a five-card pack cannot add more than a quarter of a mid-table wage bill', () => {
+  it('a paid pack cannot add more than 42% of a mid-table wage bill', () => {
     // The number that made this necessary: before the pack wage scale, one
     // $6.99 Rare Gold added ~£920k/week — 58% of Celtic's entire bill — so the
     // purchase was a punishment. This pins the burden at something a club can
     // absorb. Celtic's real bill is ~£1.34M/wk; the bound below is deliberately
     // stated in absolute money so it fails if the wage curve moves under it.
+    // (The test was named "a quarter" while asserting 42% — the name has been
+    // corrected to the number actually enforced.)
     const CELTIC_SCALE_BILL = 1_340_000;
     for (const key of PAID_PACK_TIERS) {
       let total = 0;
-      const RUNS = 30;
+      // 400, not 30, and the reason is statistical rather than cosmetic.
+      //
+      // Measured true means against this bill: gold 17.6%, premium 28.8%,
+      // rare 38.6%, icon 18.0% — all genuinely under the bound. But the
+      // per-open spread is wide (rare sd ~10.2pp, because a five-card pack's
+      // wage total swings on which band each card lands in), so at n=30 the
+      // SAMPLE mean carries SE ~1.87pp and its 95% band reaches 42.3% — over
+      // the 42% bound. The test straddled its own threshold and failed
+      // intermittently on a game that was behaving correctly.
+      //
+      // n=400 drops SE to ~0.51pp, so even a 6-sigma excursion tops out near
+      // 41.7% and this only fires if the true burden actually moves. The BOUND
+      // is unchanged — loosening it to chase green would have thrown away the
+      // thing the test exists to catch.
+      const RUNS = 400;
       for (let i = 0; i < RUNS; i++) {
         // Legend deals off: the wage bound pins the version pipeline. A hall
         // card's wage is priced from a rating the Legends tier already deals
