@@ -9,18 +9,18 @@ worth; XI upgrades are what they actually change. A pack that deals
 ## Manchester City (Elite)
 
 - Transfer budget: **£180.0M**
-- Best XI average: **85.4 OVR**
+- Best XI average: **85.5 OVR**
 - Squad size: 26
 
 | Pack | $ | Cards | Best OVR (med) | Book value | Book per $ | XI upgrades | Cost of 1 upgrade |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Rise to Glory | free | 3 | 71 | £7.6M | — | 0.00 | — |
-| Champions Pack | $2.99 | 5 | 83 | £51.7M | £17.3M | 0.42 | $7.12 |
-| Elite Pack | $4.99 | 5 | 86 | £89.6M | £18.0M | 0.91 | $5.48 |
-| World Class Pack | $6.99 | 5 | 90 | £139.8M | £20.0M | 1.38 | $5.07 |
-| Legends Pack | $9.99 | 1 | 90 | £83.7M | £8.4M | 0.74 | $13.50 |
+| Champions Pack | $2.99 | 5 | 83 | £52.0M | £17.4M | 0.34 | $8.79 |
+| Elite Pack | $4.99 | 5 | 86 | £93.2M | £18.7M | 0.90 | $5.58 |
+| World Class Pack | $6.99 | 5 | 88 | £131.9M | £18.9M | 1.11 | $6.30 |
+| Legends Pack | $9.99 | 1 | 90 | £81.1M | £8.1M | 0.71 | $13.97 |
 
-One Champions pack ($2.99) deals £49.2M of book value — **27%** of this club's whole transfer budget.
+One Champions pack ($2.99) deals £52.6M of book value — **29%** of this club's whole transfer budget.
 
 ## Celtic FC (Mid)
 
@@ -30,13 +30,13 @@ One Champions pack ($2.99) deals £49.2M of book value — **27%** of this club'
 
 | Pack | $ | Cards | Best OVR (med) | Book value | Book per $ | XI upgrades | Cost of 1 upgrade |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Rise to Glory | free | 3 | 71 | £7.3M | — | 0.12 | free |
-| Champions Pack | $2.99 | 5 | 83 | £50.2M | £16.8M | 2.37 | $1.26 |
-| Elite Pack | $4.99 | 5 | 86 | £93.2M | £18.7M | 3.47 | $1.44 |
-| World Class Pack | $6.99 | 5 | 88 | £132.7M | £19.0M | 4.04 | $1.73 |
-| Legends Pack | $9.99 | 1 | 90 | £85.4M | £8.5M | 0.78 | $12.81 |
+| Rise to Glory | free | 3 | 71 | £7.4M | — | 0.10 | free |
+| Champions Pack | $2.99 | 5 | 82 | £49.0M | £16.4M | 2.38 | $1.25 |
+| Elite Pack | $4.99 | 5 | 86 | £96.8M | £19.4M | 3.54 | $1.41 |
+| World Class Pack | $6.99 | 5 | 88 | £129.7M | £18.6M | 4.17 | $1.68 |
+| Legends Pack | $9.99 | 1 | 90 | £78.7M | £7.9M | 0.86 | $11.62 |
 
-One Champions pack ($2.99) deals £52.4M of book value — **131%** of this club's whole transfer budget.
+One Champions pack ($2.99) deals £53.2M of book value — **133%** of this club's whole transfer budget.
 
 ## Luton Town (Lower)
 
@@ -46,21 +46,30 @@ One Champions pack ($2.99) deals £52.4M of book value — **131%** of this club
 
 | Pack | $ | Cards | Best OVR (med) | Book value | Book per $ | XI upgrades | Cost of 1 upgrade |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Rise to Glory | free | 3 | 72 | £7.5M | — | 0.71 | free |
-| Champions Pack | $2.99 | 5 | 83 | £51.4M | £17.2M | 3.33 | $0.90 |
-| Elite Pack | $4.99 | 5 | 86 | £92.0M | £18.4M | 3.73 | $1.34 |
-| World Class Pack | $6.99 | 5 | 89 | £132.8M | £19.0M | 3.72 | $1.88 |
-| Legends Pack | $9.99 | 1 | 90 | £86.0M | £8.6M | 0.75 | $13.32 |
+| Rise to Glory | free | 3 | 72 | £7.3M | — | 0.76 | free |
+| Champions Pack | $2.99 | 5 | 83 | £52.6M | £17.6M | 3.21 | $0.93 |
+| Elite Pack | $4.99 | 5 | 86 | £91.8M | £18.4M | 3.77 | $1.32 |
+| World Class Pack | $6.99 | 5 | 89 | £137.6M | £19.7M | 3.75 | $1.86 |
+| Legends Pack | $9.99 | 1 | 90 | £86.2M | £8.6M | 0.78 | $12.89 |
 
-One Champions pack ($2.99) deals £51.2M of book value — **609%** of this club's whole transfer budget.
+One Champions pack ($2.99) deals £49.5M of book value — **589%** of this club's whole transfer budget.
 
 ## How to read this
 
-- If **XI upgrades** per paid pack is high for a mid or lower club, packs
-  are the dominant squad-building route and the football underneath is
-  decoration. That is the failure mode to avoid.
+**Accepted design (2026-09-06).** Packs out-building the football is a
+known, measured and DELIBERATE property of this game, not a defect
+awaiting a fix. The product decision is that Dynasty Manager sells squad
+strength. This report exists to keep that effect measured and bounded,
+not to argue against it — see the ratchet in the same file, and the
+release-scope note in CLAUDE.md.
+
+- **XI upgrades** is the honest measure of what a pack buys. It is high
+  for lower clubs by design: an absolute guaranteed floor is worth more
+  the weaker your squad. Watch it for DRIFT, not for the level.
 - If **book value per $** dwarfs the season budget but **XI upgrades**
-  stays near zero, packs are selling cash rather than strength — a
-  different problem, and the one the quick-sell taper governs.
-- An elite club should see near-zero XI upgrades from cheap packs. If it
-  does not, the guaranteed floors are too high for the top of the game.
+  stays near zero, packs are selling cash rather than strength — that
+  one IS still a problem, and the quick-sell taper governs it.
+- **Price-ladder check.** Compare `cost of 1 upgrade` down each club's
+  column. If the cheapest pack is the best value at every club, the
+  ladder is inverted and the expensive tiers are hard to justify to a
+  paying player. That is a revenue question, not a fairness one.

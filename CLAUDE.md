@@ -629,6 +629,52 @@ contains, what it costs, and what its odds are.
   precisely because a short band does not break anything visibly, it just turns
   the packs back into strangers.
 
+### ⚖️ Pay-to-win is ACCEPTED — do not "fix" it
+
+**Product decision (2026-09-06).** Packs out-build the football underneath
+them, this is measured, and it is **deliberate**. Dynasty Manager sells squad
+strength. Do not treat the numbers below as a defect and do not nerf the packs
+to "rebalance" them.
+
+Measured by `src/test/squadRouteReport.test.ts` (`VITEST_ROUTES=1 npx vitest
+run squadRouteReport`), one **$2.99 Champions pack**:
+
+| Club | Budget | XI avg | XI upgrades | % of season budget | $ per upgrade |
+|---|---:|---:|---:|---:|---:|
+| Man City | £180.0M | 85.4 | 0.42 | 27% | $7.12 |
+| Celtic | £40.0M | 77.1 | 2.37 | 131% | $1.26 |
+| Luton Town | £8.4M | 70.8 | **3.33** | **609%** | **$0.90** |
+
+The cause is scale-invariance: guaranteed floors are ABSOLUTE (78+/82+/84+)
+while club quality runs from a 70.8 XI average to 85.4, so a guaranteed 78 is
+bench filler at the top and a first-choice starter at the bottom. Four options
+were considered — scaling floors to squad level (breaks the Guideline 3.1.1
+odds disclosure, since "78+ relative to your squad" is not a publishable drop
+rate), tiering the storefront by division, weakening the cheap floors, and
+accepting it. **Acceptance was chosen**, with these numbers in hand.
+
+What is still guarded, and why:
+
+- **Drift, not level.** `squadRouteReport.test.ts` holds a ratchet at 4.0 XI
+  upgrades for the lower-league worst case (measured mean 3.31, sd 1.05; at
+  n=150 that is ~6 sigma of headroom, so it cannot false-fail). It exists so a
+  raised floor or a bigger `versionBoost` cannot quietly push the game past
+  what was actually agreed. If it fails, re-measure and move it as a DECISION —
+  do not just raise the number.
+- **Cash, not strength.** Packs selling decisive *cash* is a separate matter and
+  remains capped — see `quickSellValue` and the taper constants in
+  `config/packs.ts`. Accepting pay-to-win did not reopen the quick-sell faucet.
+- **The invariants still hold.** Monetization must still never touch a sim
+  parameter (match outcomes, training rates, transfer values), and published
+  odds are still mandatory. Selling strong cards is the model; changing the
+  simulation for payers is not.
+
+**Open commercial question (not a design one):** the price ladder is inverted.
+Champions ($2.99) is the best value per XI upgrade at every club measured,
+while Legends ($9.99) is the worst ($12.81–$13.50). A paying player gets less
+marginal squad improvement the more they spend, which likely suppresses
+high-tier revenue. Worth revisiting when RevenueCat data exists.
+
 Player identities draw from the **community pack** real-player dataset
 (`src/data/communityPack/` — generated, lazily imported) with
 `utils/communityPackPool.ts` + `npm run validate-cp` for integrity.

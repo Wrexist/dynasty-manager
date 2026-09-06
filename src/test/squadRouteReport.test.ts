@@ -165,14 +165,23 @@ describe('squad-route report', () => {
 
     lines.push('## How to read this');
     lines.push('');
-    lines.push('- If **XI upgrades** per paid pack is high for a mid or lower club, packs');
-    lines.push('  are the dominant squad-building route and the football underneath is');
-    lines.push('  decoration. That is the failure mode to avoid.');
+    lines.push('**Accepted design (2026-09-06).** Packs out-building the football is a');
+    lines.push('known, measured and DELIBERATE property of this game, not a defect');
+    lines.push('awaiting a fix. The product decision is that Dynasty Manager sells squad');
+    lines.push('strength. This report exists to keep that effect measured and bounded,');
+    lines.push('not to argue against it — see the ratchet in the same file, and the');
+    lines.push('release-scope note in CLAUDE.md.');
+    lines.push('');
+    lines.push('- **XI upgrades** is the honest measure of what a pack buys. It is high');
+    lines.push('  for lower clubs by design: an absolute guaranteed floor is worth more');
+    lines.push('  the weaker your squad. Watch it for DRIFT, not for the level.');
     lines.push('- If **book value per $** dwarfs the season budget but **XI upgrades**');
-    lines.push('  stays near zero, packs are selling cash rather than strength — a');
-    lines.push('  different problem, and the one the quick-sell taper governs.');
-    lines.push('- An elite club should see near-zero XI upgrades from cheap packs. If it');
-    lines.push('  does not, the guaranteed floors are too high for the top of the game.');
+    lines.push('  stays near zero, packs are selling cash rather than strength — that');
+    lines.push('  one IS still a problem, and the quick-sell taper governs it.');
+    lines.push('- **Price-ladder check.** Compare `cost of 1 upgrade` down each club\'s');
+    lines.push('  column. If the cheapest pack is the best value at every club, the');
+    lines.push('  ladder is inverted and the expensive tiers are hard to justify to a');
+    lines.push('  paying player. That is a revenue question, not a fairness one.');
     lines.push('');
 
     const out = join(process.cwd(), 'docs', 'squad-routes-report.md');
@@ -208,26 +217,32 @@ function sampleBook(tierKey: PackTierKey, season: number): number {
 /**
  * Regression ratchet on the measured pack-vs-football problem.
  *
- * THE CURRENT NUMBER IS NOT AN ENDORSEMENT. The report above measured that a
- * single $2.99 Champions pack replaces ~3.3 of a lower-league club's starting
- * XI — six times that club's entire transfer budget, at about $0.90 per XI
- * upgrade — while the same pack is correctly-tuned filler at Manchester City.
- * That is the failure mode the design brief names: packs out-building the
- * football underneath them, and worst exactly where the club is poorest.
+ * A CEILING ON AN ACCEPTED DESIGN, not a placeholder for a fix.
  *
- * Fixing it is a live monetisation decision with several possible shapes
- * (scaling floors to squad level, tiering the storefront by division,
- * weakening cheap floors, or accepting it), and that choice is the product
- * owner's, not this test's. So this asserts nothing about what the number
- * SHOULD be — it only stops it getting worse while the decision is open.
+ * Measured: a single $2.99 Champions pack replaces ~3.3 of a lower-league
+ * club's starting XI — six times that club's entire transfer budget, about
+ * $0.90 per XI upgrade — while the same pack is correctly-tuned filler at
+ * Manchester City. An absolute guaranteed floor (78+) is worth more the
+ * weaker your squad, so the effect is strongest where the club is poorest.
+ *
+ * The product decision (2026-09-06) is to ACCEPT this: Dynasty Manager sells
+ * squad strength, and pay-to-win is the intended model. Four alternatives
+ * were on the table — scaling floors to squad level, tiering the storefront
+ * by division, weakening cheap floors, or accepting it — and acceptance was
+ * chosen deliberately with these numbers in hand. See CLAUDE.md.
+ *
+ * So this test does not argue the level. It bounds the DRIFT. A raised
+ * guaranteed floor, a bigger version boost or a cheaper elite band could push
+ * this well past what was actually agreed, and nobody would notice without a
+ * number watching it.
  *
  * Bound sizing: measured mean 3.31 XI upgrades, sd 1.05. At n=150 the
  * standard error is 0.086, putting 6 sigma at 3.81, so 4.0 cannot false-fail
- * on sampling noise but catches any real upward drift — a raised guaranteed
- * floor, a bigger version boost, a cheaper elite band.
+ * on sampling noise but catches real movement.
  *
- * If this fails, do not raise the bound. Either the packs got stronger or the
- * lower-league squads got weaker, and both are the thing being watched.
+ * If this fails, do not simply raise the bound — that is how an accepted
+ * position becomes an unexamined one. Re-run the report, confirm the new
+ * level is what the owner wants, and move the bound as a decision.
  */
 describe('pack supply — the lower-league ratchet', () => {
   const RUNS = 150;
@@ -236,7 +251,7 @@ describe('pack supply — the lower-league ratchet', () => {
   const CLUB_ID = 'luton-town';
   const MAX_XI_UPGRADES = 4.0;
 
-  it('a $2.99 pack does not rebuild MORE of a lower-league XI than it already does', () => {
+  it('a $2.99 pack rebuilds no more of a lower-league XI than the accepted level', () => {
     useGameStore.getState().initGame(CLUB_ID);
     const state = useGameStore.getState();
     const club = state.clubs[state.playerClubId];
@@ -251,7 +266,8 @@ describe('pack supply — the lower-league ratchet', () => {
     expect(
       avg,
       `Champions pack now replaces ${avg.toFixed(2)} of ${club.name}'s XI (was ~3.3). `
-      + 'Packs got stronger or lower-league squads got weaker — do not raise this bound.',
+      + 'Packs got stronger or lower-league squads got weaker. Pay-to-win is accepted; '
+      + 'unexamined drift past the agreed level is not. Re-measure before moving this.',
     ).toBeLessThan(MAX_XI_UPGRADES);
   }, 60_000);
 });
