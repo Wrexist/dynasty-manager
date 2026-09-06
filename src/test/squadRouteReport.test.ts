@@ -204,3 +204,54 @@ function sampleBook(tierKey: PackTierKey, season: number): number {
   }
   return mean(books);
 }
+
+/**
+ * Regression ratchet on the measured pack-vs-football problem.
+ *
+ * THE CURRENT NUMBER IS NOT AN ENDORSEMENT. The report above measured that a
+ * single $2.99 Champions pack replaces ~3.3 of a lower-league club's starting
+ * XI — six times that club's entire transfer budget, at about $0.90 per XI
+ * upgrade — while the same pack is correctly-tuned filler at Manchester City.
+ * That is the failure mode the design brief names: packs out-building the
+ * football underneath them, and worst exactly where the club is poorest.
+ *
+ * Fixing it is a live monetisation decision with several possible shapes
+ * (scaling floors to squad level, tiering the storefront by division,
+ * weakening cheap floors, or accepting it), and that choice is the product
+ * owner's, not this test's. So this asserts nothing about what the number
+ * SHOULD be — it only stops it getting worse while the decision is open.
+ *
+ * Bound sizing: measured mean 3.31 XI upgrades, sd 1.05. At n=150 the
+ * standard error is 0.086, putting 6 sigma at 3.81, so 4.0 cannot false-fail
+ * on sampling noise but catches any real upward drift — a raised guaranteed
+ * floor, a bigger version boost, a cheaper elite band.
+ *
+ * If this fails, do not raise the bound. Either the packs got stronger or the
+ * lower-league squads got weaker, and both are the thing being watched.
+ */
+describe('pack supply — the lower-league ratchet', () => {
+  const RUNS = 150;
+  /** Chosen because it is the worst case in the report: the poorest squad
+   *  measured, where an absolute guaranteed floor does the most damage. */
+  const CLUB_ID = 'luton-town';
+  const MAX_XI_UPGRADES = 4.0;
+
+  it('a $2.99 pack does not rebuild MORE of a lower-league XI than it already does', () => {
+    useGameStore.getState().initGame(CLUB_ID);
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    const best = bestByPosition(club.playerIds, state.players);
+
+    let total = 0;
+    for (let i = 0; i < RUNS; i++) {
+      total += countXiUpgrades(generatePackContents('gold', state.season, {}), best);
+    }
+    const avg = total / RUNS;
+
+    expect(
+      avg,
+      `Champions pack now replaces ${avg.toFixed(2)} of ${club.name}'s XI (was ~3.3). `
+      + 'Packs got stronger or lower-league squads got weaker — do not raise this bound.',
+    ).toBeLessThan(MAX_XI_UPGRADES);
+  }, 60_000);
+});
