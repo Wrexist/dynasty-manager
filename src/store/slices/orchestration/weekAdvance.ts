@@ -3161,6 +3161,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       season,
       playerClubId,
       transferWindowOpen,
+      aiState.shortlist || [],
     );
     set({
       clubs: aiResult.clubs,

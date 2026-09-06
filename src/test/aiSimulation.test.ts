@@ -967,3 +967,94 @@ describe('AI Simulation — processAIWeekly', () => {
     });
   });
 });
+
+/**
+ * Losing a shortlisted target has to READ as losing him.
+ *
+ * AI clubs buy off the same transfer market the user shops from, so a player
+ * you shortlisted can genuinely be signed out from under you — the tension is
+ * real and already simulated. What was missing was the telling. The inbox
+ * message sat behind a FEE gate (AI_TRANSFER_NEWS_MIN_FEE, £2M) meant to stop
+ * other clubs' business flooding the inbox, and it swallowed the one transfer
+ * that is actually yours: below the threshold the player simply vanished from
+ * the market with no message at all, and above it he got the same neutral
+ * world-news line as any other deal.
+ *
+ * The setup engineers a CERTAIN sale rather than hoping for one: AI buying
+ * requires the listing to match the buyer's top squad need, and the test
+ * world's squads are complete, so a randomly listed player is never bought
+ * (measured: 0/20 runs). Opening a hole at ST and listing an ST makes it
+ * 20/20. Each test asserts the sale actually happened, so if that ever stops
+ * being true these fail loudly instead of passing vacuously.
+ */
+describe('AI transfers — a shortlisted target lost to a rival', () => {
+  /** Run the window with a cheap ST listed into a club that needs one.
+   *  The fee lands UNDER AI_TRANSFER_NEWS_MIN_FEE — the band that used to go
+   *  completely unreported. */
+  function runWithCertainSale(shortlistIds: (targetId: string) => string[]) {
+    const world = createTestWorld();
+
+    // Open a real hole so the listing matches a top need.
+    const buyer = world.clubs['ai-club-2'];
+    world.clubs['ai-club-2'] = {
+      ...buyer,
+      playerIds: buyer.playerIds.filter(id => world.players[id].position !== 'ST'),
+      budget: 40_000_000,
+      wageBill: 100_000,
+    };
+
+    const target = Object.values(world.players)
+      .find(p => p.clubId === 'ai-club-1' && p.position === 'ST')!;
+    world.players[target.id] = { ...target, value: 400_000, listedForSale: true, overall: 74, age: 24 };
+    world.transferMarket = [{
+      playerId: target.id,
+      askingPrice: 400_000,
+      sellerClubId: 'ai-club-1',
+      listedWeek: 1,
+      listedSeason: 1,
+      divisionId: 'div-2',
+    }];
+
+    let { clubs, players, messages, transferMarket: market, transferNews: news, activeLoans: loans, freeAgents } = world;
+    for (let w = 2; w <= 8; w++) {
+      const res = processAIWeekly(
+        clubs, players, messages, market, freeAgents, loans, news,
+        world.divisionTables, w, 1, world.playerClubId, true, shortlistIds(target.id),
+      );
+      clubs = res.clubs; players = res.players; messages = res.messages;
+      market = res.transferMarket; news = res.transferNews;
+      loans = res.activeLoans; freeAgents = res.freeAgents;
+      if (players[target.id].clubId !== 'ai-club-1') break;
+    }
+
+    return { target, players, messages, sold: players[target.id].clubId !== 'ai-club-1' };
+  }
+
+  it('tells the manager when a shortlisted player is signed by someone else', () => {
+    const { sold, messages, target } = runWithCertainSale(id => [id]);
+    expect(sold, 'setup must actually produce a sale or this test proves nothing').toBe(true);
+
+    const missed = messages.filter(m => /Missed Out on/i.test(m.title));
+    expect(missed).toHaveLength(1);
+    expect(missed[0].title).toContain(target.lastName);
+    expect(missed[0].body).toMatch(/on your shortlist/i);
+  });
+
+  it('fires below the fee gate that used to swallow it entirely', () => {
+    const { sold, messages } = runWithCertainSale(id => [id]);
+    expect(sold).toBe(true);
+    // £400k asking price — an order of magnitude under AI_TRANSFER_NEWS_MIN_FEE,
+    // so the old fee-gated path produced nothing at all here.
+    const missed = messages.filter(m => /Missed Out on/i.test(m.title));
+    expect(missed.length).toBeGreaterThan(0);
+    expect(missed[0].body).toMatch(/£/);
+  });
+
+  it("does not call another club's ordinary business a missed target", () => {
+    // Same certain sale, nothing shortlisted → no "Missed Out" message may
+    // appear. The fee-gated world-news line is untouched by this change.
+    const { sold, messages } = runWithCertainSale(() => []);
+    expect(sold).toBe(true);
+    expect(messages.filter(m => /Missed Out on/i.test(m.title))).toHaveLength(0);
+  });
+});

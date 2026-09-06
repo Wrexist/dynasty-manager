@@ -361,6 +361,10 @@ function processAIBuying(
   season: number,
   messages: Message[],
   transferNews: TransferNewsEntry[],
+  /** The user's shortlisted player ids. A signing off this list is not world
+   *  news, it is a race the manager just lost, and it is reported as one
+   *  whatever the fee. */
+  shortlist: string[],
 ): {
   clubs: Record<string, Club>;
   players: Record<string, Player>;
@@ -559,9 +563,27 @@ function processAIBuying(
     };
     updNews.push(newsEntry);
 
-    // Generate inbox message for significant transfers
-    if (finalFee >= AI_TRANSFER_NEWS_MIN_FEE) {
-      const fromName = isExternalPlayer ? 'the transfer market' : (updClubs[sellerClubId]?.shortName || 'Unknown');
+    const fromName = isExternalPlayer ? 'the transfer market' : (updClubs[sellerClubId]?.shortName || 'Unknown');
+
+    // A player the manager SHORTLISTED has just been signed by someone else.
+    //
+    // The fee gate below exists so the inbox is not buried in other clubs'
+    // business, and it was swallowing the one transfer that is actually the
+    // user's: shortlisting is an explicit "I want this player", and a rival
+    // taking him under the £2M threshold produced no message at all — he
+    // simply vanished from the market. Above it, he got the same neutral
+    // world-news line as any other deal, so a lost race never read as a loss.
+    //
+    // The market already let this happen (the listing is removed just above);
+    // only the telling was missing.
+    if (shortlist.includes(target.id)) {
+      updMessages = addMsg(updMessages, {
+        week, season, type: 'transfer',
+        title: `Missed Out on ${target.lastName}`,
+        body: `${updBuyer.shortName} have signed ${target.firstName} ${target.lastName} (${target.position}, ${target.overall} OVR) from ${fromName} for ${formatMoney(finalFee)}. He was on your shortlist.`,
+      });
+    } else if (finalFee >= AI_TRANSFER_NEWS_MIN_FEE) {
+      // Generate inbox message for significant transfers elsewhere.
       updMessages = addMsg(updMessages, {
         week, season, type: 'transfer',
         title: `${target.lastName} → ${updBuyer.shortName}`,
@@ -889,6 +911,9 @@ export function processAIWeekly(
   season: number,
   playerClubId: string,
   transferWindowOpen: boolean,
+  /** The user's shortlist, so a rival signing one of their targets is
+   *  reported as a lost race rather than as anonymous world news. */
+  shortlist: string[] = [],
 ): AIWeeklyResult {
 
   // 1. AI Income — every week
@@ -912,7 +937,7 @@ export function processAIWeekly(
     updMarket = listingResult.transferMarket;
 
     // 3b. AI clubs buy players
-    const buyResult = processAIBuying(updClubs, updPlayers, updMarket, playerClubId, week, season, updMessages, updNews);
+    const buyResult = processAIBuying(updClubs, updPlayers, updMarket, playerClubId, week, season, updMessages, updNews, shortlist);
     updClubs = buyResult.clubs;
     updPlayers = buyResult.players;
     updMarket = buyResult.transferMarket;
