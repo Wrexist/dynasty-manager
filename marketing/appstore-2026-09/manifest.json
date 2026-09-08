@@ -1,0 +1,107 @@
+[
+  {
+    "file": "iphone-6.5/01-real-stars.jpg",
+    "width": 1242,
+    "height": 2688,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.5/02-footballs-finest.jpg",
+    "width": 1242,
+    "height": 2688,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.5/03-your-squad.jpg",
+    "width": 1242,
+    "height": 2688,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.5/04-player-development.jpg",
+    "width": 1242,
+    "height": 2688,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.5/05-silverware.jpg",
+    "width": 1242,
+    "height": 2688,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.9/01-real-stars.jpg",
+    "width": 1320,
+    "height": 2868,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.9/02-footballs-finest.jpg",
+    "width": 1320,
+    "height": 2868,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.9/03-your-squad.jpg",
+    "width": 1320,
+    "height": 2868,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.9/04-player-development.jpg",
+    "width": 1320,
+    "height": 2868,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "iphone-6.9/05-silverware.jpg",
+    "width": 1320,
+    "height": 2868,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "ipad-13/01-real-stars.jpg",
+    "width": 2064,
+    "height": 2752,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "ipad-13/02-footballs-finest.jpg",
+    "width": 2064,
+    "height": 2752,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "ipad-13/03-your-squad.jpg",
+    "width": 2064,
+    "height": 2752,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "ipad-13/04-player-development.jpg",
+    "width": 2064,
+    "height": 2752,
+    "format": "JPEG",
+    "alpha": false
+  },
+  {
+    "file": "ipad-13/05-silverware.jpg",
+    "width": 2064,
+    "height": 2752,
+    "format": "JPEG",
+    "alpha": false
+  }
+]

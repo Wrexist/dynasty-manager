@@ -1,5 +1,11 @@
 # LEARNINGS.md — Dynasty Manager
 
+## App Store campaign exports (2026-09-08)
+
+- The five-screen campaign and 15 device-sized exports live in `marketing/appstore-2026-09/`, outside the app bundle. Its README distinguishes generated promotional imagery from actual device captures.
+- The owner reserves ivory Icon artwork for actual Icons in marketing. Do not put active stars back on that background when editing these images.
+- Keep portrait proportions during iPad export. The campaign exporter adds matching side margins instead of stretching faces or cropping stats.
+
 > **This file is maintained by Claude.** After completing any task, append
 > discoveries, gotchas, and patterns learned so future sessions don't repeat
 > mistakes. **Verify against code before trusting any entry here** — this file
