@@ -57,6 +57,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Improved recovery of paid packs after interrupted saves.',
     'Protected quick-sell Undo from overwriting later actions.',
     'Save confirmations now wait for storage to finish.',
+    'Saving no longer waits indefinitely for stalled device storage, and failed saves keep an accurate status.',
   ],
   fixed: [
     'Improved paid pack recovery after interrupted saves and protected quick-sell Undo from overwriting later actions.',
