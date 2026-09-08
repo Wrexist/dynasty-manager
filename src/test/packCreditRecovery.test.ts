@@ -9,33 +9,38 @@
  *
  * - only `charged` markers grant (existence alone proves nothing);
  * - the credit is granted only into the save slot that paid;
- * - stale markers expire; unconfirmed markers are dropped;
+ * - confirmed credits do not expire; unconfirmed markers are not granted;
  * - a blocked grant keeps the marker and flags it reported;
  * - World Cup sessions never receive a club pack credit.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit,
 } from '@/store/helpers/persistence';
 import { useGameStore } from '@/store/gameStore';
-import { reconcilePendingPackCreditAtLaunch } from '@/utils/packCreditRecovery';
+import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight } from '@/utils/packCreditRecovery';
 
 const CLUB = 'manchester-city';
+const originalOpenPack = useGameStore.getState().openPack;
+const originalFlushSave = useGameStore.getState().flushSave;
 
 function squadSize(): number {
   const s = useGameStore.getState();
   return (s.clubs[s.playerClubId]?.playerIds || []).length;
 }
 
-describe('launch-time pack credit reconciliation', () => {
+describe('launch-time pack credit reconciliation', async () => {
   beforeEach(() => {
+    useGameStore.setState({ openPack: originalOpenPack, flushSave: originalFlushSave });
     localStorage.clear();
     clearPendingPackCredit();
     useGameStore.getState().resetGame();
     useGameStore.getState().initGame(CLUB);
   });
 
-  it('grants a charged marker into the paying save and clears it', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('grants a charged marker into the paying save and clears it', async () => {
     const before = squadSize();
     writePendingPackCredit({
       productId: 'com.dynastymanager.pack.gold',
@@ -45,13 +50,13 @@ describe('launch-time pack credit reconciliation', () => {
       charged: true,
     });
 
-    reconcilePendingPackCreditAtLaunch();
+    await reconcilePendingPackCreditAtLaunch();
 
     expect(squadSize()).toBeGreaterThan(before);
     expect(readPendingPackCredit()).toBeNull();
   });
 
-  it('never grants an uncharged marker', () => {
+  it('never grants an uncharged marker', async () => {
     const before = squadSize();
     writePendingPackCredit({
       productId: 'com.dynastymanager.pack.gold',
@@ -61,13 +66,13 @@ describe('launch-time pack credit reconciliation', () => {
       charged: false,
     });
 
-    reconcilePendingPackCreditAtLaunch();
+    await reconcilePendingPackCreditAtLaunch();
 
     expect(squadSize()).toBe(before);
     expect(readPendingPackCredit()).toBeNull();
   });
 
-  it('ignores a credit belonging to another save slot', () => {
+  it('ignores a credit belonging to another save slot', async () => {
     const before = squadSize();
     writePendingPackCredit({
       productId: 'com.dynastymanager.pack.gold',
@@ -77,13 +82,13 @@ describe('launch-time pack credit reconciliation', () => {
       charged: true,
     });
 
-    reconcilePendingPackCreditAtLaunch();
+    await reconcilePendingPackCreditAtLaunch();
 
     expect(squadSize()).toBe(before);
     expect(readPendingPackCredit()).not.toBeNull();
   });
 
-  it('drops a stale charged marker past the TTL', () => {
+  it('preserves and delivers a confirmed purchase even after seven days', async () => {
     const before = squadSize();
     writePendingPackCredit({
       productId: 'com.dynastymanager.pack.gold',
@@ -93,13 +98,13 @@ describe('launch-time pack credit reconciliation', () => {
       charged: true,
     });
 
-    reconcilePendingPackCreditAtLaunch();
+    await reconcilePendingPackCreditAtLaunch();
 
-    expect(squadSize()).toBe(before);
+    expect(squadSize()).toBeGreaterThan(before);
     expect(readPendingPackCredit()).toBeNull();
   });
 
-  it('keeps and flags the marker when the grant is blocked', () => {
+  it('keeps and flags the marker when the grant is blocked', async () => {
     const spy = vi.fn(() => ({ success: false as const, message: 'Your squad is full.' }));
     useGameStore.setState({ openPack: spy });
     writePendingPackCredit({
@@ -110,7 +115,7 @@ describe('launch-time pack credit reconciliation', () => {
       charged: true,
     });
 
-    reconcilePendingPackCreditAtLaunch();
+    await reconcilePendingPackCreditAtLaunch();
 
     expect(spy).toHaveBeenCalledTimes(1);
     const kept = readPendingPackCredit();
@@ -118,7 +123,57 @@ describe('launch-time pack credit reconciliation', () => {
     expect(kept?.reported).toBe(true);
   });
 
-  it('does nothing in a World Cup session', () => {
+  it('waits for disk and does not grant twice across concurrent mount effects', async () => {
+    let finish!: (ok: boolean) => void;
+    useGameStore.setState({ flushSave: vi.fn(() => new Promise<boolean>(resolve => { finish = resolve; })) });
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'gold', timestamp: Date.now(), slot: useGameStore.getState().activeSlot, charged: true });
+    const pending = reconcilePendingPackCreditAtLaunch();
+    const afterGrant = squadSize();
+    expect(readPendingPackCredit()?.recordId).toBeTruthy();
+    await reconcilePendingPackCreditAtLaunch();
+    expect(squadSize()).toBe(afterGrant);
+    finish(true);
+    await pending;
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
+  it('retains a failed-save grant and retries saving without generating another pack', async () => {
+    useGameStore.setState({ flushSave: vi.fn().mockResolvedValue(false) });
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'gold', timestamp: Date.now(), slot: useGameStore.getState().activeSlot, charged: true });
+    await reconcilePendingPackCreditAtLaunch();
+    const afterGrant = squadSize();
+    expect(readPendingPackCredit()).not.toBeNull();
+    useGameStore.setState({ flushSave: vi.fn().mockResolvedValue(true) });
+    await reconcilePendingPackCreditAtLaunch();
+    expect(squadSize()).toBe(afterGrant);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
+  it('rejects a mismatched product id instead of granting a more valuable tier', async () => {
+    const before = squadSize();
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'icon', timestamp: Date.now(), slot: useGameStore.getState().activeSlot, charged: true });
+    await reconcilePendingPackCreditAtLaunch();
+    expect(squadSize()).toBe(before);
+    expect(readPendingPackCredit()).not.toBeNull();
+  });
+
+  it('does not clear the pre-charge marker while the store sheet is open', async () => {
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'gold', timestamp: Date.now(), slot: useGameStore.getState().activeSlot, charged: false });
+    setPackPurchaseInFlight(true);
+    try {
+      await reconcilePendingPackCreditAtLaunch();
+      expect(readPendingPackCredit()?.charged).toBe(false);
+    } finally { setPackPurchaseInFlight(false); }
+  });
+
+  it('retains proof of payment when recovery throws, without rejecting the mount effect', async () => {
+    useGameStore.setState({ openPack: vi.fn(() => { throw new Error('generation failed'); }) });
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'gold', timestamp: Date.now(), slot: useGameStore.getState().activeSlot, charged: true });
+    await expect(reconcilePendingPackCreditAtLaunch()).resolves.toBeUndefined();
+    expect(readPendingPackCredit()?.charged).toBe(true);
+  });
+
+  it('does nothing in a World Cup session', async () => {
     useGameStore.setState({ gameMode: 'world-cup' });
     const before = squadSize();
     writePendingPackCredit({
@@ -129,7 +184,7 @@ describe('launch-time pack credit reconciliation', () => {
       charged: true,
     });
 
-    reconcilePendingPackCreditAtLaunch();
+    await reconcilePendingPackCreditAtLaunch();
 
     expect(squadSize()).toBe(before);
     expect(readPendingPackCredit()).not.toBeNull();

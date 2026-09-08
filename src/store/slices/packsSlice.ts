@@ -43,7 +43,7 @@ import {
  * few seconds while the "Undo" toast is on screen. Cleared on undo, on the next
  * pack open, or when the guard detects the world has moved on.
  */
-type QuickSellSnapshot = { playerIds: string[]; week: number; season: number; patch: Partial<GameState> };
+type QuickSellSnapshot = { playerIds: string[]; week: number; season: number; slot: number; clubId: string; patch: Partial<GameState>; after: Partial<GameState> };
 let lastQuickSellSnapshot: QuickSellSnapshot | null = null;
 
 /** The slices a quick-sell touches, captured pre-sale so Undo can restore them
@@ -285,7 +285,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
 
   openPack: (
     tierKey: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string },
   ): OpenPackResult => {
     // Opening a new pack invalidates any pending quick-sell undo — the
     // snapshot would otherwise revert this fresh pack if restored.
@@ -410,7 +410,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     };
 
     const record: OpenedPackRecord = {
-      id: safeRandomUUID(),
+      id: opts?.recordId ?? safeRandomUUID(),
       tier: tierKey,
       season: state.season,
       week: state.week,
@@ -849,7 +849,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       playerIds: [playerId],
       week: state.week,
       season: state.season,
+      slot: state.activeSlot,
+      clubId: state.playerClubId,
       patch: buildQuickSellSnapshotPatch(state),
+      after: {},
     };
 
     set({
@@ -871,6 +874,8 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       // Reference cleanup parity with regular release flows.
       ...purgePlayerReferences(state, playerId),
     });
+
+    lastQuickSellSnapshot.after = buildQuickSellSnapshotPatch(get());
 
     return {
       success: true,
@@ -911,7 +916,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     }
 
     lastQuickSellSnapshot = soldIds.length > 0
-      ? { playerIds: soldIds, week: pre.week, season: pre.season, patch: prePatch }
+      ? { playerIds: soldIds, week: pre.week, season: pre.season, slot: pre.activeSlot, clubId: pre.playerClubId, patch: prePatch, after: buildQuickSellSnapshotPatch(get()) }
       : null;
 
     return {
@@ -933,7 +938,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // re-claimed the world has moved on, and restoring the snapshot would
     // silently revert that too — refuse the whole undo rather than half of it.
     if (
-      state.week !== snap.week
+      state.activeSlot !== snap.slot
+      || state.playerClubId !== snap.clubId
+      || (Object.keys(snap.after) as (keyof GameState)[]).some(key => state[key] !== snap.after[key])
+      || state.week !== snap.week
       || state.season !== snap.season
       || snap.playerIds.some(id => state.players[id]?.clubId !== '')
     ) {

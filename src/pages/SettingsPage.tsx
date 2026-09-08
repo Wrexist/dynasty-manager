@@ -139,6 +139,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const [pendingCaptureId, setPendingCaptureId] = useState<string | null>(null);
   const [showMenuConfirm, setShowMenuConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => { clearTimeout(savedTimerRef.current); }, []);
   const [restoringPurchases, setRestoringPurchases] = useState(false);
@@ -281,11 +282,19 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     }
   };
 
-  const handleSave = () => {
-    flushSave();
-    setSaved(true);
-    clearTimeout(savedTimerRef.current);
-    savedTimerRef.current = setTimeout(() => setSaved(false), SAVE_CONFIRMATION_MS);
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaved(false);
+    try {
+      if (!await flushSave()) {
+        errorToast('Save failed', 'Your progress is still in memory. Free up device storage or export a backup before closing the app.');
+        return;
+      }
+      setSaved(true);
+      clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSaved(false), SAVE_CONFIRMATION_MS);
+    } finally { setSaving(false); }
   };
 
   // ── Back up & restore ──
@@ -364,9 +373,12 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     setFeedbackOpen(false);
   };
 
-  const handleReturnToMenu = () => {
+  const handleReturnToMenu = async () => {
     hapticMedium();
-    flushSave();
+    if (!await flushSave()) {
+      errorToast('Save failed', 'Export a backup or free up device storage before leaving this game.');
+      return;
+    }
     navigate('/');
   };
 
@@ -609,10 +621,10 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <div className="border-t border-white/10" />
 
           <div className="space-y-2">
-            <LiquidButton onClick={handleSave}>
+            <LiquidButton onClick={handleSave} disabled={saving}>
               <span className="flex items-center justify-start gap-3 px-3">
                 <Save className="w-4 h-4" />
-                {saved ? 'Game Saved!' : 'Save Game'}
+                {saving ? 'Saving…' : saved ? 'Game Saved!' : 'Save Game'}
               </span>
             </LiquidButton>
             <LiquidButton

@@ -63,7 +63,7 @@ const App = () => {
     <MotionConfig reducedMotion={(reducedMotion || performanceMode) ? "always" : "user"}>
       <TooltipProvider>
         <Sonner />
-        <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <HashRouter>
           <Suspense fallback={null}><SaveRecoveryDialog /></Suspense>
           <Suspense fallback={<LoadingFallback />}>
             <Routes>

@@ -171,3 +171,11 @@ What is real is that lower-division scoring (1.67-1.76) sits under the report's
 own "under 1.8 is suspect" line — but it was already at 1.76-1.82 before these
 fixes. That is a pre-existing balance question for the owner, not a regression
 to paper over.
+
+## Pack recovery and Undo (2026-09-08)
+
+- `flushSave()` serializes immediately but returns `Promise<boolean>` for the disk result. Never clear a purchase marker based only on `saveStatus`: IndexedDB can still be in flight.
+- Both launch and Market recovery use `utils/packCreditRecovery.ts`. The pending marker carries a stable `recordId` matching the existing opened-pack record, so failed-save retries do not grant again. Confirmed credits do not expire.
+- Quick-sell Undo must verify the post-sale references it will overwrite, not just the current week. Any intervening financial or roster change invalidates it.
+- React Router is now v7; remove v6 `future` flags from router props.
+- A successful localStorage fallback carries a per-slot pending-IDB fingerprint. Hydration must prefer that marked copy over stale IDB; only the matching completed write may clear the marker.

@@ -369,6 +369,34 @@ describe('packsSlice — undoLastQuickSell', () => {
     expect(after.seasonTotalIncome || 0).toBe(incomeBefore);
   });
 
+  it('does not overwrite a later financial action in the same week', () => {
+    const target = openAndGetTarget();
+    useGameStore.getState().quickSellPackedPlayer(target.id);
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: { ...state.clubs, [club.id]: { ...club, budget: club.budget - 1000 } },
+      seasonTotalExpenses: state.seasonTotalExpenses + 1000,
+    });
+    const afterSpending = useGameStore.getState();
+    expect(afterSpending.undoLastQuickSell()).toBe(false);
+    expect(useGameStore.getState().clubs).toBe(afterSpending.clubs);
+  });
+
+  it('does not restore another save slot even with the same sold players', () => {
+    const target = openAndGetTarget();
+    useGameStore.getState().quickSellPackedPlayer(target.id);
+    useGameStore.setState({ activeSlot: 2 });
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(false);
+  });
+
+  it('still permits Undo after a harmless screen change', () => {
+    const target = openAndGetTarget();
+    useGameStore.getState().quickSellPackedPlayer(target.id);
+    useGameStore.setState({ currentScreen: 'squad' });
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(true);
+  });
+
   it('is a no-op the second time (snapshot consumed)', () => {
     const target = openAndGetTarget();
     useGameStore.getState().quickSellPackedPlayer(target.id);

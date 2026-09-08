@@ -36,7 +36,7 @@ import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { isPro } from '@/utils/monetization';
-import { PENDING_CREDIT_TTL_MS } from '@/config/monetization';
+import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight, isPackPurchaseInFlight } from '@/utils/packCreditRecovery';
 import { purchaseConsumable, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit, currentWeekIndex, msUntilNextWeekIndex } from '@/store/helpers/persistence';
 import { track } from '@/utils/analytics';
@@ -109,12 +109,6 @@ function computeSquadImprovement(
   return result;
 }
 
-/** Module-level (survives PacksPage unmount within the same JS session):
- *  true while a consumable IAP is awaiting StoreKit. The mount reconciler
- *  must not re-grant a pending credit whose purchase is still in flight —
- *  navigating away and back mid-purchase would otherwise double-grant. */
-let iapInFlight = false;
-
 const PacksPage = () => {
   const { t } = useTranslation();
   // `season`/`week` are deliberately NOT selected any more: the featured pack
@@ -136,9 +130,6 @@ const PacksPage = () => {
   const canOpenPack = useGameStore(s => s.canOpenPack);
   const quickSellPackedPlayers = useGameStore(s => s.quickSellPackedPlayers);
   const undoLastQuickSell = useGameStore(s => s.undoLastQuickSell);
-  // Paid-pack durability uses `flushSave` (synchronous) rather than
-  // `saveGame` (debounced idle) — see the purchase path below.
-  const flushSave = useGameStore(s => s.flushSave);
   const activeSlot = useGameStore(s => s.activeSlot);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
@@ -166,62 +157,15 @@ const PacksPage = () => {
   }, []);
   const msToReset = msUntilNextMidnight();
 
-  // Reconcile a crash-stranded paid pack: a pending-credit marker with no
-  // in-flight purchase means a previous session charged the user but died
-  // before granting (or before the save flushed). Re-grant into the same
-  // save slot that paid. Runs once per mount; if the grant is still blocked
-  // (e.g. a challenge restricts signings) the marker is kept for next time.
   useEffect(() => {
-    if (iapInFlight || !club) return;
+    let mounted = true;
     const pending = readPendingPackCredit();
-    if (!pending) return;
-    if (pending.slot !== activeSlot) return; // credit belongs to another save
-    // Proof of payment, not merely evidence of an attempt. `charged === false`
-    // means the marker was written and the store never confirmed — granting it
-    // handed out paid packs for free, repeatably. Report it rather than
-    // dropping it silently: with no receipt backend, Sentry is the only trail
-    // support has if a real charge ever lands here.
-    if (pending.charged === false) {
-      Sentry.captureMessage('[Packs] Dropping unconfirmed pack credit', 'info');
-      clearPendingPackCredit();
-      return;
-    }
-    // Stale markers expire. A credit that has survived this long is not going
-    // to be reconciled by another mount, and an immortal marker is a standing
-    // grant waiting for a squad slot to free up.
-    if (pending.timestamp > 0 && Date.now() - pending.timestamp > PENDING_CREDIT_TTL_MS) {
-      Sentry.captureMessage('[Packs] Dropping expired pack credit', 'warning');
-      clearPendingPackCredit();
-      return;
-    }
-    const tier = PACK_TIER_MAP[pending.tierKey as PackTierKey];
-    if (!tier) { clearPendingPackCredit(); return; } // tier removed — nothing we can grant
-    const result = openPack(pending.tierKey as PackTierKey, {
-      method: 'iap',
-      skipPayment: true,
-      // Suppress the slice's Sentry alert once we've already reported this
-      // stranded marker — otherwise a persistently-blocked claim re-fires on
-      // every mount.
-      suppressPaidRejectSentry: pending.reported === true,
+    void reconcilePendingPackCreditAtLaunch().then(result => {
+      if (mounted && pending && result?.success && result.players?.length) {
+        setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered });
+      }
     });
-    if (result.success && result.players) {
-      // Durable first, clear second — see the note on the purchase path.
-      flushSave();
-      if (useGameStore.getState().saveStatus !== 'failed') clearPendingPackCredit();
-      successToast('Purchase restored', `Your paid ${tier.label} from the previous session has been credited.`);
-      setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered });
-    } else {
-      // Grant is blocked (e.g. squad full). Keep the marker so the claim
-      // survives, but tell the user exactly what's in the way and how to fix
-      // it — a paid pack silently refusing to appear reads as a lost purchase.
-      infoToast(
-        `Your paid ${tier.label} is waiting`,
-        result.message || 'Free up a squad slot, then reopen this screen to claim it.',
-      );
-      // Mark the marker reported so the slice's Sentry alert fires only once.
-      if (!pending.reported) writePendingPackCredit({ ...pending, reported: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only reconciliation; deps would re-fire on every store change
+    return () => { mounted = false; };
   }, []);
 
   // Keep All just clears the reveal — every player is already on the squad
@@ -470,7 +414,7 @@ const PacksPage = () => {
   const handleOpen = async (tierKey: PackTierKey) => {
     // Guard against rapid double-taps while an overlay is already up,
     // a pack was just opened this frame, or an async ad/IAP is mid-flight.
-    if (opening || replay || busy) return;
+    if (opening || replay || busy || isPackPurchaseInFlight()) return;
     const tier = PACK_TIER_MAP[tierKey];
     if (!club) return;
 
@@ -536,7 +480,7 @@ const PacksPage = () => {
     // every bonus that was actually granted.
     const bonusAtPurchase = weeklyBonusCardsFor(tierKey, 'iap');
     setBusy(true);
-    iapInFlight = true;
+    setPackPurchaseInFlight(true);
     addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
     track('purchase_initiated', { productId: tier.productId, surface: 'packs' });
     try {
@@ -551,7 +495,14 @@ const PacksPage = () => {
       // failed attempt (offline, force-quit on the sheet) left a record the
       // reconciler happily granted — a free, repeatable paid pack.
       const marker = { productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot, charged: false };
-      writePendingPackCredit(marker);
+      if (readPendingPackCredit()) {
+        infoToast('A purchase is still waiting', 'Reopen the Market in the save that bought the pack before buying another.');
+        return;
+      }
+      if (!writePendingPackCredit(marker)) {
+        errorToast('Purchase unavailable', 'Free up device storage before buying a pack so your purchase can be saved.');
+        return;
+      }
       const purchased = await purchaseConsumable(tier.productId);
       if (!purchased) {
         // User cancelled or store unavailable — no charge, drop the marker.
@@ -561,8 +512,13 @@ const PacksPage = () => {
       }
       // Charge confirmed. Promote the marker BEFORE granting, so a crash
       // between here and the save still reconciles into a real credit.
-      writePendingPackCredit({ ...marker, charged: true });
-      const result = openPack(tierKey, { method, skipPayment: true });
+      if (!writePendingPackCredit({ ...marker, charged: true })) {
+        errorToast('Payment received', 'Your device could not record the purchase. Contact support before trying again.');
+        return;
+      }
+      setPackPurchaseInFlight(false);
+      const result = await reconcilePendingPackCreditAtLaunch(false);
+      if (!result) return;
       if (!result.success || !result.players) {
         if (result.paidButRejected) {
           // Money was taken but the grant was blocked — KEEP the pending
@@ -582,8 +538,7 @@ const PacksPage = () => {
       // cleared only once the paid players are durably on disk. `saveGame()`
       // here was the debounced idle path and routinely a no-op, which meant
       // the marker could be deleted while the grant existed in memory only.
-      flushSave();
-      if (useGameStore.getState().saveStatus !== 'failed') clearPendingPackCredit();
+      // The shared reconciler has awaited durable storage and retained the marker on failure.
       successToast('Purchase complete', `${tier.label} unlocked.`);
       track('purchase_completed', { productId: tier.productId, surface: 'packs' });
       const claimedBonus = weeklyBonusCardsFor(tierKey, 'iap') === 0 ? bonusAtPurchase : 0;
@@ -606,7 +561,7 @@ const PacksPage = () => {
       track('purchase_failed', { productId: tier.productId, surface: 'packs' });
       errorToast('Purchase failed', 'Please try again.');
     } finally {
-      iapInFlight = false;
+      setPackPurchaseInFlight(false);
       setBusy(false);
     }
   };

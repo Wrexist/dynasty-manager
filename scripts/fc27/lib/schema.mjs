@@ -167,7 +167,7 @@ export function normalizeFoot(raw) {
  */
 export function deriveAge(birthdate, asOf) {
   if (!birthdate) return null;
-  const dob = new Date(birthdate);
+  const dob = new Date(isoDate(birthdate));
   if (Number.isNaN(dob.getTime())) return null;
   let age = asOf.getUTCFullYear() - dob.getUTCFullYear();
   const monthDelta = asOf.getUTCMonth() - dob.getUTCMonth();
@@ -178,8 +178,15 @@ export function deriveAge(birthdate, asOf) {
 /** ISO date portion of whatever date-ish string EA sent. */
 function isoDate(value) {
   if (!value) return null;
+  // Birthdays are calendar dates, not instants. Parsing EA's midnight in
+  // the runner's timezone and converting to UTC can subtract a day.
+  const text = String(value);
+  const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s|$)/.exec(text);
+  if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
+  const iso = /^(\d{4}-\d{2}-\d{2})(?:T|\s|$)/.exec(text);
+  if (iso) return iso[1];
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? String(value) : d.toISOString().slice(0, 10);
+  return Number.isNaN(d.getTime()) ? text : d.toISOString().slice(0, 10);
 }
 
 const nullIfBlank = (v) => (v === undefined || v === null || v === '' ? null : v);

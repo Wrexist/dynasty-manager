@@ -417,14 +417,6 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
  *  mocked trial window on web/dev. If the store's intro offer differs, the
  *  paywall is making a false claim (Apple 3.1.2 exposure) — change BOTH
  *  together. */
-/** How long an un-reconciled paid-pack credit stays claimable.
- *
- *  The pending-credit marker exists so a crash between charge and grant does
- *  not eat a purchase. It is not meant to be immortal: a marker that has
- *  survived a week is not going to be reconciled by another mount, and an
- *  immortal one is a standing grant waiting for a squad slot to free up. */
-export const PENDING_CREDIT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
 export const FREE_TRIAL_DAYS = 7;
 export const FREE_TRIAL_MS = FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000;
 

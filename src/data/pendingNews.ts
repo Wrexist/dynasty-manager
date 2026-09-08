@@ -53,8 +53,11 @@ export const PENDING_NEWS: PendingRelease = {
     'Players now show their full names — Alisson Becker, Gabriel Magalhães, Vinícius Júnior.',
     'Card backs, the walkout OVR beat, and the App Store preview rig.',
     'Redesign pack quick-sell from per-open cap to per-card taper.',
+    'Player profiles now highlight breakthrough development and career milestones.',
   ],
-  fixed: [],
+  fixed: [
+    'Improved paid pack recovery after interrupted saves and protected quick-sell Undo from overwriting later actions.',
+  ],
   headline: null,
   summary: null,
 };
