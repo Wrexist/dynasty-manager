@@ -311,7 +311,9 @@ describe('2D: Season Turnover Integrity', () => {
     expect(zones.replaced).toHaveLength(eng.relegationSpots);
   });
 
-  it('maintains league integrity through season turnover cycle', { timeout: 60_000 }, async () => {
+  // Both unchanged main and the release candidate exceed 60s on this runner.
+  // This asserts three-season integrity; timing budgets live in perf/stress tests.
+  it('maintains league integrity through season turnover cycle', { timeout: 120_000 }, async () => {
     useGameStore.getState().initGame(CLUB_ID);
 
     // Run 3 seasons and verify after each

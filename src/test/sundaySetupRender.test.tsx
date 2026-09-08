@@ -67,7 +67,7 @@ beforeEach(() => {
 afterEach(() => { consoleError.mockRestore(); });
 
 const setup = () => render(
-  <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+  <MemoryRouter>
     <SundaySetup />
   </MemoryRouter>,
 );

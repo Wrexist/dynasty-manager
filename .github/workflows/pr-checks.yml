@@ -17,6 +17,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run docs:check
+      - run: npm run i18n:check
+      - run: npm run packs:supply
       - run: npm run test
       - run: npm run build
 

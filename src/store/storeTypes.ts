@@ -361,7 +361,7 @@ export interface GameState {
   advanceToNextMatch: () => Promise<void> | void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;
-  flushSave: () => void;
+  flushSave: () => Promise<boolean>;
   flushPendingOnly: () => void;
   flushForLifecycle: () => void;
   loadGame: (slot?: number) => boolean;
@@ -677,7 +677,7 @@ export interface GameState {
    *  daily caps as defence in depth. */
   openPack: (
     tier: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string },
   ) => OpenPackResult;
   /** Eligibility pre-flight. Run this BEFORE charging real money or
    *  starting a rewarded ad so the user can never pay/watch and then be

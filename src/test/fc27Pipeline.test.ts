@@ -406,6 +406,8 @@ describe('fc27 against the shapes the live EA API actually sends', () => {
 
   it("parses EA's US-format birthdate with its time component", () => {
     expect(live().date_of_birth).toBe('1992-06-15');
+    expect(deriveAge('6/15/1992 12:00:00 AM', new Date('2026-06-14T12:00:00Z'))).toBe(33);
+    expect(deriveAge('6/15/1992 12:00:00 AM', new Date('2026-06-15T12:00:00Z'))).toBe(34);
   });
 
   it('maps preferredFoot 2 to Left, as Salah is', () => {

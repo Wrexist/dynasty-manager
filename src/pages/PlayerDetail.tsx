@@ -13,6 +13,7 @@ import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
+import { derivePlayerStanding } from '@/utils/playerStanding';
 import { resolveLegend } from '@/utils/legends';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
@@ -102,6 +103,7 @@ const PlayerDetail = () => {
   // Hall of Legends archive (hook must sit before the early return; the
   // record itself resolves below once `player` is known to exist).
   const retiredLegends = useGameStore(st => st.retiredLegends);
+  const seasonGrowth = useGameStore(st => selectedPlayerId ? st.seasonGrowthTracker[selectedPlayerId] : 0);
 
   // Training widget data (memoized, must be before early return to satisfy hooks rules)
   const trainingWidgetData = useMemo(() => {
@@ -263,6 +265,7 @@ const PlayerDetail = () => {
 
   // Season performance derived stats
   const legend = resolveLegend(player.legendId, retiredLegends);
+  const standing = derivePlayerStanding(player, { season, seasonGrowth });
 
   const goalsPerApp = player.appearances > 0 ? (player.goals / player.appearances).toFixed(2) : '0.00';
   const assistsPerApp = player.appearances > 0 ? (player.assists / player.appearances).toFixed(2) : '0.00';
@@ -272,6 +275,13 @@ const PlayerDetail = () => {
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint screen="playerDetail" title={PAGE_HINTS.playerDetail.title} body={PAGE_HINTS.playerDetail.body} />
+
+      {!isWorldCup && player.clubId === playerClubId && standing.headline && (
+        <GlassPanel className="flex items-center gap-3 px-4 py-3">
+          <TrendingUp className="w-5 h-5 shrink-0 text-primary" aria-hidden="true" />
+          <p className="text-sm font-medium">{standing.headline}</p>
+        </GlassPanel>
+      )}
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>

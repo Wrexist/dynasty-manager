@@ -21,6 +21,7 @@ import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { resetRealPlayerClaims } from '@/utils/realPlayerPicker';
 import { clubMedicalLevel, FACILITY_MAX_LEVEL, MEDICAL_LEVEL_FACTOR } from '@/config/gameBalance';
 import type { Club, Match, Player } from '@/types/game';
+import { tick } from './helpers/eventLoop';
 
 function mulberry32(seed: number): () => number {
   let t = seed >>> 0;
@@ -77,7 +78,7 @@ describe('simulateMatch — Medical Centre level reaches the injury system', () 
   afterEach(() => { Math.random = originalRandom; });
   beforeEach(() => { resetRealPlayerClaims(); });
 
-  it('a maxed Medical Centre produces fewer injuries than none at all', () => {
+  it('a maxed Medical Centre produces fewer injuries than none at all', async () => {
     // 400, not the 60 this started with. The effect being measured is real but
     // SMALL, because medical level only reaches ONE of the two injury paths:
     // non-foul injuries have their probability reduced (match.ts:1905, 0.02
@@ -119,6 +120,9 @@ describe('simulateMatch — Medical Centre level reaches the injury system', () 
 
       injuriesAtZero += run(0);
       injuriesAtMax += run(FACILITY_MAX_LEVEL);
+      // This 800-match sweep can block for >60s under parallel load. Let
+      // Vitest receive worker replies without reducing the seeded sample.
+      await tick();
     }
 
     // Sanity: the sample actually produced injuries, otherwise the comparison

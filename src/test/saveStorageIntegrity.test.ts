@@ -133,3 +133,35 @@ describe('a damaged primary is offered for recovery, not reported as empty', () 
     expect(summary.needsRecovery).toBeUndefined();
   });
 });
+
+describe('a newer fallback save survives a restart with stale IndexedDB', () => {
+  beforeEach(() => { __resetSaveStorageForTests(); localStorage.clear(); });
+
+  it('loads the acknowledged localStorage save after an IDB write fails', async () => {
+    const { idbPut } = await import('@/store/helpers/idbStorage');
+    const { hydrateSaveStorage } = await import('@/store/helpers/persistence');
+    await idbPut(MAIN, payload(1));
+    vi.mocked(idbPut).mockResolvedValueOnce(false);
+    const result = writeSaveSlot(SLOT, payload(2));
+    expect(result.lsOk).toBe(true);
+    expect(await result.idbPromise).toBe(false);
+    __resetSaveStorageForTests();
+    await hydrateSaveStorage();
+    expect(readSaveSlot(SLOT)).toBe(payload(2));
+  });
+
+  it('an older completed write cannot clear a newer pending mirror', async () => {
+    const { idbPut } = await import('@/store/helpers/idbStorage');
+    let finish!: (value: boolean) => void;
+    vi.mocked(idbPut).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const first = writeSaveSlot(SLOT, payload(3));
+    vi.mocked(idbPut).mockResolvedValueOnce(false);
+    const second = writeSaveSlot(SLOT, payload(4));
+    const marker = localStorage.getItem(STORAGE_KEYS.saveSlotPendingIdb(SLOT));
+    finish(true);
+    await first.idbPromise;
+    await second.idbPromise;
+    expect(localStorage.getItem(STORAGE_KEYS.saveSlotPendingIdb(SLOT))).toBe(marker);
+    expect(marker).not.toBeNull();
+  });
+});

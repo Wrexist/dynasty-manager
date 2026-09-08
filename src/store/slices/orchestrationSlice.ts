@@ -62,6 +62,7 @@ type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)
 type Get = () => GameState;
 let lastSaveErrorLogAt = 0;
 let lastSaveAt = 0;
+let saveAttempt = 0;
 let lastSavedHash: number | null = null; // FNV-1a of the last successfully written payload
 const SAVE_DEBOUNCE_MS = 2000; // Minimum 2s between auto-saves
 const AGGRESSIVE_TRIM_THRESHOLD = 3_000_000; // >3MB → strip ALL match events
@@ -81,6 +82,7 @@ let runSchedulerWork: (() => void) | null = null;
 /** Reset the change-detection hash. Call on loadGame / resetGame so the next
  *  save isn't short-circuited against a stale hash from a prior session. */
 export function resetSaveHash(): void {
+  saveAttempt++;
   lastSavedHash = null;
 }
 
@@ -100,6 +102,7 @@ function cancelPendingSave(): void {
 /** Test-only: zero every piece of module-level save scheduler state so each
  *  test file starts from a clean slate. Never call from production code. */
 export function __resetAutosaveSchedulerForTests(): void {
+  saveAttempt++;
   cancelPendingSave();
   lastSaveAt = 0;
   lastSaveErrorLogAt = 0;
@@ -168,7 +171,7 @@ const stripAllEvents = (fixtures: unknown[], playerClubId?: string, currentSeaso
  *  callback for auto-saves, or synchronously for manual saves and flushes.
  *  Updates saveStatus / lastSavedAt so the UI can reflect the result.
  *  Short-circuits via FNV-1a hash when the serialized payload is unchanged. */
-function performSave(set: Set, get: Get, slot: number | undefined): void {
+function performSave(set: Set, get: Get, slot: number | undefined): Promise<boolean> {
   const state = get();
 
   // Seatbelt: if we're somehow invoked without an active game (e.g. after a
@@ -176,7 +179,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   // forgets to guard), bail out instead of writing an empty-state "ghost save".
   if (!state.gameStarted || !state.playerClubId) {
     set({ saveStatus: 'idle' });
-    return;
+    return Promise.resolve(false);
   }
 
   // Capture Studio sessions are throwaway staged state — refusing to write
@@ -184,7 +187,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   // save sitting in the active slot.
   if (state.captureSession) {
     set({ saveStatus: 'idle' });
-    return;
+    return Promise.resolve(false);
   }
 
   const s = slot ?? state.activeSlot;
@@ -391,7 +394,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     // performSave — surface it like a write failure instead of silently losing the save.
     Sentry.captureException(err, { tags: { context: 'saveGame.stringify' } });
     set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be serialized' });
-    return;
+    return Promise.resolve(false);
   }
 
   // Change detection: if the payload is byte-identical to our last successful
@@ -400,7 +403,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   const payloadHash = fnv1a(json);
   if (payloadHash === lastSavedHash) {
     set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
-    return;
+    return Promise.resolve(true);
   }
 
   // writeSaveSlot returns { lsOk, idbPromise } so we can detect when BOTH
@@ -410,6 +413,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   // warning was dead code. The memory cache is always updated, so the
   // session continues fine; the warning is specifically for "this save
   // will not survive an app restart".
+  const attempt = ++saveAttempt;
   let saveResult: ReturnType<typeof writeSaveSlot>;
   try {
     saveResult = writeSaveSlot(s, json, {
@@ -437,11 +441,11 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     }
     set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be written' });
     addGameBreadcrumb('save', 'Save threw', { week: state.week, season: state.season, slot: s, bytes: json.length });
-    return;
+    return Promise.resolve(false);
   }
 
-  set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
-  addGameBreadcrumb('save', 'Save succeeded (memory + at-least-one-disk)', {
+  set({ saveStatus: saveResult.lsOk ? 'saved' : 'saving', ...(saveResult.lsOk ? { lastSavedAt: Date.now() } : {}), saveFailureMessage: null });
+  addGameBreadcrumb('save', 'Save write started', {
     week: state.week,
     season: state.season,
     slot: s,
@@ -457,10 +461,13 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   // spam during a long burning-quota episode.
   if (!saveResult.lsOk) {
     void saveResult.idbPromise.then(idbOk => {
+      // A previous write must not replace the status/hash of a newer save or session.
+      if (attempt !== saveAttempt) return;
       if (idbOk) {
         // IDB succeeded — save is persistent; commit the change-detection
         // hash (deferred from the sync path because localStorage failed).
         lastSavedHash = payloadHash;
+        set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
         return;
       }
       const errTime = Date.now();
@@ -472,7 +479,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
         const hasSaveWarningThisWeek = s0.messages.some(
           m => m.title === 'Save Could Not Persist' && m.week === s0.week && m.season === s0.season,
         );
-        if (hasSaveWarningThisWeek) return {};
+        if (hasSaveWarningThisWeek) return { saveStatus: 'failed' as const, saveFailureMessage: 'Save kept in memory only' };
         return {
           saveStatus: 'failed' as const,
           saveFailureMessage: 'Save kept in memory only',
@@ -504,6 +511,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     injuredCount,
     timestamp: Date.now(),
   });
+  return saveResult.idbPromise.then(idbOk => idbOk || saveResult.lsOk);
 }
 
 // migrateLegacySave and getSlotSummaries extracted to @/store/helpers/persistence
@@ -857,18 +865,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   flushSave: () => {
-    // User-initiated flush (e.g. Settings "Save Now"). Always writes.
-    if (pendingIdleHandle !== null && runSchedulerWork) {
-      cancelIdle(pendingIdleHandle);
-      pendingIdleHandle = null;
-      const work = runSchedulerWork;
-      runSchedulerWork = null;
-      work();
-      return;
-    }
+    // Serialize synchronously, but return the disk outcome for paid grants.
+    // A non-failed UI status is not proof that the IDB transaction committed.
+    if (pendingIdleHandle !== null) cancelIdle(pendingIdleHandle);
+    pendingIdleHandle = null;
+    runSchedulerWork = null;
     lastSaveAt = Date.now();
     set({ saveStatus: 'saving' });
-    performSave(set, get, undefined);
+    return performSave(set, get, undefined);
   },
 
   flushPendingOnly: () => {

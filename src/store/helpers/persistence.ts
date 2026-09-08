@@ -1,6 +1,7 @@
 import type { SlotSummary, MatchViewMode } from '@/types/game';
 import { idbGet, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
 import { addGameBreadcrumb } from '@/utils/sentry';
+import { fnv1a } from '@/utils/hashString';
 
 /**
  * Centralised corruption breadcrumb. We don't surface these to the user
@@ -60,7 +61,8 @@ const slotHydrated: boolean[] = [false, false, false, false];
 let hydratePromise: Promise<void> | null = null;
 
 /** Hydrate the in-memory save cache from IndexedDB. Called once at app
- *  start; subsequent calls return the same promise. If IDB is empty for
+ *  start; subsequent calls return the same promise. A marked newer mirror
+ *  takes precedence over stale IDB. Otherwise, if IDB is empty for
  *  a slot, we fall back to localStorage — this is the upgrade path for
  *  installs that saved to localStorage on an older app version. After
  *  hydration, `isSaveStorageHydrated()` returns true and
@@ -105,18 +107,20 @@ async function hydrateOneSlot(slot: number): Promise<void> {
   // flight — the memory cache is newer than whatever IDB held at app start,
   // and overwriting it would also rotate the stale data into the backup slot
   // on the next write (burning both recovery layers).
-  if (idbMain) {
-    if (memSlots[slot] === null) memSlots[slot] = idbMain;
-  } else {
-    // Fallback: migrate localStorage → IDB so this user's existing save
-    // survives the 5 MB quota going forward.
-    try {
-      const ls = localStorage.getItem(mainKey);
-      if (ls) {
-        if (memSlots[slot] === null) memSlots[slot] = ls;
-        void idbPut(mainKey, ls);
+  try {
+    const ls = localStorage.getItem(mainKey);
+    const pending = localStorage.getItem(STORAGE_KEYS.saveSlotPendingIdb(slot));
+    const newerMirror = !!ls && pending === saveFingerprint(ls);
+    if (memSlots[slot] === null) {
+      memSlots[slot] = newerMirror ? ls : idbMain || ls;
+      if (ls && (newerMirror || !idbMain)) {
+        void idbPut(mainKey, ls).then(ok => {
+          if (ok) clearPendingIdb(slot, ls);
+        });
       }
-    } catch { /* storage unavailable */ }
+    }
+  } catch {
+    if (memSlots[slot] === null && idbMain) memSlots[slot] = idbMain;
   }
   if (idbBackup) {
     if (memSlotBackups[slot] === null) memSlotBackups[slot] = idbBackup;
@@ -304,6 +308,7 @@ export const STORAGE_KEYS = {
   HALL_OF_MANAGERS: 'dynasty-hall-of-managers',
   /** localStorage: save slot (1..3). */
   saveSlot: (slot: number) => `dynasty-save-${slot}`,
+  saveSlotPendingIdb: (slot: number) => `dynasty-idb-pending-${slot}`,
   /** localStorage: backup shadow of a save slot. */
   saveSlotBackup: (slot: number) => `dynasty-save-${slot}-backup`,
   /** localStorage: staging area for atomic writes. If this key is present
@@ -764,6 +769,8 @@ export interface PendingPackCredit {
    *            can only have been written by the old binary, so they are still
    *            honoured; new code always writes the flag. */
   charged?: boolean;
+  /** Stable grant id, persisted before generation and reused after a crash. */
+  recordId?: string;
 }
 
 export function readPendingPackCredit(): PendingPackCredit | null {
@@ -779,6 +786,7 @@ export function readPendingPackCredit(): PendingPackCredit | null {
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
       slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
       ...(parsed.reported === true ? { reported: true } : {}),
+      ...(typeof parsed.recordId === 'string' ? { recordId: parsed.recordId } : {}),
       // Preserved as a tri-state: `undefined` (legacy marker) must stay
       // distinguishable from an explicit `false` (written, never charged).
       ...(typeof parsed.charged === 'boolean' ? { charged: parsed.charged } : {}),
@@ -789,9 +797,9 @@ export function readPendingPackCredit(): PendingPackCredit | null {
   }
 }
 
-export function writePendingPackCredit(credit: PendingPackCredit): void {
-  try { localStorage.setItem(STORAGE_KEYS.PENDING_PACK_CREDIT, JSON.stringify(credit)); }
-  catch { /* storage unavailable — the purchase still proceeds, just without crash durability */ }
+export function writePendingPackCredit(credit: PendingPackCredit): boolean {
+  try { localStorage.setItem(STORAGE_KEYS.PENDING_PACK_CREDIT, JSON.stringify(credit)); return true; }
+  catch { return false; }
 }
 
 export function clearPendingPackCredit(): void {
@@ -1066,6 +1074,19 @@ export interface WriteSaveSlotOptions {
   validateOutgoing?: (raw: string) => boolean;
 }
 
+// A small marker distinguishes a newer fallback mirror from a stale mirror.
+// It is a consistency fingerprint, not an authenticity/security check.
+function saveFingerprint(raw: string): string {
+  return `${raw.length}:${fnv1a(raw)}`;
+}
+
+function clearPendingIdb(slot: number, raw: string): void {
+  try {
+    const key = STORAGE_KEYS.saveSlotPendingIdb(slot);
+    if (localStorage.getItem(key) === saveFingerprint(raw)) localStorage.removeItem(key);
+  } catch { /* retaining the marker is safe: hydration retries synchronization */ }
+}
+
 export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOptions): SaveWriteResult {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
@@ -1094,7 +1115,10 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // the backup-write outcome — the main write is what determines whether
   // the slot survives a reload). The caller can use this to detect the
   // "both disk paths failed" case and surface a Save Failed warning.
-  const idbPromise = idbPut(mainKey, json);
+  const idbPromise = idbPut(mainKey, json).then(ok => {
+    if (ok) clearPendingIdb(slot, json);
+    return ok;
+  });
   if (rotate) void idbPut(backupKey, oldMain as string);
   else if (!oldMain && slotHydrated[slot]) void idbDel(backupKey);
   // else: either the outgoing main failed validation (leave the existing backup
@@ -1132,6 +1156,7 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // else: preserve the existing backup mirror for the invalid-main case.
   try {
     localStorage.setItem(mainKey, json);
+    localStorage.setItem(STORAGE_KEYS.saveSlotPendingIdb(slot), saveFingerprint(json));
   } catch {
     // Quota exceeded — drop the main mirror only. The caller sees `lsOk: false`
     // and can await `idbPromise` to decide whether to warn the user. Whatever
@@ -1140,6 +1165,7 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
     // having no local copy at all.
     lsOk = false;
     lsRemoveSafe(mainKey);
+    lsRemoveSafe(STORAGE_KEYS.saveSlotPendingIdb(slot));
   }
 
   return { lsOk, idbPromise };
@@ -1193,12 +1219,10 @@ export function readSaveSlotBackup(slot: number): string | null {
  *  IDB, and localStorage so subsequent reads/writes treat the recovered
  *  data as the new source of truth. */
 export function promoteSaveBackup(slot: number, raw: string): void {
-  memSlots[slot] = raw;
+  writeSaveSlot(slot, raw, { validateOutgoing: () => false });
   memSlotBackups[slot] = null;
-  void idbPut(STORAGE_KEYS.saveSlot(slot), raw);
   void idbDel(STORAGE_KEYS.saveSlotBackup(slot));
   lsRemoveSafe(STORAGE_KEYS.saveSlotBackup(slot));
-  lsSetSafe(STORAGE_KEYS.saveSlot(slot), raw);
 }
 
 /** Remove a save slot from every layer (memory, IDB, localStorage). */
@@ -1208,6 +1232,7 @@ export function removeSaveSlot(slot: number): void {
   void idbDel(STORAGE_KEYS.saveSlot(slot));
   void idbDel(STORAGE_KEYS.saveSlotBackup(slot));
   lsRemoveSafe(STORAGE_KEYS.saveSlot(slot));
+  lsRemoveSafe(STORAGE_KEYS.saveSlotPendingIdb(slot));
   lsRemoveSafe(STORAGE_KEYS.saveSlotBackup(slot));
 }
 

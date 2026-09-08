@@ -24,7 +24,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
@@ -42,16 +42,16 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
 
-      - uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
-
-      - name: Trust GitHub SSH host key
-        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
-
       - name: Override marketing version (only when input is set)
         if: github.event.inputs.marketing_version != ''
-        run: npm version ${{ github.event.inputs.marketing_version }} --no-git-tag-version --allow-same-version
+        env:
+          MARKETING_VERSION: ${{ github.event.inputs.marketing_version }}
+        run: |
+          if [[ ! "$MARKETING_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::Marketing version must have the form 1.6.0'
+            exit 1
+          fi
+          npm version "$MARKETING_VERSION" --no-git-tag-version --allow-same-version
 
       - name: Stamp build number from run number
         run: |
@@ -59,6 +59,15 @@ jobs:
           sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${{ github.run_number }};/g" "$FILE"
 
       - run: npm ci
+
+      - name: Validate release candidate
+        run: npm run preflight:full
+
+      - name: Require production iOS purchase configuration
+        env:
+          VITE_REVENUECAT_API_KEY_IOS: ${{ secrets.VITE_REVENUECAT_API_KEY_IOS }}
+          VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
+        run: node scripts/check-ios-purchases.mjs
 
       # Print the resolved marketing version + build number prominently so
       # operators can sanity-check what's about to ship from the run summary.
@@ -142,6 +151,13 @@ jobs:
           sips -s format jpeg -s formatOptions 100 "$ICON" --out "$ICON.jpg"
           sips -s format png "$ICON.jpg" --out "$ICON"
           rm -f "$ICON.jpg"
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+
+      - name: Trust GitHub SSH host key
+        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       - name: Deploy to TestFlight
         env:
