@@ -60,6 +60,7 @@ export const PENDING_NEWS: PendingRelease = {
   ],
   fixed: [
     'Improved paid pack recovery after interrupted saves and protected quick-sell Undo from overwriting later actions.',
+    'Saving no longer waits indefinitely for stalled device storage, and failed saves keep an accurate status.',
   ],
   headline: null,
   summary: null,

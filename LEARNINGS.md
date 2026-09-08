@@ -179,3 +179,10 @@ to paper over.
 - Quick-sell Undo must verify the post-sale references it will overwrite, not just the current week. Any intervening financial or roster change invalidates it.
 - React Router is now v7; remove v6 `future` flags from router props.
 - A successful localStorage fallback carries a per-slot pending-IDB fingerprint. Hydration must prefer that marked copy over stale IDB; only the matching completed write may clear the marker.
+
+## Save follow-up (2026-09-08)
+
+- Advance the save attempt counter before serialization, including early returns and failures. Old IDB callbacks must never replace a newer attempt's status.
+- A successful marked localStorage mirror is sufficient for immediate acknowledgement. Wait for IDB only when it is the remaining durable path.
+- IDB writes need a transaction deadline in addition to the database-open deadline. Timeout aborts the write, returns failure and permits a fresh connection on retry.
+- Production TestFlight builds now require the Sentry DSN; developer builds retain warning-only behavior. Account configuration still needs verification in the actual dashboards.

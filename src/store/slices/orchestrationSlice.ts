@@ -172,6 +172,8 @@ const stripAllEvents = (fixtures: unknown[], playerClubId?: string, currentSeaso
  *  Updates saveStatus / lastSavedAt so the UI can reflect the result.
  *  Short-circuits via FNV-1a hash when the serialized payload is unchanged. */
 function performSave(set: Set, get: Get, slot: number | undefined): Promise<boolean> {
+  // Invalidate older callbacks even when this attempt fails before writing.
+  const attempt = ++saveAttempt;
   const state = get();
 
   // Seatbelt: if we're somehow invoked without an active game (e.g. after a
@@ -413,7 +415,6 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
   // warning was dead code. The memory cache is always updated, so the
   // session continues fine; the warning is specifically for "this save
   // will not survive an app restart".
-  const attempt = ++saveAttempt;
   let saveResult: ReturnType<typeof writeSaveSlot>;
   try {
     saveResult = writeSaveSlot(s, json, {
@@ -511,7 +512,8 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
     injuredCount,
     timestamp: Date.now(),
   });
-  return saveResult.idbPromise.then(idbOk => idbOk || saveResult.lsOk);
+  // The marked mirror survives restart independently of the IDB outcome.
+  return saveResult.lsOk ? Promise.resolve(true) : saveResult.idbPromise;
 }
 
 // migrateLegacySave and getSlotSummaries extracted to @/store/helpers/persistence

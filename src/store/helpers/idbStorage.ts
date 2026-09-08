@@ -33,6 +33,8 @@ const STORE = 'kv';
  *  Timing out to `null` degrades to the localStorage mirror, which is exactly
  *  the path already taken when IDB is unavailable. */
 const OPEN_TIMEOUT_MS = 2000;
+// A live connection can still stop delivering transaction events in WKWebView.
+const WRITE_TIMEOUT_MS = 10_000;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
@@ -115,18 +117,34 @@ export async function idbGet(key: string): Promise<string | null> {
 /** Write a string value to IDB. Resolves to `true` on success, `false`
  *  when the transaction aborts or IDB is unavailable. Never throws. */
 export async function idbPut(key: string, value: string): Promise<boolean> {
-  const db = await openDB();
+  const connection = openDB();
+  const db = await connection;
   if (!db) return false;
   return new Promise((resolve) => {
+    let tx: IDBTransaction | undefined;
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => {
+      // Fail closed: a timeout is not evidence of a durable save. Abort the
+      // old write so it cannot later overwrite a retry, and reopen next time.
+      finish(false);
+      try { tx?.abort(); } catch { /* already inactive */ }
+      try { db.close(); } catch { /* already closed */ }
+      if (dbPromise === connection) dbPromise = null;
+    }, WRITE_TIMEOUT_MS);
     try {
-      const tx = db.transaction(STORE, 'readwrite');
-      const store = tx.objectStore(STORE);
-      store.put(value, key);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => resolve(false);
-      tx.onabort = () => resolve(false);
+      tx = db.transaction(STORE, 'readwrite');
+      tx.oncomplete = () => finish(true);
+      tx.onerror = () => finish(false);
+      tx.onabort = () => finish(false);
+      tx.objectStore(STORE).put(value, key);
     } catch {
-      resolve(false);
+      finish(false);
     }
   });
 }
