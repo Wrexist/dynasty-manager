@@ -54,6 +54,9 @@ export const PENDING_NEWS: PendingRelease = {
     'Card backs, the walkout OVR beat, and the App Store preview rig.',
     'Redesign pack quick-sell from per-open cap to per-card taper.',
     'Player profiles now highlight breakthrough development and career milestones.',
+    'Improved recovery of paid packs after interrupted saves.',
+    'Protected quick-sell Undo from overwriting later actions.',
+    'Save confirmations now wait for storage to finish.',
   ],
   fixed: [
     'Improved paid pack recovery after interrupted saves and protected quick-sell Undo from overwriting later actions.',
