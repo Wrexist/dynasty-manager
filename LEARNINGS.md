@@ -1,10 +1,13 @@
 # LEARNINGS.md — Dynasty Manager
 
-## App Store campaign exports (2026-09-08)
+## App Store campaign exports (2026-09-09)
 
-- The five-screen campaign and 15 device-sized exports live in `marketing/appstore-2026-09/`, outside the app bundle. Its README distinguishes generated promotional imagery from actual device captures.
-- The owner reserves ivory Icon artwork for actual Icons in marketing. Do not put active stars back on that background when editing these images.
-- Keep portrait proportions during iPad export. The campaign exporter adds matching side margins instead of stretching faces or cropping stats.
+- The campaign now has eight feature-led designs and 24 outputs. Liverpool replaces the illustrated Arsenal XI at the owner's request. All eleven ratings and natural positions are checked against the roster during export.
+- Active players must not use ivory Icon artwork in marketing. The Liverpool diagram uses Gold and World Class backgrounds, including for Salah and Van Dijk.
+- Keep gameplay capture pixels intact. Use precise rendering for text and formation labels; photographic environments and player illustrations are promotional artwork.
+- Preserve all device-specific composition masters in the repository. Scratch maintenance interrupted the previous publication; the saved 24-image ZIP allowed recovery without recreating the seven unchanged designs.
+- Remove obsolete generated JPEGs and verify eight files per output folder. The manifest alone does not prevent accidental reuse.
+- iPad layouts use two columns. They contain phone UI excerpts, not fresh native iPad captures. Rights clearance and comparison with the shipping build remain pre-submission requirements.
 
 > **This file is maintained by Claude.** After completing any task, append
 > discoveries, gotchas, and patterns learned so future sessions don't repeat
