@@ -2,12 +2,12 @@
 
 ## App Store campaign exports (2026-09-09)
 
-- The campaign now has eight feature-led designs and 24 outputs. Liverpool replaces the illustrated Arsenal XI at the owner's request. All eleven ratings and natural positions are checked against the roster during export.
-- Active players must not use ivory Icon artwork in marketing. The Liverpool diagram uses Gold and World Class backgrounds, including for Salah and Van Dijk.
-- Keep gameplay capture pixels intact. Use precise rendering for text and formation labels; photographic environments and player illustrations are promotional artwork.
-- Preserve all device-specific composition masters in the repository. Scratch maintenance interrupted the previous publication; the saved 24-image ZIP allowed recovery without recreating the seven unchanged designs.
-- Remove obsolete generated JPEGs and verify eight files per output folder. The manifest alone does not prevent accidental reuse.
-- iPad layouts use two columns. They contain phone UI excerpts, not fresh native iPad captures. Rights clearance and comparison with the shipping build remain pre-submission requirements.
+- Owner approved the new charcoal/emerald/gold concepts. Preserve 01 and 03 byte-for-byte; use the six approved replacement masters for 02 and 04–08.
+- The XI is a custom saved-game squad: Barcola LW, Isak ST, Salah RW, and Araújo instead of Konaté. Saved-game ratings differ from the base roster, so do not claim automatic full-roster validation.
+- Transfers now use the owner-supplied Yamal photograph, 89 RM, Spain. Packs and Ballon d’Or replace the old career/national-team images.
+- These six replacements are generated promotional adaptations, not untouched game captures. Keep provenance and concept labels accurate. Rights and shipping-build fidelity remain pre-submission checks.
+- New iPad exports proportionally contain the approved portrait artwork with charcoal side margins. Do not describe them as reflowed or native iPad captures.
+- Exporter validates 24 dimensions, sRGB, opacity and exact membership. No active player uses Icon artwork. Sharp remains an external authoring prerequisite.
 
 > **This file is maintained by Claude.** After completing any task, append
 > discoveries, gotchas, and patterns learned so future sessions don't repeat

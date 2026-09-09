@@ -1,60 +1,53 @@
-# Dynasty Manager — eight feature-led App Store compositions
+# Dynasty Manager — approved eight-image campaign
 
-This revision replaces the repetitive five-image campaign with eight different stories and 24 device-sized JPEGs. Numbered filenames define the proposed order. These are review assets; the existing player/data rights gate in `APP_STORE_LISTING.md` remains unresolved by this work. No App Store upload or submission has been performed.
+Owner-approved charcoal, emerald and gold promotional compositions. Images 01 and 03 are preserved byte-for-byte. The six replacements include portraits, the requested custom XI, packs and the Ballon d’Or feature. No gameplay code or App Store submission is included.
 
-| Order | Image | What it shows |
+| Order | Theme | Content |
 | --- | --- | --- |
-| 01 | Your dream team. Your dynasty. | Approved six-player illustration plus the actual market controls |
-| 02 | Eleven players. One vision. | A full Liverpool 4–3–3 illustration, eleven distinct roster players, and an actual mentality control capture |
-| 03 | The big moments. Your decisions. | Match score, commentary, tactical controls and opponent comparison |
-| 04 | Find the missing piece. | Transfer market, player attributes, make-offer action and budget |
-| 05 | Great teams are developed. | Training categories, weekly schedule and individual drills |
-| 06 | Build beyond the pitch. | Transfer budget, income, expenses and sponsorships |
-| 07 | Your club. Your story. | Club dashboard, match preparation, coach checklist and management shortcuts |
-| 08 | A club. A country. A legacy. | National team, tournament timing and formation selection |
+| 01 | Dream team | Original approved player showcase, unchanged |
+| 02 | Starting eleven | Barcola LW, Isak ST, Salah RW; Araújo replaces Konaté |
+| 03 | Match day | Original approved match capture composition, unchanged |
+| 04 | Transfer market | Owner-supplied Lamine Yamal portrait, 89 RM, Spain |
+| 05 | Player development | Wirtz, training categories and weekly schedule |
+| 06 | Club management | Budgets, sponsorships, income and expenses |
+| 07 | Pack opening | Example Haaland reveal, World Class frame and card backs |
+| 08 | Ballon d’Or | In-game Top 10 award card, seasonal rankings and temporary boost |
 
-![Eight-image overview](preview.jpg)
+![Phone overview](preview.jpg)
 
-| Export folder | Portrait pixels | Images |
+| Folder | Pixels | Count |
 | --- | --- | --- |
 | iphone-6.5 | 1242 × 2688 | 8 |
 | iphone-6.9 | 1320 × 2868 | 8 |
 | ipad-13 | 2064 × 2752 | 8 |
 
-All exports are opaque sRGB JPEGs. iPad compositions reflow into two columns with full-bleed artwork; they do not stretch or pad the phone image. Interface excerpts remain phone UI captures, not evidence of the native iPad interface.
+The six new compositions are proportionally contained on a charcoal canvas, preserving all approved content without cropping or stretching. iPad exports therefore have side margins, not newly designed tablet UI. Images 01 and 03 retain their previous device-specific layouts. Export dimensions do not imply native source resolution.
 
-## Why eight
+## Provenance and limits
 
-The first three communicate squad building, a complete XI and match-day management. The following five each add a different benefit. Eight is an editorial starting point, not a proven conversion optimum. Apple permits up to ten screenshots and recommends showing the app's UI, prioritising the first one to three, then focusing subsequent images on main benefits. Filling ten slots with repetition is not the goal. After release, test the first-three order using App Store product page optimization and measure conversion against the control before claiming an improvement.
+These are **promotional concepts**, not untouched gameplay captures. The new imagery was created with built-in image generation using supplied game screenshots and repository artwork as references. The small concept labels remain. Yamal uses the owner's supplied photograph with background removal and card compositing. Other portraits are generated representations. No active player uses the Icon background; the Ballon d’Or artwork is the separate award frame.
 
-## Capture and artwork provenance
+The XI follows the owner's saved-game reference and requested transfers, not a claim about Liverpool's current real-world roster. Existing player ratings reflect that reference, including Alisson 81 and Wirtz 86. Barcola 84 LW, Araújo 83 CB and Yamal 89 RM came from the repository roster. The old exporter’s claim to verify the entire XI against the base roster has been removed, because saved-game values differ. Generated text and likenesses are artwork, not data verification.
 
-- Interface excerpts are unretouched crops of the existing `public/ingame/` captures: `01-dynasty`, `03-minute`, `05-dominate`, `06-matters`, `07-battle`, `08-stars`, `09-books`, and `10-nation`. The exporter scales inspected crop coordinates to their actual 1284-pixel source width. It does not synthesize UI, rename players inside captures or alter game balances.
-- The national-team crop excludes the duplicate goalkeeper rows in the older source image. Capture dates/build provenance were not available here; compare the excerpts against the shipping build before submission. The browser blocked a fresh local capture in this session.
-- Image 02 is visibly labelled **Illustrated XI**. Its player names, natural positions and overall ratings are checked against `src/data/squads/england.ts` during export. Gakpo and Salah have LW/RW as alternate positions; Wirtz and Gravenberch have CM as an alternate position, fitting the illustrated 4–3–3. Alisson Becker is displayed as Alisson. The pitch graphic uses the repository's Gold and World Class artwork. It is not a fabricated screenshot of the lineup editor.
-- Image 01 retains the owner's approved generated player illustration. All active players use blue World Class or purple Dynasty artwork; none uses ivory Icon artwork. This is promotional art, not a claim of player endorsement, guaranteed pack contents or exact paid-edition attributes. Names, portraits and dataset rights still need the owner's clearance before public use.
-- Three text-free photographic backgrounds were created with built-in image generation: a charcoal/emerald night stadium, an ivory training clubhouse, and a black-marble gallery with an original generic gold cup. These are atmospheric promotional backgrounds, not in-game 3D graphics. No new player portraits were generated in this revision.
-- Exact headlines, icons, formation labels and composition geometry are rendered separately from generated imagery. Source raster detail is limited by the existing captures and artwork; output dimensions do not imply newly captured native-device detail.
-- No online play, guaranteed rewards, invented download results, endorsements, prices or ratings/reviews are claimed.
+The pack image is an example reveal, not guaranteed Haaland contents. The Ballon d’Or benefits are backed by `src/pages/BallonDor.tsx`. New transfer, training and finance panels are promotional adaptations, not pixel-preserved UI. The existing player/data/photo rights gate in `APP_STORE_LISTING.md` remains unresolved by this work. Before submission, confirm rights and replace/adapt concepts as needed to accurately represent the shipping app. This PR does not claim App Store approval or release readiness.
 
-## Re-export and validate
+## Re-export
 
-Use Node and the **Sharp production image tool** (with SVG support and DejaVu Sans fonts available in the authoring environment):
+Use Node with Sharp available as an external authoring tool (no new app dependency):
 
 ```sh
 node marketing/appstore-2026-09/export.mjs
 ```
 
-Sharp is an external authoring prerequisite, not added to the app's package dependencies. The assets work without running the exporter. Keep the device-specific `masters/` and the referenced repository card artwork available when re-rendering. Seven completed designs are preserved as composition masters. The three lineup masters contain a cleared pitch; the exporter renders Liverpool’s exact roster labels and premium frames onto it.
+`masters/approved/` holds the six approved replacement masters. The other master directories retain only 01 and 03. The exporter verifies dimensions, sRGB, opacity and exactly eight JPEGs per device folder, removes obsolete JPEG filenames only in those output folders, and produces both previews and `manifest.json`.
 
-The script verifies eleven distinct roster players, all 24 image dimensions, sRGB and absence of alpha. It removes obsolete JPEG filenames only within the three generated export folders, checks exact folder membership, and writes `manifest.json` and `preview.jpg`. It does not delete unrelated file types. The obsolete five-image campaign and its old masters have been removed. The eight-image campaign was recovered from its saved download after workspace maintenance; its device-specific composition masters are now included so it can be regenerated without relying on temporary files.
+## Prompt record
 
-## Background prompt set (original composition artwork)
+Built-in image edits/generation used these briefs, refined with the owner in conversation:
 
-Built-in image generation produced these three text-free plates, followed by exact compositing of the genuine UI excerpts:
-
-1. **Stadium:** premium football stadium at night, pitch-level view, emerald grass, charcoal architecture, restrained gold floodlights, central negative space; no people, text, cards, logos or UI.
-2. **Clubhouse:** immaculate modern training centre, warm ivory plaster, brass trim, emerald practice pitches through glass, morning light and uncluttered central space; no people, text, logos, cards or UI.
-3. **Trophy room:** black-marble gallery, emerald-black shadows, original generic polished gold bowl trophy in the lower-right quarter, subtle world-map relief and empty space; no branded trophy, people, text, logos, cards or UI.
-
-Apple references checked 2026-09-08: [Product page guidance](https://developer.apple.com/app-store/product-page/), [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications), [Product page optimization](https://developer.apple.com/app-store/product-page-optimization/).
+- XI: preserve charcoal/emerald campaign and game pitch structure; eleven gold cards with portraits; Barcola–Isak–Salah attack and Araújo at CB; readable names, ratings and three stats.
+- Transfers: retain “Find the missing piece” campaign; remove the supplied Yamal photograph’s background and integrate into gold card; 89 RM and Spanish flag; retain market feature copy.
+- Development: “Talent is the start. You shape the player.”; Wirtz portrait, reference training categories and weekly schedule; no invented numerical growth claims.
+- Club: “Build more than a team.”; dark gold-edged budget, sponsor and income/expense feature panels; no fabricated money or profit figures.
+- Packs: “Your next star. One reveal away.”; World Class Haaland example reveal with four face-down cards; no guaranteed player, odds or price claims.
+- Award: “Greatness deserves gold.”; repository Ballon d’Or Top 10 card, Salah portrait, seasonal rankings and temporary stat boost; no real-world winner or endorsement claim.
