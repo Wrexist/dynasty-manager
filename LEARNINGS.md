@@ -1,5 +1,14 @@
 # LEARNINGS.md — Dynasty Manager
 
+## App Store campaign exports (2026-09-09)
+
+- Owner approved the new charcoal/emerald/gold concepts. Preserve 01 and 03 byte-for-byte; use the six approved replacement masters for 02 and 04–08.
+- The XI is a custom saved-game squad: Barcola LW, Isak ST, Salah RW, and Araújo instead of Konaté. Saved-game ratings differ from the base roster, so do not claim automatic full-roster validation.
+- Transfers now use the owner-supplied Yamal photograph, 89 RM, Spain. Packs and Ballon d’Or replace the old career/national-team images.
+- These six replacements are generated promotional adaptations, not untouched game captures. Keep provenance and concept labels accurate. Rights and shipping-build fidelity remain pre-submission checks.
+- New iPad exports proportionally contain the approved portrait artwork with charcoal side margins. Do not describe them as reflowed or native iPad captures.
+- Exporter validates 24 dimensions, sRGB, opacity and exact membership. No active player uses Icon artwork. Sharp remains an external authoring prerequisite.
+
 > **This file is maintained by Claude.** After completing any task, append
 > discoveries, gotchas, and patterns learned so future sessions don't repeat
 > mistakes. **Verify against code before trusting any entry here** — this file
