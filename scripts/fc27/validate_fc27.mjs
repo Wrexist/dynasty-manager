@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { parseCsv } from './lib/csv.mjs';
+import { isMain } from '../lib/isMain.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { MALE_CSV, QUALITY_REPORT_PATH } from './lib/paths.mjs';
 
@@ -202,7 +203,7 @@ export function run({ csvPath = MALE_CSV, reportPath = QUALITY_REPORT_PATH, minE
   return { ...result, reportPath };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2));
   const result = run({ csvPath: args.csv, reportPath: args.report, minExpected: args.min });
   console.log(`[validate] ${result.stats.total} players -> ${result.reportPath}`);

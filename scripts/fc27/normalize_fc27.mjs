@@ -14,6 +14,7 @@ import { join } from 'path';
 import { toCsv } from './lib/csv.mjs';
 import { normalizeEaPlayer, resolveColumns, isMale, isFemale } from './lib/schema.mjs';
 import { readRawItems } from './lib/raw.mjs';
+import { isMain } from '../lib/isMain.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { DATA_DIR, RAW_DIR, DATASET_NAMES } from './lib/paths.mjs';
 
@@ -100,7 +101,7 @@ export function run({ rawDir = RAW_DIR, outDir = DATA_DIR, dataVersion = 'fc27' 
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2));
   const result = run({ rawDir: args.rawDir, outDir: args.outDir });
   console.log(`[normalize] ${result.rawCount} raw -> ${result.total} unique`);

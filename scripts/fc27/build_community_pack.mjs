@@ -15,7 +15,7 @@
  *
  * Run: npx vite-node scripts/fc27/build_community_pack.mjs [--dry-run]
  */
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { ALL_CLUBS, LEAGUES } from '@/data/league';
@@ -24,18 +24,23 @@ import { toGameRow, buildLeagueMap } from './export_for_game.mjs';
 import { buildPlayer, writeByClub, writeFreeAgents } from '../processFC26.mjs';
 import { extractName } from '../lib/playerName.mjs';
 import { BASELINES } from './lib/paths.mjs';
+import { applyTransferUpdates } from './lib/transferUpdates.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const RECONCILED = join(ROOT, 'data/fc27/FC27_male_players_reconciled.csv');
 
 function main() {
   const dryRun = process.argv.includes('--dry-run');
-  const rows = parseCsv(readFileSync(RECONCILED, 'utf8'));
+  const ledger = JSON.parse(readFileSync(join(ROOT, 'data/transfers/summer-2026.json'), 'utf8'));
+  const rows = applyTransferUpdates(parseCsv(readFileSync(RECONCILED, 'utf8')), ledger, ALL_CLUBS);
+  console.log(`reviewed transfer updates: ${ledger.transfers.length} (as of ${ledger.asOf}; ${ledger.coverage})`);
   const leagueMap = buildLeagueMap(readFileSync(BASELINES.fc26, 'utf8'));
   const clubById = new Map(ALL_CLUBS.map((c) => [c.id, c]));
 
   const byClubMap = new Map();
   const freeAgents = [];
+  const confirmedFreeAgents = [];
+  const confirmedFreeIds = new Set(ledger.transfers.filter(t => t.kind === 'free-agent').map(t => t.playerId));
   const seen = new Set();
   const stats = { routed: 0, free: 0, dupes: 0, noPotential: 0, unknownClub: 0, potentialClamped: 0, doubledNames: 0 };
 
@@ -75,6 +80,7 @@ function main() {
     }
 
     const clubId = row.game_club_id;
+    if (confirmedFreeIds.has(row.player_id)) { confirmedFreeAgents.push(player); continue; }
     if (!clubId) { freeAgents.push(player); stats.free += 1; continue; }
     if (!clubById.has(clubId)) { stats.unknownClub += 1; freeAgents.push(player); continue; }
 
@@ -115,6 +121,11 @@ function main() {
   }
   writeByClub(byClubMap, {});
   writeFreeAgents(freeAgents);
+  writeFileSync(join(ROOT, 'src/data/communityPack/initialLoans.ts'),
+    `// Generated from reviewed transfer evidence. Do not edit manually.\nexport const initialLoans = ${JSON.stringify(ledger.transfers.filter(t => t.kind === 'loan').map(t => ({fcId:t.playerId,fromClubId:t.loan.fromClubId,toClubId:t.toClubId})), null, 2)};\n`);
+  writeFileSync(join(ROOT, 'src/data/communityPack/confirmedFreeAgents.ts'),
+    `// Generated from reviewed transfer evidence. Do not edit manually.\nimport type { PlayerTemplate } from '@/data/playerTemplates';\n\ninterface CommunityPlayer extends PlayerTemplate { source: 'real'; fcId: string; heightCm: number; weightKg: number; }\nexport const confirmedFreeAgents: CommunityPlayer[] = ${JSON.stringify(confirmedFreeAgents, null, 2)};\n`);
+  console.log(`confirmed real-world free agents: ${confirmedFreeAgents.length}`);
   console.log('\nwrote src/data/communityPack/byClub.ts and freeAgents.ts');
 }
 

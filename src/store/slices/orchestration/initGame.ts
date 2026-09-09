@@ -1,4 +1,4 @@
-import { Club, Player, TransferListing, Match, LeagueTableEntry } from '@/types/game';
+import { Club, Player, TransferListing, Match, LeagueTableEntry, LoanDeal } from '@/types/game';
 import { safeRandomUUID } from '@/utils/helpers';
 
 import { buildLeagueTable, generateDivisionFixtures, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry } from '@/data/league';
@@ -40,7 +40,6 @@ import {
   generateLeagueCupDraw,
 } from '@/store/slices/orchestration/tournaments';
 
-import { CP_FA_SEED_COUNT_BY_SEASON, CP_FA_SEED_ELITE_COUNT, CP_FA_SEED_ELITE_MIN_OVR, CP_FA_SEED_MAX_AGE, CP_FA_SEED_MID_MIN_OVR, CP_FA_SEED_MIN_AGE, CP_FA_SEED_TOP_COUNT, CP_FA_SEED_TOP_MIN_OVR } from '@/config/aiSimulation';
 import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
 import { FACILITY_MAX_LEVEL, STADIUM_LEVEL_DIVISOR, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, clubMedicalLevel, clubRecoveryLevel } from '@/config/gameBalance';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
@@ -48,7 +47,7 @@ import { ALL_CLUBS, DERBIES, clearLeagueTableCache } from '@/data/league';
 import type { PlayerTemplate } from '@/data/playerTemplates';
 import { generateStarterDeals, generateStarterOffers } from '@/store/slices/sponsorSlice';
 import type { Message } from '@/types/game';
-import { drawForFaPoolSeed, drawForMarket, getActivePool } from '@/utils/communityPackPool';
+import { drawForMarket, getActivePool } from '@/utils/communityPackPool';
 import { createDefaultProgression } from '@/utils/managerPerks';
 import { getDefaultMerchState } from '@/utils/merchandise';
 import { buildPlayerFromTemplate, topUpSquad } from '@/utils/playerGen';
@@ -61,6 +60,7 @@ import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
 import { loadClubTemplates } from '@/data/playerTemplatesAccess';
 import { LIVING_WORLD_LEAGUE_COUNT, LIVING_WORLD_SQUAD_SIZE } from '@/config/continental';
 import { getLivingWorldLeagueIds } from '@/data/continentalDraw';
+import { mergeRosterTemplates } from '@/utils/mergeRosterTemplates';
 
 /**
  * Pick the 10 reigning Ballon d'Or top-10 holders for a freshly initialised
@@ -212,11 +212,15 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   // stays lean. Dynamic imports are cached by the module system.
   let cpByClub: Record<string, PlayerTemplate[]> | undefined;
   let cpFreeAgents: PlayerTemplate[] | undefined;
+  let confirmedFreeAgents: PlayerTemplate[] = [];
+  let reviewedLoans: { fcId: string; fromClubId: string; toClubId: string }[] = [];
   if (communityPackEnabled) {
-    const [byClubMod, freeAgentsMod, cpLeagueSquadsMod] = await Promise.all([
+    const [byClubMod, freeAgentsMod, cpLeagueSquadsMod, confirmedMod, loansMod] = await Promise.all([
       import('@/data/communityPack/byClub'),
       import('@/data/communityPack/freeAgents'),
       import('@/data/communityPack/cpLeagueSquads'),
+      import('@/data/communityPack/confirmedFreeAgents'),
+      import('@/data/communityPack/initialLoans'),
     ]);
     // Merge the 7 community-pack-only league squads (arg, mls, sau, kor,
     // bra, aus, ind) into cpByClub. byClub entries win on collision because
@@ -227,11 +231,10 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     // FC26. The overlap is deliberate — cpLeagueSquads keeps clubs populated
     // in those leagues wherever FC27 has no data for them (Brazil above all,
     // which EA's public endpoint carries no clubs for at all).
-    cpByClub = {
-      ...cpLeagueSquadsMod.cpLeagueSquads,
-      ...byClubMod.byClub,
-    } as Record<string, PlayerTemplate[]>;
     cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
+    confirmedFreeAgents = confirmedMod.confirmedFreeAgents;
+    reviewedLoans = loansMod.initialLoans;
+    cpByClub = mergeRosterTemplates(cpLeagueSquadsMod.cpLeagueSquads, byClubMod.byClub, [...cpFreeAgents, ...confirmedFreeAgents]);
   }
 
   resetSeasonGrowth();
@@ -252,6 +255,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   if (cpFreeAgents) {
     for (const t of cpFreeAgents) claimRealPlayer(t);
   }
+  for (const t of confirmedFreeAgents) claimRealPlayer(t);
   const allPlayers: Record<string, Player> = {};
   const clubs: Record<string, Club> = {};
   const assignedFcIds: string[] = [];
@@ -323,12 +327,9 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   //
   // Three deliberate choices here:
   //
-  // 1. Squads come from `generateSquad` (i.e. the lazily-loaded club-template
-  //    data behind `getClubTemplatesSync`), NOT from the community-pack
-  //    datasets. The community pack is dynamic-imported and must never be
-  //    pulled into the boot graph for clubs the player didn't choose. This is
-  //    the same data path `createEphemeralClub` already used — the difference
-  //    is that these squads persist and develop instead of being thrown away.
+  // 1. Real-player careers reuse the community pack loaded during initialization
+  //    for foreign clubs too. Other careers use generated squads. Data remains
+  //    lazy-loaded; these squads persist and develop with the living world.
   //
   // 2. Foreign leagues DO get domestic fixtures and tables. This is the
   //    expensive half of the feature (an extra ~9 AI matches per league per
@@ -353,10 +354,15 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     for (const cd of ALL_CLUBS) {
       if (cd.divisionId !== foreignLeagueId) continue;
       const club = buildClubEntity(cd);
-      const squad = trimForeignSquad(generateSquad(
-        club.id, cd.squadQuality, 1, cd.divisionId,
-        /* isInitialSeason */ true, /* useRealNames */ communityPackEnabled,
-      ));
+      const templates = cpByClub?.[club.id];
+      const squad = templates?.length
+        ? topUpSquad(templates.map(t => {
+            if (t.fcId) assignedFcIds.push(t.fcId);
+            return buildPlayerFromTemplate(t, club.id, 1);
+          }), club.id, cd.squadQuality, 1, cd.divisionId, true)
+        : trimForeignSquad(generateSquad(
+            club.id, cd.squadQuality, 1, cd.divisionId, true, communityPackEnabled,
+          ));
       let foreignWages = 0;
       for (const p of squad) {
         allPlayers[p.id] = p;
@@ -377,6 +383,52 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
       foreignClubIds, foreignLeague?.totalWeeks || TOTAL_WEEKS,
     );
     divisionTables[foreignLeagueId] = buildLeagueTable(divisionFixtures[foreignLeagueId], foreignClubIds);
+  }
+
+  // Load referenced parent clubs so every loan has a real return destination.
+  // They retain squads without adding fixtures for leagues outside this career.
+  let addedParent = true;
+  while (addedParent) {
+    addedParent = false;
+    for (const record of reviewedLoans) {
+      if (!clubs[record.toClubId] || clubs[record.fromClubId]) continue;
+      const data = ALL_CLUBS.find(c => c.id === record.fromClubId);
+      if (!data) throw new Error('Missing reviewed loan parent: ' + record.fromClubId);
+      const parent = buildClubEntity(data);
+      const templates = cpByClub?.[parent.id];
+      const squad = templates?.length
+        ? topUpSquad(templates.map(t => {
+            if (t.fcId) assignedFcIds.push(t.fcId);
+            return buildPlayerFromTemplate(t, parent.id, 1);
+          }), parent.id, data.squadQuality, 1, data.divisionId, true)
+        : generateSquad(parent.id, data.squadQuality, 1, data.divisionId, true, communityPackEnabled);
+      for (const player of squad) allPlayers[player.id] = player;
+      parent.playerIds = squad.map(p => p.id);
+      parent.wageBill = squad.reduce((sum, p) => sum + p.wage, 0);
+      const selected = selectBestLineup(squad, '4-3-3');
+      parent.lineup = selected.lineup.map(p => p.id);
+      parent.subs = selected.subs.map(p => p.id);
+      parent.aiManagerProfile = generateAIManagerProfile(parent.id, data.reputation);
+      clubs[parent.id] = parent;
+      addedParent = true;
+    }
+  }
+  const initialLoanDeals: LoanDeal[] = [];
+  const playerByFcId = new Map(Object.values(allPlayers).filter(p => p.fcId).map(p => [p.fcId, p]));
+  for (const record of reviewedLoans) {
+    const player = playerByFcId.get(record.fcId);
+    if (!player || player.clubId !== record.toClubId) continue;
+    player.onLoan = true;
+    player.loanFromClubId = record.fromClubId;
+    player.loanToClubId = record.toClubId;
+    player.listedForSale = false;
+    initialLoanDeals.push({
+      id: 'initial-loan-' + record.fcId, playerId: player.id,
+      fromClubId: record.fromClubId, toClubId: record.toClubId,
+      startWeek: 1, startSeason: 1, durationWeeks: league?.totalWeeks || TOTAL_WEEKS,
+      // Undisclosed commercial terms use neutral simulation defaults.
+      wageSplit: 100, recallClause: false,
+    });
   }
 
   const leagueClubIds = divisionClubs[playerDivision] || [];
@@ -431,58 +483,21 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     }
   }
 
-  // Seed a small pool of free agents (2-3) so managers have a minimal
-  // signing option from day one.
-  const initialFreeAgents = generateInitialFreeAgents(1);
+  // Only reviewed unattached players are free agents in a new real-player game.
+  // Unresolved/external clubs in the EA import do not prove free-agent status.
+  const initialFreeAgents = communityPackEnabled
+    ? { players: {}, freeAgentIds: [] as string[] }
+    : generateInitialFreeAgents(1);
   Object.assign(allPlayers, initialFreeAgents.players);
   const initialFreeAgentIds = initialFreeAgents.freeAgentIds;
-
-  // Phase E.7 — front-load the FA pool with real CP names at game start.
-  // Seeds taper over S2/S3 in advanceWeek; after S3 the pool relies on
-  // organic contract expiry. Elite count is capped tight per CP_FA_SEED_*
-  // so the user sees a handful of recognisable names day one without
-  // turning the FA tab into a weekly Bosman flood.
-  let cpCursorAfterSeed = 0;
-  if (communityPackEnabled && cpFreeAgents) {
-    const s1SeedCount = CP_FA_SEED_COUNT_BY_SEASON[1] ?? 0;
-    if (s1SeedCount > 0) {
-      const seedActivePool = getActivePool(cpFreeAgents, {
-        shuffleSeed: cpShuffleSeed,
-        cursor: 0,
-        usedFcIds: assignedFcIds,
-        marketListings: [],
-        lastMarketRefreshWeek: 0,
-        lastSeedSeason: 0,
-      });
-      const seeds = drawForFaPoolSeed(
-        seedActivePool,
-        s1SeedCount,
-        assignedFcIds,
-        cpShuffleSeed ^ 0x5A5A5A5A,
-        {
-          minAge: CP_FA_SEED_MIN_AGE,
-          maxAge: CP_FA_SEED_MAX_AGE,
-          eliteMinOvr: CP_FA_SEED_ELITE_MIN_OVR,
-          topMinOvr: CP_FA_SEED_TOP_MIN_OVR,
-          midMinOvr: CP_FA_SEED_MID_MIN_OVR,
-          eliteCount: CP_FA_SEED_ELITE_COUNT,
-          topCount: CP_FA_SEED_TOP_COUNT,
-        },
-      );
-      for (const t of seeds) {
-        const p = buildPlayerFromTemplate(t, '', 1);
-        if (t.fcId) p.fcId = t.fcId;
-        p.clubId = '';
-        // Match the wage-on-release reduction used by the contract-expiry
-        // path so these seeds feel like "released players open to offers"
-        // rather than mid-contract stars.
-        p.wage = Math.round(p.wage * 0.8);
-        allPlayers[p.id] = p;
-        initialFreeAgentIds.push(p.id);
-        if (t.fcId) assignedFcIds.push(t.fcId);
-      }
-      cpCursorAfterSeed = seeds.length;
-    }
+  const cpCursorAfterSeed = 0;
+  for (const template of confirmedFreeAgents) {
+    const player = buildPlayerFromTemplate(template, '', 1);
+    player.contractEnd = 1;
+    if (template.fcId) player.fcId = template.fcId;
+    allPlayers[player.id] = player;
+    initialFreeAgentIds.push(player.id);
+    if (template.fcId) assignedFcIds.push(template.fcId);
   }
 
   const initClub = clubs[clubId];
@@ -597,7 +612,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable, friendlies,
     divisionFixtures, divisionTables, divisionClubs, playerDivision,
     lastSeasonTurnover: null, derbies: DERBIES,
-    activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
+    activeLoans: initialLoanDeals, incomingLoanOffers: [], outgoingLoanRequests: [],
     transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
     currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
     messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', matchGamePlan: 'none', currentCupTieId: null,

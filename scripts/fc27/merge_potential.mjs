@@ -22,6 +22,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { basename } from 'path';
 import { parseCsv, toCsv } from './lib/csv.mjs';
 import { readComparable, matchPlayers, fromNormalizedRow } from './lib/players.mjs';
+import { isMain } from '../lib/isMain.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { BASELINES, MALE_CSV } from './lib/paths.mjs';
 
@@ -111,7 +112,7 @@ export function run({ csvPath = MALE_CSV, from, label, clamp = false, dryRun = f
   return { ...result, total: rows.length, providerRows: provider.length, csvPath, providerPath, dryRun };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2));
   const result = run({
     csvPath: args.csv,

@@ -1,0 +1,7256 @@
+{
+  "asOf": "2026-09-09",
+  "meaning": "Source coverage is not a completed real-world squad audit. All club rosters still need reconciliation against an independent current squad list.",
+  "reviewedMoves": 173,
+  "reviewedLoans": 51,
+  "confirmedFreeAgents": 17,
+  "unresolvedIdentities": [
+    {
+      "name": "Mykhailo Mudryk",
+      "toClubId": "tottenham",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Patrik Kristal",
+      "toClubId": "thun",
+      "kind": "loan",
+      "source": "bundesliga",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Roberto Gagliardini",
+      "toClubId": "cagliari",
+      "kind": "permanent",
+      "source": "serie-a",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Giovani Versini",
+      "toClubId": "brest",
+      "kind": "permanent",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Deivid Washington",
+      "toClubId": "strasbourg",
+      "kind": "permanent",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Maurits Kjærgaard",
+      "toClubId": "lille",
+      "kind": "permanent",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Junior Kadile",
+      "toClubId": "lens",
+      "kind": "loan",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Neto",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Sergio Ramos",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Dele Alli",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Philippe Coutinho",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "James Rodríguez",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Jamie Vardy",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    }
+  ],
+  "leagues": [
+    {
+      "id": "eng",
+      "name": "Premier League",
+      "country": "England",
+      "clubs": 20,
+      "sourceCovered": 20,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "eng-2",
+      "name": "EFL Championship",
+      "country": "England",
+      "clubs": 24,
+      "sourceCovered": 24,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "eng-3",
+      "name": "EFL League One",
+      "country": "England",
+      "clubs": 24,
+      "sourceCovered": 24,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "eng-4",
+      "name": "EFL League Two",
+      "country": "England",
+      "clubs": 24,
+      "sourceCovered": 22,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "esp",
+      "name": "La Liga",
+      "country": "Spain",
+      "clubs": 20,
+      "sourceCovered": 20,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "esp-2",
+      "name": "La Liga 2",
+      "country": "Spain",
+      "clubs": 22,
+      "sourceCovered": 18,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ita",
+      "name": "Serie A",
+      "country": "Italy",
+      "clubs": 20,
+      "sourceCovered": 20,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ita-2",
+      "name": "Serie B",
+      "country": "Italy",
+      "clubs": 20,
+      "sourceCovered": 16,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ger",
+      "name": "Bundesliga",
+      "country": "Germany",
+      "clubs": 18,
+      "sourceCovered": 18,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ger-2",
+      "name": "2. Bundesliga",
+      "country": "Germany",
+      "clubs": 18,
+      "sourceCovered": 17,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ger-3",
+      "name": "3. Liga",
+      "country": "Germany",
+      "clubs": 20,
+      "sourceCovered": 16,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "fra",
+      "name": "Ligue 1",
+      "country": "France",
+      "clubs": 18,
+      "sourceCovered": 18,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "fra-2",
+      "name": "Ligue 2",
+      "country": "France",
+      "clubs": 18,
+      "sourceCovered": 14,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ned",
+      "name": "Eredivisie",
+      "country": "Netherlands",
+      "clubs": 18,
+      "sourceCovered": 15,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "por",
+      "name": "Primeira Liga",
+      "country": "Portugal",
+      "clubs": 18,
+      "sourceCovered": 16,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "bel",
+      "name": "Pro League",
+      "country": "Belgium",
+      "clubs": 16,
+      "sourceCovered": 13,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "tur",
+      "name": "Süper Lig",
+      "country": "Turkey",
+      "clubs": 19,
+      "sourceCovered": 15,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "cze",
+      "name": "Czech First League",
+      "country": "Czechia",
+      "clubs": 16,
+      "sourceCovered": 1,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "gre",
+      "name": "Super League Greece",
+      "country": "Greece",
+      "clubs": 14,
+      "sourceCovered": 4,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "pol",
+      "name": "Ekstraklasa",
+      "country": "Poland",
+      "clubs": 18,
+      "sourceCovered": 13,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "den",
+      "name": "Superliga",
+      "country": "Denmark",
+      "clubs": 12,
+      "sourceCovered": 9,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "nor",
+      "name": "Eliteserien",
+      "country": "Norway",
+      "clubs": 16,
+      "sourceCovered": 13,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "che",
+      "name": "Super League",
+      "country": "Switzerland",
+      "clubs": 12,
+      "sourceCovered": 11,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "aut",
+      "name": "Bundesliga",
+      "country": "Austria",
+      "clubs": 12,
+      "sourceCovered": 10,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "sco",
+      "name": "Scottish Premiership",
+      "country": "Scotland",
+      "clubs": 12,
+      "sourceCovered": 10,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "swe",
+      "name": "Allsvenskan",
+      "country": "Sweden",
+      "clubs": 16,
+      "sourceCovered": 14,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "cro",
+      "name": "Hrvatska Nogometna Liga",
+      "country": "Croatia",
+      "clubs": 10,
+      "sourceCovered": 2,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "hun",
+      "name": "Nemzeti Bajnokság I",
+      "country": "Hungary",
+      "clubs": 12,
+      "sourceCovered": 1,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "srb",
+      "name": "SuperLiga",
+      "country": "Serbia",
+      "clubs": 16,
+      "sourceCovered": 0,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "rou",
+      "name": "Liga 1",
+      "country": "Romania",
+      "clubs": 16,
+      "sourceCovered": 12,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ukr",
+      "name": "Ukrainian Premier League",
+      "country": "Ukraine",
+      "clubs": 16,
+      "sourceCovered": 2,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "bgr",
+      "name": "First Professional Football League",
+      "country": "Bulgaria",
+      "clubs": 16,
+      "sourceCovered": 2,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "svk",
+      "name": "Fortuna Liga",
+      "country": "Slovakia",
+      "clubs": 12,
+      "sourceCovered": 1,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "fin",
+      "name": "Veikkausliiga",
+      "country": "Finland",
+      "clubs": 12,
+      "sourceCovered": 1,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "isl",
+      "name": "Úrvalsdeild",
+      "country": "Iceland",
+      "clubs": 12,
+      "sourceCovered": 0,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "irl",
+      "name": "League of Ireland Premier Division",
+      "country": "Ireland",
+      "clubs": 10,
+      "sourceCovered": 9,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "isr",
+      "name": "Israeli Premier League",
+      "country": "Israel",
+      "clubs": 14,
+      "sourceCovered": 0,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "cyp",
+      "name": "Cypriot First Division",
+      "country": "Cyprus",
+      "clubs": 14,
+      "sourceCovered": 1,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "arg",
+      "name": "Liga Profesional",
+      "country": "Argentina",
+      "clubs": 30,
+      "sourceCovered": 30,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "mls",
+      "name": "Major League Soccer",
+      "country": "United States",
+      "clubs": 30,
+      "sourceCovered": 30,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "sau",
+      "name": "Saudi Pro League",
+      "country": "Saudi Arabia",
+      "clubs": 18,
+      "sourceCovered": 18,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "kor",
+      "name": "K League 1",
+      "country": "South Korea",
+      "clubs": 12,
+      "sourceCovered": 12,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "bra",
+      "name": "Brasileirão Série A",
+      "country": "Brazil",
+      "clubs": 14,
+      "sourceCovered": 0,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "aus",
+      "name": "A-League Men",
+      "country": "Australia",
+      "clubs": 13,
+      "sourceCovered": 12,
+      "fullRostersVerified": 0
+    },
+    {
+      "id": "ind",
+      "name": "Indian Super League",
+      "country": "India",
+      "clubs": 14,
+      "sourceCovered": 11,
+      "fullRostersVerified": 0
+    }
+  ],
+  "clubs": [
+    {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "leagueId": "eng",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 5,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aston-villa",
+      "name": "Aston Villa",
+      "leagueId": "eng",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 10,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bournemouth",
+      "name": "AFC Bournemouth",
+      "leagueId": "eng",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brentford",
+      "name": "Brentford",
+      "leagueId": "eng",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brighton",
+      "name": "Brighton & Hove Albion",
+      "leagueId": "eng",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "chelsea",
+      "name": "Chelsea",
+      "leagueId": "eng",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 8,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "crystal-palace",
+      "name": "Crystal Palace",
+      "leagueId": "eng",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 5,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "everton",
+      "name": "Everton",
+      "leagueId": "eng",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 5,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fulham",
+      "name": "Fulham",
+      "leagueId": "eng",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ipswich-town",
+      "name": "Ipswich Town",
+      "leagueId": "eng",
+      "sourcePlayers": 33,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 6,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "liverpool",
+      "name": "Liverpool",
+      "leagueId": "eng",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "manchester-city",
+      "name": "Manchester City",
+      "leagueId": "eng",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 4,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "manchester-united",
+      "name": "Manchester United",
+      "leagueId": "eng",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "newcastle-united",
+      "name": "Newcastle United",
+      "leagueId": "eng",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nottingham-forest",
+      "name": "Nottingham Forest",
+      "leagueId": "eng",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 4,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "tottenham-hotspur",
+      "name": "Tottenham Hotspur",
+      "leagueId": "eng",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 7,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "leeds-united",
+      "name": "Leeds United",
+      "leagueId": "eng",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 5,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sunderland",
+      "name": "Sunderland",
+      "leagueId": "eng",
+      "sourcePlayers": 36,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "coventry-city",
+      "name": "Coventry City",
+      "leagueId": "eng",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hull-city",
+      "name": "Hull City",
+      "leagueId": "eng",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "blackburn-rovers",
+      "name": "Blackburn Rovers",
+      "leagueId": "eng-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bristol-city",
+      "name": "Bristol City",
+      "leagueId": "eng-2",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "burnley",
+      "name": "Burnley",
+      "leagueId": "eng-2",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cardiff-city",
+      "name": "Cardiff City",
+      "leagueId": "eng-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "derby-county",
+      "name": "Derby County",
+      "leagueId": "eng-2",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "luton-town",
+      "name": "Luton Town",
+      "leagueId": "eng-2",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "middlesbrough",
+      "name": "Middlesbrough",
+      "leagueId": "eng-2",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "millwall",
+      "name": "Millwall",
+      "leagueId": "eng-2",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "norwich",
+      "name": "Norwich",
+      "leagueId": "eng-2",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "oxford-united",
+      "name": "Oxford United",
+      "leagueId": "eng-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "plymouth-argyle",
+      "name": "Plymouth Argyle",
+      "leagueId": "eng-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "portsmouth",
+      "name": "Portsmouth",
+      "leagueId": "eng-2",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "preston",
+      "name": "Preston",
+      "leagueId": "eng-2",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "qpr",
+      "name": "QPR",
+      "leagueId": "eng-2",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sheffield-utd",
+      "name": "Sheffield Utd",
+      "leagueId": "eng-2",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sheffield-wed",
+      "name": "Sheffield Wed",
+      "leagueId": "eng-2",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "stoke-city",
+      "name": "Stoke City",
+      "leagueId": "eng-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "swansea-city",
+      "name": "Swansea City",
+      "leagueId": "eng-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "watford",
+      "name": "Watford",
+      "leagueId": "eng-2",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "west-brom",
+      "name": "West Brom",
+      "leagueId": "eng-2",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "leicester-city",
+      "name": "Leicester City",
+      "leagueId": "eng-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "southampton",
+      "name": "Southampton",
+      "leagueId": "eng-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "west-ham-united",
+      "name": "West Ham United",
+      "leagueId": "eng-2",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wolverhampton-wanderers",
+      "name": "Wolverhampton Wanderers",
+      "leagueId": "eng-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "barnsley",
+      "name": "Barnsley",
+      "leagueId": "eng-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "birmingham-city",
+      "name": "Birmingham City",
+      "leagueId": "eng-3",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "blackpool",
+      "name": "Blackpool",
+      "leagueId": "eng-3",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bolton",
+      "name": "Bolton",
+      "leagueId": "eng-3",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bristol-rovers",
+      "name": "Bristol Rovers",
+      "leagueId": "eng-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "burton-albion",
+      "name": "Burton Albion",
+      "leagueId": "eng-3",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cambridge-utd",
+      "name": "Cambridge Utd",
+      "leagueId": "eng-3",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "charlton-ath",
+      "name": "Charlton Ath",
+      "leagueId": "eng-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "crawley-town",
+      "name": "Crawley Town",
+      "leagueId": "eng-3",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "exeter-city",
+      "name": "Exeter City",
+      "leagueId": "eng-3",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "huddersfield",
+      "name": "Huddersfield",
+      "leagueId": "eng-3",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "leyton-orient",
+      "name": "Leyton Orient",
+      "leagueId": "eng-3",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lincoln-city",
+      "name": "Lincoln City",
+      "leagueId": "eng-3",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mansfield-town",
+      "name": "Mansfield Town",
+      "leagueId": "eng-3",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "northampton",
+      "name": "Northampton",
+      "leagueId": "eng-3",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "peterborough",
+      "name": "Peterborough",
+      "leagueId": "eng-3",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "reading",
+      "name": "Reading",
+      "leagueId": "eng-3",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rotherham-utd",
+      "name": "Rotherham Utd",
+      "leagueId": "eng-3",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "shrewsbury",
+      "name": "Shrewsbury",
+      "leagueId": "eng-3",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "stevenage",
+      "name": "Stevenage",
+      "leagueId": "eng-3",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "stockport",
+      "name": "Stockport",
+      "leagueId": "eng-3",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wigan-athletic",
+      "name": "Wigan Athletic",
+      "leagueId": "eng-3",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wrexham",
+      "name": "Wrexham",
+      "leagueId": "eng-3",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wycombe",
+      "name": "Wycombe",
+      "leagueId": "eng-3",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "afc-wimbledon",
+      "name": "AFC Wimbledon",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "accrington",
+      "name": "Accrington",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "barrow",
+      "name": "Barrow",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bradford-city",
+      "name": "Bradford City",
+      "leagueId": "eng-4",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bromley-fc",
+      "name": "Bromley FC",
+      "leagueId": "eng-4",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "carlisle-united",
+      "name": "Carlisle United",
+      "leagueId": "eng-4",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cheltenham-town",
+      "name": "Cheltenham Town",
+      "leagueId": "eng-4",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "chesterfield",
+      "name": "Chesterfield",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "colchester",
+      "name": "Colchester",
+      "leagueId": "eng-4",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "crewe-alexandra",
+      "name": "Crewe Alexandra",
+      "leagueId": "eng-4",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "doncaster",
+      "name": "Doncaster",
+      "leagueId": "eng-4",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fleetwood-town",
+      "name": "Fleetwood Town",
+      "leagueId": "eng-4",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gillingham",
+      "name": "Gillingham",
+      "leagueId": "eng-4",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "grimsby-town",
+      "name": "Grimsby Town",
+      "leagueId": "eng-4",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "harrogate-town",
+      "name": "Harrogate Town",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mk-dons",
+      "name": "MK Dons",
+      "leagueId": "eng-4",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "morecambe",
+      "name": "Morecambe",
+      "leagueId": "eng-4",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "newport-county",
+      "name": "Newport County",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "notts-county",
+      "name": "Notts County",
+      "leagueId": "eng-4",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "port-vale",
+      "name": "Port Vale",
+      "leagueId": "eng-4",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "salford-city",
+      "name": "Salford City",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "swindon-town",
+      "name": "Swindon Town",
+      "leagueId": "eng-4",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "tranmere-rovers",
+      "name": "Tranmere Rovers",
+      "leagueId": "eng-4",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "walsall",
+      "name": "Walsall",
+      "leagueId": "eng-4",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "athletic-bilbao",
+      "name": "Athletic Bilbao",
+      "leagueId": "esp",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "atletico-madrid",
+      "name": "Atlético Madrid",
+      "leagueId": "esp",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "barcelona",
+      "name": "FC Barcelona",
+      "leagueId": "esp",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "celta-vigo",
+      "name": "Celta Vigo",
+      "leagueId": "esp",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "espanyol",
+      "name": "RCD Espanyol",
+      "leagueId": "esp",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "getafe",
+      "name": "Getafe CF",
+      "leagueId": "esp",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "osasuna",
+      "name": "CA Osasuna",
+      "leagueId": "esp",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rayo-vallecano",
+      "name": "Rayo Vallecano",
+      "leagueId": "esp",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "real-betis",
+      "name": "Real Betis",
+      "leagueId": "esp",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "real-madrid",
+      "name": "Real Madrid",
+      "leagueId": "esp",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "real-sociedad",
+      "name": "Real Sociedad",
+      "leagueId": "esp",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sevilla",
+      "name": "Sevilla FC",
+      "leagueId": "esp",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "valencia",
+      "name": "Valencia CF",
+      "leagueId": "esp",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "villarreal",
+      "name": "Villarreal CF",
+      "leagueId": "esp",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "deportivo-alaves",
+      "name": "Deportivo Alavés",
+      "leagueId": "esp",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "elche-cf",
+      "name": "Elche CF",
+      "leagueId": "esp",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "levante-ud",
+      "name": "Levante UD",
+      "leagueId": "esp",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "r-racing-club",
+      "name": "R. Racing Club",
+      "leagueId": "esp",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rc-deportivo",
+      "name": "RC Deportivo",
+      "leagueId": "esp",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "malaga-cf",
+      "name": "Málaga CF",
+      "leagueId": "esp",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "albacete-bp",
+      "name": "Albacete BP",
+      "leagueId": "esp-2",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "burgos-cf",
+      "name": "Burgos CF",
+      "leagueId": "esp-2",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cd-castellon",
+      "name": "CD Castellón",
+      "leagueId": "esp-2",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cd-eldense",
+      "name": "CD Eldense",
+      "leagueId": "esp-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cd-mirandes",
+      "name": "CD Mirandés",
+      "leagueId": "esp-2",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cd-tenerife",
+      "name": "CD Tenerife",
+      "leagueId": "esp-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cadiz-cf",
+      "name": "Cádiz CF",
+      "leagueId": "esp-2",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cordoba-cf",
+      "name": "Córdoba CF",
+      "leagueId": "esp-2",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-cartagena",
+      "name": "FC Cartagena",
+      "leagueId": "esp-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "granada-cf",
+      "name": "Granada CF",
+      "leagueId": "esp-2",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "r-oviedo",
+      "name": "R. Oviedo",
+      "leagueId": "esp-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "r-sporting",
+      "name": "R. Sporting",
+      "leagueId": "esp-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "racing-de-ferrol",
+      "name": "Racing de Ferrol",
+      "leagueId": "esp-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "real-zaragoza",
+      "name": "Real Zaragoza",
+      "leagueId": "esp-2",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sd-eibar",
+      "name": "SD Eibar",
+      "leagueId": "esp-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sd-huesca",
+      "name": "SD Huesca",
+      "leagueId": "esp-2",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ud-almeria",
+      "name": "UD Almería",
+      "leagueId": "esp-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "las-palmas",
+      "name": "UD Las Palmas",
+      "leagueId": "esp-2",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "leganes",
+      "name": "CD Leganés",
+      "leagueId": "esp-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "real-valladolid",
+      "name": "Real Valladolid",
+      "leagueId": "esp-2",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "girona",
+      "name": "Girona FC",
+      "leagueId": "esp-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mallorca",
+      "name": "RCD Mallorca",
+      "leagueId": "esp-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ac-milan",
+      "name": "AC Milan",
+      "leagueId": "ita",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "as-roma",
+      "name": "AS Roma",
+      "leagueId": "ita",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "atalanta",
+      "name": "Atalanta",
+      "leagueId": "ita",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bologna",
+      "name": "Bologna FC",
+      "leagueId": "ita",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cagliari",
+      "name": "Cagliari",
+      "leagueId": "ita",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "como",
+      "name": "Como 1907",
+      "leagueId": "ita",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fiorentina",
+      "name": "ACF Fiorentina",
+      "leagueId": "ita",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "genoa",
+      "name": "Genoa CFC",
+      "leagueId": "ita",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "inter-milan",
+      "name": "Inter Milan",
+      "leagueId": "ita",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "juventus",
+      "name": "Juventus",
+      "leagueId": "ita",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lazio",
+      "name": "SS Lazio",
+      "leagueId": "ita",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lecce",
+      "name": "US Lecce",
+      "leagueId": "ita",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "monza",
+      "name": "AC Monza",
+      "leagueId": "ita",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "napoli",
+      "name": "SSC Napoli",
+      "leagueId": "ita",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "parma",
+      "name": "Parma Calcio",
+      "leagueId": "ita",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "torino",
+      "name": "Torino FC",
+      "leagueId": "ita",
+      "sourcePlayers": 34,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 5,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "udinese",
+      "name": "Udinese Calcio",
+      "leagueId": "ita",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "venezia",
+      "name": "Venezia FC",
+      "leagueId": "ita",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sassuolo",
+      "name": "Sassuolo",
+      "leagueId": "ita",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "frosinone",
+      "name": "Frosinone",
+      "leagueId": "ita",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bari",
+      "name": "Bari",
+      "leagueId": "ita-2",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brescia",
+      "name": "Brescia",
+      "leagueId": "ita-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "carrarese-calcio",
+      "name": "Carrarese Calcio",
+      "leagueId": "ita-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "catanzaro",
+      "name": "Catanzaro",
+      "leagueId": "ita-2",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cesena",
+      "name": "Cesena",
+      "leagueId": "ita-2",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cittadella",
+      "name": "Cittadella",
+      "leagueId": "ita-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cosenza",
+      "name": "Cosenza",
+      "leagueId": "ita-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cremonese",
+      "name": "Cremonese",
+      "leagueId": "ita-2",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mantova",
+      "name": "Mantova",
+      "leagueId": "ita-2",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "modena",
+      "name": "Modena",
+      "leagueId": "ita-2",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "palermo",
+      "name": "Palermo",
+      "leagueId": "ita-2",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pisa",
+      "name": "Pisa",
+      "leagueId": "ita-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "reggiana",
+      "name": "Reggiana",
+      "leagueId": "ita-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ss-juve-stabia",
+      "name": "SS Juve Stabia",
+      "leagueId": "ita-2",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "salernitana",
+      "name": "Salernitana",
+      "leagueId": "ita-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sampdoria",
+      "name": "Sampdoria",
+      "leagueId": "ita-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "spezia",
+      "name": "Spezia",
+      "leagueId": "ita-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sudtirol",
+      "name": "Südtirol",
+      "leagueId": "ita-2",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "empoli",
+      "name": "Empoli FC",
+      "leagueId": "ita-2",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hellas-verona",
+      "name": "Hellas Verona",
+      "leagueId": "ita-2",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "augsburg",
+      "name": "FC Augsburg",
+      "leagueId": "ger",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bayer-leverkusen",
+      "name": "Bayer Leverkusen",
+      "leagueId": "ger",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bayern-munich",
+      "name": "Bayern Munich",
+      "leagueId": "ger",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "borussia-dortmund",
+      "name": "Borussia Dortmund",
+      "leagueId": "ger",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "borussia-monchengladbach",
+      "name": "Borussia Mönchengladbach",
+      "leagueId": "ger",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "eintracht-frankfurt",
+      "name": "Eintracht Frankfurt",
+      "leagueId": "ger",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "freiburg",
+      "name": "SC Freiburg",
+      "leagueId": "ger",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hoffenheim",
+      "name": "TSG 1899 Hoffenheim",
+      "leagueId": "ger",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mainz-05",
+      "name": "1. FSV Mainz 05",
+      "leagueId": "ger",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rb-leipzig",
+      "name": "RB Leipzig",
+      "leagueId": "ger",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "stuttgart",
+      "name": "VfB Stuttgart",
+      "leagueId": "ger",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "union-berlin",
+      "name": "1. FC Union Berlin",
+      "leagueId": "ger",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "werder-bremen",
+      "name": "Werder Bremen",
+      "leagueId": "ger",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hamburger-sv",
+      "name": "Hamburger SV",
+      "leagueId": "ger",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 3,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "1-fc-koln",
+      "name": "1. FC Köln",
+      "leagueId": "ger",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-schalke-04",
+      "name": "FC Schalke 04",
+      "leagueId": "ger",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sv-elversberg",
+      "name": "SV Elversberg",
+      "leagueId": "ger",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sc-paderborn-07",
+      "name": "SC Paderborn 07",
+      "leagueId": "ger",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "1-fc-magdeburg",
+      "name": "1. FC Magdeburg",
+      "leagueId": "ger-2",
+      "sourcePlayers": 34,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "1-fc-nurnberg",
+      "name": "1. FC Nürnberg",
+      "leagueId": "ger-2",
+      "sourcePlayers": 34,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "braunschweig",
+      "name": "Braunschweig",
+      "leagueId": "ger-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dusseldorf",
+      "name": "Düsseldorf",
+      "leagueId": "ger-2",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "furth",
+      "name": "Fürth",
+      "leagueId": "ger-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hannover-96",
+      "name": "Hannover 96",
+      "leagueId": "ger-2",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hertha-bsc",
+      "name": "Hertha BSC",
+      "leagueId": "ger-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "jahn-regensburg",
+      "name": "Jahn Regensburg",
+      "leagueId": "ger-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kaiserslautern",
+      "name": "Kaiserslautern",
+      "leagueId": "ger-2",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "karlsruher-sc",
+      "name": "Karlsruher SC",
+      "leagueId": "ger-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "preuen-munster",
+      "name": "Preußen Münster",
+      "leagueId": "ger-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ssv-ulm-1846",
+      "name": "SSV Ulm 1846",
+      "leagueId": "ger-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sv-darmstadt-98",
+      "name": "SV Darmstadt 98",
+      "leagueId": "ger-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "holstein-kiel",
+      "name": "Holstein Kiel",
+      "leagueId": "ger-2",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bochum",
+      "name": "VfL Bochum",
+      "leagueId": "ger-2",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-heidenheim",
+      "name": "1. FC Heidenheim",
+      "leagueId": "ger-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "st-pauli",
+      "name": "FC St. Pauli",
+      "leagueId": "ger-2",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wolfsburg",
+      "name": "VfL Wolfsburg",
+      "leagueId": "ger-2",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "1860-munchen",
+      "name": "1860 München",
+      "leagueId": "ger-3",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aleman-aachen",
+      "name": "Aleman. Aachen",
+      "leagueId": "ger-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "arminia-bielefeld",
+      "name": "Arminia Bielefeld",
+      "leagueId": "ger-3",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "b-dortmund-ii",
+      "name": "B. Dortmund II",
+      "leagueId": "ger-3",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dynamo-dresden",
+      "name": "Dynamo Dresden",
+      "leagueId": "ger-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "energie-cottbus",
+      "name": "Energie Cottbus",
+      "leagueId": "ger-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-erzgebirge-aue",
+      "name": "FC Erzgebirge Aue",
+      "leagueId": "ger-3",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-hansa-rostock",
+      "name": "FC Hansa Rostock",
+      "leagueId": "ger-3",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-ingolstadt-04",
+      "name": "FC Ingolstadt 04",
+      "leagueId": "ger-3",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hannover-96-ii",
+      "name": "Hannover 96 II",
+      "leagueId": "ger-3",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rot-weiss-essen",
+      "name": "Rot-Weiss Essen",
+      "leagueId": "ger-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sc-verl",
+      "name": "SC Verl",
+      "leagueId": "ger-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sv-sandhausen",
+      "name": "SV Sandhausen",
+      "leagueId": "ger-3",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sv-waldhof",
+      "name": "SV Waldhof",
+      "leagueId": "ger-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "saarbrucken",
+      "name": "Saarbrücken",
+      "leagueId": "ger-3",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "unterhaching",
+      "name": "Unterhaching",
+      "leagueId": "ger-3",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vfb-stuttgart-ii",
+      "name": "VfB Stuttgart II",
+      "leagueId": "ger-3",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vfl-osnabruck",
+      "name": "VfL Osnabrück",
+      "leagueId": "ger-3",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "viktoria-koln",
+      "name": "Viktoria Köln",
+      "leagueId": "ger-3",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wehen-wiesbaden",
+      "name": "Wehen Wiesbaden",
+      "leagueId": "ger-3",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "angers",
+      "name": "Angers SCO",
+      "leagueId": "fra",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "auxerre",
+      "name": "AJ Auxerre",
+      "leagueId": "fra",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brest",
+      "name": "Stade Brestois 29",
+      "leagueId": "fra",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "le-havre",
+      "name": "Le Havre AC",
+      "leagueId": "fra",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lens",
+      "name": "RC Lens",
+      "leagueId": "fra",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lille",
+      "name": "Lille OSC",
+      "leagueId": "fra",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lyon",
+      "name": "Olympique Lyonnais",
+      "leagueId": "fra",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "marseille",
+      "name": "Olympique de Marseille",
+      "leagueId": "fra",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "monaco",
+      "name": "AS Monaco",
+      "leagueId": "fra",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "montpellier",
+      "name": "Montpellier HSC",
+      "leagueId": "fra",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nantes",
+      "name": "FC Nantes",
+      "leagueId": "fra",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nice",
+      "name": "OGC Nice",
+      "leagueId": "fra",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "paris-saint-germain",
+      "name": "Paris Saint-Germain",
+      "leagueId": "fra",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "reims",
+      "name": "Stade de Reims",
+      "leagueId": "fra",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rennes",
+      "name": "Stade Rennais FC",
+      "leagueId": "fra",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "saint-etienne",
+      "name": "AS Saint-Étienne",
+      "leagueId": "fra",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "strasbourg",
+      "name": "RC Strasbourg Alsace",
+      "leagueId": "fra",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "toulouse",
+      "name": "Toulouse FC",
+      "leagueId": "fra",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ac-ajaccio",
+      "name": "AC Ajaccio",
+      "leagueId": "fra-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "amiens-sc",
+      "name": "Amiens SC",
+      "leagueId": "fra-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "clermont-foot-63",
+      "name": "Clermont Foot 63",
+      "leagueId": "fra-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "estac-troyes",
+      "name": "ESTAC Troyes",
+      "leagueId": "fra-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "en-avant-guingamp",
+      "name": "En Avant Guingamp",
+      "leagueId": "fra-2",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-annecy",
+      "name": "FC Annecy",
+      "leagueId": "fra-2",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-lorient",
+      "name": "FC Lorient",
+      "leagueId": "fra-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-martigues",
+      "name": "FC Martigues",
+      "leagueId": "fra-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-metz",
+      "name": "FC Metz",
+      "leagueId": "fra-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "grenoble-foot-38",
+      "name": "Grenoble Foot 38",
+      "leagueId": "fra-2",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "laval-mfc",
+      "name": "Laval MFC",
+      "leagueId": "fra-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "paris-fc",
+      "name": "Paris FC",
+      "leagueId": "fra-2",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pau-fc",
+      "name": "Pau FC",
+      "leagueId": "fra-2",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "red-star-fc",
+      "name": "Red Star FC",
+      "leagueId": "fra-2",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rodez-af",
+      "name": "Rodez AF",
+      "leagueId": "fra-2",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sc-bastia",
+      "name": "SC Bastia",
+      "leagueId": "fra-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sm-caen",
+      "name": "SM Caen",
+      "leagueId": "fra-2",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "usl-dunkerque",
+      "name": "USL Dunkerque",
+      "leagueId": "fra-2",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ajax",
+      "name": "AFC Ajax",
+      "leagueId": "ned",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "psv-eindhoven",
+      "name": "PSV Eindhoven",
+      "leagueId": "ned",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "feyenoord",
+      "name": "Feyenoord Rotterdam",
+      "leagueId": "ned",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "az-alkmaar",
+      "name": "AZ Alkmaar",
+      "leagueId": "ned",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-twente",
+      "name": "FC Twente",
+      "leagueId": "ned",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-utrecht",
+      "name": "FC Utrecht",
+      "leagueId": "ned",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "go-ahead-eagles",
+      "name": "Go Ahead Eagles",
+      "leagueId": "ned",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fortuna-sittard",
+      "name": "Fortuna Sittard",
+      "leagueId": "ned",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "heerenveen",
+      "name": "SC Heerenveen",
+      "leagueId": "ned",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "heracles-almelo",
+      "name": "Heracles Almelo",
+      "leagueId": "ned",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nec-nijmegen",
+      "name": "NEC Nijmegen",
+      "leagueId": "ned",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pec-zwolle",
+      "name": "PEC Zwolle",
+      "leagueId": "ned",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rkc-waalwijk",
+      "name": "RKC Waalwijk",
+      "leagueId": "ned",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sparta-rotterdam",
+      "name": "Sparta Rotterdam",
+      "leagueId": "ned",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "willem-ii",
+      "name": "Willem II",
+      "leagueId": "ned",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-groningen",
+      "name": "FC Groningen",
+      "leagueId": "ned",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nac-breda",
+      "name": "NAC Breda",
+      "leagueId": "ned",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "almere-city",
+      "name": "Almere City FC",
+      "leagueId": "ned",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "benfica",
+      "name": "SL Benfica",
+      "leagueId": "por",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "porto",
+      "name": "FC Porto",
+      "leagueId": "por",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sporting-cp",
+      "name": "Sporting CP",
+      "leagueId": "por",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "braga",
+      "name": "SC Braga",
+      "leagueId": "por",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vitoria-guimaraes",
+      "name": "Vitória SC",
+      "leagueId": "por",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "casa-pia",
+      "name": "Casa Pia AC",
+      "leagueId": "por",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gil-vicente",
+      "name": "Gil Vicente FC",
+      "leagueId": "por",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "moreirense",
+      "name": "Moreirense FC",
+      "leagueId": "por",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "famalicao",
+      "name": "FC Famalicão",
+      "leagueId": "por",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rio-ave",
+      "name": "Rio Ave FC",
+      "leagueId": "por",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "arouca",
+      "name": "FC Arouca",
+      "leagueId": "por",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "boavista",
+      "name": "Boavista FC",
+      "leagueId": "por",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "estoril",
+      "name": "Estoril Praia",
+      "leagueId": "por",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "estrela-amadora",
+      "name": "CF Estrela da Amadora",
+      "leagueId": "por",
+      "sourcePlayers": 15,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nacional",
+      "name": "CD Nacional",
+      "leagueId": "por",
+      "sourcePlayers": 37,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "avs",
+      "name": "AVS Futebol SAD",
+      "leagueId": "por",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "santa-clara",
+      "name": "CD Santa Clara",
+      "leagueId": "por",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "farense",
+      "name": "SC Farense",
+      "leagueId": "por",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "club-brugge",
+      "name": "Club Brugge KV",
+      "leagueId": "bel",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "anderlecht",
+      "name": "RSC Anderlecht",
+      "leagueId": "bel",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "union-sg",
+      "name": "Royale Union Saint-Gilloise",
+      "leagueId": "bel",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gent",
+      "name": "KAA Gent",
+      "leagueId": "bel",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "genk",
+      "name": "KRC Genk",
+      "leagueId": "bel",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "antwerp",
+      "name": "Royal Antwerp FC",
+      "leagueId": "bel",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "standard-liege",
+      "name": "Standard Liège",
+      "leagueId": "bel",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cercle-brugge",
+      "name": "Cercle Brugge KSV",
+      "leagueId": "bel",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mechelen",
+      "name": "KV Mechelen",
+      "leagueId": "bel",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "charleroi",
+      "name": "Sporting Charleroi",
+      "leagueId": "bel",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "westerlo",
+      "name": "KVC Westerlo",
+      "leagueId": "bel",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "oh-leuven",
+      "name": "OH Leuven",
+      "leagueId": "bel",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sint-truiden",
+      "name": "Sint-Truidense VV",
+      "leagueId": "bel",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kortrijk",
+      "name": "KV Kortrijk",
+      "leagueId": "bel",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dender",
+      "name": "FCV Dender EH",
+      "leagueId": "bel",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "beerschot",
+      "name": "Beerschot VA",
+      "leagueId": "bel",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "galatasaray",
+      "name": "Galatasaray SK",
+      "leagueId": "tur",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fenerbahce",
+      "name": "Fenerbahçe SK",
+      "leagueId": "tur",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "besiktas",
+      "name": "Beşiktaş JK",
+      "leagueId": "tur",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "trabzonspor",
+      "name": "Trabzonspor",
+      "leagueId": "tur",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "istanbul-basaksehir",
+      "name": "İstanbul Başakşehir FK",
+      "leagueId": "tur",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kasimpasa",
+      "name": "Kasımpaşa SK",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sivasspor",
+      "name": "Sivasspor",
+      "leagueId": "tur",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "antalyaspor",
+      "name": "Antalyaspor",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "alanyaspor",
+      "name": "Alanyaspor",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "konyaspor",
+      "name": "Konyaspor",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hatayspor",
+      "name": "Hatayspor",
+      "leagueId": "tur",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gaziantep-fk",
+      "name": "Gaziantep FK",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "samsunspor",
+      "name": "Samsunspor",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kayserispor",
+      "name": "Kayserispor",
+      "leagueId": "tur",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "caykur-rizespor",
+      "name": "Çaykur Rizespor",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "adana-demirspor",
+      "name": "Adana Demirspor",
+      "leagueId": "tur",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bodrum-fk",
+      "name": "Bodrum FK",
+      "leagueId": "tur",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "eyupspor",
+      "name": "Eyüpspor",
+      "leagueId": "tur",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "goztepe",
+      "name": "Göztepe SK",
+      "leagueId": "tur",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sparta-prague",
+      "name": "AC Sparta Prague",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "slavia-prague",
+      "name": "SK Slavia Prague",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "viktoria-plzen",
+      "name": "FC Viktoria Plzeň",
+      "leagueId": "cze",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "banik-ostrava",
+      "name": "FC Baník Ostrava",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "slovacko",
+      "name": "1. FC Slovácko",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mlada-boleslav",
+      "name": "FK Mladá Boleslav",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "jablonec",
+      "name": "FK Jablonec",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bohemians-1905",
+      "name": "Bohemians 1905",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hradec-kralove",
+      "name": "FC Hradec Králové",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sigma-olomouc",
+      "name": "SK Sigma Olomouc",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "teplice",
+      "name": "FK Teplice",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "liberec",
+      "name": "FC Slovan Liberec",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dukla-prague",
+      "name": "FK Dukla Prague",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "karvina",
+      "name": "MFK Karviná",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ceske-budejovice",
+      "name": "SK Dynamo České Budějovice",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pardubice",
+      "name": "FK Pardubice",
+      "leagueId": "cze",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "olympiacos",
+      "name": "Olympiacos FC",
+      "leagueId": "gre",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "paok",
+      "name": "PAOK FC",
+      "leagueId": "gre",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aek-athens",
+      "name": "AEK Athens FC",
+      "leagueId": "gre",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "panathinaikos",
+      "name": "Panathinaikos FC",
+      "leagueId": "gre",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aris-thessaloniki",
+      "name": "Aris Thessaloniki FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "asteras-tripolis",
+      "name": "Asteras Tripolis FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "volos",
+      "name": "Volos NFC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ofi-crete",
+      "name": "OFI Crete FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "atromitos",
+      "name": "Atromitos FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lamia",
+      "name": "PAS Lamia 1964",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "levadiakos",
+      "name": "Levadiakos FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "panserraikos",
+      "name": "Panserraikos FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kallithea",
+      "name": "Kallithea FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pas-giannina",
+      "name": "PAS Giannina FC",
+      "leagueId": "gre",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "legia-warsaw",
+      "name": "Legia Warsaw",
+      "leagueId": "pol",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lech-poznan",
+      "name": "Lech Poznań",
+      "leagueId": "pol",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rakow-czestochowa",
+      "name": "Raków Częstochowa",
+      "leagueId": "pol",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "jagiellonia-bialystok",
+      "name": "Jagiellonia Białystok",
+      "leagueId": "pol",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pogon-szczecin",
+      "name": "Pogoń Szczecin",
+      "leagueId": "pol",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "piast-gliwice",
+      "name": "Piast Gliwice",
+      "leagueId": "pol",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "slask-wroclaw",
+      "name": "Śląsk Wrocław",
+      "leagueId": "pol",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cracovia",
+      "name": "MKS Cracovia",
+      "leagueId": "pol",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gornik-zabrze",
+      "name": "Górnik Zabrze",
+      "leagueId": "pol",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wisla-krakow",
+      "name": "Wisła Kraków",
+      "leagueId": "pol",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lechia-gdansk",
+      "name": "Lechia Gdańsk",
+      "leagueId": "pol",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "korona-kielce",
+      "name": "Korona Kielce",
+      "leagueId": "pol",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "zaglebie-lubin",
+      "name": "Zagłębie Lubin",
+      "leagueId": "pol",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "warta-poznan",
+      "name": "Warta Poznań",
+      "leagueId": "pol",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "stal-mielec",
+      "name": "Stal Mielec",
+      "leagueId": "pol",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "puszcza-niepolomice",
+      "name": "Puszcza Niepołomice",
+      "leagueId": "pol",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "motor-lublin",
+      "name": "Motor Lublin",
+      "leagueId": "pol",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "radomiak-radom",
+      "name": "Radomiak Radom",
+      "leagueId": "pol",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-copenhagen",
+      "name": "FC Copenhagen",
+      "leagueId": "den",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-midtjylland",
+      "name": "FC Midtjylland",
+      "leagueId": "den",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brondby",
+      "name": "Brøndby IF",
+      "leagueId": "den",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-nordsjaelland",
+      "name": "FC Nordsjælland",
+      "leagueId": "den",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "randers-fc",
+      "name": "Randers FC",
+      "leagueId": "den",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aarhus-gf",
+      "name": "Aarhus GF",
+      "leagueId": "den",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "silkeborg",
+      "name": "Silkeborg IF",
+      "leagueId": "den",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "viborg",
+      "name": "Viborg FF",
+      "leagueId": "den",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lyngby",
+      "name": "Lyngby BK",
+      "leagueId": "den",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vejle",
+      "name": "Vejle BK",
+      "leagueId": "den",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sonderjyske",
+      "name": "Sønderjyske",
+      "leagueId": "den",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hvidovre",
+      "name": "Hvidovre IF",
+      "leagueId": "den",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bodo-glimt",
+      "name": "Bodø/Glimt",
+      "leagueId": "nor",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "molde",
+      "name": "Molde FK",
+      "leagueId": "nor",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rosenborg",
+      "name": "Rosenborg BK",
+      "leagueId": "nor",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "viking",
+      "name": "Viking FK",
+      "leagueId": "nor",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brann",
+      "name": "SK Brann",
+      "leagueId": "nor",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lillestrom",
+      "name": "Lillestrøm SK",
+      "leagueId": "nor",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "valerenga",
+      "name": "Vålerenga IF",
+      "leagueId": "nor",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sarpsborg",
+      "name": "Sarpsborg 08 FF",
+      "leagueId": "nor",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "stromsgodset",
+      "name": "Strømsgodset IF",
+      "leagueId": "nor",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "haugesund",
+      "name": "FK Haugesund",
+      "leagueId": "nor",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "tromso",
+      "name": "Tromsø IL",
+      "leagueId": "nor",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hamkam",
+      "name": "HamKam",
+      "leagueId": "nor",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fredrikstad",
+      "name": "Fredrikstad FK",
+      "leagueId": "nor",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "odd",
+      "name": "Odds BK",
+      "leagueId": "nor",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sandefjord",
+      "name": "Sandefjord Fotball",
+      "leagueId": "nor",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kristiansund",
+      "name": "Kristiansund BK",
+      "leagueId": "nor",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "young-boys",
+      "name": "BSC Young Boys",
+      "leagueId": "che",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-basel",
+      "name": "FC Basel",
+      "leagueId": "che",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-zurich",
+      "name": "FC Zürich",
+      "leagueId": "che",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "servette",
+      "name": "Servette FC",
+      "leagueId": "che",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-lugano",
+      "name": "FC Lugano",
+      "leagueId": "che",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "st-gallen",
+      "name": "FC St. Gallen",
+      "leagueId": "che",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-luzern",
+      "name": "FC Luzern",
+      "leagueId": "che",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-sion",
+      "name": "FC Sion",
+      "leagueId": "che",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-winterthur",
+      "name": "FC Winterthur",
+      "leagueId": "che",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "grasshoppers",
+      "name": "Grasshopper Club Zürich",
+      "leagueId": "che",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "yverdon",
+      "name": "Yverdon Sport FC",
+      "leagueId": "che",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lausanne-sport",
+      "name": "FC Lausanne-Sport",
+      "leagueId": "che",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rb-salzburg",
+      "name": "FC Red Bull Salzburg",
+      "leagueId": "aut",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sturm-graz",
+      "name": "SK Sturm Graz",
+      "leagueId": "aut",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rapid-wien",
+      "name": "SK Rapid Wien",
+      "leagueId": "aut",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "austria-wien",
+      "name": "FK Austria Wien",
+      "leagueId": "aut",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lask",
+      "name": "LASK",
+      "leagueId": "aut",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wolfsberger-ac",
+      "name": "Wolfsberger AC",
+      "leagueId": "aut",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hartberg",
+      "name": "TSV Hartberg",
+      "leagueId": "aut",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "austria-klagenfurt",
+      "name": "SK Austria Klagenfurt",
+      "leagueId": "aut",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "altach",
+      "name": "SCR Altach",
+      "leagueId": "aut",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "blau-weiss-linz",
+      "name": "FC Blau-Weiß Linz",
+      "leagueId": "aut",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "grazer-ak",
+      "name": "Grazer AK",
+      "leagueId": "aut",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "austria-lustenau",
+      "name": "SC Austria Lustenau",
+      "leagueId": "aut",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "celtic",
+      "name": "Celtic FC",
+      "leagueId": "sco",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rangers",
+      "name": "Rangers FC",
+      "leagueId": "sco",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aberdeen",
+      "name": "Aberdeen FC",
+      "leagueId": "sco",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hearts",
+      "name": "Heart of Midlothian",
+      "leagueId": "sco",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hibernian",
+      "name": "Hibernian FC",
+      "leagueId": "sco",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dundee",
+      "name": "Dundee FC",
+      "leagueId": "sco",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dundee-united",
+      "name": "Dundee United",
+      "leagueId": "sco",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "st-mirren",
+      "name": "St Mirren FC",
+      "leagueId": "sco",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kilmarnock",
+      "name": "Kilmarnock FC",
+      "leagueId": "sco",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "motherwell",
+      "name": "Motherwell FC",
+      "leagueId": "sco",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ross-county",
+      "name": "Ross County FC",
+      "leagueId": "sco",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "st-johnstone",
+      "name": "St Johnstone FC",
+      "leagueId": "sco",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "malmo-ff",
+      "name": "Malmö FF",
+      "leagueId": "swe",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aik",
+      "name": "AIK",
+      "leagueId": "swe",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "djurgarden",
+      "name": "Djurgårdens IF",
+      "leagueId": "swe",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hammarby",
+      "name": "Hammarby IF",
+      "leagueId": "swe",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ifk-goteborg",
+      "name": "IFK Göteborg",
+      "leagueId": "swe",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ifk-norrkoping",
+      "name": "IFK Norrköping",
+      "leagueId": "swe",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "elfsborg",
+      "name": "IF Elfsborg",
+      "leagueId": "swe",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hacken",
+      "name": "BK Häcken",
+      "leagueId": "swe",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kalmar-ff",
+      "name": "Kalmar FF",
+      "leagueId": "swe",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mjallby",
+      "name": "Mjällby AIF",
+      "leagueId": "swe",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sirius",
+      "name": "IK Sirius",
+      "leagueId": "swe",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "varnamo",
+      "name": "IFK Värnamo",
+      "leagueId": "swe",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "halmstad",
+      "name": "Halmstads BK",
+      "leagueId": "swe",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gais",
+      "name": "GAIS",
+      "leagueId": "swe",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brommapojkarna",
+      "name": "IF Brommapojkarna",
+      "leagueId": "swe",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vasteras-sk",
+      "name": "Västerås SK",
+      "leagueId": "swe",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dinamo-zagreb",
+      "name": "GNK Dinamo Zagreb",
+      "leagueId": "cro",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hajduk-split",
+      "name": "HNK Hajduk Split",
+      "leagueId": "cro",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hnk-rijeka",
+      "name": "HNK Rijeka",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nk-osijek",
+      "name": "NK Osijek",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lokomotiva-zagreb",
+      "name": "NK Lokomotiva Zagreb",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "istra-1961",
+      "name": "NK Istra 1961",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "slaven-belupo",
+      "name": "NK Slaven Belupo",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hnk-gorica",
+      "name": "HNK Gorica",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nk-varazdin",
+      "name": "NK Varaždin",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hnk-sibenik",
+      "name": "HNK Šibenik",
+      "leagueId": "cro",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ferencvaros",
+      "name": "Ferencvárosi TC",
+      "leagueId": "hun",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "puskas-akademia",
+      "name": "Puskás Akadémia FC",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fehervar",
+      "name": "Fehérvár FC",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ujpest",
+      "name": "Újpest FC",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "debrecen",
+      "name": "Debreceni VSC",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kecskemet",
+      "name": "Kecskeméti TE",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "paksi-fc",
+      "name": "Paksi FC",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "zalaegerszeg",
+      "name": "Zalaegerszegi TE",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "diosgyori",
+      "name": "Diósgyőri VTK",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mezokovesd",
+      "name": "Mezőkövesdi SE",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kisvarda",
+      "name": "Kisvárda FC",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nyiregyhaza",
+      "name": "Nyíregyháza Spartacus FC",
+      "leagueId": "hun",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "red-star-belgrade",
+      "name": "Red Star Belgrade",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "partizan-belgrade",
+      "name": "Partizan Belgrade",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vojvodina",
+      "name": "FK Vojvodina",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cukaricki",
+      "name": "Čukarički",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "tsc-backa-topola",
+      "name": "TSC Bačka Topola",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "radnicki-nis",
+      "name": "Radnički Niš",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fk-zeleznik",
+      "name": "FK Železnik",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "imt-novi-beograd",
+      "name": "IMT Novi Beograd",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "napredak-krusevac",
+      "name": "Napredak Kruševac",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "novi-pazar",
+      "name": "FK Novi Pazar",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mladost-lucani",
+      "name": "FK Mladost Lučani",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "spartak-subotica",
+      "name": "Spartak Subotica",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "tekstilac-odzaci",
+      "name": "Tekstilac Odžaci",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fk-jedinstvo-ub",
+      "name": "FK Jedinstvo Ub",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kolubara",
+      "name": "FK Kolubara",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vojvodina-novi-sad",
+      "name": "FK Vojvodina Novi Sad",
+      "leagueId": "srb",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fcsb",
+      "name": "FCSB",
+      "leagueId": "rou",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cfr-cluj",
+      "name": "CFR Cluj",
+      "leagueId": "rou",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "universitatea-craiova",
+      "name": "Universitatea Craiova",
+      "leagueId": "rou",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rapid-bucuresti",
+      "name": "Rapid București",
+      "leagueId": "rou",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dinamo-bucuresti",
+      "name": "Dinamo București",
+      "leagueId": "rou",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sepsi-osk",
+      "name": "Sepsi OSK",
+      "leagueId": "rou",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "uta-arad",
+      "name": "UTA Arad",
+      "leagueId": "rou",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-voluntari",
+      "name": "FC Voluntari",
+      "leagueId": "rou",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-botosani",
+      "name": "FC Botoșani",
+      "leagueId": "rou",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "petrolul-ploiesti",
+      "name": "Petrolul Ploiești",
+      "leagueId": "rou",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "farul-constanta",
+      "name": "Farul Constanța",
+      "leagueId": "rou",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "universitatea-cluj",
+      "name": "Universitatea Cluj",
+      "leagueId": "rou",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hermannstadt",
+      "name": "FC Hermannstadt",
+      "leagueId": "rou",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "otelul-galati",
+      "name": "Oțelul Galați",
+      "leagueId": "rou",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "politehnica-iasi",
+      "name": "Politehnica Iași",
+      "leagueId": "rou",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gloria-buzau",
+      "name": "Gloria Buzău",
+      "leagueId": "rou",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "shakhtar-donetsk",
+      "name": "Shakhtar Donetsk",
+      "leagueId": "ukr",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dynamo-kyiv",
+      "name": "Dynamo Kyiv",
+      "leagueId": "ukr",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dnipro-1",
+      "name": "SC Dnipro-1",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "zorya-luhansk",
+      "name": "Zorya Luhansk",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vorskla-poltava",
+      "name": "Vorskla Poltava",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "oleksandriya",
+      "name": "FC Oleksandriya",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kolos-kovalivka",
+      "name": "Kolos Kovalivka",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "chornomorets-odesa",
+      "name": "Chornomorets Odesa",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kryvbas",
+      "name": "Kryvbas Kryvyi Rih",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "metalist-1925",
+      "name": "Metalist 1925 Kharkiv",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mynai",
+      "name": "Mynai",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "veres-rivne",
+      "name": "Veres Rivne",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lnz-cherkasy",
+      "name": "LNZ Cherkasy",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "polissya-zhytomyr",
+      "name": "Polissya Zhytomyr",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rukh-lviv",
+      "name": "Rukh Lviv",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "obolon-kyiv",
+      "name": "Obolon Kyiv",
+      "leagueId": "ukr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ludogorets-razgrad",
+      "name": "Ludogorets Razgrad",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cska-sofia",
+      "name": "CSKA Sofia",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "levski-sofia",
+      "name": "Levski Sofia",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lokomotiv-plovdiv",
+      "name": "Lokomotiv Plovdiv",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "botev-plovdiv",
+      "name": "Botev Plovdiv",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cherno-more-varna",
+      "name": "Cherno More Varna",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "arda-kardzhali",
+      "name": "Arda Kardzhali",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "beroe-stara-zagora",
+      "name": "Beroe Stara Zagora",
+      "leagueId": "bgr",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cska-1948",
+      "name": "CSKA 1948 Sofia",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "slavia-sofia",
+      "name": "Slavia Sofia",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pirin-blagoevgrad",
+      "name": "Pirin Blagoevgrad",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hebar-pazardzhik",
+      "name": "Hebar Pazardzhik",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "spartak-varna",
+      "name": "Spartak Varna",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "septemvri-sofia",
+      "name": "Septemvri Sofia",
+      "leagueId": "bgr",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "krumovgrad",
+      "name": "FC Krumovgrad",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lokomotiv-sofia",
+      "name": "Lokomotiv Sofia",
+      "leagueId": "bgr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "slovan-bratislava",
+      "name": "Slovan Bratislava",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "spartak-trnava",
+      "name": "Spartak Trnava",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dac-dunajska-streda",
+      "name": "DAC Dunajská Streda",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "zilina",
+      "name": "MŠK Žilina",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ruzomberok",
+      "name": "MFK Ružomberok",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "trencin",
+      "name": "AS Trenčín",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pohronie",
+      "name": "FK Pohronie",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "skalica",
+      "name": "MFK Skalica",
+      "leagueId": "svk",
+      "sourcePlayers": 14,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "komarno",
+      "name": "KFC Komárno",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kosice",
+      "name": "FC Košice",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "banska-bystrica",
+      "name": "FK Dukla Banská Bystrica",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "michalovce",
+      "name": "MFK Zemplín Michalovce",
+      "leagueId": "svk",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hjk-helsinki",
+      "name": "HJK Helsinki",
+      "leagueId": "fin",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kups",
+      "name": "KuPS Kuopio",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sjk",
+      "name": "SJK Seinäjoki",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "inter-turku",
+      "name": "FC Inter Turku",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ilves",
+      "name": "Ilves Tampere",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-lahti",
+      "name": "FC Lahti",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mariehamn",
+      "name": "IFK Mariehamn",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "haka",
+      "name": "FC Haka",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ac-oulu",
+      "name": "AC Oulu",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vps",
+      "name": "VPS Vaasa",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-honka",
+      "name": "FC Honka",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hifk",
+      "name": "HIFK Helsinki",
+      "leagueId": "fin",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "valur",
+      "name": "Valur Reykjavík",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "breidablik",
+      "name": "Breiðablik",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vikingur-reykjavik",
+      "name": "Víkingur Reykjavík",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kr-reykjavik",
+      "name": "KR Reykjavík",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fh-hafnarfjordur",
+      "name": "FH Hafnarfjörður",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ia-akranes",
+      "name": "ÍA Akranes",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "stjarnan",
+      "name": "Stjarnan",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fram-reykjavik",
+      "name": "Fram Reykjavík",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ka-akureyri",
+      "name": "KA Akureyri",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vestri",
+      "name": "Vestri Ísafjörður",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "keflavik",
+      "name": "Keflavík ÍF",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fylkir",
+      "name": "Fylkir",
+      "leagueId": "isl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "shamrock-rovers",
+      "name": "Shamrock Rovers",
+      "leagueId": "irl",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "shelbourne",
+      "name": "Shelbourne FC",
+      "leagueId": "irl",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "derry-city",
+      "name": "Derry City",
+      "leagueId": "irl",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "st-patricks-athletic",
+      "name": "St Patrick's Athletic",
+      "leagueId": "irl",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dundalk",
+      "name": "Dundalk FC",
+      "leagueId": "irl",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bohemians",
+      "name": "Bohemian FC",
+      "leagueId": "irl",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sligo-rovers",
+      "name": "Sligo Rovers",
+      "leagueId": "irl",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "drogheda-united",
+      "name": "Drogheda United",
+      "leagueId": "irl",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "waterford",
+      "name": "Waterford FC",
+      "leagueId": "irl",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "galway-united",
+      "name": "Galway United",
+      "leagueId": "irl",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "maccabi-tel-aviv",
+      "name": "Maccabi Tel Aviv",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "maccabi-haifa",
+      "name": "Maccabi Haifa",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hapoel-beer-sheva",
+      "name": "Hapoel Beer Sheva",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "beitar-jerusalem",
+      "name": "Beitar Jerusalem",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hapoel-tel-aviv",
+      "name": "Hapoel Tel Aviv",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bnei-sakhnin",
+      "name": "Bnei Sakhnin",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "maccabi-netanya",
+      "name": "Maccabi Netanya",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hapoel-haifa",
+      "name": "Hapoel Haifa",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ashdod",
+      "name": "FC Ashdod",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hapoel-jerusalem",
+      "name": "Hapoel Jerusalem",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ironi-kiryat-shmona",
+      "name": "Ironi Kiryat Shmona",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "maccabi-bnei-raina",
+      "name": "Maccabi Bnei Raina",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hapoel-hadera",
+      "name": "Hapoel Hadera",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hapoel-nof-hagalil",
+      "name": "Hapoel Nof HaGalil",
+      "leagueId": "isr",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "apoel",
+      "name": "APOEL Nicosia",
+      "leagueId": "cyp",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "omonia-nicosia",
+      "name": "Omonia Nicosia",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "anorthosis-famagusta",
+      "name": "Anorthosis Famagusta",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ael-limassol",
+      "name": "AEL Limassol",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "apollon-limassol",
+      "name": "Apollon Limassol",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aris-limassol",
+      "name": "Aris Limassol",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pafos-fc",
+      "name": "Pafos FC",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nea-salamis",
+      "name": "Nea Salamis Famagusta",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ethnikos-achna",
+      "name": "Ethnikos Achna",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "karmiotissa",
+      "name": "Karmiotissa Polemidion",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "doxa-katokopias",
+      "name": "Doxa Katokopias",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "enosis-neon-paralimni",
+      "name": "Enosis Neon Paralimni",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "aek-larnaca",
+      "name": "AEK Larnaca",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "olympiakos-nicosia",
+      "name": "Olympiakos Nicosia",
+      "leagueId": "cyp",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "argentinos-juniors",
+      "name": "Argentinos Juniors",
+      "leagueId": "arg",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "atletico-tucuman",
+      "name": "Atlético Tucumán",
+      "leagueId": "arg",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "barracas-central",
+      "name": "Barracas Central",
+      "leagueId": "arg",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "belgrano-de-cordoba",
+      "name": "Belgrano de Córdoba",
+      "leagueId": "arg",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "boca-juniors",
+      "name": "Boca Juniors",
+      "leagueId": "arg",
+      "sourcePlayers": 34,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ca-aldosivi",
+      "name": "CA Aldosivi",
+      "leagueId": "arg",
+      "sourcePlayers": 16,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ca-banfield",
+      "name": "CA Banfield",
+      "leagueId": "arg",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "central-cordoba-sde",
+      "name": "Central Cordoba SdE",
+      "leagueId": "arg",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "club-atletico-san-martin",
+      "name": "Club Atlético San Martín",
+      "leagueId": "arg",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "club-atletico-sarmiento",
+      "name": "Club Atlético Sarmiento",
+      "leagueId": "arg",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "club-atletico-union",
+      "name": "Club Atlético Unión",
+      "leagueId": "arg",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "defensa-y-justicia",
+      "name": "Defensa y Justicia",
+      "leagueId": "arg",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "deportivo-riestra",
+      "name": "Deportivo Riestra",
+      "leagueId": "arg",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "estudiantes-de-la-plata",
+      "name": "Estudiantes de La Plata",
+      "leagueId": "arg",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gimnasia-y-esgrima-la-plata",
+      "name": "Gimnasia y Esgrima La Plata",
+      "leagueId": "arg",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "godoy-cruz",
+      "name": "Godoy Cruz",
+      "leagueId": "arg",
+      "sourcePlayers": 33,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "huracan",
+      "name": "Huracán",
+      "leagueId": "arg",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "independiente",
+      "name": "Independiente",
+      "leagueId": "arg",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "independiente-rivadavia",
+      "name": "Independiente Rivadavia",
+      "leagueId": "arg",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "instituto-atletico-central-cordoba",
+      "name": "Instituto Atlético Central Córdoba",
+      "leagueId": "arg",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "lanus",
+      "name": "Lanús",
+      "leagueId": "arg",
+      "sourcePlayers": 34,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "newell-s-old-boys",
+      "name": "Newell's Old Boys",
+      "leagueId": "arg",
+      "sourcePlayers": 29,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "platense",
+      "name": "Platense",
+      "leagueId": "arg",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "racing-club",
+      "name": "Racing Club",
+      "leagueId": "arg",
+      "sourcePlayers": 43,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "river-plate",
+      "name": "River Plate",
+      "leagueId": "arg",
+      "sourcePlayers": 34,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "rosario-central",
+      "name": "Rosario Central",
+      "leagueId": "arg",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "san-lorenzo-de-almagro",
+      "name": "San Lorenzo de Almagro",
+      "leagueId": "arg",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "talleres",
+      "name": "Talleres",
+      "leagueId": "arg",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "tigre",
+      "name": "Tigre",
+      "leagueId": "arg",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "velez-sarsfield",
+      "name": "Vélez Sarsfield",
+      "leagueId": "arg",
+      "sourcePlayers": 33,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "atlanta-united",
+      "name": "Atlanta United",
+      "leagueId": "mls",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "austin-fc",
+      "name": "Austin FC",
+      "leagueId": "mls",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cf-montreal",
+      "name": "CF Montréal",
+      "leagueId": "mls",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "charlotte-fc",
+      "name": "Charlotte FC",
+      "leagueId": "mls",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "chicago-fire",
+      "name": "Chicago Fire",
+      "leagueId": "mls",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 1,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "colorado-rapids",
+      "name": "Colorado Rapids",
+      "leagueId": "mls",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "columbus-crew",
+      "name": "Columbus Crew",
+      "leagueId": "mls",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "dc-united",
+      "name": "DC United",
+      "leagueId": "mls",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-cincinnati",
+      "name": "FC Cincinnati",
+      "leagueId": "mls",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-dallas",
+      "name": "FC Dallas",
+      "leagueId": "mls",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "houston-dynamo",
+      "name": "Houston Dynamo",
+      "leagueId": "mls",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "inter-miami",
+      "name": "Inter Miami",
+      "leagueId": "mls",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "la-galaxy",
+      "name": "LA Galaxy",
+      "leagueId": "mls",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "los-angeles-fc",
+      "name": "Los Angeles FC",
+      "leagueId": "mls",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "minnesota-united-fc",
+      "name": "Minnesota United FC",
+      "leagueId": "mls",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "nashville-sc",
+      "name": "Nashville SC",
+      "leagueId": "mls",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "new-england-revolution",
+      "name": "New England Revolution",
+      "leagueId": "mls",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "new-york-city-fc",
+      "name": "New York City FC",
+      "leagueId": "mls",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "new-york-red-bulls",
+      "name": "New York Red Bulls",
+      "leagueId": "mls",
+      "sourcePlayers": 30,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "orlando-city-sc",
+      "name": "Orlando City SC",
+      "leagueId": "mls",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "philadelphia-union",
+      "name": "Philadelphia Union",
+      "leagueId": "mls",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "portland-timbers",
+      "name": "Portland Timbers",
+      "leagueId": "mls",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "real-salt-lake",
+      "name": "Real Salt Lake",
+      "leagueId": "mls",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "san-diego-fc",
+      "name": "San Diego FC",
+      "leagueId": "mls",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "san-jose-earthquakes",
+      "name": "San Jose Earthquakes",
+      "leagueId": "mls",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "seattle-sounders-fc",
+      "name": "Seattle Sounders FC",
+      "leagueId": "mls",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sporting-kansas-city",
+      "name": "Sporting Kansas City",
+      "leagueId": "mls",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "st-louis-city-sc",
+      "name": "St. Louis CITY SC",
+      "leagueId": "mls",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "toronto-fc",
+      "name": "Toronto FC",
+      "leagueId": "mls",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vancouver-whitecaps-fc",
+      "name": "Vancouver Whitecaps FC",
+      "leagueId": "mls",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-ahli-sfc",
+      "name": "Al Ahli SFC",
+      "leagueId": "sau",
+      "sourcePlayers": 26,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-akhdoud-saudi-club",
+      "name": "Al Akhdoud Saudi Club",
+      "leagueId": "sau",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-ettifaq",
+      "name": "Al Ettifaq",
+      "leagueId": "sau",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-fateh",
+      "name": "Al Fateh",
+      "leagueId": "sau",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-fayha",
+      "name": "Al Fayha",
+      "leagueId": "sau",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-hazem-fc",
+      "name": "Al Hazem FC",
+      "leagueId": "sau",
+      "sourcePlayers": 14,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-hilal",
+      "name": "Al Hilal",
+      "leagueId": "sau",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 2,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-ittihad",
+      "name": "Al Ittihad",
+      "leagueId": "sau",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-khaleej",
+      "name": "Al Khaleej",
+      "leagueId": "sau",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-kholood",
+      "name": "Al Kholood",
+      "leagueId": "sau",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-najma-sc",
+      "name": "Al-Najma SC",
+      "leagueId": "sau",
+      "sourcePlayers": 17,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-nassr",
+      "name": "Al Nassr",
+      "leagueId": "sau",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-qadsiah-fc",
+      "name": "Al Qadsiah FC",
+      "leagueId": "sau",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-riyadh",
+      "name": "Al Riyadh",
+      "leagueId": "sau",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-shabab",
+      "name": "Al Shabab",
+      "leagueId": "sau",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "al-taawoun-fc",
+      "name": "Al Taawoun FC",
+      "leagueId": "sau",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "damac-fc",
+      "name": "Damac FC",
+      "leagueId": "sau",
+      "sourcePlayers": 14,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "neom-sc",
+      "name": "NEOM SC",
+      "leagueId": "sau",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "daegu-fc",
+      "name": "Daegu FC",
+      "leagueId": "kor",
+      "sourcePlayers": 38,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "daejeon-citizen",
+      "name": "Daejeon Citizen",
+      "leagueId": "kor",
+      "sourcePlayers": 33,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-anyang",
+      "name": "FC Anyang",
+      "leagueId": "kor",
+      "sourcePlayers": 33,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-seoul",
+      "name": "FC Seoul",
+      "leagueId": "kor",
+      "sourcePlayers": 35,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gangwon-fc",
+      "name": "Gangwon FC",
+      "leagueId": "kor",
+      "sourcePlayers": 36,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gimcheon-sangmu-fc",
+      "name": "Gimcheon Sangmu FC",
+      "leagueId": "kor",
+      "sourcePlayers": 38,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gwangju-fc",
+      "name": "Gwangju FC",
+      "leagueId": "kor",
+      "sourcePlayers": 31,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "jeju-united-fc",
+      "name": "Jeju United FC",
+      "leagueId": "kor",
+      "sourcePlayers": 32,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "jeonbuk-hyundai-motors",
+      "name": "Jeonbuk Hyundai Motors",
+      "leagueId": "kor",
+      "sourcePlayers": 38,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "pohang-steelers",
+      "name": "Pohang Steelers",
+      "leagueId": "kor",
+      "sourcePlayers": 36,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "suwon-fc",
+      "name": "Suwon FC",
+      "leagueId": "kor",
+      "sourcePlayers": 38,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "ulsan-hd-fc",
+      "name": "Ulsan HD FC",
+      "leagueId": "kor",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "atletico-mineiro",
+      "name": "Atlético Mineiro",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bahia",
+      "name": "Bahia",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "botafogo",
+      "name": "Botafogo",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "corinthians",
+      "name": "Corinthians",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "cruzeiro",
+      "name": "Cruzeiro",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "flamengo",
+      "name": "Flamengo",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fluminense",
+      "name": "Fluminense",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fortaleza",
+      "name": "Fortaleza",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "gremio",
+      "name": "Grêmio",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "internacional",
+      "name": "Internacional",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "palmeiras",
+      "name": "Palmeiras",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sao-paulo",
+      "name": "São Paulo",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vasco-da-gama",
+      "name": "Vasco da Gama",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "vitoria",
+      "name": "Vitória",
+      "leagueId": "bra",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 20,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "adelaide-united",
+      "name": "Adelaide United",
+      "leagueId": "aus",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "auckland-fc",
+      "name": "Auckland FC",
+      "leagueId": "aus",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "brisbane-roar",
+      "name": "Brisbane Roar",
+      "leagueId": "aus",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "central-coast-mariners",
+      "name": "Central Coast Mariners",
+      "leagueId": "aus",
+      "sourcePlayers": 17,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "macarthur-fc",
+      "name": "Macarthur FC",
+      "leagueId": "aus",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "melbourne-city-fc",
+      "name": "Melbourne City FC",
+      "leagueId": "aus",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "melbourne-victory",
+      "name": "Melbourne Victory",
+      "leagueId": "aus",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "newcastle-jets",
+      "name": "Newcastle Jets",
+      "leagueId": "aus",
+      "sourcePlayers": 21,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "perth-glory",
+      "name": "Perth Glory",
+      "leagueId": "aus",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "sydney-fc",
+      "name": "Sydney FC",
+      "leagueId": "aus",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "wellington-phoenix",
+      "name": "Wellington Phoenix",
+      "leagueId": "aus",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "western-sydney-wanderers",
+      "name": "Western Sydney Wanderers",
+      "leagueId": "aus",
+      "sourcePlayers": 20,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "western-united",
+      "name": "Western United",
+      "leagueId": "aus",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 18,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "bengaluru-fc",
+      "name": "Bengaluru FC",
+      "leagueId": "ind",
+      "sourcePlayers": 19,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "chennaiyin-fc",
+      "name": "Chennaiyin FC",
+      "leagueId": "ind",
+      "sourcePlayers": 18,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "east-bengal-fc",
+      "name": "East Bengal FC",
+      "leagueId": "ind",
+      "sourcePlayers": 24,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "fc-goa",
+      "name": "FC Goa",
+      "leagueId": "ind",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "hyderabad-fc",
+      "name": "Hyderabad FC",
+      "leagueId": "ind",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "jamshedpur-fc",
+      "name": "Jamshedpur FC",
+      "leagueId": "ind",
+      "sourcePlayers": 28,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "kerala-blasters-fc",
+      "name": "Kerala Blasters FC",
+      "leagueId": "ind",
+      "sourcePlayers": 23,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mohammedan-sc",
+      "name": "Mohammedan SC",
+      "leagueId": "ind",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 18,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mohun-bagan-super-giant",
+      "name": "Mohun Bagan Super Giant",
+      "leagueId": "ind",
+      "sourcePlayers": 25,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "mumbai-city-fc",
+      "name": "Mumbai City FC",
+      "leagueId": "ind",
+      "sourcePlayers": 22,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "northeast-united",
+      "name": "NorthEast United",
+      "leagueId": "ind",
+      "sourcePlayers": 27,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "odisha-fc",
+      "name": "Odisha FC",
+      "leagueId": "ind",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 18,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "punjab-fc",
+      "name": "Punjab FC",
+      "leagueId": "ind",
+      "sourcePlayers": 14,
+      "communityFallbackPlayers": 0,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    },
+    {
+      "id": "united-tigers-sc",
+      "name": "United Tigers SC",
+      "leagueId": "ind",
+      "sourcePlayers": 0,
+      "communityFallbackPlayers": 18,
+      "reviewedArrivals": 0,
+      "fullRosterVerified": false
+    }
+  ]
+}

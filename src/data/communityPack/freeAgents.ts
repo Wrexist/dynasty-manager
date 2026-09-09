@@ -33,26 +33,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Sebastián",
-    "ln": "Coates",
-    "pos": "CB",
-    "age": 35,
-    "nat": "Uruguay",
-    "ovr": 79,
-    "pot": 79,
-    "pace": 60,
-    "shooting": 47,
-    "passing": 54,
-    "defending": 81,
-    "physical": 84,
-    "mental": 65,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "197655",
-    "heightCm": 196,
-    "weightKg": 94
-  },
-  {
     "fn": "Lukáš",
     "ln": "Provod",
     "pos": "CAM",
@@ -238,7 +218,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "David",
     "ln": "Ospina",
     "pos": "GK",
-    "age": 37,
+    "age": 38,
     "nat": "Colombia",
     "ovr": 76,
     "pot": 76,
@@ -362,30 +342,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "LW",
       "ST"
-    ]
-  },
-  {
-    "fn": "Nicolas",
-    "ln": "López",
-    "pos": "ST",
-    "age": 32,
-    "nat": "Uruguay",
-    "ovr": 76,
-    "pot": 76,
-    "pace": 68,
-    "shooting": 81,
-    "passing": 75,
-    "defending": 25,
-    "physical": 57,
-    "mental": 75,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "207715",
-    "heightCm": 178,
-    "weightKg": 75,
-    "altPos": [
-      "RW",
-      "CAM"
     ]
   },
   {
@@ -1428,29 +1384,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 69
   },
   {
-    "fn": "Luciano",
-    "ln": "Boggio",
-    "pos": "CM",
-    "age": 27,
-    "nat": "Uruguay",
-    "ovr": 73,
-    "pot": 76,
-    "pace": 74,
-    "shooting": 67,
-    "passing": 73,
-    "defending": 59,
-    "physical": 72,
-    "mental": 71,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "265766",
-    "heightCm": 175,
-    "weightKg": 69,
-    "altPos": [
-      "CDM"
-    ]
-  },
-  {
     "fn": "Santiago",
     "ln": "González",
     "pos": "CAM",
@@ -1747,26 +1680,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "Rafael",
-    "ln": "Romo",
-    "pos": "GK",
-    "age": 36,
-    "nat": "Venezuela",
-    "ovr": 73,
-    "pot": 73,
-    "pace": 74,
-    "shooting": 75,
-    "passing": 71,
-    "defending": 71,
-    "physical": 73,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "193359",
-    "heightCm": 196,
-    "weightKg": 91
-  },
-  {
     "fn": "Elias",
     "ln": "Cobbaut",
     "pos": "CB",
@@ -1989,26 +1902,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Julián",
-    "ln": "Millán",
-    "pos": "CB",
-    "age": 28,
-    "nat": "Colombia",
-    "ovr": 73,
-    "pot": 75,
-    "pace": 72,
-    "shooting": 46,
-    "passing": 57,
-    "defending": 73,
-    "physical": 73,
-    "mental": 61,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "233822",
-    "heightCm": 184,
-    "weightKg": 72
-  },
-  {
     "fn": "André",
     "ln": "Luís",
     "pos": "ST",
@@ -2119,7 +2012,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Albion",
     "ln": "Rrahmani",
     "pos": "ST",
-    "age": 25,
+    "age": 26,
     "nat": "Kosovo",
     "ovr": 73,
     "pot": 78,
@@ -2412,26 +2305,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 88
   },
   {
-    "fn": "Luis",
-    "ln": "Mejía",
-    "pos": "GK",
-    "age": 35,
-    "nat": "Panama",
-    "ovr": 72,
-    "pot": 72,
-    "pace": 77,
-    "shooting": 71,
-    "passing": 68,
-    "defending": 71,
-    "physical": 67,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "202089",
-    "heightCm": 193,
-    "weightKg": 81
-  },
-  {
     "fn": "Federico",
     "ln": "Carrizo",
     "pos": "CAM",
@@ -2498,29 +2371,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "Christian",
-    "ln": "Oliva",
-    "pos": "CDM",
-    "age": 30,
-    "nat": "Uruguay",
-    "ovr": 72,
-    "pot": 72,
-    "pace": 61,
-    "shooting": 65,
-    "passing": 70,
-    "defending": 73,
-    "physical": 73,
-    "mental": 67,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "247076",
-    "heightCm": 178,
-    "weightKg": 75,
-    "altPos": [
-      "CM"
-    ]
-  },
-  {
     "fn": "Javier",
     "ln": "Méndez",
     "pos": "CB",
@@ -2541,30 +2391,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83,
     "altPos": [
       "CDM"
-    ]
-  },
-  {
-    "fn": "Romulo",
-    "ln": "Otero",
-    "pos": "CAM",
-    "age": 33,
-    "nat": "Venezuela",
-    "ovr": 72,
-    "pot": 72,
-    "pace": 74,
-    "shooting": 73,
-    "passing": 73,
-    "defending": 41,
-    "physical": 60,
-    "mental": 67,
-    "skillMoves": 4,
-    "source": "real",
-    "fcId": "217097",
-    "heightCm": 166,
-    "weightKg": 64,
-    "altPos": [
-      "LW",
-      "CM"
     ]
   },
   {
@@ -2677,7 +2503,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Gabriel",
     "ln": "Castellón",
     "pos": "GK",
-    "age": 32,
+    "age": 33,
     "nat": "Chile",
     "ovr": 72,
     "pot": 72,
@@ -2825,26 +2651,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Jhon",
-    "ln": "Murillo",
-    "pos": "RW",
-    "age": 30,
-    "nat": "Venezuela",
-    "ovr": 72,
-    "pot": 72,
-    "pace": 88,
-    "shooting": 66,
-    "passing": 62,
-    "defending": 36,
-    "physical": 55,
-    "mental": 70,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "228738",
-    "heightCm": 171,
-    "weightKg": 66
-  },
-  {
     "fn": "Carlos",
     "ln": "Cáceda",
     "pos": "GK",
@@ -2905,29 +2711,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 65,
     "altPos": [
       "CAM"
-    ]
-  },
-  {
-    "fn": "Cristian",
-    "ln": "Barrios",
-    "pos": "CM",
-    "age": 28,
-    "nat": "Colombia",
-    "ovr": 72,
-    "pot": 72,
-    "pace": 80,
-    "shooting": 70,
-    "passing": 65,
-    "defending": 40,
-    "physical": 52,
-    "mental": 69,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "241601",
-    "heightCm": 163,
-    "weightKg": 65,
-    "altPos": [
-      "LW"
     ]
   },
   {
@@ -3197,7 +2980,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Maximiliano",
     "ln": "Silvera",
     "pos": "ST",
-    "age": 28,
+    "age": 29,
     "nat": "Uruguay",
     "ovr": 72,
     "pot": 72,
@@ -3212,26 +2995,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "267406",
     "heightCm": 176,
     "weightKg": 68
-  },
-  {
-    "fn": "Rodrigo",
-    "ln": "Holgado",
-    "pos": "ST",
-    "age": 31,
-    "nat": "Argentina",
-    "ovr": 72,
-    "pot": 72,
-    "pace": 68,
-    "shooting": 72,
-    "passing": 61,
-    "defending": 31,
-    "physical": 67,
-    "mental": 61,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "230871",
-    "heightCm": 178,
-    "weightKg": 85
   },
   {
     "fn": "Parfait",
@@ -3669,29 +3432,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Yerson",
-    "ln": "Candelo",
-    "pos": "RB",
-    "age": 34,
-    "nat": "Colombia",
-    "ovr": 71,
-    "pot": 71,
-    "pace": 83,
-    "shooting": 68,
-    "passing": 69,
-    "defending": 62,
-    "physical": 65,
-    "mental": 64,
-    "skillMoves": 4,
-    "source": "real",
-    "fcId": "214006",
-    "heightCm": 171,
-    "weightKg": 67,
-    "altPos": [
-      "RW"
-    ]
-  },
-  {
     "fn": "Sai",
     "ln": "Erjiniao",
     "pos": "CM",
@@ -4029,7 +3769,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Janner",
     "ln": "Corozo",
     "pos": "RW",
-    "age": 30,
+    "age": 31,
     "nat": "Ecuador",
     "ovr": 71,
     "pot": 71,
@@ -4075,7 +3815,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Jure",
     "ln": "Balkovec",
     "pos": "LB",
-    "age": 31,
+    "age": 32,
     "nat": "Slovenia",
     "ovr": 71,
     "pot": 71,
@@ -4179,26 +3919,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "LW"
     ]
-  },
-  {
-    "fn": "Daniel",
-    "ln": "Bocanegra",
-    "pos": "CB",
-    "age": 39,
-    "nat": "Colombia",
-    "ovr": 71,
-    "pot": 71,
-    "pace": 64,
-    "shooting": 55,
-    "passing": 71,
-    "defending": 70,
-    "physical": 76,
-    "mental": 66,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "214196",
-    "heightCm": 182,
-    "weightKg": 73
   },
   {
     "fn": "Wu",
@@ -4925,26 +4645,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Byron",
-    "ln": "Palacios",
-    "pos": "ST",
-    "age": 31,
-    "nat": "Ecuador",
-    "ovr": 71,
-    "pot": 71,
-    "pace": 75,
-    "shooting": 75,
-    "passing": 57,
-    "defending": 33,
-    "physical": 66,
-    "mental": 64,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "254449",
-    "heightCm": 185,
-    "weightKg": 85
-  },
-  {
     "fn": "Jelle",
     "ln": "Vossen",
     "pos": "ST",
@@ -5155,29 +4855,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83,
     "altPos": [
       "RB"
-    ]
-  },
-  {
-    "fn": "Jean",
-    "ln": "Carlos Pestaña",
-    "pos": "CB",
-    "age": 29,
-    "nat": "Colombia",
-    "ovr": 71,
-    "pot": 73,
-    "pace": 60,
-    "shooting": 27,
-    "passing": 43,
-    "defending": 76,
-    "physical": 73,
-    "mental": 48,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "238880",
-    "heightCm": 186,
-    "weightKg": 81,
-    "altPos": [
-      "CDM"
     ]
   },
   {
@@ -5477,29 +5154,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Rafael",
-    "ln": "Carrascal",
-    "pos": "CM",
-    "age": 33,
-    "nat": "Colombia",
-    "ovr": 70,
-    "pot": 70,
-    "pace": 66,
-    "shooting": 63,
-    "passing": 72,
-    "defending": 69,
-    "physical": 71,
-    "mental": 72,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "214366",
-    "heightCm": 173,
-    "weightKg": 72,
-    "altPos": [
-      "CDM"
-    ]
-  },
-  {
     "fn": "Daiki",
     "ln": "Hashioka",
     "pos": "RB",
@@ -5596,7 +5250,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Juljan",
     "ln": "Shehu",
     "pos": "CM",
-    "age": 27,
+    "age": 28,
     "nat": "Albania",
     "ovr": 70,
     "pot": 71,
@@ -5863,26 +5517,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Jorge",
-    "ln": "Soto",
-    "pos": "GK",
-    "age": 33,
-    "nat": "Colombia",
-    "ovr": 70,
-    "pot": 70,
-    "pace": 69,
-    "shooting": 71,
-    "passing": 66,
-    "defending": 66,
-    "physical": 69,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "227560",
-    "heightCm": 188,
-    "weightKg": 82
-  },
-  {
     "fn": "Antoine",
     "ln": "Bernier",
     "pos": "ST",
@@ -6143,7 +5777,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Ignacio",
     "ln": "Sosa",
     "pos": "CM",
-    "age": 22,
+    "age": 23,
     "nat": "Uruguay",
     "ovr": 70,
     "pot": 77,
@@ -6313,30 +5947,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Éder",
-    "ln": "Balanta",
-    "pos": "CDM",
-    "age": 33,
-    "nat": "Colombia",
-    "ovr": 70,
-    "pot": 70,
-    "pace": 66,
-    "shooting": 43,
-    "passing": 60,
-    "defending": 70,
-    "physical": 81,
-    "mental": 66,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "213899",
-    "heightCm": 181,
-    "weightKg": 84,
-    "altPos": [
-      "CM",
-      "CB"
-    ]
-  },
-  {
     "fn": "Mateo",
     "ln": "Carabajal",
     "pos": "CB",
@@ -6458,30 +6068,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "194138",
     "heightCm": 178,
     "weightKg": 78
-  },
-  {
-    "fn": "Mauricio",
-    "ln": "Pereyra",
-    "pos": "CM",
-    "age": 36,
-    "nat": "Uruguay",
-    "ovr": 70,
-    "pot": 70,
-    "pace": 61,
-    "shooting": 61,
-    "passing": 76,
-    "defending": 55,
-    "physical": 57,
-    "mental": 71,
-    "skillMoves": 4,
-    "source": "real",
-    "fcId": "204691",
-    "heightCm": 170,
-    "weightKg": 63,
-    "altPos": [
-      "CAM",
-      "CDM"
-    ]
   },
   {
     "fn": "Park",
@@ -6633,30 +6219,10 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Luis",
-    "ln": "Cangá",
-    "pos": "CB",
-    "age": 31,
-    "nat": "Ecuador",
-    "ovr": 70,
-    "pot": 70,
-    "pace": 59,
-    "shooting": 61,
-    "passing": 55,
-    "defending": 69,
-    "physical": 79,
-    "mental": 50,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "225679",
-    "heightCm": 191,
-    "weightKg": 89
-  },
-  {
     "fn": "João",
     "ln": "Talocha",
     "pos": "LB",
-    "age": 36,
+    "age": 37,
     "nat": "Portugal",
     "ovr": 70,
     "pot": 70,
@@ -6806,26 +6372,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 60
   },
   {
-    "fn": "Joel",
-    "ln": "Graterol",
-    "pos": "GK",
-    "age": 29,
-    "nat": "Venezuela",
-    "ovr": 70,
-    "pot": 73,
-    "pace": 67,
-    "shooting": 69,
-    "passing": 66,
-    "defending": 69,
-    "physical": 71,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "250842",
-    "heightCm": 180,
-    "weightKg": 82
-  },
-  {
     "fn": "Gonzalo",
     "ln": "Valle",
     "pos": "GK",
@@ -6932,29 +6478,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Gonzalo",
-    "ln": "Carneiro",
-    "pos": "ST",
-    "age": 30,
-    "nat": "Uruguay",
-    "ovr": 70,
-    "pot": 70,
-    "pace": 67,
-    "shooting": 70,
-    "passing": 64,
-    "defending": 24,
-    "physical": 71,
-    "mental": 64,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "266648",
-    "heightCm": 194,
-    "weightKg": 85,
-    "altPos": [
-      "RW"
-    ]
-  },
-  {
     "fn": "Pedro",
     "ln": "Henrique",
     "pos": "ST",
@@ -7001,7 +6524,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Alejo",
     "ln": "Cruz",
     "pos": "LW",
-    "age": 25,
+    "age": 26,
     "nat": "Uruguay",
     "ovr": 70,
     "pot": 73,
@@ -8237,29 +7760,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "Mauro",
-    "ln": "Díaz",
-    "pos": "CAM",
-    "age": 35,
-    "nat": "Argentina",
-    "ovr": 69,
-    "pot": 69,
-    "pace": 71,
-    "shooting": 66,
-    "passing": 72,
-    "defending": 48,
-    "physical": 60,
-    "mental": 72,
-    "skillMoves": 4,
-    "source": "real",
-    "fcId": "189153",
-    "heightCm": 170,
-    "weightKg": 62,
-    "altPos": [
-      "CM"
-    ]
-  },
-  {
     "fn": "Fran",
     "ln": "Álvarez",
     "pos": "CM",
@@ -8348,29 +7848,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 69,
     "altPos": [
       "CAM"
-    ]
-  },
-  {
-    "fn": "Sebastián",
-    "ln": "Navarro",
-    "pos": "CAM",
-    "age": 26,
-    "nat": "Colombia",
-    "ovr": 69,
-    "pot": 74,
-    "pace": 66,
-    "shooting": 65,
-    "passing": 67,
-    "defending": 58,
-    "physical": 59,
-    "mental": 66,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "256602",
-    "heightCm": 186,
-    "weightKg": 74,
-    "altPos": [
-      "CM"
     ]
   },
   {
@@ -8466,7 +7943,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Jonathan",
     "ln": "Benítez",
     "pos": "LW",
-    "age": 34,
+    "age": 35,
     "nat": "Argentina",
     "ovr": 69,
     "pot": 69,
@@ -9013,29 +8490,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 68
   },
   {
-    "fn": "Sebastián",
-    "ln": "Assís",
-    "pos": "CDM",
-    "age": 33,
-    "nat": "Uruguay",
-    "ovr": 69,
-    "pot": 69,
-    "pace": 55,
-    "shooting": 52,
-    "passing": 68,
-    "defending": 68,
-    "physical": 66,
-    "mental": 72,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "253822",
-    "heightCm": 171,
-    "weightKg": 75,
-    "altPos": [
-      "CM"
-    ]
-  },
-  {
     "fn": "Ángelo",
     "ln": "Campos",
     "pos": "GK",
@@ -9185,30 +8639,10 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Marcos",
-    "ln": "Mina",
-    "pos": "LB",
-    "age": 27,
-    "nat": "Colombia",
-    "ovr": 69,
-    "pot": 72,
-    "pace": 81,
-    "shooting": 31,
-    "passing": 63,
-    "defending": 64,
-    "physical": 66,
-    "mental": 57,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "278782",
-    "heightCm": 177,
-    "weightKg": 70
-  },
-  {
     "fn": "Felipe",
     "ln": "Caicedo",
     "pos": "ST",
-    "age": 37,
+    "age": 38,
     "nat": "Ecuador",
     "ovr": 69,
     "pot": 69,
@@ -9383,29 +8817,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Martín",
-    "ln": "Ferreira",
-    "pos": "LB",
-    "age": 34,
-    "nat": "Uruguay",
-    "ovr": 69,
-    "pot": 69,
-    "pace": 73,
-    "shooting": 45,
-    "passing": 58,
-    "defending": 65,
-    "physical": 69,
-    "mental": 56,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "253861",
-    "heightCm": 176,
-    "weightKg": 67,
-    "altPos": [
-      "CB"
-    ]
-  },
-  {
     "fn": "Mariusz",
     "ln": "Fornalczyk",
     "pos": "LW",
@@ -9475,7 +8886,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Diego",
     "ln": "Fernández",
     "pos": "LW",
-    "age": 23,
+    "age": 24,
     "nat": "Paraguay",
     "ovr": 69,
     "pot": 76,
@@ -9578,29 +8989,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72,
     "altPos": [
       "LW"
-    ]
-  },
-  {
-    "fn": "Andrés",
-    "ln": "Mosquera",
-    "pos": "CB",
-    "age": 36,
-    "nat": "Colombia",
-    "ovr": 69,
-    "pot": 69,
-    "pace": 64,
-    "shooting": 39,
-    "passing": 58,
-    "defending": 69,
-    "physical": 75,
-    "mental": 60,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "219787",
-    "heightCm": 181,
-    "weightKg": 80,
-    "altPos": [
-      "RB"
     ]
   },
   {
@@ -9938,26 +9326,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "246406",
     "heightCm": 184,
     "weightKg": 75
-  },
-  {
-    "fn": "Luis",
-    "ln": "Ramos",
-    "pos": "ST",
-    "age": 26,
-    "nat": "Peru",
-    "ovr": 69,
-    "pot": 74,
-    "pace": 65,
-    "shooting": 70,
-    "passing": 44,
-    "defending": 26,
-    "physical": 63,
-    "mental": 64,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "75409",
-    "heightCm": 183,
-    "weightKg": 78
   },
   {
     "fn": "Matías",
@@ -10574,30 +9942,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Nicolás",
-    "ln": "Rodríguez",
-    "pos": "RB",
-    "age": 35,
-    "nat": "Uruguay",
-    "ovr": 68,
-    "pot": 68,
-    "pace": 67,
-    "shooting": 58,
-    "passing": 73,
-    "defending": 64,
-    "physical": 63,
-    "mental": 68,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "254628",
-    "heightCm": 183,
-    "weightKg": 79,
-    "altPos": [
-      "LB",
-      "CM"
-    ]
-  },
-  {
     "fn": "Tarkan",
     "ln": "Serbest",
     "pos": "CB",
@@ -10778,29 +10122,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "Eddy",
-    "ln": "Mejía",
-    "pos": "LB",
-    "age": 26,
-    "nat": "Ecuador",
-    "ovr": 68,
-    "pot": 73,
-    "pace": 77,
-    "shooting": 52,
-    "passing": 66,
-    "defending": 58,
-    "physical": 64,
-    "mental": 58,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "255817",
-    "heightCm": 168,
-    "weightKg": 61,
-    "altPos": [
-      "LW"
-    ]
-  },
-  {
     "fn": "Lucas",
     "ln": "Maia",
     "pos": "CB",
@@ -10954,29 +10275,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "RW",
       "ST",
-      "CM"
-    ]
-  },
-  {
-    "fn": "Jeronimo",
-    "ln": "Cacciabue",
-    "pos": "CDM",
-    "age": 28,
-    "nat": "Argentina",
-    "ovr": 68,
-    "pot": 69,
-    "pace": 64,
-    "shooting": 57,
-    "passing": 67,
-    "defending": 64,
-    "physical": 61,
-    "mental": 65,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "242294",
-    "heightCm": 173,
-    "weightKg": 73,
-    "altPos": [
       "CM"
     ]
   },
@@ -11174,26 +10472,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "CDM"
     ]
-  },
-  {
-    "fn": "Lautaro",
-    "ln": "Amadé",
-    "pos": "GK",
-    "age": 26,
-    "nat": "Argentina",
-    "ovr": 68,
-    "pot": 74,
-    "pace": 68,
-    "shooting": 69,
-    "passing": 68,
-    "defending": 66,
-    "physical": 64,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "257985",
-    "heightCm": 192,
-    "weightKg": 88
   },
   {
     "fn": "Metehan",
@@ -11438,29 +10716,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 69,
     "altPos": [
       "CAM"
-    ]
-  },
-  {
-    "fn": "José",
-    "ln": "Varela",
-    "pos": "CM",
-    "age": 38,
-    "nat": "Uruguay",
-    "ovr": 68,
-    "pot": 68,
-    "pace": 68,
-    "shooting": 64,
-    "passing": 68,
-    "defending": 52,
-    "physical": 54,
-    "mental": 64,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "279918",
-    "heightCm": 175,
-    "weightKg": 68,
-    "altPos": [
-      "CDM"
     ]
   },
   {
@@ -11799,26 +11054,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Santiago",
-    "ln": "Silva",
-    "pos": "GK",
-    "age": 27,
-    "nat": "Uruguay",
-    "ovr": 68,
-    "pot": 73,
-    "pace": 71,
-    "shooting": 68,
-    "passing": 70,
-    "defending": 65,
-    "physical": 66,
-    "mental": 48,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "272417",
-    "heightCm": 186,
-    "weightKg": 78
-  },
-  {
     "fn": "Blás",
     "ln": "Riveros",
     "pos": "LB",
@@ -11981,7 +11216,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Can",
     "ln": "Keleş",
     "pos": "RW",
-    "age": 24,
+    "age": 25,
     "nat": "Turkey",
     "ovr": 68,
     "pot": 73,
@@ -12408,29 +11643,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "José",
-    "ln": "Fajardo",
-    "pos": "ST",
-    "age": 33,
-    "nat": "Panama",
-    "ovr": 68,
-    "pot": 68,
-    "pace": 69,
-    "shooting": 68,
-    "passing": 55,
-    "defending": 33,
-    "physical": 68,
-    "mental": 61,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "243545",
-    "heightCm": 180,
-    "weightKg": 69,
-    "altPos": [
-      "RW"
-    ]
-  },
-  {
     "fn": "Etienne",
     "ln": "Camara",
     "pos": "CDM",
@@ -12553,26 +11765,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "253886",
     "heightCm": 173,
     "weightKg": 71
-  },
-  {
-    "fn": "Emiliano",
-    "ln": "Ancheta",
-    "pos": "RB",
-    "age": 27,
-    "nat": "Uruguay",
-    "ovr": 68,
-    "pot": 71,
-    "pace": 63,
-    "shooting": 34,
-    "passing": 56,
-    "defending": 71,
-    "physical": 71,
-    "mental": 58,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "261989",
-    "heightCm": 179,
-    "weightKg": 68
   },
   {
     "fn": "Gerardo",
@@ -12836,26 +12028,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "258227",
     "heightCm": 177,
     "weightKg": 78
-  },
-  {
-    "fn": "Omar",
-    "ln": "Bertel",
-    "pos": "LB",
-    "age": 29,
-    "nat": "Colombia",
-    "ovr": 68,
-    "pot": 68,
-    "pace": 74,
-    "shooting": 41,
-    "passing": 50,
-    "defending": 66,
-    "physical": 60,
-    "mental": 54,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "239681",
-    "heightCm": 174,
-    "weightKg": 64
   },
   {
     "fn": "Federico",
@@ -13287,26 +12459,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 89
   },
   {
-    "fn": "Hugo",
-    "ln": "Silveira",
-    "pos": "ST",
-    "age": 33,
-    "nat": "Uruguay",
-    "ovr": 68,
-    "pot": 68,
-    "pace": 54,
-    "shooting": 68,
-    "passing": 50,
-    "defending": 20,
-    "physical": 79,
-    "mental": 60,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "245532",
-    "heightCm": 189,
-    "weightKg": 90
-  },
-  {
     "fn": "Casper",
     "ln": "Widell",
     "pos": "CB",
@@ -13531,30 +12683,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "Kastriot",
-    "ln": "Imeri",
-    "pos": "CM",
-    "age": 26,
-    "nat": "Switzerland",
-    "ovr": 67,
-    "pot": 72,
-    "pace": 71,
-    "shooting": 71,
-    "passing": 68,
-    "defending": 57,
-    "physical": 66,
-    "mental": 69,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "250766",
-    "heightCm": 178,
-    "weightKg": 77,
-    "altPos": [
-      "LW",
-      "CAM"
-    ]
-  },
-  {
     "fn": "Alan",
     "ln": "Soñora",
     "pos": "CM",
@@ -13690,7 +12818,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Chan",
     "ln": "Shinichi",
     "pos": "LB",
-    "age": 23,
+    "age": 24,
     "nat": "Hong Kong",
     "ovr": 67,
     "pot": 75,
@@ -13750,29 +12878,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 69,
     "altPos": [
       "CM"
-    ]
-  },
-  {
-    "fn": "Gregori",
-    "ln": "Anangonó",
-    "pos": "RB",
-    "age": 28,
-    "nat": "Ecuador",
-    "ovr": 67,
-    "pot": 68,
-    "pace": 77,
-    "shooting": 53,
-    "passing": 64,
-    "defending": 62,
-    "physical": 70,
-    "mental": 57,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "254210",
-    "heightCm": 180,
-    "weightKg": 71,
-    "altPos": [
-      "CB"
     ]
   },
   {
@@ -13860,30 +12965,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "CB",
       "LB"
-    ]
-  },
-  {
-    "fn": "Nicolás",
-    "ln": "Bertocchi",
-    "pos": "CAM",
-    "age": 37,
-    "nat": "Argentina",
-    "ovr": 67,
-    "pot": 67,
-    "pace": 47,
-    "shooting": 72,
-    "passing": 72,
-    "defending": 63,
-    "physical": 75,
-    "mental": 63,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "215113",
-    "heightCm": 190,
-    "weightKg": 82,
-    "altPos": [
-      "CM",
-      "CDM"
     ]
   },
   {
@@ -14091,7 +13172,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Alfredo",
     "ln": "Ramúa",
     "pos": "CAM",
-    "age": 39,
+    "age": 40,
     "nat": "Argentina",
     "ovr": 67,
     "pot": 67,
@@ -14667,31 +13748,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Facundo",
-    "ln": "Martínez",
-    "pos": "CDM",
-    "age": 41,
-    "nat": "Argentina",
-    "ovr": 67,
-    "pot": 67,
-    "pace": 48,
-    "shooting": 66,
-    "passing": 68,
-    "defending": 63,
-    "physical": 60,
-    "mental": 69,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "167663",
-    "heightCm": 180,
-    "weightKg": 76,
-    "altPos": [
-      "CM",
-      "CAM",
-      "CB"
-    ]
-  },
-  {
     "fn": "Danny",
     "ln": "Bakker",
     "pos": "CB",
@@ -14999,26 +14055,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 60
   },
   {
-    "fn": "Ignacio",
-    "ln": "Suárez",
-    "pos": "GK",
-    "age": 24,
-    "nat": "Uruguay",
-    "ovr": 67,
-    "pot": 76,
-    "pace": 67,
-    "shooting": 66,
-    "passing": 67,
-    "defending": 65,
-    "physical": 66,
-    "mental": 53,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "258209",
-    "heightCm": 184,
-    "weightKg": 72
-  },
-  {
     "fn": "Jesus",
     "ln": "Castillo",
     "pos": "CDM",
@@ -15060,29 +14096,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "238086",
     "heightCm": 167,
     "weightKg": 65
-  },
-  {
-    "fn": "Franco",
-    "ln": "Leys",
-    "pos": "CDM",
-    "age": 32,
-    "nat": "Argentina",
-    "ovr": 67,
-    "pot": 67,
-    "pace": 64,
-    "shooting": 47,
-    "passing": 60,
-    "defending": 66,
-    "physical": 65,
-    "mental": 64,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "220851",
-    "heightCm": 172,
-    "weightKg": 70,
-    "altPos": [
-      "CM"
-    ]
   },
   {
     "fn": "Lin",
@@ -16556,29 +15569,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 86
   },
   {
-    "fn": "Cristian",
-    "ln": "Tovar",
-    "pos": "CB",
-    "age": 28,
-    "nat": "Colombia",
-    "ovr": 67,
-    "pot": 70,
-    "pace": 71,
-    "shooting": 24,
-    "passing": 42,
-    "defending": 70,
-    "physical": 65,
-    "mental": 49,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "237885",
-    "heightCm": 185,
-    "weightKg": 70,
-    "altPos": [
-      "RB"
-    ]
-  },
-  {
     "fn": "Carlos",
     "ln": "Romaña",
     "pos": "CB",
@@ -18036,29 +17026,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Mateo",
-    "ln": "Castillo",
-    "pos": "LB",
-    "age": 23,
-    "nat": "Colombia",
-    "ovr": 66,
-    "pot": 76,
-    "pace": 76,
-    "shooting": 54,
-    "passing": 60,
-    "defending": 56,
-    "physical": 57,
-    "mental": 63,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "76339",
-    "heightCm": 180,
-    "weightKg": 70,
-    "altPos": [
-      "LW"
-    ]
-  },
-  {
     "fn": "Jhojan",
     "ln": "Valencia",
     "pos": "CDM",
@@ -18299,7 +17266,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Diego",
     "ln": "Soto",
     "pos": "CAM",
-    "age": 24,
+    "age": 25,
     "nat": "Peru",
     "ovr": 66,
     "pot": 72,
@@ -18338,29 +17305,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "274553",
     "heightCm": 182,
     "weightKg": 75
-  },
-  {
-    "fn": "Luis",
-    "ln": "Paz",
-    "pos": "CDM",
-    "age": 37,
-    "nat": "Colombia",
-    "ovr": 66,
-    "pot": 66,
-    "pace": 61,
-    "shooting": 56,
-    "passing": 60,
-    "defending": 65,
-    "physical": 69,
-    "mental": 61,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "214177",
-    "heightCm": 174,
-    "weightKg": 76,
-    "altPos": [
-      "CM"
-    ]
   },
   {
     "fn": "Nicolás",
@@ -18690,26 +17634,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "Jan",
-    "ln": "Lucumí",
-    "pos": "RW",
-    "age": 22,
-    "nat": "Colombia",
-    "ovr": 66,
-    "pot": 76,
-    "pace": 83,
-    "shooting": 58,
-    "passing": 61,
-    "defending": 34,
-    "physical": 61,
-    "mental": 59,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "76524",
-    "heightCm": 178,
-    "weightKg": 68
-  },
-  {
     "fn": "Ricardo",
     "ln": "Lagos",
     "pos": "LB",
@@ -19008,26 +17932,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Gino",
-    "ln": "Santilli",
-    "pos": "GK",
-    "age": 24,
-    "nat": "Argentina",
-    "ovr": 66,
-    "pot": 72,
-    "pace": 66,
-    "shooting": 65,
-    "passing": 63,
-    "defending": 67,
-    "physical": 64,
-    "mental": 48,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "261779",
-    "heightCm": 191,
-    "weightKg": 71
-  },
-  {
     "fn": "Derlis",
     "ln": "Rodríguez",
     "pos": "RW",
@@ -19201,30 +18105,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "Lucas",
-    "ln": "Correa",
-    "pos": "CB",
-    "age": 30,
-    "nat": "Uruguay",
-    "ovr": 66,
-    "pot": 67,
-    "pace": 64,
-    "shooting": 49,
-    "passing": 53,
-    "defending": 66,
-    "physical": 65,
-    "mental": 50,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "268075",
-    "heightCm": 180,
-    "weightKg": 73,
-    "altPos": [
-      "CDM",
-      "RB"
-    ]
-  },
-  {
     "fn": "Lautaro",
     "ln": "Pastrán",
     "pos": "LW",
@@ -19271,7 +18151,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Samy",
     "ln": "Mmaee",
     "pos": "CB",
-    "age": 29,
+    "age": 30,
     "nat": "Morocco",
     "ovr": 66,
     "pot": 67,
@@ -19286,30 +18166,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "224211",
     "heightCm": 188,
     "weightKg": 83
-  },
-  {
-    "fn": "Alan",
-    "ln": "Di Pippa",
-    "pos": "CDM",
-    "age": 26,
-    "nat": "Argentina",
-    "ovr": 66,
-    "pot": 73,
-    "pace": 68,
-    "shooting": 43,
-    "passing": 58,
-    "defending": 62,
-    "physical": 65,
-    "mental": 60,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "272351",
-    "heightCm": 179,
-    "weightKg": 75,
-    "altPos": [
-      "CB",
-      "CM"
-    ]
   },
   {
     "fn": "Bryan",
@@ -19462,26 +18318,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "Agustín",
-    "ln": "Pereira",
-    "pos": "RB",
-    "age": 25,
-    "nat": "Uruguay",
-    "ovr": 66,
-    "pot": 73,
-    "pace": 73,
-    "shooting": 35,
-    "passing": 57,
-    "defending": 61,
-    "physical": 56,
-    "mental": 57,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "71115",
-    "heightCm": 177,
-    "weightKg": 69
-  },
-  {
     "fn": "Ryan",
     "ln": "McGowan",
     "pos": "CB",
@@ -19527,26 +18363,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "RB"
     ]
-  },
-  {
-    "fn": "Facundo",
-    "ln": "Bonifazi",
-    "pos": "LB",
-    "age": 30,
-    "nat": "Uruguay",
-    "ovr": 66,
-    "pot": 66,
-    "pace": 72,
-    "shooting": 39,
-    "passing": 54,
-    "defending": 63,
-    "physical": 61,
-    "mental": 55,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "259093",
-    "heightCm": 174,
-    "weightKg": 72
   },
   {
     "fn": "Óscar",
@@ -19719,26 +18535,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "198538",
     "heightCm": 191,
     "weightKg": 85
-  },
-  {
-    "fn": "Jhon",
-    "ln": "Chancellor",
-    "pos": "CB",
-    "age": 34,
-    "nat": "Venezuela",
-    "ovr": 66,
-    "pot": 66,
-    "pace": 61,
-    "shooting": 47,
-    "passing": 48,
-    "defending": 64,
-    "physical": 72,
-    "mental": 55,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "234059",
-    "heightCm": 197,
-    "weightKg": 88
   },
   {
     "fn": "Emmanuel",
@@ -19948,29 +18744,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "255211",
     "heightCm": 192,
     "weightKg": 86
-  },
-  {
-    "fn": "Nicolás",
-    "ln": "Sosa Sánchez",
-    "pos": "ST",
-    "age": 30,
-    "nat": "Uruguay",
-    "ovr": 66,
-    "pot": 66,
-    "pace": 70,
-    "shooting": 67,
-    "passing": 52,
-    "defending": 33,
-    "physical": 57,
-    "mental": 59,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "255773",
-    "heightCm": 177,
-    "weightKg": 69,
-    "altPos": [
-      "RW"
-    ]
   },
   {
     "fn": "Duarte",
@@ -20225,26 +18998,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "72874",
     "heightCm": 184,
     "weightKg": 80
-  },
-  {
-    "fn": "Martín",
-    "ln": "Gianoli",
-    "pos": "CB",
-    "age": 25,
-    "nat": "Uruguay",
-    "ovr": 66,
-    "pot": 73,
-    "pace": 64,
-    "shooting": 34,
-    "passing": 47,
-    "defending": 67,
-    "physical": 66,
-    "mental": 58,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "268074",
-    "heightCm": 197,
-    "weightKg": 84
   },
   {
     "fn": "Edwin",
@@ -20666,26 +19419,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "Ramiro",
-    "ln": "Brazionis",
-    "pos": "CB",
-    "age": 24,
-    "nat": "Uruguay",
-    "ovr": 66,
-    "pot": 73,
-    "pace": 56,
-    "shooting": 30,
-    "passing": 35,
-    "defending": 67,
-    "physical": 68,
-    "mental": 45,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "70332",
-    "heightCm": 185,
-    "weightKg": 76
-  },
-  {
     "fn": "Ezequiel",
     "ln": "Neira",
     "pos": "CB",
@@ -20954,29 +19687,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Franco",
-    "ln": "Catarozzi",
-    "pos": "CM",
-    "age": 26,
-    "nat": "Uruguay",
-    "ovr": 65,
-    "pot": 70,
-    "pace": 66,
-    "shooting": 57,
-    "passing": 57,
-    "defending": 63,
-    "physical": 67,
-    "mental": 65,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "261637",
-    "heightCm": 179,
-    "weightKg": 72,
-    "altPos": [
-      "CDM"
-    ]
-  },
-  {
     "fn": "Jean",
     "ln": "Arroyo",
     "pos": "CAM",
@@ -21134,7 +19844,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Li",
     "ln": "Tixiang",
     "pos": "CM",
-    "age": 36,
+    "age": 37,
     "nat": "China PR",
     "ovr": 65,
     "pot": 65,
@@ -21479,33 +20189,10 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Mario",
-    "ln": "García",
-    "pos": "CM",
-    "age": 26,
-    "nat": "Uruguay",
-    "ovr": 65,
-    "pot": 68,
-    "pace": 66,
-    "shooting": 62,
-    "passing": 61,
-    "defending": 60,
-    "physical": 58,
-    "mental": 63,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "261765",
-    "heightCm": 174,
-    "weightKg": 68,
-    "altPos": [
-      "CDM"
-    ]
-  },
-  {
     "fn": "Ben",
     "ln": "Winterburn",
     "pos": "CDM",
-    "age": 21,
+    "age": 22,
     "nat": "England",
     "ovr": 65,
     "pot": 75,
@@ -21873,7 +20560,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Tonio",
     "ln": "Teklić",
     "pos": "CAM",
-    "age": 26,
+    "age": 27,
     "nat": "Croatia",
     "ovr": 65,
     "pot": 68,
@@ -21997,26 +20684,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "RB"
     ]
-  },
-  {
-    "fn": "Mauricio",
-    "ln": "Alonso",
-    "pos": "RW",
-    "age": 32,
-    "nat": "Uruguay",
-    "ovr": 65,
-    "pot": 65,
-    "pace": 78,
-    "shooting": 65,
-    "passing": 60,
-    "defending": 38,
-    "physical": 61,
-    "mental": 60,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "266667",
-    "heightCm": 166,
-    "weightKg": 73
   },
   {
     "fn": "Youness",
@@ -22847,26 +21514,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Exequiel",
-    "ln": "Mereles",
-    "pos": "LW",
-    "age": 20,
-    "nat": "Uruguay",
-    "ovr": 65,
-    "pot": 75,
-    "pace": 66,
-    "shooting": 65,
-    "passing": 61,
-    "defending": 40,
-    "physical": 51,
-    "mental": 63,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "75285",
-    "heightCm": 170,
-    "weightKg": 66
-  },
-  {
     "fn": "Caio",
     "ln": "Ferreira",
     "pos": "ST",
@@ -23103,7 +21750,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Agustín",
     "ln": "Albarracín",
     "pos": "LW",
-    "age": 20,
+    "age": 21,
     "nat": "Uruguay",
     "ovr": 65,
     "pot": 77,
@@ -23190,7 +21837,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Martín",
     "ln": "Parra",
     "pos": "GK",
-    "age": 25,
+    "age": 26,
     "nat": "Chile",
     "ovr": 65,
     "pot": 70,
@@ -23210,7 +21857,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Layton",
     "ln": "Stewart",
     "pos": "ST",
-    "age": 23,
+    "age": 24,
     "nat": "England",
     "ovr": 65,
     "pot": 72,
@@ -23507,29 +22154,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 65,
     "altPos": [
       "LW"
-    ]
-  },
-  {
-    "fn": "Carlos",
-    "ln": "Medina",
-    "pos": "CB",
-    "age": 24,
-    "nat": "Ecuador",
-    "ovr": 65,
-    "pot": 75,
-    "pace": 64,
-    "shooting": 42,
-    "passing": 48,
-    "defending": 68,
-    "physical": 68,
-    "mental": 52,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "261822",
-    "heightCm": 190,
-    "weightKg": 82,
-    "altPos": [
-      "LB"
     ]
   },
   {
@@ -23990,7 +22614,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Youssoupha",
     "ln": "Sanyang",
     "pos": "LW",
-    "age": 20,
+    "age": 21,
     "nat": "Gambia",
     "ovr": 65,
     "pot": 77,
@@ -24774,26 +23398,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "222889",
     "heightCm": 197,
     "weightKg": 97
-  },
-  {
-    "fn": "Gastón",
-    "ln": "Bueno",
-    "pos": "CB",
-    "age": 41,
-    "nat": "Uruguay",
-    "ovr": 65,
-    "pot": 65,
-    "pace": 47,
-    "shooting": 32,
-    "passing": 42,
-    "defending": 67,
-    "physical": 55,
-    "mental": 44,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "259873",
-    "heightCm": 183,
-    "weightKg": 77
   },
   {
     "fn": "Antonio",
@@ -25919,7 +24523,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Félix",
     "ln": "Tomi",
     "pos": "ST",
-    "age": 25,
+    "age": 26,
     "nat": "France",
     "ovr": 64,
     "pot": 67,
@@ -26377,7 +24981,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Guo",
     "ln": "Quanbo",
     "pos": "GK",
-    "age": 28,
+    "age": 29,
     "nat": "China PR",
     "ovr": 64,
     "pot": 67,
@@ -26772,7 +25376,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Maciej",
     "ln": "Rosołek",
     "pos": "ST",
-    "age": 24,
+    "age": 25,
     "nat": "Poland",
     "ovr": 64,
     "pot": 69,
@@ -27210,26 +25814,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 79
   },
   {
-    "fn": "Maximiliano",
-    "ln": "Añasco",
-    "pos": "LW",
-    "age": 25,
-    "nat": "Uruguay",
-    "ovr": 64,
-    "pot": 67,
-    "pace": 75,
-    "shooting": 63,
-    "passing": 63,
-    "defending": 39,
-    "physical": 56,
-    "mental": 61,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "274010",
-    "heightCm": 174,
-    "weightKg": 60
-  },
-  {
     "fn": "Pål",
     "ln": "Alexander Kirkevold",
     "pos": "ST",
@@ -27409,7 +25993,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Luca",
     "ln": "D'Andrea",
     "pos": "RW",
-    "age": 21,
+    "age": 22,
     "nat": "Italy",
     "ovr": 64,
     "pot": 76,
@@ -28139,29 +26723,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "Dylan",
-    "ln": "Borrero",
-    "pos": "CAM",
-    "age": 24,
-    "nat": "Colombia",
-    "ovr": 64,
-    "pot": 73,
-    "pace": 73,
-    "shooting": 54,
-    "passing": 55,
-    "defending": 24,
-    "physical": 57,
-    "mental": 62,
-    "skillMoves": 4,
-    "source": "real",
-    "fcId": "248281",
-    "heightCm": 179,
-    "weightKg": 67,
-    "altPos": [
-      "LW"
-    ]
-  },
-  {
     "fn": "Wahid",
     "ln": "Faghir",
     "pos": "ST",
@@ -28368,7 +26929,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Anthony",
     "ln": "Roncaglia",
     "pos": "CB",
-    "age": 26,
+    "age": 27,
     "nat": "France",
     "ovr": 64,
     "pot": 68,
@@ -28584,7 +27145,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Flavio",
     "ln": "Russo",
     "pos": "ST",
-    "age": 21,
+    "age": 22,
     "nat": "Italy",
     "ovr": 64,
     "pot": 76,
@@ -28813,7 +27374,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Yannik",
     "ln": "Lührs",
     "pos": "CB",
-    "age": 22,
+    "age": 23,
     "nat": "Germany",
     "ovr": 64,
     "pot": 74,
@@ -28990,26 +27551,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 86
   },
   {
-    "fn": "Paolo",
-    "ln": "Calione",
-    "pos": "CB",
-    "age": 20,
-    "nat": "Uruguay",
-    "ovr": 64,
-    "pot": 77,
-    "pace": 58,
-    "shooting": 28,
-    "passing": 50,
-    "defending": 65,
-    "physical": 64,
-    "mental": 47,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "77115",
-    "heightCm": 186,
-    "weightKg": 82
-  },
-  {
     "fn": "Lucas",
     "ln": "Zeller",
     "pos": "CB",
@@ -29053,26 +27594,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "Facundo",
-    "ln": "Parada",
-    "pos": "CB",
-    "age": 26,
-    "nat": "Uruguay",
-    "ovr": 64,
-    "pot": 70,
-    "pace": 50,
-    "shooting": 26,
-    "passing": 43,
-    "defending": 63,
-    "physical": 72,
-    "mental": 46,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "259319",
-    "heightCm": 190,
-    "weightKg": 83
-  },
-  {
     "fn": "Halvor",
     "ln": "Rødølen Opsahl",
     "pos": "CB",
@@ -29111,26 +27632,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "71091",
     "heightCm": 175,
     "weightKg": 78
-  },
-  {
-    "fn": "Brian",
-    "ln": "Ferrares",
-    "pos": "CB",
-    "age": 26,
-    "nat": "Uruguay",
-    "ovr": 64,
-    "pot": 70,
-    "pace": 61,
-    "shooting": 23,
-    "passing": 47,
-    "defending": 67,
-    "physical": 64,
-    "mental": 39,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "259230",
-    "heightCm": 180,
-    "weightKg": 73
   },
   {
     "fn": "Sebastián",
@@ -29450,29 +27951,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Jairo",
-    "ln": "Amaro",
-    "pos": "CDM",
-    "age": 23,
-    "nat": "Uruguay",
-    "ovr": 63,
-    "pot": 73,
-    "pace": 63,
-    "shooting": 62,
-    "passing": 61,
-    "defending": 62,
-    "physical": 67,
-    "mental": 61,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "75286",
-    "heightCm": 178,
-    "weightKg": 77,
-    "altPos": [
-      "CM"
-    ]
-  },
-  {
     "fn": "Jean",
     "ln": "Vercruysse",
     "pos": "CM",
@@ -29655,7 +28133,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Ye",
     "ln": "Chugui",
     "pos": "LW",
-    "age": 31,
+    "age": 32,
     "nat": "China PR",
     "ovr": 63,
     "pot": 63,
@@ -29982,26 +28460,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "José",
-    "ln": "Cavadia",
-    "pos": "CM",
-    "age": 20,
-    "nat": "Colombia",
-    "ovr": 63,
-    "pot": 78,
-    "pace": 71,
-    "shooting": 56,
-    "passing": 62,
-    "defending": 50,
-    "physical": 63,
-    "mental": 60,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "76911",
-    "heightCm": 177,
-    "weightKg": 70
-  },
-  {
     "fn": "Maciej",
     "ln": "Wolski",
     "pos": "LB",
@@ -30024,26 +28482,6 @@ export const freeAgents: CommunityPlayer[] = [
       "RB",
       "LW"
     ]
-  },
-  {
-    "fn": "Alejandro",
-    "ln": "Severo",
-    "pos": "RW",
-    "age": 21,
-    "nat": "Uruguay",
-    "ovr": 63,
-    "pot": 75,
-    "pace": 75,
-    "shooting": 61,
-    "passing": 59,
-    "defending": 47,
-    "physical": 59,
-    "mental": 59,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "71735",
-    "heightCm": 168,
-    "weightKg": 62
   },
   {
     "fn": "Manu",
@@ -30194,26 +28632,6 @@ export const freeAgents: CommunityPlayer[] = [
       "CM",
       "CB"
     ]
-  },
-  {
-    "fn": "Federico",
-    "ln": "Pintado",
-    "pos": "GK",
-    "age": 25,
-    "nat": "Uruguay",
-    "ovr": 63,
-    "pot": 69,
-    "pace": 64,
-    "shooting": 67,
-    "passing": 62,
-    "defending": 63,
-    "physical": 66,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "76457",
-    "heightCm": 182,
-    "weightKg": 74
   },
   {
     "fn": "José",
@@ -30611,7 +29029,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Brayan",
     "ln": "Rodríguez",
     "pos": "CB",
-    "age": 29,
+    "age": 30,
     "nat": "Venezuela",
     "ovr": 63,
     "pot": 64,
@@ -30646,26 +29064,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "241688",
     "heightCm": 176,
     "weightKg": 73
-  },
-  {
-    "fn": "Axel",
-    "ln": "Atum",
-    "pos": "RW",
-    "age": 20,
-    "nat": "Argentina",
-    "ovr": 63,
-    "pot": 74,
-    "pace": 67,
-    "shooting": 57,
-    "passing": 59,
-    "defending": 48,
-    "physical": 49,
-    "mental": 62,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "275292",
-    "heightCm": 176,
-    "weightKg": 66
   },
   {
     "fn": "Ibrahim",
@@ -31058,26 +29456,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Johan",
-    "ln": "Lara",
-    "pos": "GK",
-    "age": 27,
-    "nat": "Ecuador",
-    "ovr": 63,
-    "pot": 68,
-    "pace": 61,
-    "shooting": 63,
-    "passing": 62,
-    "defending": 63,
-    "physical": 60,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "255812",
-    "heightCm": 187,
-    "weightKg": 82
-  },
-  {
     "fn": "Esteban",
     "ln": "Orozco",
     "pos": "CB",
@@ -31224,7 +29602,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Dawid",
     "ln": "Gojny",
     "pos": "LB",
-    "age": 31,
+    "age": 32,
     "nat": "Poland",
     "ovr": 63,
     "pot": 63,
@@ -31376,7 +29754,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Kamil",
     "ln": "Zapolnik",
     "pos": "ST",
-    "age": 33,
+    "age": 34,
     "nat": "Poland",
     "ovr": 63,
     "pot": 63,
@@ -32754,7 +31132,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Artem",
     "ln": "Putivtsev",
     "pos": "CB",
-    "age": 37,
+    "age": 38,
     "nat": "Ukraine",
     "ovr": 63,
     "pot": 63,
@@ -33087,7 +31465,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Alejandro",
     "ln": "Pósito",
     "pos": "CB",
-    "age": 20,
+    "age": 21,
     "nat": "Peru",
     "ovr": 63,
     "pot": 77,
@@ -33507,26 +31885,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 73
   },
   {
-    "fn": "Federico",
-    "ln": "Medina",
-    "pos": "RW",
-    "age": 22,
-    "nat": "Argentina",
-    "ovr": 62,
-    "pot": 75,
-    "pace": 72,
-    "shooting": 60,
-    "passing": 64,
-    "defending": 59,
-    "physical": 47,
-    "mental": 57,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "70687",
-    "heightCm": 162,
-    "weightKg": 60
-  },
-  {
     "fn": "Valmir",
     "ln": "Matoshi",
     "pos": "CM",
@@ -33709,7 +32067,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Andrei",
     "ln": "Dorobanțu",
     "pos": "RB",
-    "age": 21,
+    "age": 22,
     "nat": "Romania",
     "ovr": 62,
     "pot": 69,
@@ -33975,7 +32333,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Vladimir",
     "ln": "Rodić",
     "pos": "RW",
-    "age": 32,
+    "age": 33,
     "nat": "Montenegro",
     "ovr": 62,
     "pot": 62,
@@ -34677,7 +33035,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Niklas",
     "ln": "Jessen",
     "pos": "RB",
-    "age": 22,
+    "age": 23,
     "nat": "Germany",
     "ovr": 62,
     "pot": 73,
@@ -34735,29 +33093,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "78614",
     "heightCm": 185,
     "weightKg": 74,
-    "altPos": [
-      "CDM"
-    ]
-  },
-  {
-    "fn": "Álex",
-    "ln": "Vázquez",
-    "pos": "CM",
-    "age": 24,
-    "nat": "Uruguay",
-    "ovr": 62,
-    "pot": 71,
-    "pace": 56,
-    "shooting": 55,
-    "passing": 57,
-    "defending": 59,
-    "physical": 56,
-    "mental": 58,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "255881",
-    "heightCm": 175,
-    "weightKg": 64,
     "altPos": [
       "CDM"
     ]
@@ -35113,29 +33448,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Agustín",
-    "ln": "Pérez",
-    "pos": "CDM",
-    "age": 26,
-    "nat": "Uruguay",
-    "ovr": 62,
-    "pot": 69,
-    "pace": 62,
-    "shooting": 53,
-    "passing": 56,
-    "defending": 57,
-    "physical": 60,
-    "mental": 56,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "265543",
-    "heightCm": 178,
-    "weightKg": 71,
-    "altPos": [
-      "CM"
-    ]
-  },
-  {
     "fn": "Afonso",
     "ln": "Rodrigues",
     "pos": "LW",
@@ -35265,7 +33577,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Alejandro",
     "ln": "Artunduaga",
     "pos": "LB",
-    "age": 28,
+    "age": 29,
     "nat": "Colombia",
     "ovr": 62,
     "pot": 62,
@@ -35743,26 +34055,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 86
   },
   {
-    "fn": "Yojan",
-    "ln": "Garcés",
-    "pos": "ST",
-    "age": 20,
-    "nat": "Colombia",
-    "ovr": 62,
-    "pot": 76,
-    "pace": 70,
-    "shooting": 62,
-    "passing": 52,
-    "defending": 29,
-    "physical": 60,
-    "mental": 59,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "75612",
-    "heightCm": 190,
-    "weightKg": 75
-  },
-  {
     "fn": "He",
     "ln": "Guan",
     "pos": "CB",
@@ -36191,7 +34483,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Ademola",
     "ln": "Ola-Adebomi",
     "pos": "ST",
-    "age": 22,
+    "age": 23,
     "nat": "England",
     "ovr": 62,
     "pot": 73,
@@ -36720,26 +35012,6 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Franco",
-    "ln": "Rossi",
-    "pos": "ST",
-    "age": 24,
-    "nat": "Uruguay",
-    "ovr": 62,
-    "pot": 71,
-    "pace": 61,
-    "shooting": 70,
-    "passing": 47,
-    "defending": 23,
-    "physical": 58,
-    "mental": 49,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "76456",
-    "heightCm": 179,
-    "weightKg": 76
-  },
-  {
     "fn": "Gabriel",
     "ln": "Isik",
     "pos": "CB",
@@ -37233,26 +35505,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "259194",
     "heightCm": 187,
     "weightKg": 80
-  },
-  {
-    "fn": "Joel",
-    "ln": "Romero",
-    "pos": "CM",
-    "age": 20,
-    "nat": "Colombia",
-    "ovr": 61,
-    "pot": 71,
-    "pace": 72,
-    "shooting": 51,
-    "passing": 59,
-    "defending": 63,
-    "physical": 67,
-    "mental": 56,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "79757",
-    "heightCm": 174,
-    "weightKg": 66
   },
   {
     "fn": "Emmanuel",
@@ -37857,7 +36109,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Zhang",
     "ln": "Yudong",
     "pos": "CDM",
-    "age": 33,
+    "age": 34,
     "nat": "China PR",
     "ovr": 61,
     "pot": 61,
@@ -38647,26 +36899,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "Facundo",
-    "ln": "Machado",
-    "pos": "GK",
-    "age": 22,
-    "nat": "Uruguay",
-    "ovr": 61,
-    "pot": 70,
-    "pace": 62,
-    "shooting": 62,
-    "passing": 64,
-    "defending": 62,
-    "physical": 60,
-    "mental": 50,
-    "skillMoves": 1,
-    "source": "real",
-    "fcId": "70565",
-    "heightCm": 187,
-    "weightKg": 78
-  },
-  {
     "fn": "Luka",
     "ln": "Hujber",
     "pos": "RB",
@@ -38821,7 +37053,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Daníel",
     "ln": "Freyr Kristjánsson",
     "pos": "LB",
-    "age": 20,
+    "age": 21,
     "nat": "Iceland",
     "ovr": 61,
     "pot": 75,
@@ -39239,7 +37471,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Quincy",
     "ln": "Butler",
     "pos": "RW",
-    "age": 24,
+    "age": 25,
     "nat": "USA",
     "ovr": 61,
     "pot": 68,
@@ -41743,26 +39975,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "Bruno",
-    "ln": "Hernández",
-    "pos": "LW",
-    "age": 21,
-    "nat": "Uruguay",
-    "ovr": 60,
-    "pot": 72,
-    "pace": 69,
-    "shooting": 59,
-    "passing": 55,
-    "defending": 29,
-    "physical": 52,
-    "mental": 52,
-    "skillMoves": 3,
-    "source": "real",
-    "fcId": "76455",
-    "heightCm": 171,
-    "weightKg": 73
-  },
-  {
     "fn": "Louis",
     "ln": "Siliadin",
     "pos": "LB",
@@ -42947,7 +41159,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Vlad",
     "ln": "Pop",
     "pos": "CM",
-    "age": 25,
+    "age": 26,
     "nat": "Romania",
     "ovr": 59,
     "pot": 62,
@@ -43033,30 +41245,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 68,
     "altPos": [
       "CDM"
-    ]
-  },
-  {
-    "fn": "Rooney",
-    "ln": "Troya",
-    "pos": "CDM",
-    "age": 20,
-    "nat": "Ecuador",
-    "ovr": 59,
-    "pot": 69,
-    "pace": 64,
-    "shooting": 60,
-    "passing": 54,
-    "defending": 58,
-    "physical": 62,
-    "mental": 60,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "71795",
-    "heightCm": 167,
-    "weightKg": 66,
-    "altPos": [
-      "RB",
-      "CM"
     ]
   },
   {
@@ -43672,29 +41860,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "Ezequiel",
-    "ln": "Olivera",
-    "pos": "LB",
-    "age": 22,
-    "nat": "Uruguay",
-    "ovr": 59,
-    "pot": 71,
-    "pace": 74,
-    "shooting": 62,
-    "passing": 37,
-    "defending": 59,
-    "physical": 49,
-    "mental": 49,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "279748",
-    "heightCm": 178,
-    "weightKg": 60,
-    "altPos": [
-      "CM"
-    ]
-  },
-  {
     "fn": "Ely",
     "ln": "Fernandes",
     "pos": "LW",
@@ -43931,26 +42096,6 @@ export const freeAgents: CommunityPlayer[] = [
     "altPos": [
       "CM"
     ]
-  },
-  {
-    "fn": "Cristian",
-    "ln": "González",
-    "pos": "LB",
-    "age": 27,
-    "nat": "Uruguay",
-    "ovr": 59,
-    "pot": 62,
-    "pace": 64,
-    "shooting": 34,
-    "passing": 54,
-    "defending": 55,
-    "physical": 58,
-    "mental": 52,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "77461",
-    "heightCm": 184,
-    "weightKg": 74
   },
   {
     "fn": "Christian",
@@ -44519,7 +42664,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Dominik",
     "ln": "Biniek",
     "pos": "CAM",
-    "age": 21,
+    "age": 22,
     "nat": "Poland",
     "ovr": 59,
     "pot": 68,
@@ -45740,7 +43885,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Jonathan",
     "ln": "Ramos",
     "pos": "LW",
-    "age": 18,
+    "age": 19,
     "nat": "Paraguay",
     "ovr": 58,
     "pot": 70,
@@ -45866,7 +44011,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Fabio",
     "ln": "Luque-Notaro",
     "pos": "ST",
-    "age": 20,
+    "age": 21,
     "nat": "Liechtenstein",
     "ovr": 58,
     "pot": 69,
@@ -46352,7 +44497,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Greg",
     "ln": "Bolger",
     "pos": "CDM",
-    "age": 37,
+    "age": 38,
     "nat": "Ireland",
     "ovr": 58,
     "pot": 58,
@@ -47567,26 +45712,6 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 74
   },
   {
-    "fn": "Thomas",
-    "ln": "González",
-    "pos": "CB",
-    "age": 22,
-    "nat": "Uruguay",
-    "ovr": 57,
-    "pot": 69,
-    "pace": 60,
-    "shooting": 48,
-    "passing": 43,
-    "defending": 58,
-    "physical": 60,
-    "mental": 49,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "71714",
-    "heightCm": 177,
-    "weightKg": 75
-  },
-  {
     "fn": "Abdoulaye",
     "ln": "Traorè",
     "pos": "LW",
@@ -47613,7 +45738,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Jamie",
     "ln": "Sneddon",
     "pos": "GK",
-    "age": 28,
+    "age": 29,
     "nat": "Scotland",
     "ovr": 57,
     "pot": 60,
@@ -48069,26 +46194,6 @@ export const freeAgents: CommunityPlayer[] = [
     "fcId": "71475",
     "heightCm": 193,
     "weightKg": 80
-  },
-  {
-    "fn": "Kevin",
-    "ln": "Angulo",
-    "pos": "ST",
-    "age": 18,
-    "nat": "Colombia",
-    "ovr": 57,
-    "pot": 74,
-    "pace": 79,
-    "shooting": 58,
-    "passing": 35,
-    "defending": 22,
-    "physical": 60,
-    "mental": 50,
-    "skillMoves": 2,
-    "source": "real",
-    "fcId": "78920",
-    "heightCm": 187,
-    "weightKg": 70
   },
   {
     "fn": "William",
@@ -51115,7 +49220,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Luka",
     "ln": "Kalandia",
     "pos": "CM",
-    "age": 19,
+    "age": 20,
     "nat": "Germany",
     "ovr": 54,
     "pot": 66,
@@ -52137,7 +50242,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Jesús",
     "ln": "Velasquez",
     "pos": "RW",
-    "age": 19,
+    "age": 20,
     "nat": "Bolivia",
     "ovr": 53,
     "pot": 74,
@@ -53131,7 +51236,7 @@ export const freeAgents: CommunityPlayer[] = [
     "fn": "Liu",
     "ln": "Xiaolong",
     "pos": "LW",
-    "age": 22,
+    "age": 23,
     "nat": "China PR",
     "ovr": 51,
     "pot": 63,

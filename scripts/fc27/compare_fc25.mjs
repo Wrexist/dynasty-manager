@@ -16,6 +16,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { toCsv } from './lib/csv.mjs';
 import { readComparable, matchPlayers, normName } from './lib/players.mjs';
+import { isMain } from '../lib/isMain.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { BASELINES, COMPARISON_DIR, COMPARISON_REPORT_PATH, MALE_CSV } from './lib/paths.mjs';
 
@@ -127,7 +128,7 @@ export function run({
   return { counts, tiers, reportPath, matched: pairs.length };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2));
   const result = run({
     csvPath: args.csv,

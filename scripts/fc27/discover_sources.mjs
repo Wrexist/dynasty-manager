@@ -8,6 +8,7 @@
  * assumption, and so a blocked run reports the blocked host by name.
  */
 import { writeFileSync, mkdirSync } from 'fs';
+import { isMain } from '../lib/isMain.mjs';
 import { dirname } from 'path';
 import { probe } from './lib/http.mjs';
 import { SOURCES, pageUrl } from './lib/sources.mjs';
@@ -67,7 +68,7 @@ export async function discover() {
   return payload;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   discover().then((payload) => {
     for (const r of payload.results) {
       const status = r.reachable ? `REACHABLE (${r.resolvedSlug ?? 'base'})` : 'unreachable';

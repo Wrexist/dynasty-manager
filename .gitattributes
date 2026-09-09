@@ -1,0 +1,2 @@
+# vite-node must see a Unix newline after a JavaScript hashbang on Windows.
+*.mjs text eol=lf

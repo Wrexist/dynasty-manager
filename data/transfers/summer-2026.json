@@ -1,0 +1,2235 @@
+{
+  "asOf": "2026-09-09",
+  "dateMeaning": "Verified as of; individual announcement dates are in the source.",
+  "coverage": "Partial: selected confirmed summer deals; not a complete audit of all 45 leagues.",
+  "sources": {
+    "sky-summer": "https://www.skysports.com/football/news/11095/13546618/transfer-news-summer-transfer-window-2026-premier-league-deals-ins-and-outs",
+    "sky-deadline": "https://www.skysports.com/football/news/12691/13579708/transfer-deadline-day-deals-summer-2026-confirmed-moves-across-premier-league-championship-efl-europe-and-more",
+    "bundesliga": "https://www.bundesliga.com/de/bundesliga/news/offizieller-transfermarkt-alle-wechsel-transfers-ubersicht-11850",
+    "serie-a": "https://www.legaseriea.it/serie-a/news/diretta-calciomercato-serie-a-enilive",
+    "ligue-1": "https://ligue1.com/fr/articles/l1_article_5794-",
+    "club-231866": "https://www.fcbarcelona.com/en/football/first-team/news/4561501/fc-/featured",
+    "club-242964": "https://www.fcbarcelona.com/en/football/first-team/news/4511134/anthony-gordon-becomes-an-fc-barcelona-player/featured",
+    "club-218667": "https://www.realmadrid.com/pt-PT/noticias/club/conferencias-de-imprensa/comunicado-oficial-bernardo-silva-17-06-2026",
+    "pl-review": "https://www.premierleague.com/en/news/4681361",
+    "madrid-diomande": "https://www.realmadrid.com/es-ES/noticias/club/comunicados/comunicado-oficial-diomande-06-08-2026",
+    "sky-free-agents": "https://www.skysports.com/transfer/news/11096/13580813/free-agents-jadon-sancho-paul-pogba-and-dele-alli-among-players-available-on-free-transfer-after-summer-window-shuts",
+    "md-free-agents": "https://www.mundodeportivo.com/futbol/fichajes/20260906/1004223700/jugadores-siguen-libres-vez-finalizado-mercado.html",
+    "leite-lazio": "https://www.abola.pt/noticias/mercado-oficial-diogo-leite-junta-se-a-nuno-tavares-na-lazio-2026090819381335057",
+    "drameh-permanent": "https://genova.repubblica.it/sport/2026/09/02/news/genoa_frenetico_finale_muro_per_frendrup_addio_a_norton-cuffy-425559837/amp/",
+    "wan-bissaka-loan": "https://www.whufc.com/en/news/aaron-wan-bissaka-departs-on-loan"
+  },
+  "transfers": [
+    {
+      "playerId": "247851",
+      "name": "Bruno Guimarães",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "arsenal",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "227678",
+      "name": "Ezri Konsa",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "arsenal",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "242656",
+      "name": "Illan Meslier",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "arsenal",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "251566",
+      "name": "Gabriel Martinelli",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "al-hilal",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "207421",
+      "name": "Leandro Trossard",
+      "nationality": "Belgium",
+      "date": "2026-09-09",
+      "toClubId": "besiktas",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "210697",
+      "name": "Christian Nørgaard",
+      "nationality": "Denmark",
+      "date": "2026-09-09",
+      "toClubId": "everton",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "259197",
+      "name": "Nicolas Jackson",
+      "nationality": "Senegal",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "276694",
+      "name": "Johan Manzambi",
+      "nationality": "Switzerland",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "273463",
+      "name": "João Gomes",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "255981",
+      "name": "Zion Suzuki",
+      "nationality": "Japan",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "259584",
+      "name": "Matteo Ruggeri",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "209658",
+      "name": "Leon Goretzka",
+      "nationality": "Germany",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "268438",
+      "name": "Alejandro Garnacho",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "loan",
+      "source": "sky-summer",
+      "loan": {
+        "fromClubId": "chelsea",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "229880",
+      "name": "Aaron Wan-Bissaka",
+      "nationality": "DR Congo",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "loan",
+      "source": "wan-bissaka-loan",
+      "loan": {
+        "fromClubId": "west-ham-united",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "conditional-obligation",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "260247",
+      "name": "Morgan Rogers",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "221697",
+      "name": "Ollie Watkins",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "al-hilal",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "216393",
+      "name": "Youri Tielemans",
+      "nationality": "Belgium",
+      "date": "2026-09-09",
+      "toClubId": "manchester-united",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "231447",
+      "name": "Donyell Malen",
+      "nationality": "Netherlands",
+      "date": "2026-09-09",
+      "toClubId": "as-roma",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "200458",
+      "name": "Lucas Digne",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "paris-saint-germain",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "202811",
+      "name": "Emiliano Martínez",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "270086",
+      "name": "António Silva",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "bournemouth",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "236506",
+      "name": "Marcos Senesi",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "tottenham-hotspur",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "183711",
+      "name": "Jordan Henderson",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "275192",
+      "name": "Luka Vušković",
+      "nationality": "Croatia",
+      "date": "2026-09-09",
+      "toClubId": "brighton",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "272500",
+      "name": "Carlos Baleba",
+      "nationality": "Cameroon",
+      "date": "2026-09-09",
+      "toClubId": "manchester-united",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "258908",
+      "name": "Jan Paul van Hecke",
+      "nationality": "Netherlands",
+      "date": "2026-09-09",
+      "toClubId": "tottenham-hotspur",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "186146",
+      "name": "Danny Welbeck",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "244067",
+      "name": "Maxence Lacroix",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "239231",
+      "name": "Marc Cucurella",
+      "nationality": "Spain",
+      "date": "2026-09-09",
+      "toClubId": "real-madrid",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "273018",
+      "name": "Andrey Santos",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "manchester-united",
+      "kind": "permanent",
+      "source": "sky-summer"
+    },
+    {
+      "playerId": "247090",
+      "name": "Enzo Fernández",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "manchester-city",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "256420",
+      "name": "Malick Fofana",
+      "nationality": "Belgium",
+      "date": "2026-09-09",
+      "toClubId": "sunderland",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "278012",
+      "name": "Darío Osorio",
+      "nationality": "Chile",
+      "date": "2026-09-09",
+      "toClubId": "crystal-palace",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "fc-midtjylland",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "251806",
+      "name": "Quinten Timber",
+      "nationality": "Netherlands",
+      "date": "2026-09-09",
+      "toClubId": "crystal-palace",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "229984",
+      "name": "Ben Chilwell",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "crystal-palace",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "261264",
+      "name": "David Affengruber",
+      "nationality": "Austria",
+      "date": "2026-09-09",
+      "toClubId": "fulham",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "222104",
+      "name": "Tosin Adarabioyo",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "tottenham-hotspur",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "225782",
+      "name": "Ainsley Maitland-Niles",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "everton",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "239373",
+      "name": "Zian Flemming",
+      "nationality": "Netherlands",
+      "date": "2026-09-09",
+      "toClubId": "ipswich-town",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "254548",
+      "name": "Melvin Bard",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "leeds-united",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "206517",
+      "name": "Jack Grealish",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "everton",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "manchester-city",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "266609",
+      "name": "Tim Iroegbunam",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "hull-city",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "261188",
+      "name": "Iliman Ndiaye",
+      "nationality": "Senegal",
+      "date": "2026-09-09",
+      "toClubId": "manchester-city",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "74449",
+      "name": "Ibrahim Mbaye",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "252793",
+      "name": "Taylor Harwood-Bellis",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "aston-villa",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "74483",
+      "name": "Honest Ahanor",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "crystal-palace",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "atalanta",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "276048",
+      "name": "Matias Fernandez-Pardo",
+      "nationality": "Spain",
+      "date": "2026-09-09",
+      "toClubId": "newcastle-united",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "237985",
+      "name": "Kevin Danso",
+      "nationality": "Austria",
+      "date": "2026-09-09",
+      "toClubId": "sunderland",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "tottenham-hotspur",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "278813",
+      "name": "Marc Guiu",
+      "nationality": "Spain",
+      "date": "2026-09-09",
+      "toClubId": "rb-leipzig",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "230666",
+      "name": "Gabriel Jesus",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "barcelona",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "246174",
+      "name": "Harvey Elliott",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "valencia",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "liverpool",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "241042",
+      "name": "Oliver Skipp",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "charlton-ath",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "leicester-city",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "255742",
+      "name": "Reo Hatate",
+      "nationality": "Japan",
+      "date": "2026-09-09",
+      "toClubId": "burnley",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "225783",
+      "name": "Stephy Mavididi",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "watford",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "leicester-city",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "238058",
+      "name": "Callum O'Hare",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "wrexham",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "256008",
+      "name": "Morato",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "west-ham-united",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "nottingham-forest",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "243134",
+      "name": "Largie Ramazani",
+      "nationality": "Belgium",
+      "date": "2026-09-09",
+      "toClubId": "burnley",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "leeds-united",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "74242",
+      "name": "Zach Abbott",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "southampton",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "loan": {
+        "fromClubId": "nottingham-forest",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "261025",
+      "name": "Dane Scarlett",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "leyton-orient",
+      "kind": "permanent",
+      "source": "sky-deadline"
+    },
+    {
+      "playerId": "75056",
+      "name": "Chema Andrés",
+      "nationality": "Spain",
+      "date": "2026-09-09",
+      "toClubId": "brighton",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "269728",
+      "name": "Jean-Mattéo Bahoya",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "leeds-united",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "eintracht-frankfurt",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "obligation",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "268896",
+      "name": "Hugo Larsson",
+      "nationality": "Sweden",
+      "date": "2026-09-09",
+      "toClubId": "fulham",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "eintracht-frankfurt",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "conditional-obligation",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "243388",
+      "name": "Borna Sosa",
+      "nationality": "Croatia",
+      "date": "2026-09-09",
+      "toClubId": "1-fc-koln",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "crystal-palace",
+        "returnDate": "2027-06-30",
+        "returnDateBasis": "End of 2026/27 season stated in source",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "262745",
+      "name": "Neil El Aynaoui",
+      "nationality": "Morocco",
+      "date": "2026-09-09",
+      "toClubId": "rb-leipzig",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "as-roma",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "271807",
+      "name": "Ethan Nwaneri",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "borussia-dortmund",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "arsenal",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "260570",
+      "name": "Jarne Steuckers",
+      "nationality": "Belgium",
+      "date": "2026-09-09",
+      "toClubId": "bochum",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "genk",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "228518",
+      "name": "Andreas Hanche-Olsen",
+      "nationality": "Norway",
+      "date": "2026-09-09",
+      "toClubId": "chicago-fire",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "275208",
+      "name": "Guéla Doué",
+      "nationality": "Ivory Coast",
+      "date": "2026-09-09",
+      "toClubId": "bayer-leverkusen",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "262135",
+      "name": "David Møller Wolfe",
+      "nationality": "Norway",
+      "date": "2026-09-09",
+      "toClubId": "hamburger-sv",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "wolverhampton-wanderers",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "239977",
+      "name": "Nicolas Kühn",
+      "nationality": "Germany",
+      "date": "2026-09-09",
+      "toClubId": "borussia-monchengladbach",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "como",
+        "returnDate": "2027-06-30",
+        "returnDateBasis": "End of 2026/27 season stated in source",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "275028",
+      "name": "Arthur",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "werder-bremen",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "bayer-leverkusen",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "74566",
+      "name": "Samuel Mbangula",
+      "nationality": "Belgium",
+      "date": "2026-09-09",
+      "toClubId": "bologna",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "werder-bremen",
+        "returnDate": "2027-06-30",
+        "returnDateBasis": "End of 2026/27 season stated in source",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "268622",
+      "name": "Jeanuël Belocian",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "r-racing-club",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "bayer-leverkusen",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "263056",
+      "name": "Emir Sahiti",
+      "nationality": "Kosovo",
+      "date": "2026-09-09",
+      "toClubId": "hannover-96",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "266236",
+      "name": "Arijon Ibrahimović",
+      "nationality": "Germany",
+      "date": "2026-09-09",
+      "toClubId": "augsburg",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "bayern-munich",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "271563",
+      "name": "Moussa N'Diaye",
+      "nationality": "Senegal",
+      "date": "2026-09-09",
+      "toClubId": "werder-bremen",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "anderlecht",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "251961",
+      "name": "Rayan Philippe",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "sc-paderborn-07",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "hamburger-sv",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "241852",
+      "name": "Moussa Diaby",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "bayer-leverkusen",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "79300",
+      "name": "Lazar Jovanović",
+      "nationality": "Serbia",
+      "date": "2026-09-09",
+      "toClubId": "udinese",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "256958",
+      "name": "Fábio Vieira",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "hamburger-sv",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "250766",
+      "name": "Kastriot Imeri",
+      "nationality": "Switzerland",
+      "date": "2026-09-09",
+      "toClubId": "union-berlin",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "276372",
+      "name": "Ilyas Ansah",
+      "nationality": "Germany",
+      "date": "2026-09-09",
+      "toClubId": "hull-city",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "275353",
+      "name": "Zakaria El Ouahdi",
+      "nationality": "Morocco",
+      "date": "2026-09-09",
+      "toClubId": "hamburger-sv",
+      "kind": "permanent",
+      "source": "bundesliga"
+    },
+    {
+      "playerId": "225669",
+      "name": "Kingsley Ehizibue",
+      "nationality": "Nigeria",
+      "date": "2026-09-09",
+      "toClubId": "genoa",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "193352",
+      "name": "Ricardo Rodríguez",
+      "nationality": "Switzerland",
+      "date": "2026-09-09",
+      "toClubId": "torino",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "190813",
+      "name": "Stephan El Shaarawy",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "genoa",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "254529",
+      "name": "Cody Drameh",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "genoa",
+      "kind": "permanent",
+      "source": "drameh-permanent"
+    },
+    {
+      "playerId": "240452",
+      "name": "M'Bala Nzola",
+      "nationality": "Angola",
+      "date": "2026-09-09",
+      "toClubId": "cagliari",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "258906",
+      "name": "Wilfried Gnonto",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "fiorentina",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "leeds-united",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "228789",
+      "name": "Robert Sánchez",
+      "nationality": "Spain",
+      "date": "2026-09-09",
+      "toClubId": "como",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "chelsea",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "257896",
+      "name": "Nathan Patterson",
+      "nationality": "Scotland",
+      "date": "2026-09-09",
+      "toClubId": "torino",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "252143",
+      "name": "Daniel Bragança",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "torino",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "225439",
+      "name": "Rolando Mandragora",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "torino",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "240950",
+      "name": "Pedro Gonçalves",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "fiorentina",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "242916",
+      "name": "Yukinari Sugawara",
+      "nationality": "Japan",
+      "date": "2026-09-09",
+      "toClubId": "cagliari",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "southampton",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "238004",
+      "name": "Albert Guðmundsson",
+      "nationality": "Iceland",
+      "date": "2026-09-09",
+      "toClubId": "lazio",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "70252",
+      "name": "Saba Goglichidze",
+      "nationality": "Georgia",
+      "date": "2026-09-09",
+      "toClubId": "monza",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "udinese",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "254022",
+      "name": "Nick Woltemade",
+      "nationality": "Germany",
+      "date": "2026-09-09",
+      "toClubId": "juventus",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "newcastle-united",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "260601",
+      "name": "Exequiel Zeballos",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "monza",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "236610",
+      "name": "Moise Kean",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "como",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "266500",
+      "name": "Jonathan Rowe",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "atalanta",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "270756",
+      "name": "Simone Ghidotti",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "parma",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "219693",
+      "name": "Diego Carlos",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "parma",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "fenerbahce",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "259868",
+      "name": "Pape Matar Sarr",
+      "nationality": "Senegal",
+      "date": "2026-09-09",
+      "toClubId": "juventus",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "tottenham-hotspur",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "271577",
+      "name": "Ibrahim Sulemana",
+      "nationality": "Ghana",
+      "date": "2026-09-09",
+      "toClubId": "sassuolo",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "atalanta",
+        "returnDate": "2027-06-30",
+        "returnDateBasis": "End of 2026/27 season stated in source",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "225263",
+      "name": "Duje Ćaleta-Car",
+      "nationality": "Croatia",
+      "date": "2026-09-09",
+      "toClubId": "sassuolo",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "276314",
+      "name": "Rafik Belghali",
+      "nationality": "Algeria",
+      "date": "2026-09-09",
+      "toClubId": "torino",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "255900",
+      "name": "Noel Törnqvist",
+      "nationality": "Sweden",
+      "date": "2026-09-09",
+      "toClubId": "monza",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "como",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "200752",
+      "name": "Juan Jesus",
+      "nationality": "Brazil",
+      "date": "2026-09-09",
+      "toClubId": "venezia",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "239679",
+      "name": "Pasquale Mazzocchi",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "venezia",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "napoli",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "conditional-obligation",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "260145",
+      "name": "Omari Hutchinson",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "ac-milan",
+      "kind": "loan",
+      "source": "serie-a",
+      "loan": {
+        "fromClubId": "nottingham-forest",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "242914",
+      "name": "Keito Nakamura",
+      "nationality": "Japan",
+      "date": "2026-09-09",
+      "toClubId": "lyon",
+      "kind": "permanent",
+      "source": "ligue-1"
+    },
+    {
+      "playerId": "76244",
+      "name": "Djylian N'Guessan",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "brest",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "saint-etienne",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "252937",
+      "name": "Yann Gboho",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "coventry-city",
+      "kind": "permanent",
+      "source": "ligue-1"
+    },
+    {
+      "playerId": "263110",
+      "name": "Ibrahima Baldé",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "fc-lorient",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "rodez-af",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "obligation",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "246242",
+      "name": "Boulaye Dia",
+      "nationality": "Senegal",
+      "date": "2026-09-09",
+      "toClubId": "rennes",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "lazio",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "261530",
+      "name": "Dário Essugo",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "strasbourg",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "chelsea",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "278207",
+      "name": "Noah Edjouma",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "brest",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "lille",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "231485",
+      "name": "Axel Tuanzebe",
+      "nationality": "DR Congo",
+      "date": "2026-09-09",
+      "toClubId": "auxerre",
+      "kind": "permanent",
+      "source": "ligue-1"
+    },
+    {
+      "playerId": "255150",
+      "name": "Niels Nkounkou",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "nice",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "eintracht-frankfurt",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "258930",
+      "name": "Cameron Archer",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "auxerre",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "southampton",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "275238",
+      "name": "Niko Sigur",
+      "nationality": "Canada",
+      "date": "2026-09-09",
+      "toClubId": "toulouse",
+      "kind": "permanent",
+      "source": "ligue-1"
+    },
+    {
+      "playerId": "245388",
+      "name": "Jean-Clair Todibo",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "lens",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "west-ham-united",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "248784",
+      "name": "Timothé Nkada",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "estac-troyes",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "standard-liege",
+        "returnDate": null,
+        "returnDateBasis": "Exact term not published in reviewed source; one game season used",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null
+      }
+    },
+    {
+      "playerId": "70020",
+      "name": "Mathis Amougou",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "toulouse",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "strasbourg",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "277689",
+      "name": "Conrad Harder",
+      "nationality": "Denmark",
+      "date": "2026-09-09",
+      "toClubId": "strasbourg",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "rb-leipzig",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "252162",
+      "name": "Ayase Ueda",
+      "nationality": "Japan",
+      "date": "2026-09-09",
+      "toClubId": "lille",
+      "kind": "permanent",
+      "source": "ligue-1"
+    },
+    {
+      "playerId": "264697",
+      "name": "Mohamed Amoura",
+      "nationality": "Algeria",
+      "date": "2026-09-09",
+      "toClubId": "nice",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "wolfsburg",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "257111",
+      "name": "Jérémy Le Douaron",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "estac-troyes",
+      "kind": "loan",
+      "source": "ligue-1",
+      "loan": {
+        "fromClubId": "palermo",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "not-confirmed",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "75148",
+      "name": "Abdulai Juma Bah",
+      "nationality": "Sierra Leone",
+      "date": "2026-09-09",
+      "toClubId": "augsburg",
+      "kind": "loan",
+      "source": "bundesliga",
+      "loan": {
+        "fromClubId": "manchester-city",
+        "returnDate": null,
+        "returnDateBasis": "Source confirms season-long loan; exact day not stated",
+        "purchaseClause": "option",
+        "wageSplit": null,
+        "recallClause": null,
+        "returnSeason": "2026/27"
+      }
+    },
+    {
+      "playerId": "258924",
+      "name": "Joël Almada Monteiro",
+      "nationality": "Switzerland",
+      "date": "2026-09-09",
+      "toClubId": "lecce",
+      "kind": "permanent",
+      "source": "serie-a"
+    },
+    {
+      "playerId": "231866",
+      "name": "Rodri",
+      "nationality": "Spain",
+      "date": "2026-09-09",
+      "toClubId": "barcelona",
+      "kind": "permanent",
+      "source": "club-231866"
+    },
+    {
+      "playerId": "242964",
+      "name": "Anthony Gordon",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "barcelona",
+      "kind": "permanent",
+      "source": "club-242964"
+    },
+    {
+      "playerId": "218667",
+      "name": "Bernardo Silva",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "real-madrid",
+      "kind": "permanent",
+      "source": "club-218667"
+    },
+    {
+      "playerId": "256948",
+      "name": "Christos Tzolis",
+      "nationality": "Greece",
+      "date": "2026-09-09",
+      "toClubId": "arsenal",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "256197",
+      "name": "Piero Hincapié",
+      "nationality": "Ecuador",
+      "date": "2026-09-09",
+      "toClubId": "arsenal",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "265693",
+      "name": "Jakub Kiwior",
+      "nationality": "Poland",
+      "date": "2026-09-09",
+      "toClubId": "porto",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "279044",
+      "name": "Geovany Quenda",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "278339",
+      "name": "Marco Palestra",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "263370",
+      "name": "Valentín Barco",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "chelsea",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "230918",
+      "name": "Trevoh Chalobah",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "como",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "259031",
+      "name": "Liam Delap",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "nottingham-forest",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "243282",
+      "name": "Dwight McNeil",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "crystal-palace",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "251421",
+      "name": "Brennan Johnson",
+      "nationality": "Wales",
+      "date": "2026-09-09",
+      "toClubId": "everton",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "253054",
+      "name": "Hayden Hackney",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "everton",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "276695",
+      "name": "Shea Charles",
+      "nationality": "Northern Ireland",
+      "date": "2026-09-09",
+      "toClubId": "fulham",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "231633",
+      "name": "Issa Diop",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "ipswich-town",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "236699",
+      "name": "Saša Lukić",
+      "nationality": "Serbia",
+      "date": "2026-09-09",
+      "toClubId": "ipswich-town",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "267680",
+      "name": "Abdul Fatawu",
+      "nationality": "Ghana",
+      "date": "2026-09-09",
+      "toClubId": "ipswich-town",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "246321",
+      "name": "Daizen Maeda",
+      "nationality": "Japan",
+      "date": "2026-09-09",
+      "toClubId": "ipswich-town",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "231521",
+      "name": "Exequiel Palacios",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "ipswich-town",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "220710",
+      "name": "Harry Wilson",
+      "nationality": "Wales",
+      "date": "2026-09-09",
+      "toClubId": "leeds-united",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "263063",
+      "name": "James Trafford",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "leeds-united",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "262027",
+      "name": "Tarik Muharemović",
+      "nationality": "Bosnia and Herzegovina",
+      "date": "2026-09-09",
+      "toClubId": "leeds-united",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "209331",
+      "name": "Mohamed Salah",
+      "nationality": "Egypt",
+      "date": "2026-09-09",
+      "toClubId": "trabzonspor",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "216267",
+      "name": "Andrew Robertson",
+      "nationality": "Scotland",
+      "date": "2026-09-09",
+      "toClubId": "tottenham-hotspur",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "242434",
+      "name": "Curtis Jones",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "inter-milan",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "254243",
+      "name": "Elliot Anderson",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "manchester-city",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "278901",
+      "name": "Ayyoub Bouaddi",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": "manchester-city",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "259399",
+      "name": "Rasmus Højlund",
+      "nationality": "Denmark",
+      "date": "2026-09-09",
+      "toClubId": "napoli",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "241096",
+      "name": "Sandro Tonali",
+      "nationality": "Italy",
+      "date": "2026-09-09",
+      "toClubId": "tottenham-hotspur",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "71418",
+      "name": "Bazoumana Touré",
+      "nationality": "Ivory Coast",
+      "date": "2026-09-09",
+      "toClubId": "newcastle-united",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "77152",
+      "name": "Sean Steur",
+      "nationality": "Netherlands",
+      "date": "2026-09-09",
+      "toClubId": "newcastle-united",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "270531",
+      "name": "Ousmane Diomande",
+      "nationality": "Ivory Coast",
+      "date": "2026-09-09",
+      "toClubId": "nottingham-forest",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "237646",
+      "name": "Daniel Muñoz",
+      "nationality": "Colombia",
+      "date": "2026-09-09",
+      "toClubId": "nottingham-forest",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "233195",
+      "name": "Xaver Schlager",
+      "nationality": "Austria",
+      "date": "2026-09-09",
+      "toClubId": "nottingham-forest",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "202371",
+      "name": "Thomas Meunier",
+      "nationality": "Belgium",
+      "date": "2026-09-09",
+      "toClubId": "sunderland",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "256675",
+      "name": "Omar Marmoush",
+      "nationality": "Egypt",
+      "date": "2026-09-09",
+      "toClubId": "tottenham-hotspur",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "270857",
+      "name": "Mateus Fernandes",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "tottenham-hotspur",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "243702",
+      "name": "Djed Spence",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": "inter-milan",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "232488",
+      "name": "Cristian Romero",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": "atletico-madrid",
+      "kind": "permanent",
+      "source": "pl-review"
+    },
+    {
+      "playerId": "78012",
+      "name": "Yan Diomande",
+      "nationality": "Ivory Coast",
+      "date": "2026-09-09",
+      "toClubId": "real-madrid",
+      "kind": "permanent",
+      "source": "madrid-diomande"
+    },
+    {
+      "playerId": "197445",
+      "name": "David Alaba",
+      "nationality": "Austria",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "227813",
+      "name": "Oleksandr Zinchenko",
+      "nationality": "Ukraine",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "195864",
+      "name": "Paul Pogba",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "202652",
+      "name": "Raheem Sterling",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "233049",
+      "name": "Jadon Sancho",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "165153",
+      "name": "Karim Benzema",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "204485",
+      "name": "Riyad Mahrez",
+      "nationality": "Algeria",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "181291",
+      "name": "Georginio Wijnaldum",
+      "nationality": "Netherlands",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "198717",
+      "name": "Wilfried Zaha",
+      "nationality": "Ivory Coast",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "236480",
+      "name": "Yves Bissouma",
+      "nationality": "Mali",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "238041",
+      "name": "Tyrell Malacia",
+      "nationality": "Netherlands",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "211300",
+      "name": "Anthony Martial",
+      "nationality": "France",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "189881",
+      "name": "Chris Smalling",
+      "nationality": "England",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    },
+    {
+      "playerId": "226754",
+      "name": "Ismaël Bennacer",
+      "nationality": "Algeria",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "md-free-agents"
+    },
+    {
+      "playerId": "209889",
+      "name": "Raphaël Guerreiro",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "md-free-agents"
+    },
+    {
+      "playerId": "201399",
+      "name": "Mauro Icardi",
+      "nationality": "Argentina",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "md-free-agents"
+    },
+    {
+      "playerId": "234575",
+      "name": "Diogo Leite",
+      "nationality": "Portugal",
+      "date": "2026-09-09",
+      "toClubId": "lazio",
+      "kind": "permanent",
+      "source": "leite-lazio"
+    },
+    {
+      "playerId": "204963",
+      "name": "Carvajal",
+      "nationality": "Spain",
+      "date": "2026-09-09",
+      "toClubId": null,
+      "kind": "free-agent",
+      "source": "sky-free-agents"
+    }
+  ],
+  "unresolved": [
+    {
+      "name": "Mykhailo Mudryk",
+      "toClubId": "tottenham",
+      "kind": "loan",
+      "source": "sky-deadline",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Patrik Kristal",
+      "toClubId": "thun",
+      "kind": "loan",
+      "source": "bundesliga",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Roberto Gagliardini",
+      "toClubId": "cagliari",
+      "kind": "permanent",
+      "source": "serie-a",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Giovani Versini",
+      "toClubId": "brest",
+      "kind": "permanent",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Deivid Washington",
+      "toClubId": "strasbourg",
+      "kind": "permanent",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Maurits Kjærgaard",
+      "toClubId": "lille",
+      "kind": "permanent",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Junior Kadile",
+      "toClubId": "lens",
+      "kind": "loan",
+      "source": "ligue-1",
+      "reason": "No unique identity in the current game dataset. Do not invent player attributes."
+    },
+    {
+      "name": "Neto",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Sergio Ramos",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Dele Alli",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Philippe Coutinho",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "James Rodríguez",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    },
+    {
+      "name": "Jamie Vardy",
+      "source": "sky-free-agents",
+      "reason": "No matching identity in current EA male snapshot; needs a reviewed supplemental player record before import."
+    }
+  ]
+}

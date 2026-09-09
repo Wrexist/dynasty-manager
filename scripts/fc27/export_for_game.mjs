@@ -29,6 +29,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { parseCsv, toCsv } from './lib/csv.mjs';
+import { isMain } from '../lib/isMain.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { BASELINES, MALE_CSV, GAME_INPUT_PATH } from './lib/paths.mjs';
 
@@ -174,7 +175,7 @@ export function run({
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2));
   const result = run({
     csvPath: args.csv,

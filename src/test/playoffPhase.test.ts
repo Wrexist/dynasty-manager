@@ -26,7 +26,7 @@ import { determineProRelZones } from '@/utils/promotionRelegation';
 import { assertValidGameState } from './stateValidator';
 
 /** A second-tier club — eng-2 has four playoff spots. */
-const PLAYOFF_CLUB = 'coventry-city';
+const PLAYOFF_CLUB = 'blackburn-rovers';
 /** A top-tier club, whose league has playoffSpots: 0. */
 const TOP_TIER_CLUB = 'manchester-city';
 

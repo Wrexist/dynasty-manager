@@ -31,7 +31,7 @@ import { getPlayerPlayoffCandidates } from '@/store/slices/orchestration/playoff
 
 const SLOT = 1;
 /** A second-tier club — eng-2 has playoff spots. */
-const PLAYOFF_CLUB = 'coventry-city';
+const PLAYOFF_CLUB = 'blackburn-rovers';
 const TOP_TIER_CLUB = 'manchester-city';
 
 function fresh(clubId: string) {

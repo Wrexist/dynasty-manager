@@ -77,7 +77,7 @@ describe('PlayerStatusBadges', () => {
     expect(screen.queryByTitle(/Suspended/)).toBeNull();
   });
 
-  it('suppresses OUT / LOAN / LIST when the player is injured', () => {
+  it('keeps loan ownership visible while injured, suppressing OUT and LIST', () => {
     render(
       <PlayerStatusBadges
         player={makePlayer({ injured: true, injuryWeeks: 2, wantsToLeave: true, onLoan: true, listedForSale: true })}
@@ -87,7 +87,7 @@ describe('PlayerStatusBadges', () => {
     );
     expect(screen.getByTitle(/Injured/)).toBeTruthy();
     expect(screen.queryByTitle(/Wants to leave/)).toBeNull();
-    expect(screen.queryByTitle(/On loan/)).toBeNull();
+    expect(screen.getByTitle(/On loan/)).toBeTruthy();
     expect(screen.queryByTitle(/Listed for sale/)).toBeNull();
   });
 

@@ -1,0 +1,78 @@
+{
+  "asOf": "2026-09-09",
+  "note": "Changes from the older shipped baseline to 2026/27 top tiers, not a full lower-division membership audit.",
+  "changes": [
+    {
+      "country": "England",
+      "top": "england",
+      "lower": "england2",
+      "up": [
+        "leeds-united",
+        "sunderland",
+        "coventry-city",
+        "hull-city"
+      ],
+      "down": [
+        "leicester-city",
+        "southampton",
+        "west-ham-united",
+        "wolverhampton-wanderers"
+      ],
+      "source": "https://www.premierleague.com/en/news/4673099/the-202627-premier-league-season-officially-starts/"
+    },
+    {
+      "country": "Spain",
+      "top": "spain",
+      "lower": "spain2",
+      "up": [
+        "elche-cf",
+        "levante-ud",
+        "r-racing-club",
+        "rc-deportivo",
+        "malaga-cf"
+      ],
+      "down": [
+        "las-palmas",
+        "leganes",
+        "real-valladolid",
+        "girona",
+        "mallorca"
+      ],
+      "source": "https://www.laliga.com/noticias/laliga-da-la-bienvenida-a-los-siete-clubes-ascendidos-para-la-temporada-2026-27"
+    },
+    {
+      "country": "Germany",
+      "top": "germany",
+      "lower": "germany2",
+      "up": [
+        "hamburger-sv",
+        "1-fc-koln",
+        "fc-schalke-04",
+        "sv-elversberg",
+        "sc-paderborn-07"
+      ],
+      "down": [
+        "holstein-kiel",
+        "bochum",
+        "fc-heidenheim",
+        "st-pauli",
+        "wolfsburg"
+      ],
+      "source": "https://www.bundesliga.com/en/bundesliga/news/official-bundesliga-transfer-centre-summer-2026-37051"
+    },
+    {
+      "country": "Italy",
+      "top": "italy",
+      "lower": "italy2",
+      "up": [
+        "sassuolo",
+        "frosinone"
+      ],
+      "down": [
+        "empoli",
+        "hellas-verona"
+      ],
+      "source": "https://en.legaseriea.it/serie-a/news/looking-forward-to-the-2026-27-serie-a-fixture-list"
+    }
+  ]
+}

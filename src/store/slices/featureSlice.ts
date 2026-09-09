@@ -553,7 +553,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   startNegotiation: (playerId: string, isRenewal: boolean): { success: boolean; lockedWeeks?: number } => {
     const state = get();
     const player = state.players[playerId];
-    if (!player) return { success: false };
+    if (!player || player.onLoan) return { success: false };
     const club = state.clubs[state.playerClubId];
     if (!club) return { success: false };
 

@@ -36,6 +36,7 @@ import { getLeadershipBonus } from '@/utils/personality';
 import { UNHAPPY_CONTAGION_WEEKS, STREAK_MORALE_THRESHOLD, MIN_SQUAD_SIZE, TOTAL_WEEKS } from '@/config/gameBalance';
 import { LABEL_HOT_HEAD_TEMP_BELOW } from '@/config/personality';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { LoanOwnership } from '@/components/game/LoanOwnership';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 
 const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
@@ -156,7 +157,7 @@ const PlayerDetail = () => {
     } else {
       tips.push({ text: 'Sign or develop high-leadership players to boost squad morale weekly', actionable: true, done: false });
     }
-    if (getContractUrgency(player.contractEnd, season) !== null) {
+    if (!player.onLoan && getContractUrgency(player.contractEnd, season) !== null) {
       tips.push({ text: getContractUrgency(player.contractEnd, season) === 'expired' ? 'Offer a contract renewal — expiring contracts cause morale drops' : 'Contract expiring next season — negotiate a renewal soon', actionable: true, done: false });
     }
     if (hasPerk(managerProgression, 'motivator')) {
@@ -918,7 +919,8 @@ const PlayerDetail = () => {
       {/* Contract — club economy only; hidden for national-team players */}
       {!isWorldCup && (
       <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Contract</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">{player.onLoan ? 'Parent-club contract' : 'Contract'}</p>
+        {player.onLoan && <LoanOwnership player={player} />}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-sm font-bold text-foreground tabular-nums">
@@ -1096,7 +1098,7 @@ const PlayerDetail = () => {
       )}
 
       {/* Contract Renewal */}
-      {!isWorldCup && isOwnPlayer && getContractUrgency(player.contractEnd, season) !== null && (
+      {!isWorldCup && isOwnPlayer && !player.onLoan && getContractUrgency(player.contractEnd, season) !== null && (
         <Button
           variant="outline"
           className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"

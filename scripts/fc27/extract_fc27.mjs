@@ -18,6 +18,7 @@
 import { sleep, getJson, AccessDeniedError, EgressBlockedError } from './lib/http.mjs';
 import { byId, pageUrl } from './lib/sources.mjs';
 import { loadState, saveState, writeRawPage, requestFingerprint } from './lib/raw.mjs';
+import { isMain } from '../lib/isMain.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { RAW_DIR } from './lib/paths.mjs';
 
@@ -172,7 +173,7 @@ export async function extract(args = {}) {
   return { fetched, state, rawDir };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   extract(parseArgs(process.argv.slice(2))).catch((err) => {
     if (err instanceof EgressBlockedError || err instanceof SourceRefusedError) {
       console.error(`\n[BLOCKED] ${err.message}`);

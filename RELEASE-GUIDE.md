@@ -1,5 +1,7 @@
 # Release Guide — every step to ship
 
+> September 2026 update: start with [the current roster and release review](docs/summer-2026-release-review.md). The branch/version checklist below is historical (1.3.1); it is not evidence that the current release is ready. AdMob is currently disabled in code, so its setup is not a prerequisite unless advertising is deliberately re-enabled.
+
 > One ordered checklist. Everything in **Part 1** is done and on a branch.
 > **Part 2** is what only you can do — each step says exactly where to click,
 > what to enter, how to check it worked, and what breaks if you skip it.

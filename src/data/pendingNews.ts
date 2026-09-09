@@ -45,6 +45,7 @@ export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [
     'Hall of Legends: retired greats can now appear as Legend cards in Elite, World Class and Legends packs — including stars who retire in your own save.',
+    'Verified real-world free agents available in the Free Agents market when starting a real-player career.',
   ],
   improved: [
     'FC27 player database + Hall of Legends.',
@@ -58,10 +59,13 @@ export const PENDING_NEWS: PendingRelease = {
     'Protected quick-sell Undo from overwriting later actions.',
     'Save confirmations now wait for storage to finish.',
     'Saving no longer waits indefinitely for stalled device storage, and failed saves keep an accurate status.',
+    'Selected summer 2026 transfers updated for new careers with real players enabled.',
+    'New real-player careers show reviewed loans, parent-club ownership and scheduled returns.',
   ],
   fixed: [
     'Improved paid pack recovery after interrupted saves and protected quick-sell Undo from overwriting later actions.',
     'Saving no longer waits indefinitely for stalled device storage, and failed saves keep an accurate status.',
+    'Transferred players no longer remain in older fallback club squads.',
   ],
   headline: null,
   summary: null,

@@ -300,7 +300,7 @@ describe('fc27 artifact paths', () => {
   it('writes to the repo locations for a real build', () => {
     const paths = sidecarFor(undefined);
     expect(paths.redirected).toBe(false);
-    expect(paths.qualityReport).toMatch(/docs\/fc27-data-quality\.md$/);
+    expect(paths.qualityReport.replaceAll('\\', '/')).toMatch(/docs\/fc27-data-quality\.md$/);
   });
 
   it('moves every artifact next to the dataset when a run is redirected', () => {
@@ -308,11 +308,11 @@ describe('fc27 artifact paths', () => {
     // committed comparison and quality reports.
     const paths = sidecarFor('/tmp/run');
     expect(paths.redirected).toBe(true);
-    expect(paths.qualityReport).toBe('/tmp/run/fc27-data-quality.md');
-    expect(paths.comparisonReport).toBe('/tmp/run/fc25-vs-fc27.md');
-    expect(paths.comparisonDir).toBe('/tmp/run/comparison');
-    expect(paths.runReport).toBe('/tmp/run/last-run.json');
-    expect(paths.gameInput).toBe('/tmp/run/FC27_community_pack_input.csv');
+    expect(paths.qualityReport.replaceAll('\\', '/')).toBe('/tmp/run/fc27-data-quality.md');
+    expect(paths.comparisonReport.replaceAll('\\', '/')).toBe('/tmp/run/fc25-vs-fc27.md');
+    expect(paths.comparisonDir.replaceAll('\\', '/')).toBe('/tmp/run/comparison');
+    expect(paths.runReport.replaceAll('\\', '/')).toBe('/tmp/run/last-run.json');
+    expect(paths.gameInput.replaceAll('\\', '/')).toBe('/tmp/run/FC27_community_pack_input.csv');
   });
 });
 

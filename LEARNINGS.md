@@ -186,3 +186,7 @@ to paper over.
 - A successful marked localStorage mirror is sufficient for immediate acknowledgement. Wait for IDB only when it is the remaining durable path.
 - IDB writes need a transaction deadline in addition to the database-open deadline. Timeout aborts the write, returns failure and permits a fresh connection on retry.
 - Production TestFlight builds now require the Sentry DSN; developer builds retain warning-only behavior. Account configuration still needs verification in the actual dashboards.
+
+## Windows player-data maintenance (verified September 2026)
+
+Use `npm run fc27:rosters` to generate reviewed club moves and confirmed free agents from `data/transfers/summer-2026.json`. An unresolved EA club is not evidence that a player is unattached. Keep confirmed free agents separate from the external-player pool and reserve their identities before filling squads. Use `isMain(import.meta.url)` for Node entry guards on paths containing spaces; `.mjs` hashbang files need LF line endings for vite-node on Windows. `npm run test:fast -- <test-file>` now sets its environment portably. See `docs/summer-2026-release-review.md` for coverage and release limitations.

@@ -29,7 +29,7 @@ interface PlayerStatusBadgesProps {
  * (injured / suspended / wantsToLeave / onLoan / listedForSale /
  * contract-near-expiry) and renders them in a consistent, priority-
  * ordered list. Pills suppress each other when they'd be redundant (no
- * OUT pill for injured players, no LOAN pill when wantsToLeave overrides).
+ * OUT pill for injured players). Loan ownership always remains visible.
  *
  * Position the wrapping `<div>` with absolute / flex parent styles.
  */
@@ -78,7 +78,7 @@ export function PlayerStatusBadges({
       {!player.injured && !isSuspended && player.wantsToLeave && (
         <StatusPill tone="amber" Icon={LogOut} label="OUT" title={t('playerStatusBadges.wantsToLeave')} />
       )}
-      {!player.injured && !isSuspended && !player.wantsToLeave && player.onLoan && (
+      {player.onLoan && (
         <StatusPill tone="sky" Icon={Repeat2} label="LOAN" title={t('playerStatusBadges.onLoan')} />
       )}
       {!player.injured &&

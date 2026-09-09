@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-08-28T09:09:12.193Z",
-  "fromEaClub": 12559,
+  "generatedAt": "2026-09-09T09:19:57.761Z",
+  "fromEaClub": 12648,
   "backfilled": 1102,
   "backfillRefused": 27,
-  "unresolved": 2567,
-  "resolved": 13661,
-  "resolvedPct": 84.2,
+  "unresolved": 2478,
+  "resolved": 13750,
+  "resolvedPct": 84.7,
   "clubResolutionTiers": {
-    "squad-fingerprint": 374,
+    "squad-fingerprint": 378,
     "token-subset": 3,
-    "player-vote": 75,
+    "player-vote": 74,
     "exact-name": 36
   },
   "fingerprintRejectedCrossCountry": [
@@ -36,7 +36,40 @@
   ],
   "contestedGameClubs": [
     {
+      "gameClubId": "barcelona",
+      "basis": "tier",
+      "kept": {
+        "eaClub": "FC Barcelona",
+        "tier": "squad-fingerprint",
+        "evidence": 9
+      },
+      "dropped": [
+        {
+          "eaClub": "Barcelona SC",
+          "tier": "fc26-report",
+          "evidence": 0
+        }
+      ]
+    },
+    {
+      "gameClubId": "espanyol",
+      "basis": "evidence",
+      "kept": {
+        "eaClub": "RCD Espanyol",
+        "tier": "squad-fingerprint",
+        "evidence": 7
+      },
+      "dropped": [
+        {
+          "eaClub": "GV San José",
+          "tier": "squad-fingerprint",
+          "evidence": 3
+        }
+      ]
+    },
+    {
       "gameClubId": "tigre",
+      "basis": "evidence",
       "kept": {
         "eaClub": "Tigre",
         "tier": "squad-fingerprint",
@@ -52,6 +85,7 @@
     },
     {
       "gameClubId": "brann",
+      "basis": "evidence",
       "kept": {
         "eaClub": "SK Brann",
         "tier": "squad-fingerprint",
@@ -88,6 +122,11 @@
       "league": "CSL"
     },
     {
+      "eaClub": "Bolívar",
+      "players": 29,
+      "league": "Libertadores"
+    },
+    {
       "eaClub": "Shanghai Shenhua",
       "players": 29,
       "league": "CSL"
@@ -113,9 +152,19 @@
       "league": "Česká Liga"
     },
     {
+      "eaClub": "Libertad",
+      "players": 28,
+      "league": "Libertadores"
+    },
+    {
       "eaClub": "Henan FC",
       "players": 28,
       "league": "CSL"
+    },
+    {
+      "eaClub": "IDV",
+      "players": 28,
+      "league": "Libertadores"
     },
     {
       "eaClub": "Qingdao Hainiu",
@@ -148,6 +197,16 @@
       "league": "CSL"
     },
     {
+      "eaClub": "Cerro Porteño",
+      "players": 27,
+      "league": "Libertadores"
+    },
+    {
+      "eaClub": "Palestino",
+      "players": 27,
+      "league": "Sudamericana"
+    },
+    {
       "eaClub": "Widzew Łódź",
       "players": 27,
       "league": "PKO BP Ekstraklasa"
@@ -161,6 +220,11 @@
       "eaClub": "Dalian Yingbo",
       "players": 27,
       "league": "CSL"
+    },
+    {
+      "eaClub": "Guaraní",
+      "players": 27,
+      "league": "Sudamericana"
     },
     {
       "eaClub": "Sparta Praha",
@@ -181,6 +245,11 @@
       "eaClub": "Falkirk",
       "players": 26,
       "league": "Scottish Prem"
+    },
+    {
+      "eaClub": "Caracas FC",
+      "players": 26,
+      "league": "Sudamericana"
     },
     {
       "eaClub": "MSV Duisburg",
@@ -223,6 +292,11 @@
       "league": "Ö. Bundesliga"
     },
     {
+      "eaClub": "Sportivo Luqueño",
+      "players": 25,
+      "league": "Sudamericana"
+    },
+    {
       "eaClub": "TSV Havelse",
       "players": 25,
       "league": "3. Liga"
@@ -233,9 +307,34 @@
       "league": "EFL League Two"
     },
     {
+      "eaClub": "Colo-Colo",
+      "players": 24,
+      "league": "Libertadores"
+    },
+    {
+      "eaClub": "Alianza Lima",
+      "players": 24,
+      "league": "Libertadores"
+    },
+    {
+      "eaClub": "Universitario",
+      "players": 24,
+      "league": "Libertadores"
+    },
+    {
       "eaClub": "Odense BK",
       "players": 24,
       "league": "3F Superliga"
+    },
+    {
+      "eaClub": "Deportes Iquique",
+      "players": 24,
+      "league": "Sudamericana"
+    },
+    {
+      "eaClub": "Unión Española",
+      "players": 24,
+      "league": "Sudamericana"
     },
     {
       "eaClub": "RAAL La Louvière",
@@ -263,6 +362,11 @@
       "league": "SSE Airtricity PD"
     },
     {
+      "eaClub": "Peñarol",
+      "players": 23,
+      "league": "Libertadores"
+    },
+    {
       "eaClub": "AS Nancy Lorraine",
       "players": 23,
       "league": "Ligue 2 BKT"
@@ -271,6 +375,11 @@
       "eaClub": "Zulte Waregem",
       "players": 23,
       "league": "1A Pro League"
+    },
+    {
+      "eaClub": "Atlético Grau",
+      "players": 23,
+      "league": "Sudamericana"
     },
     {
       "eaClub": "Wisła Płock",
@@ -288,6 +397,16 @@
       "league": "SUPERLIGA"
     },
     {
+      "eaClub": "FBC Melgar",
+      "players": 22,
+      "league": "Sudamericana"
+    },
+    {
+      "eaClub": "Sporting Cristal",
+      "players": 22,
+      "league": "Libertadores"
+    },
+    {
       "eaClub": "Avellino",
       "players": 22,
       "league": "Serie BKT"
@@ -296,6 +415,11 @@
       "eaClub": "Qarabağ FK",
       "players": 22,
       "league": "Liga Azerbaijan"
+    },
+    {
+      "eaClub": "San Antonio",
+      "players": 22,
+      "league": "Libertadores"
     },
     {
       "eaClub": "Gençlerbirliği",
@@ -308,9 +432,19 @@
       "league": "LALIGA HYPERMOTION"
     },
     {
+      "eaClub": "Carabobo FC",
+      "players": 21,
+      "league": "Libertadores"
+    },
+    {
       "eaClub": "Al Ain FC",
       "players": 20,
       "league": "United Emirates League"
+    },
+    {
+      "eaClub": "U. de Chile",
+      "players": 20,
+      "league": "Libertadores"
     },
     {
       "eaClub": "Degerfors IF",
@@ -318,9 +452,34 @@
       "league": "Allsvenskan"
     },
     {
+      "eaClub": "Mushuc Runa",
+      "players": 20,
+      "league": "Sudamericana"
+    },
+    {
+      "eaClub": "LDU Quito",
+      "players": 18,
+      "league": "Libertadores"
+    },
+    {
+      "eaClub": "Cienciano",
+      "players": 18,
+      "league": "Sudamericana"
+    },
+    {
+      "eaClub": "Nacional Potosí",
+      "players": 18,
+      "league": "Sudamericana"
+    },
+    {
       "eaClub": "FC Alverca",
       "players": 17,
       "league": "Liga Portugal"
+    },
+    {
+      "eaClub": "Bucaramanga",
+      "players": 16,
+      "league": "Libertadores"
     },
     {
       "eaClub": "AD Ceuta FC",
@@ -328,9 +487,19 @@
       "league": "LALIGA HYPERMOTION"
     },
     {
+      "eaClub": "Olimpia",
+      "players": 14,
+      "league": "Libertadores"
+    },
+    {
       "eaClub": "Padova",
       "players": 13,
       "league": "Serie BKT"
+    },
+    {
+      "eaClub": "Once Caldas",
+      "players": 11,
+      "league": "Sudamericana"
     },
     {
       "eaClub": "Entella",
@@ -338,12 +507,27 @@
       "league": "Serie BKT"
     },
     {
+      "eaClub": "Dep. Táchira",
+      "players": 10,
+      "league": "Libertadores"
+    },
+    {
+      "eaClub": "Boston River",
+      "players": 10,
+      "league": "Sudamericana"
+    },
+    {
+      "eaClub": "Puerto Cabello",
+      "players": 9,
+      "league": "Sudamericana"
+    },
+    {
       "eaClub": "Real Sociedad B",
       "players": 7,
       "league": "LALIGA HYPERMOTION"
     }
   ],
-  "gameClubsCovered": 532,
+  "gameClubsCovered": 535,
   "gameClubsTotal": 756,
   "leagueCoverage": [
     {
@@ -351,24 +535,6 @@
       "name": "SuperLiga",
       "country": "Serbia",
       "gameClubs": 16,
-      "clubsMatched": 0,
-      "pct": 0,
-      "players": 0
-    },
-    {
-      "id": "bgr",
-      "name": "First Professional Football League",
-      "country": "Bulgaria",
-      "gameClubs": 16,
-      "clubsMatched": 0,
-      "pct": 0,
-      "players": 0
-    },
-    {
-      "id": "svk",
-      "name": "Fortuna Liga",
-      "country": "Slovakia",
-      "gameClubs": 12,
       "clubsMatched": 0,
       "pct": 0,
       "players": 0
@@ -428,6 +594,15 @@
       "players": 32
     },
     {
+      "id": "svk",
+      "name": "Fortuna Liga",
+      "country": "Slovakia",
+      "gameClubs": 12,
+      "clubsMatched": 1,
+      "pct": 8,
+      "players": 14
+    },
+    {
       "id": "fin",
       "name": "Veikkausliiga",
       "country": "Finland",
@@ -444,6 +619,15 @@
       "clubsMatched": 2,
       "pct": 13,
       "players": 56
+    },
+    {
+      "id": "bgr",
+      "name": "First Professional Football League",
+      "country": "Bulgaria",
+      "gameClubs": 16,
+      "clubsMatched": 2,
+      "pct": 13,
+      "players": 45
     },
     {
       "id": "cro",
@@ -524,7 +708,7 @@
       "gameClubs": 20,
       "clubsMatched": 16,
       "pct": 80,
-      "players": 379
+      "players": 370
     },
     {
       "id": "ger-3",
@@ -560,7 +744,7 @@
       "gameClubs": 22,
       "clubsMatched": 18,
       "pct": 82,
-      "players": 411
+      "players": 410
     },
     {
       "id": "ned",
@@ -605,7 +789,7 @@
       "gameClubs": 18,
       "clubsMatched": 16,
       "pct": 89,
-      "players": 356
+      "players": 373
     },
     {
       "id": "irl",
@@ -650,7 +834,7 @@
       "gameClubs": 18,
       "clubsMatched": 17,
       "pct": 94,
-      "players": 483
+      "players": 480
     },
     {
       "id": "eng",
@@ -659,7 +843,7 @@
       "gameClubs": 20,
       "clubsMatched": 20,
       "pct": 100,
-      "players": 532
+      "players": 535
     },
     {
       "id": "eng-2",
@@ -668,7 +852,7 @@
       "gameClubs": 24,
       "clubsMatched": 24,
       "pct": 100,
-      "players": 659
+      "players": 656
     },
     {
       "id": "eng-3",
@@ -686,7 +870,7 @@
       "gameClubs": 20,
       "clubsMatched": 20,
       "pct": 100,
-      "players": 491
+      "players": 492
     },
     {
       "id": "ita",
@@ -695,7 +879,7 @@
       "gameClubs": 20,
       "clubsMatched": 20,
       "pct": 100,
-      "players": 517
+      "players": 526
     },
     {
       "id": "ger",
@@ -704,7 +888,7 @@
       "gameClubs": 18,
       "clubsMatched": 18,
       "pct": 100,
-      "players": 515
+      "players": 518
     },
     {
       "id": "fra",
@@ -722,7 +906,7 @@
       "gameClubs": 30,
       "clubsMatched": 30,
       "pct": 100,
-      "players": 869
+      "players": 882
     },
     {
       "id": "mls",
