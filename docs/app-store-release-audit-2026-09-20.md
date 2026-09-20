@@ -85,3 +85,11 @@ The owner confirmed there is no Sentry project. Sentry is intentionally disabled
 Vitest was upgraded to 4.1.11 and its worker configuration migrated; Node typings are explicit. Script line endings and pipeline path assertions now support Windows. The dependency audit reports zero vulnerabilities. Type checking, production build, and bundle limits pass (544.7 KB eager gzip; 1294.6 KB main uncompressed). Full-suite and native-build results must be recorded after completion.
 
 The App Store Connect draft has been changed from unsubmitted 1.5.0 to 1.6.0 and English release notes saved. No App Review submission or public release has been made. Device and StoreKit sandbox gates remain open until actual testing establishes them.
+
+### App Store Connect preparation
+
+- Saved English localization drafts for Elite Pack, World Class Pack, Legends Pack and Dynasty Legacy Pack. Gold Pack already matched the final game name and base 5-player/78+ contents. Localization changes are Prepare for Submission, not approved/live; include them in the review submission.
+- Corrected the Legends description to state a 25% Hall of Legends icon chance and the Legacy description to describe cosmetic unlocks.
+- Completed the two new social-media questions with No and saved the age-rating questionnaire. Paid Loot Boxes was already Yes and remains Yes; global calculated rating remains 9+, with regional exceptions.
+- Found the existing App Privacy label disclosed Product Interaction and Crash Data but omitted Purchases. The 1.6.0 disclosure is being corrected to Purchase History for App Functionality and Analytics, not linked to identity and not tracking, matching anonymous RevenueCat configuration. Reference: https://www.revenuecat.com/docs/platform-resources/apple-platform-resources/apple-app-privacy . The native manifest includes both purposes.
+- The duplicate local full-suite run was stopped due to host memory pressure; GitHub full-suite validation remains mandatory. No local full-suite pass is claimed.
