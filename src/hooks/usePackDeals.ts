@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { getActiveDeals } from '@/utils/packDeals';
+import { getStoreDeals } from '@/utils/packDeals';
 
 export function usePackDeals() {
-  const [deals, setDeals] = useState(getActiveDeals);
+  const [deals, setDeals] = useState(getStoreDeals);
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
-    const refresh = () => setDeals(getActiveDeals());
+    const refresh = () => setDeals(getStoreDeals());
     const resume = () => {
       clearInterval(timer);
       if (!document.hidden) {

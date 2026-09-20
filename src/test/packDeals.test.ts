@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getActiveDeals, getDealForTier, formatDealRemaining } from '@/utils/packDeals';
+import { getActiveDeals, getStoreDeals, getDealForTier, formatDealRemaining } from '@/utils/packDeals';
 import { PACK_DEAL_SLOTS, PACK_TIER_MAP } from '@/config/packs';
 import { observeClock, __resetSaveStorageForTests, readPendingPackCredit, writePendingPackCredit } from '@/store/helpers/persistence';
 
 describe('pack deals', () => {
+  it('shows only the best offer per SKU throughout a rotation month', () => {
+    for (let hour = 0; hour < 24 * 31; hour++) {
+      const now = hour * 3600_000;
+      const deals = getStoreDeals(now);
+      expect(new Set(deals.map(d => d.tierKey)).size).toBe(deals.length);
+      for (const deal of deals) expect(deal.bonusCards).toBe(Math.max(...getActiveDeals(now).filter(d => d.tierKey === deal.tierKey).map(d => d.bonusCards)));
+    }
+  });
   beforeEach(() => { localStorage.clear(); __resetSaveStorageForTests(); });
   it('uses deterministic paid-only slots that rotate exactly at their own boundary', () => {
     for (const slot of PACK_DEAL_SLOTS) {

@@ -25,6 +25,9 @@ const mockPurchases = {
   getProducts: vi.fn(),
   purchasePackage: vi.fn(),
   purchaseStoreProduct: vi.fn(),
+  syncPurchases: vi.fn().mockResolvedValue(undefined),
+  invalidateCustomerInfoCache: vi.fn().mockResolvedValue(undefined),
+  getCustomerInfo: vi.fn(),
 };
 
 vi.mock('@capacitor/core', () => ({
@@ -50,10 +53,27 @@ import {
   purchaseProduct,
   purchaseConsumable,
   getStoreAvailability,
+  readConsumableHistory,
 } from '@/utils/purchases';
 
 const ANNUAL = 'com.dynastymanager.pro.yearly' as const;
 const GOLD_PACK = 'com.dynastymanager.pack.gold' as const;
+
+describe('consumable recovery history', () => {
+  it('syncs and refreshes verified product-specific transaction IDs', async () => {
+    mockPurchases.getCustomerInfo.mockResolvedValue({ customerInfo: { originalAppUserId: 'customer', nonSubscriptionTransactions: [
+      { productIdentifier: GOLD_PACK, transactionIdentifier: 'gold-1' },
+      { productIdentifier: 'another-product', transactionIdentifier: 'other-1' },
+    ] } });
+    await expect(readConsumableHistory(GOLD_PACK, true)).resolves.toEqual({ customerId: 'customer', transactionIds: ['gold-1'] });
+    expect(mockPurchases.syncPurchases).toHaveBeenCalledOnce();
+    expect(mockPurchases.invalidateCustomerInfoCache).toHaveBeenCalledOnce();
+  });
+  it('does not interpret missing transaction history as an empty verified history', async () => {
+    mockPurchases.getCustomerInfo.mockResolvedValue({ customerInfo: { originalAppUserId: 'customer' } });
+    await expect(readConsumableHistory(GOLD_PACK)).rejects.toThrow('Purchase history unavailable');
+  });
+});
 
 /** The exact shape iOS delivers: `call.reject(message, "\(error.code)", nsError)`. */
 const iosCancel = { message: 'Purchase was cancelled.', code: '1' };

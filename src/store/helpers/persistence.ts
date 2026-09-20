@@ -746,6 +746,10 @@ export function writeAppReviewState(state: AppReviewState): void {
 /** Crash-durable marker for a paid-but-not-yet-granted consumable pack.
  *  See STORAGE_KEYS.PENDING_PACK_CREDIT for the lifecycle. */
 export interface PendingPackCredit {
+  purchaseWeek?: number;
+  customerId?: string;
+  priorTransactionIds?: string[];
+  transactionId?: string;
   bonusCards?: number;
   dealSlotId?: string;
   productId: string;
@@ -784,6 +788,10 @@ export function readPendingPackCredit(): PendingPackCredit | null {
     const parsed = JSON.parse(raw);
     if (typeof parsed?.productId !== 'string' || typeof parsed?.tierKey !== 'string') return null;
     return {
+      ...(Number.isSafeInteger(parsed.purchaseWeek) && parsed.purchaseWeek >= 0 ? { purchaseWeek: parsed.purchaseWeek } : {}),
+      ...(typeof parsed.customerId === 'string' ? { customerId: parsed.customerId } : {}),
+      ...(Array.isArray(parsed.priorTransactionIds) && parsed.priorTransactionIds.every((id: unknown) => typeof id === 'string') ? { priorTransactionIds: parsed.priorTransactionIds } : {}),
+      ...(typeof parsed.transactionId === 'string' ? { transactionId: parsed.transactionId } : {}),
       bonusCards: Number.isInteger(parsed.bonusCards) ? Math.max(0, Math.min(3, parsed.bonusCards)) : 0,
       ...(typeof parsed.dealSlotId === 'string' ? { dealSlotId: parsed.dealSlotId } : {}),
       productId: parsed.productId,

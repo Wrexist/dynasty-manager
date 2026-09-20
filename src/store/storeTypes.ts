@@ -677,7 +677,7 @@ export interface GameState {
    *  daily caps as defence in depth. */
   openPack: (
     tier: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string; bonusCards?: number },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string; bonusCards?: number; purchaseWeek?: number },
   ) => OpenPackResult;
   /** Eligibility pre-flight. Run this BEFORE charging real money or
    *  starting a rewarded ad so the user can never pay/watch and then be

@@ -117,7 +117,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     label: 'Gold Pack',
     storeCaption: '5 players, one guaranteed 78+.',
     badge: 'entry',
-    storeBlurb: 'The entry pack. Five real players issued as Champions versions — +1 to every stat over their base card — with one guaranteed 78 or better. The cheapest way to put a recognisable name in your squad.',
+    storeBlurb: 'The entry pack. Five real players issued as Gold versions — +1 to every stat over their base card — with one guaranteed 78 or better. The cheapest way to put a recognisable name in your squad.',
     price: 0,
     cards: 5,
     guaranteedMinOvr: 78,
@@ -130,7 +130,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-gold-from))',
     gradientTo: 'hsl(var(--pack-gold-to))',
     accent: 'hsl(var(--pack-gold-accent))',
-    artSrc: '/packs/champions.webp',
+    artSrc: '/packs/gold.webp',
     cardFrame: 'champions',
     productId: 'com.dynastymanager.pack.gold',
     iapPriceDisplay: '$2.99',
@@ -337,15 +337,15 @@ export function getFeaturedPackTier(weekIndex: number): PackTierKey {
 export const WEEKLY_PACK_SKINS: WeeklyPackSkin[] = [
   {
     name: 'The Dynasty Pack', artSrc: '/packs/dynasty.webp', tier: 'rare', cardFrame: 'dynasty', extraBoost: 1,
-    blurb: 'This week only: World Class contents issued as Dynasty versions — +4 to every stat, one better than the standard issue — in a frame that can never be pulled again once the week ends.',
+    blurb: 'This week only: World Class contents issued as Dynasty versions — +4 to every stat, one better than the standard issue — in the Dynasty frame. This edition rotates out when the timer ends and may return in a future week.',
   },
   {
     name: 'Golden Era Pack', artSrc: '/packs/golden-era.webp', tier: 'premium', cardFrame: 'golden-era', extraBoost: 1,
-    blurb: 'This week only: Elite contents issued as Golden Era versions — +3 to every stat — in a dated frame. When the week ends, so does the print run.',
+    blurb: 'This week only: Elite contents issued as Golden Era versions — +3 to every stat — in the Golden Era frame. This edition rotates out when the timer ends and may return in a future week.',
   },
   {
     name: 'Royal Reserve Pack', artSrc: '/packs/royal-reserve.webp', tier: 'gold', cardFrame: 'royal-reserve', extraBoost: 1,
-    blurb: 'This week only: Champions contents issued as Royal Reserve versions — +2 to every stat — in a frame only this week can produce.',
+    blurb: 'This week only: Gold contents issued as Royal Reserve versions — +2 to every stat — in the Royal Reserve frame. This edition rotates out when the timer ends and may return in a future week.',
   },
 ];
 

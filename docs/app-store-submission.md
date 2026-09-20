@@ -1,3 +1,11 @@
+# Current release: 1.6.0
+
+The original checklist below is historical and contains obsolete version, club-count, and product-copy proposals. Do not copy it into App Store Connect. Use [the September 20 release audit](app-store-release-audit-2026-09-20.md) and the current pack configuration instead.
+
+Sentry is intentionally disabled for 1.6.0. No DSN or auth token is required. RevenueCat production configuration remains required. Before enabling Sentry in a later release, update the privacy policy, App Privacy answers, and native privacy manifest to match the data actually sent.
+
+---
+
 # App Store Submission Checklist — Dynasty Manager
 
 This document lists everything required to submit Dynasty Manager to the Apple App Store via App Store Connect. Fill in TODO items before the submission build is uploaded.

@@ -286,7 +286,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
 
   openPack: (
     tierKey: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string; bonusCards?: number },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string; bonusCards?: number; purchaseWeek?: number },
   ): OpenPackResult => {
     // Opening a new pack invalidates any pending quick-sell undo — the
     // snapshot would otherwise revert this fresh pack if restored.
@@ -370,7 +370,8 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // card") and the boost is what the claim is worth, and three separate
     // currentWeekIndex() calls left a (microsecond) rollover window where
     // they could disagree. Structural beats improbable.
-    const weekIndex = currentWeekIndex();
+    const weekIndex = method === 'iap' && skipPayment && Number.isSafeInteger(opts?.purchaseWeek) && opts!.purchaseWeek! >= 0
+      ? opts!.purchaseWeek! : currentWeekIndex();
     const weeklyBonus = weeklyBonusCardsFor(tierKey, method, weekIndex);
     const bonusCards = method === 'iap'
       ? Math.max(0, Math.min(3, lockedBonus ?? weeklyBonus))

@@ -69,12 +69,12 @@ jobs:
       - name: Check release crash reporting
         env:
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
-          DEV_TOOLS: ${{ github.event.inputs.dev_tools }}
+          SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
         run: |
-          if [[ "$DEV_TOOLS" == "true" ]]; then
-            node scripts/check-observability.mjs
-          else
+          if [[ "$SENTRY_ENABLED" == "true" ]]; then
             node scripts/check-observability.mjs --strict
+          else
+            echo "::notice::Sentry is intentionally disabled for this release."
           fi
 
       - name: Validate release candidate
@@ -114,7 +114,7 @@ jobs:
           # Observability: only Sentry now (analytics travels via RC/ASC —
           # see docs/growth-overhaul-plan.md §1.2). Sentry DSN is optional at
           # build time; if missing, the SDK no-ops silently.
-          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_ENABLED == 'true' && secrets.VITE_SENTRY_DSN || '' }}
           # Opt-in per-run: exposes the in-app Developer section. Only true when
           # the workflow is dispatched with dev_tools checked — real releases
           # (blank/false) ship without it.
@@ -128,7 +128,7 @@ jobs:
       # Sentry stack traces stay minified. The release id must match the SDK's
       # `dynasty-manager@<version>` (src/utils/sentry.ts).
       - name: Upload source maps to Sentry
-        if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
+        if: ${{ vars.SENTRY_ENABLED == 'true' && env.SENTRY_AUTH_TOKEN != '' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}

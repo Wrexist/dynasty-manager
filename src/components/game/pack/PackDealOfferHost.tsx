@@ -7,6 +7,7 @@ import { getStoreAvailability } from '@/utils/purchases';
 import { claimPackUpsell } from '@/utils/packUpsell';
 import { PackDealUpsell } from './PackDealUpsell';
 import type { ProductId } from '@/types/game';
+import { selectPackDeal } from '@/utils/packDeals';
 
 /** Dashboard gaps only: never mounted over a match or the onboarding flow. */
 export function PackDealOfferHost() {
@@ -50,7 +51,8 @@ export function PackDealOfferHost() {
     if (claimPackUpsell(undefined, won ? 1 : 2)) setOpen(true);
   }, [active, wants, won]);
   if (!open || !active || eligible.length === 0) return null;
-  return <PackDealUpsell prices={prices} trigger={won ? 'postWin' : 'dealExpiring'} deals={eligible} onClose={() => setOpen(false)} onView={() => {
+  return <PackDealUpsell prices={prices} trigger={won ? 'postWin' : 'dealExpiring'} deals={eligible} onClose={() => setOpen(false)} onView={deal => {
+    selectPackDeal(deal);
     setOpen(false);
     useGameStore.getState().setScreen('packs');
   }} />;

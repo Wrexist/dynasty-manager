@@ -131,7 +131,7 @@ export function DailyRewardModal() {
             <button
               type="button"
               onClick={close}
-              className="absolute top-2.5 right-2.5 p-2 -m-1 rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
+              className="absolute z-10 top-1 right-1 w-11 h-11 flex items-center justify-center rounded-full text-foreground/60 hover:text-foreground/80 hover:bg-white/5 transition-colors"
               aria-label={t('dailyRewardModal.closeDailyReward')}
             >
               <X className="w-4 h-4" />

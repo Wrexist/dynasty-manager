@@ -1,5 +1,5 @@
 import { usePackDeals } from '@/hooks/usePackDeals';
-import { getActiveDeals, getDealForTier, formatDealRemaining, type ActivePackDeal } from '@/utils/packDeals';
+import { getActiveDeals, getDealForTier, formatDealRemaining, takeSelectedPackDeal, type ActivePackDeal } from '@/utils/packDeals';
 import { claimPackUpsell } from '@/utils/packUpsell';
 import { PackDealCard } from '@/components/game/pack/PackDealCard';
 import { PackDealUpsell } from '@/components/game/pack/PackDealUpsell';
@@ -42,7 +42,7 @@ import type { Player } from '@/types/game';
 import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { isPro } from '@/utils/monetization';
 import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight, isPackPurchaseInFlight } from '@/utils/packCreditRecovery';
-import { purchaseConsumable, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
+import { purchaseConsumable, readConsumableHistory, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit, currentWeekIndex, msUntilNextWeekIndex } from '@/store/helpers/persistence';
 import { track } from '@/utils/analytics';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
@@ -338,7 +338,7 @@ const PacksPage = () => {
   // Store-availability probe, scoped to the consumable pack SKUs this page
   // sells. `null` = not probed yet or off-device → assume sellable, matching
   // the convention in ShopPage and SubscribeOnboarding.
-  const [packAvailableIds, setPackAvailableIds] = useState<ProductId[] | null>(null);
+  const [packAvailableIds, setPackAvailableIds] = useState<ProductId[] | null>([]);
   const [packPrices, setPackPrices] = useState<Partial<Record<ProductId, string>> | undefined>({});
   useEffect(() => {
     let cancelled = false;
@@ -351,11 +351,14 @@ const PacksPage = () => {
           setPackPrices(supported ? prices : undefined);
         }
       })
-      .catch(() => { if (!cancelled) setPackAvailableIds(null); });
+      .catch(() => { if (!cancelled) setPackAvailableIds([]); });
     return () => { cancelled = true; };
   }, []);
   const packSkuPurchasable = (productId: ProductId) =>
-    packAvailableIds === null || packAvailableIds.includes(productId);
+    packAvailableIds === null || (packAvailableIds.includes(productId) && !!packPrices?.[productId]);
+  const pricedTier = (tier: PackTierDefinition): PackTierDefinition => ({
+    ...tier, iapPriceDisplay: packPrices === undefined ? tier.iapPriceDisplay : tier.productId ? packPrices[tier.productId] : undefined,
+  });
 
   // ── Market composition ──
   // Featured rotates on the REAL week, not the in-game one. `(season, week)`
@@ -394,8 +397,9 @@ const PacksPage = () => {
 
   /** Pack whose odds sheet is open, or null. */
   const [oddsFeatured, setOddsFeatured] = useState(false);
-  const [oddsDeal, setOddsDeal] = useState<ActivePackDeal | null>(null);
-  const [oddsTier, setOddsTier] = useState<PackTierKey | null>(null);
+  const [initialDeal] = useState(takeSelectedPackDeal);
+  const [oddsDeal, setOddsDeal] = useState<ActivePackDeal | null>(initialDeal);
+  const [oddsTier, setOddsTier] = useState<PackTierKey | null>(initialDeal?.tierKey ?? null);
   const showOdds = (key: PackTierKey, deal?: ActivePackDeal, featuredPresentation = false) => {
     setOddsFeatured(featuredPresentation);
     setOddsDeal(deal ?? null);
@@ -426,7 +430,7 @@ const PacksPage = () => {
     return deal ? formatDealRemaining(deal.remainingMs) : undefined;
   };
   const bonusFor = (key: PackTierKey) => Math.max(weeklyBonusCardsFor(key, 'iap'), getDealForTier(key)?.bonusCards ?? 0);
-  const handleOpen = async (tierKey: PackTierKey, advertisedDeal?: ActivePackDeal) => {
+  const handleOpen = async (tierKey: PackTierKey, advertisedDeal: ActivePackDeal | undefined = getDealForTier(tierKey) ?? undefined) => {
     // Guard against rapid double-taps while an overlay is already up,
     // a pack was just opened this frame, or an async ad/IAP is mid-flight.
     if (opening || replay || busy || isPackPurchaseInFlight()) return;
@@ -516,11 +520,20 @@ const PacksPage = () => {
       // un-charged and only promoted once the store confirms, otherwise any
       // failed attempt (offline, force-quit on the sheet) left a record the
       // reconciler happily granted — a free, repeatable paid pack.
-      const marker = { productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot, charged: false, bonusCards: bonusAtPurchase, dealSlotId: advertisedDeal?.slotId ?? getDealForTier(tierKey)?.slotId };
       if (readPendingPackCredit()) {
         infoToast('A purchase is still waiting', 'Reopen the Market in the save that bought the pack before buying another.');
         return;
       }
+      const history = await readConsumableHistory(tier.productId);
+      if (useGameStore.getState().activeSlot !== activeSlot || useGameStore.getState().playerClubId !== club.id) return;
+      // Recheck after the network probe: an offer may have expired meanwhile.
+      if (currentWeekIndex() !== weekIndex || (advertisedDeal && !getActiveDeals().some(d => d.slotId === advertisedDeal.slotId && d.tierKey === tierKey && d.endsAt === advertisedDeal.endsAt))) {
+        infoToast('Offer updated', 'Review the current contents before buying. No purchase was started.');
+        return;
+      }
+      const marker = { productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot, charged: false,
+        purchaseWeek: weekIndex, customerId: history.customerId, priorTransactionIds: history.transactionIds,
+        bonusCards: bonusAtPurchase, dealSlotId: advertisedDeal?.slotId ?? getDealForTier(tierKey)?.slotId };
       if (!writePendingPackCredit(marker)) {
         errorToast('Purchase unavailable', 'Free up device storage before buying a pack so your purchase can be saved.');
         return;
@@ -650,7 +663,7 @@ const PacksPage = () => {
           <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
             {deals.map(deal => (
               <PackDealCard key={deal.slotId} deal={deal}
-                price={PACK_TIER_MAP[deal.tierKey].iapPriceDisplay}
+                price={pricedTier(PACK_TIER_MAP[deal.tierKey]).iapPriceDisplay}
                 available={activeMethodFor(PACK_TIER_MAP[deal.tierKey]) === 'iap' && canOpenPack(deal.tierKey, 'iap', deal.bonusCards).ok && !busy}
                 onSelect={() => { void handleOpen(deal.tierKey, deal); }}
                 onOdds={() => showOdds(deal.tierKey, deal)} />
@@ -672,7 +685,7 @@ const PacksPage = () => {
           </div>
           <PackShopCard
             featured
-            tier={featured}
+            tier={pricedTier(featured)}
             affordable={isAffordable(featured)}
             squadOk={squadSize + featured.cards + bonusFor(featuredKey) <= MAX_SQUAD_SIZE}
             onSelect={() => { void handleOpen(featured.key); }}
@@ -748,7 +761,7 @@ const PacksPage = () => {
             {permanentTiers.map(tier => (
               <PackShopCard
                 key={tier.key}
-                tier={tier}
+                tier={pricedTier(tier)}
                 bonusCards={tier.productId ? bonusFor(tier.key) : 0}
                 bonusCountdown={bonusCountdownFor(tier.key)}
                 affordable={isAffordable(tier)}
@@ -980,6 +993,10 @@ const PacksPage = () => {
             streak={oddsTier === FREE_PACK_TIER ? streak : undefined}
             bonusCards={PACK_TIER_MAP[oddsTier].productId ? (oddsDeal && deals.some(d => d.slotId === oddsDeal.slotId && d.endsAt === oddsDeal.endsAt) ? oddsDeal.bonusCards : bonusFor(oddsTier)) : 0}
             onClose={() => setOddsTier(null)}
+            purchaseLabel={activeMethodFor(PACK_TIER_MAP[oddsTier]) === 'iap'
+              ? `Buy ${pricedTier(PACK_TIER_MAP[oddsTier]).iapPriceDisplay ?? ''}` : 'Open pack'}
+            purchaseDisabled={busy || !isAffordable(PACK_TIER_MAP[oddsTier])}
+            onPurchase={() => { const key = oddsTier; setOddsTier(null); void handleOpen(key, oddsDeal ?? undefined); }}
           />
         )}
       </AnimatePresence>

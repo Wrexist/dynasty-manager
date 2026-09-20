@@ -8,6 +8,7 @@
  * covered by the fixture run documented in docs/fc27/README.md.
  */
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
 // The pipeline is plain ESM JS by design — it runs under bare `node` with no
 // build step, the same as every other script in scripts/.
 import { parseCsv, toCsv, csvCell } from '../../scripts/fc27/lib/csv.mjs';
@@ -300,7 +301,7 @@ describe('fc27 artifact paths', () => {
   it('writes to the repo locations for a real build', () => {
     const paths = sidecarFor(undefined);
     expect(paths.redirected).toBe(false);
-    expect(paths.qualityReport).toMatch(/docs\/fc27-data-quality\.md$/);
+    expect(paths.qualityReport.endsWith(join('docs', 'fc27-data-quality.md'))).toBe(true);
   });
 
   it('moves every artifact next to the dataset when a run is redirected', () => {
@@ -308,11 +309,11 @@ describe('fc27 artifact paths', () => {
     // committed comparison and quality reports.
     const paths = sidecarFor('/tmp/run');
     expect(paths.redirected).toBe(true);
-    expect(paths.qualityReport).toBe('/tmp/run/fc27-data-quality.md');
-    expect(paths.comparisonReport).toBe('/tmp/run/fc25-vs-fc27.md');
-    expect(paths.comparisonDir).toBe('/tmp/run/comparison');
-    expect(paths.runReport).toBe('/tmp/run/last-run.json');
-    expect(paths.gameInput).toBe('/tmp/run/FC27_community_pack_input.csv');
+    expect(paths.qualityReport).toBe(join('/tmp/run', 'fc27-data-quality.md'));
+    expect(paths.comparisonReport).toBe(join('/tmp/run', 'fc25-vs-fc27.md'));
+    expect(paths.comparisonDir).toBe(join('/tmp/run', 'comparison'));
+    expect(paths.runReport).toBe(join('/tmp/run', 'last-run.json'));
+    expect(paths.gameInput).toBe(join('/tmp/run', 'FC27_community_pack_input.csv'));
   });
 });
 

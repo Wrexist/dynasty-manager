@@ -26,6 +26,24 @@ export function getDealForTier(tier: PackTierKey, now = observeClock()) {
   return getActiveDeals(now).find(deal => deal.tierKey === tier) ?? null;
 }
 
+/** Show only the best live offer per SKU; underlying windows remain stable. */
+export function getStoreDeals(now = observeClock()) {
+  const seen = new Set<PackTierKey>();
+  return getActiveDeals(now).filter(deal => {
+    if (seen.has(deal.tierKey)) return false;
+    seen.add(deal.tierKey);
+    return true;
+  });
+}
+
+let selectedDeal: ActivePackDeal | null = null;
+export function selectPackDeal(deal: ActivePackDeal) { selectedDeal = deal; }
+export function takeSelectedPackDeal() {
+  const deal = selectedDeal;
+  selectedDeal = null;
+  return deal;
+}
+
 export function formatDealRemaining(ms: number): string {
   const seconds = Math.max(0, Math.ceil(ms / 1000));
   const hours = Math.floor(seconds / 3600);
