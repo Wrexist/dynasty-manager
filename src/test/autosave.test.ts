@@ -13,6 +13,10 @@ import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 
 const CLUB_ID = 'manchester-city';
 
+// Restore Storage spies between cases. Re-spying an existing mock reuses its
+// call history, including writes from previous games and setup.
+afterEach(() => vi.restoreAllMocks());
+
 /** Drain any scheduled idle work and reset the store to a fresh game. */
 function initFresh() {
   // In jsdom there is no requestIdleCallback so the scheduler falls through
