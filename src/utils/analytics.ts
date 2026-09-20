@@ -53,6 +53,10 @@ export type AnalyticsEvent =
   // Odds-sheet opens. Worth measuring on its own: a disclosure nobody opens is
   // still required, but a disclosure many players open before buying says the
   // cards are not explaining themselves.
+  | { name: 'pack_deal_viewed'; data: { slotId: string; tierKey: string; bonusCards: number } }
+  | { name: 'pack_deal_opened'; data: { slotId: string; tierKey: string; bonusCards: number } }
+  | { name: 'pack_upsell_shown'; data: { trigger: string } }
+  | { name: 'pack_upsell_dismissed'; data: { trigger: string } }
   | { name: 'pack_odds_viewed'; data: { tierKey: string } }
   | { name: 'weekly_bonus_claimed'; data: { tierKey: string; bonusCards: number } }
   // ── World Cup funnel ──

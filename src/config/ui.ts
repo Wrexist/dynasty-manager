@@ -293,7 +293,7 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
   },
   packs: {
     title: 'Market Guide',
-    body: 'One free pack every day — it gets better the longer your login streak runs. Paid packs guarantee a higher floor, and every pack publishes its drop rates under "Odds". One pack is featured each week with a bonus card on its first purchase. Revealed players join your squad straight away, so keep a squad slot free.',
+    body: 'Bronze and Silver each offer one free pack daily, alongside your streak-based daily pack. Gold and premium packs stay available. Limited deals add bonus cards at the usual price until their timers end. Check contents and odds before buying, and leave room in your squad.',
   },
   staff: {
     title: 'Staff Guide',

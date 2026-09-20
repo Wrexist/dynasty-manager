@@ -48,7 +48,7 @@ export async function reconcilePendingPackCreditAtLaunch(notify = true): Promise
     const result: OpenPackResult = existing
       ? { success: true, message: 'Pack already credited.', players: existing.playerIds.map(id => state.players[id]).filter(Boolean) }
       : state.openPack(pending.tierKey as PackTierKey, {
-        method: 'iap', skipPayment: true, recordId: marker.recordId,
+        method: 'iap', skipPayment: true, recordId: marker.recordId, bonusCards: marker.bonusCards ?? 0,
         suppressPaidRejectSentry: pending.reported === true,
       });
     if (!result.success) {

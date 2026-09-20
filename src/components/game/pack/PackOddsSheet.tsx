@@ -153,7 +153,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
               <h2 className="text-base font-display font-bold text-foreground">{tier.label} — pack guide</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {bonusCards > 0
-                  ? `${totalCards} players this week, including the bonus card.`
+                  ? `${totalCards} players, including ${bonusCards} bonus card${bonusCards === 1 ? '' : 's'}.`
                   : rawTier.storeCaption}
               </p>
             </div>

@@ -280,6 +280,7 @@ export function removeSessionKey(key: string): void {
  *  pass raw string literals. Adding a new key? Register it here and reference
  *  it from the caller via `STORAGE_KEYS.MY_THING`. */
 export const STORAGE_KEYS = {
+  PACK_DEAL_UPSELL: 'dynasty-pack-deal-upsell',
   /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
   ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
   /** sessionStorage: per-tab dismissal of the week-1 onboarding checklist.
@@ -745,6 +746,8 @@ export function writeAppReviewState(state: AppReviewState): void {
 /** Crash-durable marker for a paid-but-not-yet-granted consumable pack.
  *  See STORAGE_KEYS.PENDING_PACK_CREDIT for the lifecycle. */
 export interface PendingPackCredit {
+  bonusCards?: number;
+  dealSlotId?: string;
   productId: string;
   tierKey: string;
   timestamp: number;
@@ -781,6 +784,8 @@ export function readPendingPackCredit(): PendingPackCredit | null {
     const parsed = JSON.parse(raw);
     if (typeof parsed?.productId !== 'string' || typeof parsed?.tierKey !== 'string') return null;
     return {
+      bonusCards: Number.isInteger(parsed.bonusCards) ? Math.max(0, Math.min(3, parsed.bonusCards)) : 0,
+      ...(typeof parsed.dealSlotId === 'string' ? { dealSlotId: parsed.dealSlotId } : {}),
       productId: parsed.productId,
       tierKey: parsed.tierKey,
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
@@ -1340,4 +1345,20 @@ function parseSummary(slot: number, raw: string): SlotSummary | null {
       breadcrumbCorruption(`getSlotSummaries:slot${slot}`, raw, err);
       return null;
     }
+}
+
+/** Atomically record an offer impression, failing closed if storage is unavailable. */
+export function recordPackUpsell(now: number, maxPerDay: number): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PACK_DEAL_UPSELL);
+    const previous = raw ? JSON.parse(raw) : null;
+    const day = Math.floor(now / 86400_000);
+    if (previous && (!Number.isFinite(previous.last) || !Number.isInteger(previous.count)
+      || !Number.isInteger(previous.day))) return false;
+    if (previous && (now - previous.last < 6 * 3600_000 || (previous.day >= day && previous.count >= maxPerDay))) return false;
+    localStorage.setItem(STORAGE_KEYS.PACK_DEAL_UPSELL, JSON.stringify({
+      day, last: now, count: previous?.day === day ? previous.count + 1 : 1,
+    }));
+    return true;
+  } catch { return false; }
 }

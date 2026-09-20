@@ -56,6 +56,21 @@ describe('launch-time pack credit reconciliation', async () => {
     expect(readPendingPackCredit()).toBeNull();
   });
 
+  it.each([0, 1, 2, 3])('delivers a locked %i-card bonus after the offer expires', async (bonusCards) => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({ clubs: { ...state.clubs, [club.id]: { ...club, playerIds: club.playerIds.slice(0, 20) } } });
+    const before = squadSize();
+    writePendingPackCredit({
+      productId: 'com.dynastymanager.pack.gold', tierKey: 'gold',
+      timestamp: Date.now() - 8 * 86400_000, slot: state.activeSlot,
+      charged: true, bonusCards, dealSlotId: 'flash',
+    });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before + 5 + bonusCards);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
   it('never grants an uncharged marker', async () => {
     const before = squadSize();
     writePendingPackCredit({

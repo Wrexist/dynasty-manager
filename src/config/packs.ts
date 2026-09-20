@@ -8,19 +8,8 @@ import type { PackOddsRow, PackRarityWeights, PackTierDefinition, PackTierKey, P
  * Types live in `src/types/game.ts` per the single-source-of-truth rule.
  *
  * ── THE MARKET, IN ONE PARAGRAPH ──
- * One free pack a day whose quality rises with the login streak; four paid
- * packs forming a clean price ladder; one of the paid packs featured each real
- * week with a bonus card on its first purchase. Nothing else. The previous
- * lineup ran THREE free daily packs (Bronze, Silver and a free-odds Gold) that
- * dominated one another — a rational player opened free Gold and treated the
- * other two as squad-slot litter — and shipped ~11 free players a day into a
- * 40-man squad, which made the transfer market decorative.
- *
- * ── ARCHIVED TIERS ──
- * `bronze` and `silver` are no longer sold or given away, but their definitions
- * stay here forever: `OpenedPackRecord.tier` in every existing save points at
- * them and Recent Pulls resolves label/art/palette through `PACK_TIER_MAP`.
- * `PACK_STOREFRONT_ORDER` is what the Market renders — not `PACK_TIERS`.
+ * Bronze, Silver, Gold and the premium ladder stay on the shelf. Timed deals
+ * add bonus cards to existing IAP products; the daily streak pack is retained.
  */
 
 // Color fields reference the HSL-tuple CSS vars declared in `src/index.css`
@@ -84,10 +73,11 @@ export const PACK_TIERS: PackTierDefinition[] = [
     adDailyLimit: 1,
   },
   {
-    // ── ARCHIVED — history replay only. Not in PACK_STOREFRONT_ORDER. ──
     key: 'bronze',
     label: 'Bronze Pack',
-    storeCaption: 'Retired pack.',
+    storeCaption: '3 players, one guaranteed 60+. One free daily.',
+    freeDailyLimit: 1,
+    cardFrame: 'bronze',
     price: 0,
     cards: 3,
     guaranteedMinOvr: 60,
@@ -100,10 +90,11 @@ export const PACK_TIERS: PackTierDefinition[] = [
     artSrc: '/packs/bronze.webp',
   },
   {
-    // ── ARCHIVED — history replay only. Not in PACK_STOREFRONT_ORDER. ──
     key: 'silver',
     label: 'Silver Pack',
-    storeCaption: 'Retired pack.',
+    storeCaption: '3 players, one guaranteed 70+. One free daily.',
+    freeDailyLimit: 1,
+    cardFrame: 'silver',
     price: 0,
     cards: 3,
     guaranteedMinOvr: 70,
@@ -123,7 +114,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     // could form a stable idea of what "Gold Pack" means. It is now purely the
     // $2.99 entry rung, at its full paid odds — nobody's purchase got worse.
     key: 'gold',
-    label: 'Champions Pack',
+    label: 'Gold Pack',
     storeCaption: '5 players, one guaranteed 78+.',
     badge: 'entry',
     storeBlurb: 'The entry pack. Five real players issued as Champions versions — +1 to every stat over their base card — with one guaranteed 78 or better. The cheapest way to put a recognisable name in your squad.',
@@ -254,10 +245,9 @@ export const PACK_TIER_MAP: Record<PackTierKey, PackTierDefinition> = PACK_TIERS
  *  cheapest to dearest so the price axis reads left-to-right, top-to-bottom.
  *  Archived tiers are absent by construction: adding a tier to `PACK_TIERS`
  *  does NOT put it on sale. */
-export const PACK_STOREFRONT_ORDER: PackTierKey[] = ['daily', 'gold', 'premium', 'rare', 'icon'];
+export const PACK_STOREFRONT_ORDER: PackTierKey[] = ['daily', 'bronze', 'silver', 'gold', 'premium', 'rare', 'icon'];
 
-/** The free tier. Exactly one — a second free pack is a design change, not a
- *  config change, and every surface that says "today's free pack" reads this. */
+/** The streak-based free pack; Bronze and Silver have their own daily allowances. */
 export const FREE_PACK_TIER: PackTierKey = 'daily';
 
 /** Paid storefront tiers, in ladder order. */
@@ -429,6 +419,8 @@ export function cardBackFor(frontSrc: string | null | undefined): string {
 }
 
 export const PACK_CARD_FRAMES: Record<string, string> = {
+  bronze: '/player-cards/bronze.webp',
+  silver: '/player-cards/silver.webp',
   'rise-to-glory': '/player-cards/rise-to-glory.webp',
   champions: '/player-cards/champions.webp',
   elite: '/player-cards/elite.webp',
@@ -980,3 +972,10 @@ export const PACK_ANIM = {
   },
   spring: { stiffness: 260, damping: 22 },
 } as const;
+
+/** Real, epoch-aligned windows; reopening the store never resets a deal. */
+export const PACK_DEAL_SLOTS = [
+  { id: 'flash', windowMs: 4 * 3600_000, bonusCards: 3 },
+  { id: 'focus', windowMs: 12 * 3600_000, bonusCards: 2 },
+  { id: 'daily', windowMs: 24 * 3600_000, bonusCards: 1 },
+] as const;
