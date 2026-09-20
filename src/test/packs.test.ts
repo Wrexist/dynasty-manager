@@ -206,13 +206,10 @@ describe('Pack opening — generation', () => {
 describe('Daily Pack — streak ladder', () => {
   const daily = PACK_TIER_MAP.daily;
 
-  it('is the only free pack in the storefront', () => {
-    // Three free daily packs dominated one another and shipped ~11 players a
-    // day into a 40-man squad. If a second one ever reappears, that is a
-    // deliberate economy decision and this test should be the thing that
-    // forces the conversation.
+  it('retains the streak pack alongside permanent Bronze and Silver', () => {
+    // Restore the requested basic tiers without changing the streak ladder.
     const freeTiers = PACK_STOREFRONT_ORDER.filter(k => (PACK_TIER_MAP[k].freeDailyLimit ?? 0) > 0);
-    expect(freeTiers).toEqual([FREE_PACK_TIER]);
+    expect(freeTiers).toEqual([FREE_PACK_TIER, 'bronze', 'silver']);
   });
 
   it('raises the guaranteed floor monotonically across streak bands', () => {
@@ -286,20 +283,20 @@ describe('Daily Pack — streak ladder', () => {
 });
 
 describe('Market — storefront integrity', () => {
-  it('every storefront tier resolves and every archived tier still resolves too', () => {
+  it('every permanent tier resolves, including restored Bronze and Silver', () => {
     // Archived tiers must never be deleted: `OpenedPackRecord.tier` in shipped
     // saves points at them and Recent Pulls resolves label/art through the map.
     for (const key of PACK_STOREFRONT_ORDER) expect(PACK_TIER_MAP[key]).toBeTruthy();
     for (const key of ['bronze', 'silver'] as PackTierKey[]) {
       expect(PACK_TIER_MAP[key], `archived tier ${key} was deleted — old saves will crash`).toBeTruthy();
-      expect(PACK_STOREFRONT_ORDER).not.toContain(key);
+      expect(PACK_STOREFRONT_ORDER).toContain(key);
     }
   });
 
-  it('archived tiers are unobtainable — no free allowance, no product', () => {
+  it('Bronze and Silver have one free daily allowance and no IAP product', () => {
     for (const key of ['bronze', 'silver'] as PackTierKey[]) {
       const tier = PACK_TIER_MAP[key];
-      expect(tier.freeDailyLimit ?? 0).toBe(0);
+      expect(tier.freeDailyLimit).toBe(1);
       expect(tier.adDailyLimit ?? 0).toBe(0);
       expect(tier.productId).toBeUndefined();
     }
@@ -930,12 +927,13 @@ describe('Pack opening — openPack action', () => {
     expect(after.openedPacks[0].tier).toBe('daily');
   });
 
-  it('refuses to open an archived tier — it has no unlock method left', () => {
-    // Bronze and Silver still resolve (old saves replay them) but nothing can
-    // obtain one. If a method ever comes back, that is a storefront decision.
+  it('opens Bronze and Silver once daily, then enforces their allowance', () => {
     for (const key of ['bronze', 'silver'] as PackTierKey[]) {
-      const result = useGameStore.getState().openPack(key);
-      expect(result.success, `${key} must not be openable`).toBe(false);
+      const state = useGameStore.getState();
+      const club = state.clubs[state.playerClubId];
+      useGameStore.setState({ clubs: { ...state.clubs, [club.id]: { ...club, playerIds: club.playerIds.slice(0, 20) } } });
+      expect(useGameStore.getState().openPack(key).success).toBe(true);
+      expect(useGameStore.getState().openPack(key).success).toBe(false);
     }
   });
 

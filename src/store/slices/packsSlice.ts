@@ -199,6 +199,7 @@ function evaluateOpenPack(
   state: GameState,
   tierKey: PackTierKey,
   method?: PackUnlockMethod,
+  lockedBonus?: number,
 ): CanOpenPackResult {
   const tier = PACK_TIER_MAP[tierKey];
   if (!tier) return { ok: false, message: 'Unknown pack tier.' };
@@ -247,7 +248,7 @@ function evaluateOpenPack(
   // Reserve space for the weekly bonus card too. Checking only `tier.cards`
   // would let a bonus-carrying purchase pass pre-flight and then be rejected by
   // the same rule after the store had already charged for it.
-  const packCards = tier.cards + weeklyBonusCardsFor(tierKey, resolvedMethod);
+  const packCards = tier.cards + (resolvedMethod === 'iap' ? lockedBonus ?? weeklyBonusCardsFor(tierKey, resolvedMethod) : 0);
   const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
   if (slotsAvailable < packCards) {
     return {
@@ -280,12 +281,12 @@ export const createPacksSlice = (set: Set, get: Get) => ({
    *  evaluates the cheapest auto-picked method. Run this BEFORE charging
    *  real money so the user can't pay and then be blocked by a challenge
    *  or squad-cap rule. */
-  canOpenPack: (tierKey: PackTierKey, method?: PackUnlockMethod): CanOpenPackResult =>
-    evaluateOpenPack(get(), tierKey, method),
+  canOpenPack: (tierKey: PackTierKey, method?: PackUnlockMethod, bonusCards?: number): CanOpenPackResult =>
+    evaluateOpenPack(get(), tierKey, method, bonusCards),
 
   openPack: (
     tierKey: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean; recordId?: string; bonusCards?: number; purchaseWeek?: number },
   ): OpenPackResult => {
     // Opening a new pack invalidates any pending quick-sell undo — the
     // snapshot would otherwise revert this fresh pack if restored.
@@ -331,7 +332,8 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // impossible in practice (the UI's `busy` flag prevents any state-
     // mutating action during the IAP flight); if it ever fires in
     // production, that's a bug we need to know about.
-    const eligible = evaluateOpenPack(state, tierKey, method);
+    const lockedBonus = Number.isInteger(opts?.bonusCards) ? Math.max(0, Math.min(3, opts!.bonusCards!)) : undefined;
+    const eligible = evaluateOpenPack(state, tierKey, method, lockedBonus);
     if (eligible.ok === false) {
       const paidButRejected = method === 'iap' && skipPayment === true;
       // The crash-recovery reconciler retries this every mount while the block
@@ -368,8 +370,12 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // card") and the boost is what the claim is worth, and three separate
     // currentWeekIndex() calls left a (microsecond) rollover window where
     // they could disagree. Structural beats improbable.
-    const weekIndex = currentWeekIndex();
-    const bonusCards = weeklyBonusCardsFor(tierKey, method, weekIndex);
+    const weekIndex = method === 'iap' && skipPayment && Number.isSafeInteger(opts?.purchaseWeek) && opts!.purchaseWeek! >= 0
+      ? opts!.purchaseWeek! : currentWeekIndex();
+    const weeklyBonus = weeklyBonusCardsFor(tierKey, method, weekIndex);
+    const bonusCards = method === 'iap'
+      ? Math.max(0, Math.min(3, lockedBonus ?? weeklyBonus))
+      : 0;
     const versionBoost = packVersionBoostFor(tierKey, weekIndex);
     const players = generatePackContents(tierKey, state.season, {
       pityTriggered, freeOpen, streak, extraCards: bonusCards, versionBoost,
@@ -521,7 +527,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // would make the bonus a best-of-N reroll (force-quit after a bad pull and
     // the bonus comes back). It is recorded only once the pack has actually been
     // generated, so a rejected open never consumes the week's bonus.
-    if (bonusCards > 0) {
+    if (weeklyBonus > 0) {
       writeWeeklyPackBonus({ weekIndex, tier: tierKey });
     }
 
@@ -548,7 +554,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       lastPackWeek: state.week,
       lastPackSeason: state.season,
       dailyPackOpens: nextDailyOpens,
-      ...(bonusCards > 0
+      ...(weeklyBonus > 0
         ? { weeklyPackBonus: { weekIndex, tier: tierKey } }
         : {}),
       messages: newMessages,

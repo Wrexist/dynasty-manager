@@ -19,6 +19,7 @@ import {
 } from '@/store/helpers/persistence';
 import { useGameStore } from '@/store/gameStore';
 import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight } from '@/utils/packCreditRecovery';
+import * as purchases from '@/utils/purchases';
 
 const CLUB = 'manchester-city';
 const originalOpenPack = useGameStore.getState().openPack;
@@ -56,6 +57,21 @@ describe('launch-time pack credit reconciliation', async () => {
     expect(readPendingPackCredit()).toBeNull();
   });
 
+  it.each([0, 1, 2, 3])('delivers a locked %i-card bonus after the offer expires', async (bonusCards) => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({ clubs: { ...state.clubs, [club.id]: { ...club, playerIds: club.playerIds.slice(0, 20) } } });
+    const before = squadSize();
+    writePendingPackCredit({
+      productId: 'com.dynastymanager.pack.gold', tierKey: 'gold',
+      timestamp: Date.now() - 8 * 86400_000, slot: state.activeSlot,
+      charged: true, bonusCards, dealSlotId: 'flash',
+    });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before + 5 + bonusCards);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
   it('never grants an uncharged marker', async () => {
     const before = squadSize();
     writePendingPackCredit({
@@ -69,7 +85,50 @@ describe('launch-time pack credit reconciliation', async () => {
     await reconcilePendingPackCreditAtLaunch();
 
     expect(squadSize()).toBe(before);
+    expect(readPendingPackCredit()?.charged).toBe(false);
+  });
+
+  it('recovers the native charge that completed before JS confirmation persisted', async () => {
+    const state = useGameStore.getState();
+    const before = squadSize();
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'gold', timestamp: Date.now(),
+      slot: state.activeSlot, charged: false, customerId: 'same-customer', priorTransactionIds: ['old'], purchaseWeek: 2 });
+    vi.spyOn(purchases, 'readConsumableHistory').mockResolvedValue({ customerId: 'same-customer', transactionIds: ['old', 'new'] });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before + 5);
     expect(readPendingPackCredit()).toBeNull();
+    const s = useGameStore.getState();
+    expect(s.openedPacks[0].playerIds.some(id => s.players[id].packFrame === 'royal-reserve')).toBe(true);
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before + 5);
+  });
+
+  it.each(['offline', 'old-only', 'other-customer', 'ambiguous'])('retains an unverified payment on %s without granting', async reason => {
+    const before = squadSize();
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'gold', timestamp: Date.now(),
+      slot: useGameStore.getState().activeSlot, charged: false, customerId: 'customer', priorTransactionIds: ['old'] });
+    const probe = vi.spyOn(purchases, 'readConsumableHistory');
+    if (reason === 'offline') probe.mockRejectedValue(new Error('offline'));
+    else probe.mockResolvedValue({ customerId: reason === 'other-customer' ? 'other' : 'customer',
+      transactionIds: reason === 'old-only' ? ['old'] : reason === 'ambiguous' ? ['old', 'new1', 'new2'] : ['old', 'new'] });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before);
+    expect(readPendingPackCredit()?.charged).toBe(false);
+  });
+
+  it('does not deliver to a different save loaded while transaction verification waits', async () => {
+    const before = squadSize();
+    const slot = useGameStore.getState().activeSlot;
+    writePendingPackCredit({ productId: 'com.dynastymanager.pack.gold', tierKey: 'gold', timestamp: Date.now(), slot,
+      charged: false, customerId: 'customer', priorTransactionIds: [] });
+    let finish!: (history: purchases.ConsumableHistory) => void;
+    vi.spyOn(purchases, 'readConsumableHistory').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    const recovering = reconcilePendingPackCreditAtLaunch(false);
+    useGameStore.setState({ activeSlot: slot === 1 ? 2 : 1 });
+    finish({ customerId: 'customer', transactionIds: ['paid'] });
+    await recovering;
+    expect(squadSize()).toBe(before);
+    expect(readPendingPackCredit()?.slot).toBe(slot);
   });
 
   it('ignores a credit belonging to another save slot', async () => {

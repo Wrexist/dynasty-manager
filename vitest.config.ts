@@ -104,17 +104,8 @@ export default defineConfig({
     // note below and `src/test/helpers/eventLoop.ts`. Do not expect this line
     // to protect against it.
     //
-    // The value also lived at `test.maxForks`, where it did NOTHING —
-    // `maxForks` is a `poolOptions.forks` key (see `ForksOptions` in vitest's
-    // own types); the only top-level spellings are `maxWorkers`/`minWorkers`.
-    // Vitest does not reject unknown keys, so the cap read as applied for as
-    // long as it was written in the wrong place. It is now where the pool
-    // actually looks.
-    poolOptions: {
-      forks: {
-        maxForks: process.env.CI ? Math.max(1, os.cpus().length - 1) : 4,
-      },
-    },
+    // Vitest 4 uses top-level worker limits; keep memory bounded.
+    maxWorkers: process.env.CI ? Math.max(1, os.cpus().length - 1) : 4,
     // Low-chatter reporter by default. A CLI `--reporter=verbose` still
     // overrides this, which is what a flake hunt needs.
     //

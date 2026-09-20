@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, LEAGUES, getLeaguesByCountry } from '@/data/league';
 import { CLUBS_BY_LEAGUE, LEAGUE_REGIONS } from '@/data/leagues';
-import { NATIONS, getNationStarPlayers } from '@/data/nations';
+import { SELECTABLE_NATIONS as NATIONS, getNationStarPlayers } from '@/data/nations';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';

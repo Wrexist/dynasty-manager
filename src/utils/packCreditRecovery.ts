@@ -5,6 +5,7 @@ import { infoToast, successToast } from '@/utils/gameToast';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
 import { safeRandomUUID } from '@/utils/helpers';
 import { track } from '@/utils/analytics';
+import { readConsumableHistory } from '@/utils/purchases';
 import type { OpenPackResult, PackTierKey } from '@/types/game';
 
 let purchaseInFlight = false;
@@ -25,30 +26,44 @@ export function setPackPurchaseInFlight(value: boolean): void {
  * cannot generate a second pack. Concurrent mount effects share this gate. */
 export async function reconcilePendingPackCreditAtLaunch(notify = true): Promise<OpenPackResult | undefined> {
   if (purchaseInFlight || reconciling) return;
-  const state = useGameStore.getState();
+  let state = useGameStore.getState();
   if (state.gameMode === 'world-cup') return;
-  const pending = readPendingPackCredit();
+  let pending = readPendingPackCredit();
   if (!pending || pending.slot !== state.activeSlot) return;
-  if (pending.charged === false) {
-    Sentry.captureMessage('[Packs] Dropping unconfirmed pack credit', 'info');
-    clearPendingPackCredit();
-    return;
-  }
   const tier = PACK_TIER_MAP[pending.tierKey as PackTierKey];
   if (!tier || tier.productId !== pending.productId || !state.clubs[state.playerClubId]) return;
-
-  const marker = { ...pending, recordId: pending.recordId ?? safeRandomUUID() };
-  if (!writePendingPackCredit(marker)) {
-    infoToast('Purchase is waiting', 'Free up device storage, then reopen the Market to receive your pack.');
-    return;
-  }
   reconciling = true;
   try {
+    if (pending.charged === false) {
+      if (!pending.customerId || !pending.priorTransactionIds) {
+        if (notify) infoToast('Purchase needs verification', 'Contact support to check the interrupted purchase before buying another pack.');
+        return;
+      }
+      const history = await readConsumableHistory(pending.productId, true);
+      const currentPending = readPendingPackCredit();
+      const liveState = useGameStore.getState();
+      if (!currentPending || currentPending.timestamp !== pending.timestamp || currentPending.productId !== pending.productId
+        || currentPending.slot !== pending.slot || liveState.activeSlot !== pending.slot || liveState.gameMode === 'world-cup'
+        || liveState.playerClubId !== state.playerClubId) return;
+      state = liveState;
+      const newIds = history.transactionIds.filter(id => !pending!.priorTransactionIds!.includes(id));
+      if (history.customerId !== pending.customerId || newIds.length !== 1) {
+        if (notify) infoToast('Purchase verification pending', 'Reconnect and reopen the Market. If the purchase was cancelled, contact support to clear the pending payment.');
+        return;
+      }
+      pending = { ...pending, charged: true, transactionId: newIds[0] };
+    }
+    const marker = { ...pending, recordId: pending.recordId ?? safeRandomUUID() };
+    if (!writePendingPackCredit(marker)) {
+      infoToast('Purchase is waiting', 'Free up device storage, then reopen the Market to receive your pack.');
+      return;
+    }
     const existing = state.openedPacks.find(pack => pack.id === marker.recordId);
     const result: OpenPackResult = existing
       ? { success: true, message: 'Pack already credited.', players: existing.playerIds.map(id => state.players[id]).filter(Boolean) }
       : state.openPack(pending.tierKey as PackTierKey, {
-        method: 'iap', skipPayment: true, recordId: marker.recordId,
+        method: 'iap', skipPayment: true, recordId: marker.recordId, bonusCards: marker.bonusCards ?? 0,
+        purchaseWeek: marker.purchaseWeek,
         suppressPaidRejectSentry: pending.reported === true,
       });
     if (!result.success) {

@@ -17,6 +17,7 @@ import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
+import { PackDealOfferHost } from '@/components/game/pack/PackDealOfferHost';
 import { AdOfferHost } from '@/components/game/AdOfferHost';
 import { REWARDED_ADS_USABLE } from '@/utils/ads';
 import { getEntitlementsDefinitive, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
@@ -463,6 +464,7 @@ const GameShell = () => {
                     a 2.5s timer on every screen change to reach a decision it
                     could never take. */}
                 {REWARDED_ADS_USABLE && <AdOfferHost />}
+                {currentScreen === 'dashboard' && <PackDealOfferHost />}
               </PresentationQueueProvider>
             </Suspense>
           </PageErrorBoundary>

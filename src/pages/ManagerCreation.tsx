@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
-import { NATIONS, getNationStarPlayers } from '@/data/nations';
+import { SELECTABLE_NATIONS as NATIONS, getNationStarPlayers } from '@/data/nations';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, X } from 'lucide-react';

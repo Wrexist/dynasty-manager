@@ -43,26 +43,9 @@ export interface PendingRelease {
 
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
-  new: [
-    'Hall of Legends: retired greats can now appear as Legend cards in Elite, World Class and Legends packs — including stars who retire in your own save.',
-  ],
-  improved: [
-    'FC27 player database + Hall of Legends.',
-    'Fixed player cards showing a doubled name for suffix-only surnames (e.g. "VINI / Vini" for Vini Jr.).',
-    'Fixed two clubs fielding a team with no goalkeeper.',
-    'Players now show their full names — Alisson Becker, Gabriel Magalhães, Vinícius Júnior.',
-    'Card backs, the walkout OVR beat, and the App Store preview rig.',
-    'Redesign pack quick-sell from per-open cap to per-card taper.',
-    'Player profiles now highlight breakthrough development and career milestones.',
-    'Improved recovery of paid packs after interrupted saves.',
-    'Protected quick-sell Undo from overwriting later actions.',
-    'Save confirmations now wait for storage to finish.',
-    'Saving no longer waits indefinitely for stalled device storage, and failed saves keep an accurate status.',
-  ],
-  fixed: [
-    'Improved paid pack recovery after interrupted saves and protected quick-sell Undo from overwriting later actions.',
-    'Saving no longer waits indefinitely for stalled device storage, and failed saves keep an accurate status.',
-  ],
+  new: [],
+  improved: [],
+  fixed: [],
   headline: null,
   summary: null,
 };

@@ -47,7 +47,8 @@ export type OverlayId =
   | 'farewell'
   | 'notifPrompt'
   | 'dailyReward'
-  | 'adOffer';
+  | 'adOffer'
+  | 'packOffer';
 
 export const PRESENTATION_ORDER: OverlayId[] = [
   'sessionRecap',
@@ -75,6 +76,7 @@ export const PRESENTATION_ORDER: OverlayId[] = [
   // interrupts. Moving this up the list trades D7 retention (a 2026 App Store
   // ranking input) for a few impressions — a bad trade at any ad rate.
   'adOffer',
+  'packOffer',
 ];
 
 /**

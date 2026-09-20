@@ -377,6 +377,30 @@ export async function getStoreAvailability(
  * On web/dev (where the native plugin isn't available) this resolves true
  * so the rest of the flow can be tested without a real store.
  */
+export interface ConsumableHistory {
+  customerId: string;
+  transactionIds: string[];
+}
+
+/** Read verified transaction history before charging, then compare it on recovery.
+ * Never interpret an offline response or absence of a transaction as cancellation. */
+export async function readConsumableHistory(productId: string, sync = false): Promise<ConsumableHistory> {
+  if (!Capacitor.isNativePlatform()) return { customerId: 'web-preview', transactionIds: [] };
+  await ensureConfigured();
+  const { Purchases } = await import('@revenuecat/purchases-capacitor');
+  if (sync) await Purchases.syncPurchases();
+  await Purchases.invalidateCustomerInfoCache();
+  const { customerInfo } = await Purchases.getCustomerInfo();
+  if (!customerInfo.originalAppUserId || !Array.isArray(customerInfo.nonSubscriptionTransactions)) {
+    throw new Error('Purchase history unavailable');
+  }
+  return {
+    customerId: customerInfo.originalAppUserId,
+    transactionIds: customerInfo.nonSubscriptionTransactions
+      .filter(t => t.productIdentifier === productId).map(t => t.transactionIdentifier),
+  };
+}
+
 export async function purchaseConsumable(productId: ProductId): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) {
     // No native store available — treat as a successful test purchase so

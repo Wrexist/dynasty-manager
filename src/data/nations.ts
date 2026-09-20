@@ -101,6 +101,9 @@ export const NATIONS: NationData[] = [
  * screen to render PlayerCard previews so names + stats stay consistent
  * with the rest of the game. Cached per-nation since the pool is static.
  */
+/** Selectable canonical names; legacy aliases stay in NATIONS for old saves. */
+export const SELECTABLE_NATIONS = NATIONS.filter(n => !['Czechia', 'T\u00fcrkiye'].includes(n.name));
+
 const nationStarPlayerCache = new Map<string, Player[]>();
 // Star previews resolved while the lazy pool was still loading would all
 // land as empty arrays and stick. Drop the cache when the pool lands so

@@ -28,6 +28,9 @@ interface PackOddsSheetProps {
    *  understating the offer it is attached to. */
   bonusCards?: number;
   onClose: () => void;
+  onPurchase?: () => void;
+  purchaseLabel?: string;
+  purchaseDisabled?: boolean;
 }
 
 /** Percent with one decimal only where it earns it — "78%" reads better than
@@ -58,7 +61,7 @@ function pct(chance: number): string {
  * drifts is worse than none, because then it is a false claim rather than a
  * missing one.
  */
-export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }: PackOddsSheetProps) {
+export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, onPurchase, purchaseLabel, purchaseDisabled }: PackOddsSheetProps) {
   const prefersReducedMotion = useReducedMotionPref();
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true);
@@ -153,7 +156,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
               <h2 className="text-base font-display font-bold text-foreground">{tier.label} — pack guide</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {bonusCards > 0
-                  ? `${totalCards} players this week, including the bonus card.`
+                  ? `${totalCards} players, including ${bonusCards} bonus card${bonusCards === 1 ? '' : 's'}.`
                   : rawTier.storeCaption}
               </p>
             </div>
@@ -336,6 +339,10 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
             with different ratings.
           </p>
         </div>
+        {onPurchase && <button type="button" disabled={purchaseDisabled} onClick={onPurchase}
+          className="mt-5 w-full min-h-11 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-50">
+          {purchaseDisabled ? 'Pack unavailable' : purchaseLabel ?? 'Choose pack'}
+        </button>}
       </motion.div>
     </motion.div>
   );

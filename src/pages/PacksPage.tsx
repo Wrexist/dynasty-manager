@@ -1,3 +1,8 @@
+import { usePackDeals } from '@/hooks/usePackDeals';
+import { getActiveDeals, getDealForTier, formatDealRemaining, takeSelectedPackDeal, type ActivePackDeal } from '@/utils/packDeals';
+import { claimPackUpsell } from '@/utils/packUpsell';
+import { PackDealCard } from '@/components/game/pack/PackDealCard';
+import { PackDealUpsell } from '@/components/game/pack/PackDealUpsell';
 import * as Sentry from '@sentry/react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useMemo, useState } from 'react';
@@ -18,7 +23,7 @@ import {
   getFeaturedPackTier,
   getFeaturedPackPresentation,
   FREE_PACK_TIER,
-  PAID_PACK_TIERS,
+  PACK_STOREFRONT_ORDER,
   nextStreakBand,
   resolvePackTier,
   WEEKLY_PACK_SKINS,
@@ -37,7 +42,7 @@ import type { Player } from '@/types/game';
 import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { isPro } from '@/utils/monetization';
 import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight, isPackPurchaseInFlight } from '@/utils/packCreditRecovery';
-import { purchaseConsumable, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
+import { purchaseConsumable, readConsumableHistory, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit, currentWeekIndex, msUntilNextWeekIndex } from '@/store/helpers/persistence';
 import { track } from '@/utils/analytics';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
@@ -133,6 +138,8 @@ const PacksPage = () => {
   const activeSlot = useGameStore(s => s.activeSlot);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
+  const deals = usePackDeals();
+  const [upsellDeals, setUpsellDeals] = useState<ActivePackDeal[]>([]);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
   /** True while a rewarded ad or IAP flow is in flight — prevents
    *  double-clicks producing duplicate spend or back-to-back ad requests. */
@@ -331,20 +338,27 @@ const PacksPage = () => {
   // Store-availability probe, scoped to the consumable pack SKUs this page
   // sells. `null` = not probed yet or off-device → assume sellable, matching
   // the convention in ShopPage and SubscribeOnboarding.
-  const [packAvailableIds, setPackAvailableIds] = useState<ProductId[] | null>(null);
+  const [packAvailableIds, setPackAvailableIds] = useState<ProductId[] | null>([]);
+  const [packPrices, setPackPrices] = useState<Partial<Record<ProductId, string>> | undefined>({});
   useEffect(() => {
     let cancelled = false;
     const ids = PACK_TIERS.map(t => t.productId).filter(Boolean) as ProductId[];
     if (ids.length === 0) return;
     getStoreAvailability(ids)
-      .then(({ supported, available }) => {
-        if (!cancelled) setPackAvailableIds(supported ? available : null);
+      .then(({ supported, available, prices }) => {
+        if (!cancelled) {
+          setPackAvailableIds(supported ? available : null);
+          setPackPrices(supported ? prices : undefined);
+        }
       })
-      .catch(() => { if (!cancelled) setPackAvailableIds(null); });
+      .catch(() => { if (!cancelled) setPackAvailableIds([]); });
     return () => { cancelled = true; };
   }, []);
   const packSkuPurchasable = (productId: ProductId) =>
-    packAvailableIds === null || packAvailableIds.includes(productId);
+    packAvailableIds === null || (packAvailableIds.includes(productId) && !!packPrices?.[productId]);
+  const pricedTier = (tier: PackTierDefinition): PackTierDefinition => ({
+    ...tier, iapPriceDisplay: packPrices === undefined ? tier.iapPriceDisplay : tier.productId ? packPrices[tier.productId] : undefined,
+  });
 
   // ── Market composition ──
   // Featured rotates on the REAL week, not the in-game one. `(season, week)`
@@ -361,12 +375,9 @@ const PacksPage = () => {
   // `tier` reference on every 30s countdown tick re-rendered it for nothing.
   const featured = useMemo(() => getFeaturedPackPresentation(weekIndex), [weekIndex]);
   const freeTier = PACK_TIER_MAP[FREE_PACK_TIER];
-  /** Paid ladder, cheapest first, with the featured pack lifted out of the
-   *  grid — it is already the hero, and showing it twice was the single most
-   *  confusing thing about the old layout. */
-  const paidTiers = useMemo(
-    () => PAID_PACK_TIERS.filter(k => k !== featuredKey).map(k => PACK_TIER_MAP[k]),
-    [featuredKey],
+  const permanentTiers = useMemo(
+    () => PACK_STOREFRONT_ORDER.filter(k => k !== FREE_PACK_TIER).map(k => PACK_TIER_MAP[k]),
+    [],
   );
   const streak = currentLoginStreak();
   const nextBand = nextStreakBand(streak);
@@ -380,15 +391,18 @@ const PacksPage = () => {
   // memo, while the authoritative claim is the device record that
   // `weeklyBonusCardsFor` reads. Dropping it would leave the hero showing a
   // bonus that has just been spent until the next unrelated re-render.
-  const featuredBonus = useMemo(
-    () => weeklyBonusCardsFor(featuredKey, 'iap'),
-    [featuredKey, weeklyPackBonus],
-  );
+  const featuredBonus = weeklyBonusCardsFor(featuredKey, 'iap');
+  void weeklyPackBonus;
   const weeklyCountdown = formatCountdown(msUntilNextWeekIndex());
 
   /** Pack whose odds sheet is open, or null. */
-  const [oddsTier, setOddsTier] = useState<PackTierKey | null>(null);
-  const showOdds = (key: PackTierKey) => {
+  const [oddsFeatured, setOddsFeatured] = useState(false);
+  const [initialDeal] = useState(takeSelectedPackDeal);
+  const [oddsDeal, setOddsDeal] = useState<ActivePackDeal | null>(initialDeal);
+  const [oddsTier, setOddsTier] = useState<PackTierKey | null>(initialDeal?.tierKey ?? null);
+  const showOdds = (key: PackTierKey, deal?: ActivePackDeal, featuredPresentation = false) => {
+    setOddsFeatured(featuredPresentation);
+    setOddsDeal(deal ?? null);
     setOddsTier(key);
     track('pack_odds_viewed', { tierKey: key });
   };
@@ -411,11 +425,23 @@ const PacksPage = () => {
     usedToday(t).free > 0 || usedToday(t).ad > 0,
   );
 
-  const handleOpen = async (tierKey: PackTierKey) => {
+  const bonusCountdownFor = (key: PackTierKey) => {
+    const deal = getDealForTier(key);
+    return deal ? formatDealRemaining(deal.remainingMs) : undefined;
+  };
+  const bonusFor = (key: PackTierKey) => Math.max(weeklyBonusCardsFor(key, 'iap'), getDealForTier(key)?.bonusCards ?? 0);
+  const handleOpen = async (tierKey: PackTierKey, advertisedDeal: ActivePackDeal | undefined = getDealForTier(tierKey) ?? undefined) => {
     // Guard against rapid double-taps while an overlay is already up,
     // a pack was just opened this frame, or an async ad/IAP is mid-flight.
     if (opening || replay || busy || isPackPurchaseInFlight()) return;
     const tier = PACK_TIER_MAP[tierKey];
+    if (advertisedDeal) {
+      const live = getActiveDeals().find(deal => deal.slotId === advertisedDeal.slotId);
+      if (!live || live.tierKey !== advertisedDeal.tierKey || live.endsAt !== advertisedDeal.endsAt) {
+        infoToast('Offer updated', 'Review the current bonus before buying. No purchase was started.');
+        return;
+      }
+    }
     if (!club) return;
 
     const method = activeMethodFor(tier);
@@ -428,7 +454,7 @@ const PacksPage = () => {
     // IAP path: without this, a charged consumable could be followed
     // by an openPack failure (e.g. an active challenge blocking
     // signings) — the user pays real money and gets nothing.
-    const eligibility = canOpenPack(tierKey, method);
+    const eligibility = canOpenPack(tierKey, method, method === 'iap' ? advertisedDeal?.bonusCards ?? bonusFor(tierKey) : 0);
     if (eligibility.ok === false) {
       errorToast('Cannot open pack', eligibility.message);
       return;
@@ -478,7 +504,7 @@ const PacksPage = () => {
     // Snapshot the bonus BEFORE the open consumes it — after `openPack`,
     // `weeklyBonusCardsFor` reads 0 and the analytics event would under-report
     // every bonus that was actually granted.
-    const bonusAtPurchase = weeklyBonusCardsFor(tierKey, 'iap');
+    const bonusAtPurchase = advertisedDeal?.bonusCards ?? bonusFor(tierKey);
     setBusy(true);
     setPackPurchaseInFlight(true);
     addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
@@ -494,11 +520,20 @@ const PacksPage = () => {
       // un-charged and only promoted once the store confirms, otherwise any
       // failed attempt (offline, force-quit on the sheet) left a record the
       // reconciler happily granted — a free, repeatable paid pack.
-      const marker = { productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot, charged: false };
       if (readPendingPackCredit()) {
         infoToast('A purchase is still waiting', 'Reopen the Market in the save that bought the pack before buying another.');
         return;
       }
+      const history = await readConsumableHistory(tier.productId);
+      if (useGameStore.getState().activeSlot !== activeSlot || useGameStore.getState().playerClubId !== club.id) return;
+      // Recheck after the network probe: an offer may have expired meanwhile.
+      if (currentWeekIndex() !== weekIndex || (advertisedDeal && !getActiveDeals().some(d => d.slotId === advertisedDeal.slotId && d.tierKey === tierKey && d.endsAt === advertisedDeal.endsAt))) {
+        infoToast('Offer updated', 'Review the current contents before buying. No purchase was started.');
+        return;
+      }
+      const marker = { productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot, charged: false,
+        purchaseWeek: weekIndex, customerId: history.customerId, priorTransactionIds: history.transactionIds,
+        bonusCards: bonusAtPurchase, dealSlotId: advertisedDeal?.slotId ?? getDealForTier(tierKey)?.slotId };
       if (!writePendingPackCredit(marker)) {
         errorToast('Purchase unavailable', 'Free up device storage before buying a pack so your purchase can be saved.');
         return;
@@ -541,7 +576,8 @@ const PacksPage = () => {
       // The shared reconciler has awaited durable storage and retained the marker on failure.
       successToast('Purchase complete', `${tier.label} unlocked.`);
       track('purchase_completed', { productId: tier.productId, surface: 'packs' });
-      const claimedBonus = weeklyBonusCardsFor(tierKey, 'iap') === 0 ? bonusAtPurchase : 0;
+      if (marker.dealSlotId) track('pack_deal_opened', { slotId: marker.dealSlotId, tierKey, bonusCards: bonusAtPurchase });
+      const claimedBonus = bonusAtPurchase;
       if (claimedBonus > 0) track('weekly_bonus_claimed', { tierKey, bonusCards: claimedBonus });
       track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true, bonusCards: claimedBonus });
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
@@ -619,6 +655,22 @@ const PacksPage = () => {
             is never the free pack: a store's headline should be the thing worth
             paying for, and the old rotation put Silver — a free pack — in the
             featured slot one week in six. */}
+        <section aria-labelledby="market-deals">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 id="market-deals" className="text-xs font-semibold uppercase tracking-widest">Limited deals</h3>
+            <span className="text-[10px] text-muted-foreground">Same price. More cards.</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
+            {deals.map(deal => (
+              <PackDealCard key={deal.slotId} deal={deal}
+                price={pricedTier(PACK_TIER_MAP[deal.tierKey]).iapPriceDisplay}
+                available={activeMethodFor(PACK_TIER_MAP[deal.tierKey]) === 'iap' && canOpenPack(deal.tierKey, 'iap', deal.bonusCards).ok && !busy}
+                onSelect={() => { void handleOpen(deal.tierKey, deal); }}
+                onOdds={() => showOdds(deal.tierKey, deal)} />
+            ))}
+          </div>
+        </section>
+
         <section aria-labelledby="market-week">
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <div className="flex items-center gap-1.5">
@@ -633,16 +685,17 @@ const PacksPage = () => {
           </div>
           <PackShopCard
             featured
-            tier={featured}
+            tier={pricedTier(featured)}
             affordable={isAffordable(featured)}
-            squadOk={squadSize + featured.cards + featuredBonus <= MAX_SQUAD_SIZE}
+            squadOk={squadSize + featured.cards + bonusFor(featuredKey) <= MAX_SQUAD_SIZE}
             onSelect={() => { void handleOpen(featured.key); }}
-            onShowOdds={() => showOdds(featured.key)}
+            onShowOdds={() => showOdds(featured.key, undefined, true)}
             method={activeMethodFor(featured)}
             freeRemaining={freeRemaining(featured)}
             adRemaining={adRemaining(featured)}
             resetCountdown={dailyAllowanceUsed ? formatCountdown(msToReset) : undefined}
-            bonusCards={featuredBonus}
+            bonusCards={bonusFor(featuredKey)}
+            bonusCountdown={bonusCountdownFor(featuredKey)}
             weeklyCountdown={weeklyCountdown}
           />
           {featuredBonus === 0 && (
@@ -696,24 +749,23 @@ const PacksPage = () => {
           </div>
         </section>
 
-        {/* ── PACKS ──
-            The paid ladder, cheapest first. The featured pack is absent because
-            it is the hero above; listing it twice was the old layout's worst
-            habit. */}
+        {/* The permanent shelf includes the featured product at its usual name. */}
         <section aria-labelledby="market-packs">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Store className="w-3.5 h-3.5 text-muted-foreground" />
             <h3 id="market-packs" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Packs
+              Always available
             </h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {paidTiers.map(tier => (
+            {permanentTiers.map(tier => (
               <PackShopCard
                 key={tier.key}
-                tier={tier}
+                tier={pricedTier(tier)}
+                bonusCards={tier.productId ? bonusFor(tier.key) : 0}
+                bonusCountdown={bonusCountdownFor(tier.key)}
                 affordable={isAffordable(tier)}
-                squadOk={squadSize + tier.cards <= MAX_SQUAD_SIZE}
+                squadOk={squadSize + tier.cards + (tier.productId ? bonusFor(tier.key) : 0) <= MAX_SQUAD_SIZE}
                 onSelect={() => { void handleOpen(tier.key); }}
                 onShowOdds={() => showOdds(tier.key)}
                 method={activeMethodFor(tier)}
@@ -937,10 +989,14 @@ const PacksPage = () => {
             // does, or a player checking the odds on "The Dynasty Pack" is
             // shown a sheet headed "World Class Pack" and has no way to know
             // it is the same offer.
-            tier={oddsTier === featuredKey ? featured : PACK_TIER_MAP[oddsTier]}
+            tier={oddsTier === featuredKey ? { ...featured, label: oddsFeatured ? featured.label : PACK_TIER_MAP[oddsTier].label } : PACK_TIER_MAP[oddsTier]}
             streak={oddsTier === FREE_PACK_TIER ? streak : undefined}
-            bonusCards={oddsTier === featuredKey ? featuredBonus : 0}
+            bonusCards={PACK_TIER_MAP[oddsTier].productId ? (oddsDeal && deals.some(d => d.slotId === oddsDeal.slotId && d.endsAt === oddsDeal.endsAt) ? oddsDeal.bonusCards : bonusFor(oddsTier)) : 0}
             onClose={() => setOddsTier(null)}
+            purchaseLabel={activeMethodFor(PACK_TIER_MAP[oddsTier]) === 'iap'
+              ? `Buy ${pricedTier(PACK_TIER_MAP[oddsTier]).iapPriceDisplay ?? ''}` : 'Open pack'}
+            purchaseDisabled={busy || !isAffordable(PACK_TIER_MAP[oddsTier])}
+            onPurchase={() => { const key = oddsTier; setOddsTier(null); void handleOpen(key, oddsDeal ?? undefined); }}
           />
         )}
       </AnimatePresence>
@@ -956,6 +1012,10 @@ const PacksPage = () => {
             onClose={() => {
               const { tier } = opening;
               setOpening(null);
+              const state = useGameStore.getState();
+              const live = deals.filter(deal => activeMethodFor(PACK_TIER_MAP[deal.tierKey]) === 'iap' && canOpenPack(deal.tierKey, 'iap', deal.bonusCards).ok);
+              if (['daily', 'bronze', 'silver'].includes(tier) && !(state.season === 1 && state.week <= 2)
+                && live.length > 0 && claimPackUpsell()) setUpsellDeals(live);
               // Peak-satisfaction moment right after a Gold-or-better reveal —
               // ask for a store review. Self-throttled (60-day gap, 4 lifetime)
               // inside maybeRequestReview, so it never nags.
@@ -969,6 +1029,15 @@ const PacksPage = () => {
           />
         )}
       </AnimatePresence>
+
+      {upsellDeals.length > 0 && !opening && !busy && deals.some(deal => upsellDeals.some(old => old.slotId === deal.slotId && old.endsAt === deal.endsAt)) && (
+        <PackDealUpsell
+          prices={packPrices}
+          deals={deals.filter(deal => upsellDeals.some(old => old.slotId === deal.slotId && old.endsAt === deal.endsAt))}
+          onClose={() => setUpsellDeals([])}
+          onView={deal => { setUpsellDeals([]); showOdds(deal.tierKey, deal); }}
+        />
+      )}
 
       {/* Replay recent pull (summary state only) */}
       <AnimatePresence>

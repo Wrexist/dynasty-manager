@@ -36,6 +36,7 @@ interface PackShopCardProps {
   /** Weekly bonus cards this purchase would add. Drives the "+1 this week"
    *  ribbon and the bonus line under the caption. */
   bonusCards?: number;
+  bonusCountdown?: string;
   /** Pre-formatted countdown to the weekly rotation, shown on the hero. */
   weeklyCountdown?: string;
 }
@@ -71,7 +72,7 @@ const BADGE_COPY: Record<string, string> = {
  */
 export const PackShopCard = memo(function PackShopCard({
   tier: rawTier, affordable, squadOk, onSelect, onShowOdds, featured, method,
-  freeRemaining, adRemaining, resetCountdown, streak, bonusCards = 0, weeklyCountdown,
+  freeRemaining, adRemaining, resetCountdown, streak, bonusCards = 0, weeklyCountdown, bonusCountdown,
 }: PackShopCardProps) {
   // The guarantee badge must describe the open the CTA is about to perform: the
   // Daily Pack's floor rises with the streak. Same resolver the generator uses,
@@ -262,6 +263,7 @@ export const PackShopCard = memo(function PackShopCard({
 
   const details = (
     <div className={cn('flex flex-col', featured ? 'gap-1.5' : 'gap-1 mt-1.5')}>
+      <h4 className="text-xs font-semibold text-foreground">{tier.label}</h4>
       {/* `items-start`, not baseline: the contents line can wrap on a narrow
           tile and Odds should stay pinned to its first line. */}
       <div className="flex items-start justify-between gap-2">
@@ -301,8 +303,11 @@ export const PackShopCard = memo(function PackShopCard({
       </div>
       {bonusCards > 0 && (
         <p className={cn('text-primary font-semibold leading-snug', featured ? 'text-xs' : 'text-[10px]')}>
-          Weekly bonus: +{bonusCards} extra card, guaranteed {tier.guaranteedMinOvr}+
+          Bonus: +{bonusCards} extra card{bonusCards === 1 ? '' : 's'}, guaranteed {tier.guaranteedMinOvr}+
         </p>
+      )}
+      {bonusCards > 0 && bonusCountdown && (
+        <span className="text-[10px] tabular-nums text-muted-foreground">Bonus ends in {bonusCountdown}</span>
       )}
       {featured && weeklyCountdown && (
         <span className="flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
