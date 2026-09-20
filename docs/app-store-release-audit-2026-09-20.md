@@ -93,3 +93,10 @@ The App Store Connect draft has been changed from unsubmitted 1.5.0 to 1.6.0 and
 - Completed the two new social-media questions with No and saved the age-rating questionnaire. Paid Loot Boxes was already Yes and remains Yes; global calculated rating remains 9+, with regional exceptions.
 - Found the existing App Privacy label disclosed Product Interaction and Crash Data but omitted Purchases. The 1.6.0 disclosure is being corrected to Purchase History for App Functionality and Analytics, not linked to identity and not tracking, matching anonymous RevenueCat configuration. Reference: https://www.revenuecat.com/docs/platform-resources/apple-platform-resources/apple-app-privacy . The native manifest includes both purposes.
 - The duplicate local full-suite run was stopped due to host memory pressure; GitHub full-suite validation remains mandatory. No local full-suite pass is claimed.
+
+### Final UI and metadata follow-up
+
+- App Privacy is now published with Purchase History used for Analytics and App Functionality, not linked to identity and not tracking. The obsolete Product Interaction and Crash Data categories were removed for this release.
+- A source review found occasional references to pints in Sunday League. Alcohol references are now Infrequent in ASC; the saved calculated global rating is **13+**, superseding the initial 9+ result above. Loot Boxes remains Yes.
+- Fresh browser career creation, save reload, Daily Reward normal-click dismissal, permanent-pack availability, deduplicated Gold bonus offer, and Gold odds-sheet purchase action were exercised. The local simulated purchase displayed eight players including the three advertised bonuses. This does not establish StoreKit sandbox behavior. The latest focused recovery/rotation run passed 28 tests.
+- A user screenshot exposed an opaque matte around the Gold artwork and torn foil pieces. The shared PackArt renderer now masks that cover to its physical wrapper silhouette before animation clipping. A visual comparison of intact and separated strips over a checkerboard confirmed the exterior is transparent; the temporary preview was removed.
