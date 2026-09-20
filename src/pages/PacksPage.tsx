@@ -339,13 +339,17 @@ const PacksPage = () => {
   // sells. `null` = not probed yet or off-device → assume sellable, matching
   // the convention in ShopPage and SubscribeOnboarding.
   const [packAvailableIds, setPackAvailableIds] = useState<ProductId[] | null>(null);
+  const [packPrices, setPackPrices] = useState<Partial<Record<ProductId, string>> | undefined>({});
   useEffect(() => {
     let cancelled = false;
     const ids = PACK_TIERS.map(t => t.productId).filter(Boolean) as ProductId[];
     if (ids.length === 0) return;
     getStoreAvailability(ids)
-      .then(({ supported, available }) => {
-        if (!cancelled) setPackAvailableIds(supported ? available : null);
+      .then(({ supported, available, prices }) => {
+        if (!cancelled) {
+          setPackAvailableIds(supported ? available : null);
+          setPackPrices(supported ? prices : undefined);
+        }
       })
       .catch(() => { if (!cancelled) setPackAvailableIds(null); });
     return () => { cancelled = true; };
@@ -1011,6 +1015,7 @@ const PacksPage = () => {
 
       {upsellDeals.length > 0 && !opening && !busy && deals.some(deal => upsellDeals.some(old => old.slotId === deal.slotId && old.endsAt === deal.endsAt)) && (
         <PackDealUpsell
+          prices={packPrices}
           deals={deals.filter(deal => upsellDeals.some(old => old.slotId === deal.slotId && old.endsAt === deal.endsAt))}
           onClose={() => setUpsellDeals([])}
           onView={deal => { setUpsellDeals([]); showOdds(deal.tierKey, deal); }}

@@ -17,6 +17,7 @@ export function PackDealOfferHost() {
   const clubId = useGameStore(s => s.playerClubId);
   const canOpen = useGameStore(s => s.canOpenPack);
   const [available, setAvailable] = useState<string[]>([]);
+  const [prices, setPrices] = useState<Partial<Record<ProductId, string>>>({});
   const [settled, setSettled] = useState(false);
   const [open, setOpen] = useState(false);
   const attempted = useRef(false);
@@ -24,7 +25,12 @@ export function PackDealOfferHost() {
     let cancelled = false;
     const timer = setTimeout(() => setSettled(true), 4000);
     void getStoreAvailability(PAID_PACK_TIERS.map(key => PACK_TIER_MAP[key].productId! as ProductId))
-      .then(result => { if (!cancelled && result.supported) setAvailable(result.available); })
+      .then(result => {
+        if (!cancelled && result.supported) {
+          setAvailable(result.available);
+          setPrices(result.prices);
+        }
+      })
       .catch(() => { /* An unavailable store must never be promoted. */ });
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
@@ -44,7 +50,7 @@ export function PackDealOfferHost() {
     if (claimPackUpsell(undefined, won ? 1 : 2)) setOpen(true);
   }, [active, wants, won]);
   if (!open || !active || eligible.length === 0) return null;
-  return <PackDealUpsell trigger={won ? 'postWin' : 'dealExpiring'} deals={eligible} onClose={() => setOpen(false)} onView={() => {
+  return <PackDealUpsell prices={prices} trigger={won ? 'postWin' : 'dealExpiring'} deals={eligible} onClose={() => setOpen(false)} onView={() => {
     setOpen(false);
     useGameStore.getState().setScreen('packs');
   }} />;
