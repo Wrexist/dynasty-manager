@@ -10,7 +10,7 @@ import { PACK_TIER_MAP } from '@/config/packs';
 import { formatDealRemaining, type ActivePackDeal } from '@/utils/packDeals';
 import { PackArt } from './PackArt';
 
-export function PackDealUpsell({ deals, onClose, onView, trigger = 'postOpen', viewLabel = 'View contents & odds' }: {
+export function PackDealUpsell({ deals, onClose, onView, trigger = 'postOpen', viewLabel = 'Choose pack' }: {
   viewLabel?: string;
   trigger?: 'postOpen' | 'postWin' | 'dealExpiring';
   deals: ActivePackDeal[]; onClose: () => void; onView: (deal: ActivePackDeal) => void;
@@ -59,8 +59,12 @@ export function PackDealUpsell({ deals, onClose, onView, trigger = 'postOpen', v
               <div className="min-w-0 pb-2">
                 <span className="inline-flex rounded-md border border-amber-200/25 bg-amber-200/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-200">+{featured.bonusCards} bonus card{featured.bonusCards === 1 ? '' : 's'}</span>
                 <h3 className="mt-3 font-display text-2xl font-bold leading-none">{tier.label}</h3>
-                <p className="mt-2 text-xs text-slate-300"><strong className="font-semibold text-white">{tier.cards + featured.bonusCards} players</strong> <span className="text-slate-500">· normally {tier.cards}</span></p>
-                <p className="mt-2 flex items-center gap-1 text-[10px] text-slate-400"><ShieldCheck className="h-3 w-3 shrink-0 text-amber-200/70" /> {tier.guaranteedMinOvr}+ guaranteed</p>
+                <p className="mt-2 text-sm font-semibold tabular-nums text-white">{tier.cards + featured.bonusCards} players</p>
+                <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/25 px-2 py-1 text-[10px] font-semibold tabular-nums text-white/90">
+                  <ShieldCheck className="h-3 w-3 shrink-0 text-amber-200/80" />
+                  {1 + featured.bonusCards} × {tier.guaranteedMinOvr}+ OVR
+                </p>
+                <p className="mt-1 text-[9px] text-slate-400">Guaranteed ratings</p>
                 <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2 py-1.5 text-[10px] tabular-nums text-amber-100"><Clock3 className="h-3 w-3 shrink-0" /> {formatDealRemaining(featured.remainingMs)} left</div>
               </div>
             </div>
@@ -73,9 +77,19 @@ export function PackDealUpsell({ deals, onClose, onView, trigger = 'postOpen', v
             <div className="space-y-2">
               {others.map(deal => {
                 const otherTier = PACK_TIER_MAP[deal.tierKey];
-                return <button key={`${deal.slotId}-${deal.endsAt}`} type="button" onClick={() => onView(deal)} aria-label={`${otherTier.label}, ${deal.bonusCards} bonus cards. ${viewLabel}`} className="group flex min-h-[78px] w-full items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-left transition hover:border-white/20 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
+                return <button key={`${deal.slotId}-${deal.endsAt}`} type="button" onClick={() => onView(deal)} aria-label={`${otherTier.label}, ${otherTier.cards + deal.bonusCards} players, ${1 + deal.bonusCards} guaranteed ${otherTier.guaranteedMinOvr}+ OVR. ${viewLabel}`} className="group flex min-h-[78px] w-full items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-left transition hover:border-white/20 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
                   <PackArt src={otherTier.artSrc} loading="eager" className="h-[62px] w-[42px] shrink-0 object-contain drop-shadow-md" fallback={<div className="h-[62px] w-[42px] shrink-0 rounded-md" style={{ background: otherTier.gradientFrom }} />} />
-                  <span className="min-w-0 flex-1"><span className="block text-xs font-semibold">{otherTier.label}</span><span className="mt-1 block text-[10px] text-amber-200/90">+{deal.bonusCards} bonus card{deal.bonusCards === 1 ? '' : 's'} <span className="text-slate-500">· {otherTier.cards + deal.bonusCards} players</span></span><span className="mt-1 block text-[10px] tabular-nums text-slate-400">{formatDealRemaining(deal.remainingMs)} left</span></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold">{otherTier.label}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-[11px] font-medium tabular-nums text-white/90">{otherTier.cards + deal.bonusCards} players</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/25 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-white/90">
+                        <ShieldCheck className="h-2.5 w-2.5 shrink-0 text-amber-200/80" />{1 + deal.bonusCards} × {otherTier.guaranteedMinOvr}+
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-[9px] text-slate-400">Guaranteed ratings · includes {deal.bonusCards} bonus</span>
+                    <span className="mt-1 block text-[10px] tabular-nums text-amber-200/90">{formatDealRemaining(deal.remainingMs)} left</span>
+                  </span>
                   <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-amber-200" />
                 </button>;
               })}

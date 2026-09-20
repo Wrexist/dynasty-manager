@@ -44,7 +44,7 @@ export function PackDealOfferHost() {
     if (claimPackUpsell(undefined, won ? 1 : 2)) setOpen(true);
   }, [active, wants, won]);
   if (!open || !active || eligible.length === 0) return null;
-  return <PackDealUpsell viewLabel="View in Market" trigger={won ? 'postWin' : 'dealExpiring'} deals={eligible} onClose={() => setOpen(false)} onView={() => {
+  return <PackDealUpsell trigger={won ? 'postWin' : 'dealExpiring'} deals={eligible} onClose={() => setOpen(false)} onView={() => {
     setOpen(false);
     useGameStore.getState().setScreen('packs');
   }} />;
