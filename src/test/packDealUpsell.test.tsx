@@ -9,10 +9,17 @@ afterEach(cleanup);
 
 it('shows the actual contents, localized price, and odds link', () => {
   const odds = vi.fn();
-  render(<PackDealCard deal={deal} price="29 kr" available onSelect={vi.fn()} onOdds={odds} />);
-  expect(screen.getByText('8 players · normally 5')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Buy 29 kr' })).toBeEnabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Contents & odds' }));
+  const select = vi.fn();
+  const { container } = render(<PackDealCard deal={deal} price="29 kr" available onSelect={select} onOdds={odds} />);
+  expect(container.querySelector('img')).toHaveAttribute('src', '/packs/gold.webp');
+  expect(screen.getByText('8 players')).toBeInTheDocument();
+  expect(screen.getByText('Includes 3 bonus')).toBeInTheDocument();
+  expect(screen.getByText('4 × 78+ OVR')).toBeInTheDocument();
+  const buy = screen.getByRole('button', { name: 'Buy 29 kr — Gold Pack' });
+  expect(buy).toBeEnabled();
+  fireEvent.click(buy);
+  expect(select).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole('button', { name: 'Contents and odds for Gold Pack' }));
   expect(odds).toHaveBeenCalledOnce();
 });
 
