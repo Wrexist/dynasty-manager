@@ -1,0 +1,73 @@
+{
+  "scope": "Checked-in top-five-league templates, community-pack precedence; excludes runtime fillers and save changes",
+  "leagues": [
+    {
+      "league": "Premier League",
+      "clubs": 20,
+      "baseTemplates": 453,
+      "communityTemplates": 531,
+      "effectiveTemplates": 531,
+      "uniqueIds": 531,
+      "missingIds": 0,
+      "missingRosters": [],
+      "idFormats": [
+        "unprefixed"
+      ]
+    },
+    {
+      "league": "La Liga",
+      "clubs": 20,
+      "baseTemplates": 465,
+      "communityTemplates": 491,
+      "effectiveTemplates": 491,
+      "uniqueIds": 491,
+      "missingIds": 0,
+      "missingRosters": [],
+      "idFormats": [
+        "unprefixed"
+      ]
+    },
+    {
+      "league": "Serie A",
+      "clubs": 20,
+      "baseTemplates": 475,
+      "communityTemplates": 515,
+      "effectiveTemplates": 515,
+      "uniqueIds": 515,
+      "missingIds": 0,
+      "missingRosters": [],
+      "idFormats": [
+        "unprefixed"
+      ]
+    },
+    {
+      "league": "Bundesliga",
+      "clubs": 18,
+      "baseTemplates": 463,
+      "communityTemplates": 515,
+      "effectiveTemplates": 515,
+      "uniqueIds": 515,
+      "missingIds": 0,
+      "missingRosters": [],
+      "idFormats": [
+        "unprefixed"
+      ]
+    },
+    {
+      "league": "Ligue 1",
+      "clubs": 18,
+      "baseTemplates": 407,
+      "communityTemplates": 448,
+      "effectiveTemplates": 448,
+      "uniqueIds": 448,
+      "missingIds": 0,
+      "missingRosters": [],
+      "idFormats": [
+        "unprefixed"
+      ]
+    }
+  ],
+  "totalTemplates": 2500,
+  "uniqueIds": 2500,
+  "duplicateIds": []
+}

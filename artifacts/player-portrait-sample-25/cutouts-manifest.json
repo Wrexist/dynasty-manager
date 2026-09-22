@@ -1,0 +1,126 @@
+{
+  "tool": "built-in image_gen",
+  "prompt": "Use case: background-extraction. Remove the entire gray studio background to genuine alpha transparency with clean natural edges around hair, ears, neck and shirt. Preserve the supplied person's exact face, expression, skin texture, hairstyle, pose, shirt color, lighting, scale and square framing. Only remove the background. No gray halo, glow, exterior shadow, replacement background or painted checkerboard. Return transparent PNG.",
+  "players": [
+    {
+      "slug": "mohamed-salah",
+      "name": "Mohamed Salah",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-3d0a497c-46ba-4998-abb4-f07758ad379f.png"
+    },
+    {
+      "slug": "alexander-isak",
+      "name": "Alexander Isak",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-5df90ed8-8bb2-4074-9ecd-6d20fd25716f.png"
+    },
+    {
+      "slug": "florian-wirtz",
+      "name": "Florian Wirtz",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-fd1a010d-8a3d-43e1-bbd0-555a9ea63c15.png"
+    },
+    {
+      "slug": "alisson-becker",
+      "name": "Alisson Becker",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-03882fd2-7d04-4941-9478-ae421de837fa.png"
+    },
+    {
+      "slug": "erling-haaland",
+      "name": "Erling Haaland",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-3390675c-41f4-40c1-ba10-5000680b12a5.png"
+    },
+    {
+      "slug": "bukayo-saka",
+      "name": "Bukayo Saka",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-43467c18-f09a-4050-a8db-f7829e851c02.png"
+    },
+    {
+      "slug": "cole-palmer",
+      "name": "Cole Palmer",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-dc5e5be6-60ef-4cd0-9d0a-0b3d44de211f.png"
+    },
+    {
+      "slug": "william-saliba",
+      "name": "William Saliba",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-0fdc6839-e6e6-4c7e-8fc6-9469a2784f78.png"
+    },
+    {
+      "slug": "bradley-barcola",
+      "name": "Bradley Barcola",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-d15bd298-ede5-408b-9e49-173edf32eea3.png"
+    },
+    {
+      "slug": "kylian-mbappe",
+      "name": "Kylian MbappÃ©",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-e1c4a305-0bb5-43bd-877a-2102de66cf59.png"
+    },
+    {
+      "slug": "vinicius-junior",
+      "name": "VinÃ­cius JÃºnior",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-11416d81-6c21-440d-9b3c-773707bb6dd2.png"
+    },
+    {
+      "slug": "jude-bellingham",
+      "name": "Jude Bellingham",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-3d6cf813-845a-45b9-a047-3f67a9707c82.png"
+    },
+    {
+      "slug": "raphinha",
+      "name": "Raphinha",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-379a9e4e-d37c-4c27-b02f-c3d1db1c597d.png"
+    },
+    {
+      "slug": "pedri",
+      "name": "Pedri",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-c8ad16d3-e64d-4d0b-ac5b-d94be3040dc3.png"
+    },
+    {
+      "slug": "robert-lewandowski",
+      "name": "Robert Lewandowski",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-024b0aa4-6ffb-4717-9370-af3bebbc3f5a.png"
+    },
+    {
+      "slug": "antoine-griezmann",
+      "name": "Antoine Griezmann",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-60588492-8f55-419d-bbef-40f74277809e.png"
+    },
+    {
+      "slug": "harry-kane",
+      "name": "Harry Kane",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-c5013714-a2f2-4f0b-8fb8-0cbf0b77cb40.png"
+    },
+    {
+      "slug": "jamal-musiala",
+      "name": "Jamal Musiala",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-cb1f8339-58de-443c-b26c-1a939787d450.png"
+    },
+    {
+      "slug": "michael-olise",
+      "name": "Michael Olise",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-9e1858c5-b3b3-4a8f-ba96-4be2641beb7e.png"
+    },
+    {
+      "slug": "lautaro-martinez",
+      "name": "Lautaro MartÃ­nez",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-05b3f3b8-a653-4622-81f1-84c43a6639dd.png"
+    },
+    {
+      "slug": "rafael-leao",
+      "name": "Rafael LeÃ£o",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-43021f89-830d-4d2a-9308-0b2a09fa5d08.png"
+    },
+    {
+      "slug": "ousmane-dembele",
+      "name": "Ousmane DembÃ©lÃ©",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-9621b60a-4d7f-4db7-a0ed-cbd53314b53c.png"
+    },
+    {
+      "slug": "achraf-hakimi",
+      "name": "Achraf Hakimi",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-237d806a-9b6a-42c1-83fe-a30e778b1b4c.png"
+    },
+    {
+      "slug": "gianluigi-donnarumma",
+      "name": "Gianluigi Donnarumma",
+      "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-c373d60e-2be7-4383-9cb0-82a2c0763789.png"
+    }
+  ]
+}

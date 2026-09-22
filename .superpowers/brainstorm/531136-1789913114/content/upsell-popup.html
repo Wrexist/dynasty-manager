@@ -1,0 +1,170 @@
+<style>
+  .pu-wrap { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
+  .pu-col { flex:0 0 340px; }
+  .pu-phone {
+    background:hsl(222 30% 7%); border:1px solid hsl(222 20% 18%); border-radius:26px;
+    padding:0; color:hsl(210 20% 92%); font-family:'DM Sans',system-ui,sans-serif;
+    box-shadow:0 18px 50px rgba(0,0,0,.55); position:relative; overflow:hidden; height:470px;
+  }
+  .pu-scrim { position:absolute; inset:0; background:linear-gradient(180deg,hsl(222 30% 9%),hsl(222 34% 5%)); }
+  .pu-behind { position:absolute; inset:0; padding:14px 12px; opacity:.35; filter:blur(1.5px); }
+  .pu-bhead { display:flex; justify-content:space-between; font-size:11px; }
+  .pu-btitle { font-family:Oswald,system-ui,sans-serif; letter-spacing:.08em; text-transform:uppercase; font-size:15px; }
+  .pu-bcard { margin-top:12px; height:56px; border-radius:12px; background:hsl(222 28% 13%); border:1px solid hsl(222 20% 20%); }
+  .pu-brow { display:flex; gap:8px; margin-top:8px; }
+  .pu-brow div { flex:1; height:44px; border-radius:10px; background:hsl(222 28% 12%); border:1px solid hsl(222 20% 19%); }
+  .pu-dim { position:absolute; inset:0; background:hsl(222 40% 4% / .72); }
+
+  .pu-card {
+    position:absolute; left:14px; right:14px; top:70px;
+    background:linear-gradient(170deg,hsl(222 30% 14%),hsl(222 34% 10%));
+    border:1px solid hsl(43 96% 55% / .38);
+    border-radius:20px; padding:18px 16px 16px;
+    box-shadow:0 24px 60px rgba(0,0,0,.65), 0 0 0 1px hsl(43 96% 55% / .10);
+  }
+  .pu-kicker { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:hsl(43 96% 62%); font-weight:700; }
+  .pu-h { font-family:Oswald,system-ui,sans-serif; font-size:20px; letter-spacing:.02em; margin-top:8px; }
+  .pu-sub { font-size:11.5px; color:hsl(215 15% 68%); margin-top:6px; line-height:1.45; }
+  .pu-clock {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-top:14px; padding:10px; border-radius:12px;
+    background:hsl(43 96% 46% / .12); border:1px solid hsl(43 96% 46% / .34);
+  }
+  .pu-clock b { font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.04em; color:hsl(43 96% 66%); }
+  .pu-clock span { font-size:9px; text-transform:uppercase; letter-spacing:.12em; color:hsl(215 15% 62%); }
+  .pu-cta {
+    margin-top:12px; text-align:center; padding:13px; border-radius:13px;
+    background:linear-gradient(180deg,hsl(43 96% 52%),hsl(43 96% 44%));
+    color:hsl(30 60% 10%); font-weight:800; font-size:13.5px;
+  }
+  .pu-cta small { display:block; font-weight:600; font-size:10px; opacity:.75; margin-top:3px; }
+  .pu-no { text-align:center; font-size:11px; color:hsl(215 15% 55%); margin-top:11px; }
+  .pu-tag { position:absolute; top:-9px; right:16px; font-size:9px; font-weight:800; background:hsl(150 70% 45%); color:hsl(150 60% 10%); padding:3px 8px; border-radius:6px; }
+
+  .pu-sheet {
+    position:absolute; left:0; right:0; bottom:0;
+    background:linear-gradient(180deg,hsl(222 30% 14%),hsl(222 34% 10%));
+    border-top:1px solid hsl(43 96% 55% / .35);
+    border-radius:22px 22px 0 0; padding:10px 16px 16px;
+    box-shadow:0 -20px 50px rgba(0,0,0,.6);
+  }
+  .pu-grab { width:38px; height:4px; border-radius:99px; background:hsl(215 15% 35%); margin:0 auto 12px; }
+  .pu-row { display:flex; align-items:center; gap:11px; margin-top:12px; }
+  .pu-art {
+    width:46px; height:58px; border-radius:9px; flex:none;
+    background:linear-gradient(150deg,hsl(43 70% 32%),hsl(25 60% 16%));
+    border:1px solid hsl(43 96% 60% / .45);
+  }
+  .pu-art.b { background:linear-gradient(150deg,hsl(215 55% 32%),hsl(222 45% 16%)); border-color:hsl(215 70% 60% / .45); }
+  .pu-tiny { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:hsl(215 15% 55%); }
+
+  .pu-inline {
+    position:absolute; left:14px; right:14px; bottom:16px;
+    background:hsl(222 30% 14% / .96);
+    border:1px solid hsl(43 96% 55% / .35); border-radius:16px;
+    padding:12px 13px; display:flex; gap:11px; align-items:center;
+    box-shadow:0 16px 40px rgba(0,0,0,.6);
+  }
+  .pu-note { font-size:11px; color:hsl(215 15% 62%); margin-top:12px; line-height:1.5; }
+  .pu-verdict { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:hsl(150 60% 55%); margin-top:10px; font-weight:700; }
+  .pu-pick { font-size:10.5px; color:hsl(215 15% 55%); margin-top:4px; line-height:1.4; }
+</style>
+
+<h2>Upsell popup — how hard does it knock?</h2>
+<p class="subtitle">Same trigger, same copy, three levels of intrusion. All dismissible, all capped at 1 per session.</p>
+
+<div class="pu-wrap">
+
+  <div class="pu-col option" data-choice="a" onclick="toggleSelect(this)" style="border:0;background:transparent;padding:0">
+    <div class="pu-phone">
+      <div class="pu-scrim"></div>
+      <div class="pu-behind">
+        <div class="pu-bhead"><span class="pu-btitle">Dashboard</span><span>$42.5M</span></div>
+        <div class="pu-bcard"></div>
+        <div class="pu-brow"><div></div><div></div></div>
+        <div class="pu-brow"><div></div><div></div></div>
+      </div>
+      <div class="pu-dim"></div>
+
+      <div class="pu-card">
+        <div class="pu-tag">+3 CARDS</div>
+        <div class="pu-kicker">Ends soon</div>
+        <div class="pu-h">Rare Gold, 8 cards</div>
+        <div class="pu-sub">Your best pull window this week. 84+ guaranteed, and 45% of the pack is gold or better.</div>
+        <div class="pu-clock"><b>03:24:07</b><span>left at this bonus</span></div>
+        <div class="pu-cta">Get 8 cards — $6.99<small>Same price as the normal 5-card Rare Gold</small></div>
+        <div class="pu-no">No thanks</div>
+      </div>
+    </div>
+    <div class="pu-verdict">A · Centered card</div>
+    <div class="pu-pick">Highest intent, blocks the screen until answered</div>
+  </div>
+
+  <div class="pu-col option" data-choice="b" onclick="toggleSelect(this)" style="border:0;background:transparent;padding:0">
+    <div class="pu-phone">
+      <div class="pu-scrim"></div>
+      <div class="pu-behind">
+        <div class="pu-bhead"><span class="pu-btitle">Dashboard</span><span>$42.5M</span></div>
+        <div class="pu-bcard"></div>
+        <div class="pu-brow"><div></div><div></div></div>
+        <div class="pu-brow"><div></div><div></div></div>
+      </div>
+      <div class="pu-dim"></div>
+
+      <div class="pu-sheet">
+        <div class="pu-grab"></div>
+        <div class="pu-kicker">Deal ends in 3h 24m</div>
+        <div class="pu-h" style="font-size:17px">Rare Gold gets 3 bonus cards</div>
+        <div class="pu-row">
+          <div class="pu-art"></div>
+          <div>
+            <div class="pu-tiny">Rare Gold + bonus</div>
+            <div style="font-size:12px;margin-top:4px">8 cards · 84+ guaranteed</div>
+            <div style="font-size:11px;color:hsl(43 96% 66%);font-weight:700;margin-top:4px">$6.99 · 3h 24m left</div>
+          </div>
+        </div>
+        <div class="pu-row">
+          <div class="pu-art b"></div>
+          <div>
+            <div class="pu-tiny">Premium Gold + bonus</div>
+            <div style="font-size:12px;margin-top:4px">7 cards · 82+ guaranteed</div>
+            <div style="font-size:11px;color:hsl(215 15% 62%);margin-top:4px">$4.99 · 9h 41m left</div>
+          </div>
+        </div>
+        <div class="pu-cta" style="padding:11px;margin-top:14px">Choose a pack</div>
+        <div class="pu-no">Not now</div>
+      </div>
+    </div>
+    <div class="pu-verdict">B · Bottom sheet</div>
+    <div class="pu-pick">Feels native, shows both live deals, drag-to-dismiss</div>
+  </div>
+
+  <div class="pu-col option" data-choice="c" onclick="toggleSelect(this)" style="border:0;background:transparent;padding:0">
+    <div class="pu-phone">
+      <div class="pu-scrim"></div>
+      <div class="pu-behind">
+        <div class="pu-bhead"><span class="pu-btitle">Dashboard</span><span>$42.5M</span></div>
+        <div class="pu-bcard"></div>
+        <div class="pu-brow"><div></div><div></div></div>
+        <div class="pu-brow"><div></div><div></div></div>
+      </div>
+      <div class="pu-dim"></div>
+
+      <div class="pu-inline">
+        <div class="pu-art" style="width:40px;height:50px"></div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700">Rare Gold · +3 cards</div>
+          <div style="font-size:10.5px;color:hsl(43 96% 66%);font-variant-numeric:tabular-nums;margin-top:3px">03:24:07 left · $6.99</div>
+        </div>
+        <div style="font-size:11px;font-weight:800;color:hsl(30 60% 10%);background:hsl(43 96% 50%);padding:8px 12px;border-radius:10px">Get it</div>
+      </div>
+    </div>
+    <div class="pu-verdict">C · Inline snackbar</div>
+    <div class="pu-pick">Least intrusive, easy to ignore, lowest conversion</div>
+  </div>
+
+</div>
+
+<div class="pu-note">
+  Motion: spring-in, 200ms, with a soft gold ring pulse on the clock — all gated behind <b>useReducedMotionPref()</b> and stripped in performance mode.
+</div>
