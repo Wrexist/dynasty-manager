@@ -1,0 +1,81 @@
+{
+  "results": [
+    {
+      "frame": "bronze",
+      "portraits": 25
+    },
+    {
+      "frame": "silver",
+      "portraits": 25
+    },
+    {
+      "frame": "gold",
+      "portraits": 25
+    },
+    {
+      "frame": "icon",
+      "portraits": 25
+    },
+    {
+      "frame": "premium",
+      "portraits": 25
+    },
+    {
+      "frame": "rise-to-glory",
+      "portraits": 25
+    },
+    {
+      "frame": "champions",
+      "portraits": 25
+    },
+    {
+      "frame": "elite",
+      "portraits": 25
+    },
+    {
+      "frame": "world-class",
+      "portraits": 25
+    },
+    {
+      "frame": "legends",
+      "portraits": 25
+    },
+    {
+      "frame": "dynasty",
+      "portraits": 25
+    },
+    {
+      "frame": "golden-era",
+      "portraits": 25
+    },
+    {
+      "frame": "royal-reserve",
+      "portraits": 25
+    },
+    {
+      "frame": "ballondor",
+      "portraits": 25
+    },
+    {
+      "size": "xs",
+      "portraits": 25
+    },
+    {
+      "size": "sm",
+      "portraits": 25
+    },
+    {
+      "size": "md",
+      "portraits": 25
+    },
+    {
+      "size": "lg",
+      "portraits": 25
+    },
+    {
+      "size": "xl",
+      "portraits": 25
+    }
+  ],
+  "errors": []
+}

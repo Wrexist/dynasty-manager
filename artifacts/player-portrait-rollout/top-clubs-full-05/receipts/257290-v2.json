@@ -1,0 +1,10 @@
+{
+  "fcId": "257290",
+  "name": "João Mário Neto Lopes",
+  "prompt": "Use case: identity-preserve. Make a photorealistic football-game cutout portrait of the EXACT PERSON in the reference, João Mário Neto Lopes. Reference role: authoritative identity reference. Preserve this person's face, skin tone, distinctive facial structure and hairstyle. Reframe to centered head and upper chest, near-frontal slight three-quarter angle, neutral confident expression, hands outside frame. Face roughly 45 percent canvas height, full hair with generous clearance. Soft studio light upper left. Plain crew-neck football shirt color #000000, without logo or sponsor. Square canvas. Genuine alpha-transparent background, clean hair and ear edges. No backdrop, gray circle, glow, exterior shadow, text, card frame or checkerboard. Preserve reference identity closely.",
+  "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-ab86a067-45e7-482b-938f-bf07bbf0bff2.png",
+  "reference": "joao-mario-juventus.png",
+  "referenceUrl": "https://www.juventus.com/en/teams/first-team-men/squad/joao-mario-neto-lopes",
+  "tool": "built-in image_gen",
+  "reason": "Correct same-name identity mix-up found during visual review"
+}

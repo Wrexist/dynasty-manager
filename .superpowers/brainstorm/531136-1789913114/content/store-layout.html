@@ -1,0 +1,184 @@
+<style>
+  .bm-wrap { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
+  .bm-col { flex:0 0 340px; }
+  .bm-phone {
+    background:hsl(222 30% 7%);
+    border:1px solid hsl(222 20% 18%);
+    border-radius:26px;
+    padding:14px 12px 10px;
+    color:hsl(210 20% 92%);
+    font-family:'DM Sans',system-ui,sans-serif;
+    box-shadow:0 18px 50px rgba(0,0,0,.55);
+    position:relative; overflow:hidden;
+  }
+  .bm-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .bm-title { font-family:Oswald,system-ui,sans-serif; font-size:17px; letter-spacing:.06em; text-transform:uppercase; }
+  .bm-chip {
+    font-size:10px; padding:3px 8px; border-radius:999px;
+    background:hsl(43 96% 46% / .14); color:hsl(43 96% 62%);
+    border:1px solid hsl(43 96% 46% / .35); font-weight:600;
+  }
+  .bm-sub { font-size:10px; color:hsl(215 15% 62%); margin-bottom:10px; display:flex; justify-content:space-between; }
+  .bm-sect { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:hsl(215 15% 55%); margin:12px 0 6px; }
+  .bm-rail { display:flex; gap:8px; overflow:hidden; }
+  .bm-deal {
+    flex:1 1 0; border-radius:12px; padding:9px 8px;
+    background:linear-gradient(150deg,hsl(43 70% 22%),hsl(30 60% 14%));
+    border:1px solid hsl(43 90% 55% / .45);
+    position:relative;
+  }
+  .bm-deal.b2 { background:linear-gradient(150deg,hsl(215 55% 24%),hsl(222 45% 14%)); border-color:hsl(215 70% 60% / .4); }
+  .bm-deal.b3 { background:linear-gradient(150deg,hsl(275 45% 24%),hsl(260 45% 14%)); border-color:hsl(275 70% 65% / .4); }
+  .bm-dname { font-size:11px; font-weight:700; font-family:Oswald,system-ui,sans-serif; letter-spacing:.03em; }
+  .bm-bonus {
+    display:inline-block; margin-top:5px; font-size:9px; font-weight:700;
+    background:hsl(150 70% 45%); color:hsl(150 60% 10%);
+    padding:2px 6px; border-radius:5px;
+  }
+  .bm-timer { font-size:10px; font-variant-numeric:tabular-nums; margin-top:6px; color:hsl(43 96% 65%); font-weight:700; }
+  .bm-price { font-size:11px; font-weight:700; margin-top:4px; }
+  .bm-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  .bm-grid.two { grid-template-columns:1fr 1fr; }
+  .bm-tile {
+    border-radius:10px; padding:8px 6px; text-align:center;
+    background:hsl(222 28% 12%); border:1px solid hsl(222 20% 20%);
+  }
+  .bm-tile .n { font-size:10px; font-weight:700; }
+  .bm-tile .p { font-size:9px; color:hsl(215 15% 60%); margin-top:3px; }
+  .bm-tile.hi { border-color:hsl(43 96% 46% / .5); background:hsl(43 40% 14%); }
+  .bm-hero {
+    border-radius:14px; padding:12px;
+    background:linear-gradient(140deg,hsl(43 75% 26%),hsl(25 65% 13%));
+    border:1px solid hsl(43 96% 55% / .55);
+  }
+  .bm-hero .h { font-family:Oswald,system-ui,sans-serif; font-size:15px; letter-spacing:.03em; }
+  .bm-strip { display:flex; gap:7px; margin-top:8px; }
+  .bm-mini {
+    flex:1; border-radius:9px; padding:6px;
+    background:hsl(222 28% 13%); border:1px solid hsl(222 20% 22%);
+    font-size:9px;
+  }
+  .bm-tabs { display:flex; gap:6px; margin-bottom:10px; }
+  .bm-tab { flex:1; text-align:center; font-size:10px; font-weight:700; padding:6px; border-radius:9px; background:hsl(222 28% 13%); color:hsl(215 15% 62%); }
+  .bm-tab.on { background:hsl(43 96% 46% / .16); color:hsl(43 96% 62%); border:1px solid hsl(43 96% 46% / .4); }
+  .bm-note { font-size:11px; color:hsl(215 15% 62%); margin-top:12px; line-height:1.5; }
+  .bm-verdict { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:hsl(150 60% 55%); margin-top:8px; font-weight:700; }
+  .bm-pick { text-align:center; font-size:11px; color:hsl(215 15% 55%); margin-top:6px; }
+</style>
+
+<h2>Store layout — where do the 3 ticking deals live?</h2>
+<p class="subtitle">All 6 packs stay permanently purchasable in every option. Only the deal position changes.</p>
+
+<div class="bm-wrap">
+
+  <div class="bm-col option" data-choice="a" onclick="toggleSelect(this)" style="border:0;background:transparent;padding:0">
+    <div class="bm-phone">
+      <div class="bm-topbar"><span class="bm-title">Market</span><span class="bm-chip">$42.5M</span></div>
+      <div class="bm-sub"><span>Resets in 7h 12m</span><span>18 / 20 squad</span></div>
+
+      <div class="bm-sect">Limited deals</div>
+      <div class="bm-rail">
+        <div class="bm-deal">
+          <div class="bm-dname">Rare Gold</div>
+          <span class="bm-bonus">+3 CARDS</span>
+          <div class="bm-timer">3h 24m left</div>
+          <div class="bm-price">$6.99</div>
+        </div>
+        <div class="bm-deal b2">
+          <div class="bm-dname">Premium Gold</div>
+          <span class="bm-bonus">+2 CARDS</span>
+          <div class="bm-timer">9h 41m left</div>
+          <div class="bm-price">$4.99</div>
+        </div>
+        <div class="bm-deal b3">
+          <div class="bm-dname">Icon Pack</div>
+          <span class="bm-bonus">+1 CARD</span>
+          <div class="bm-timer">21h 08m left</div>
+          <div class="bm-price">$9.99</div>
+        </div>
+      </div>
+
+      <div class="bm-sect">All packs</div>
+      <div class="bm-grid">
+        <div class="bm-tile"><div class="n">Bronze</div><div class="p">Free</div></div>
+        <div class="bm-tile"><div class="n">Silver</div><div class="p">Free</div></div>
+        <div class="bm-tile hi"><div class="n">Gold</div><div class="p">Free · $2.99</div></div>
+        <div class="bm-tile"><div class="n">Premium</div><div class="p">$4.99</div></div>
+        <div class="bm-tile"><div class="n">Rare</div><div class="p">$6.99</div></div>
+        <div class="bm-tile"><div class="n">Icon</div><div class="p">$9.99</div></div>
+      </div>
+
+      <div class="bm-verdict">A · rail on top</div>
+      <div class="bm-pick">Deals shout first, catalogue stays one glance away</div>
+    </div>
+  </div>
+
+  <div class="bm-col option" data-choice="b" onclick="toggleSelect(this)" style="border:0;background:transparent;padding:0">
+    <div class="bm-phone">
+      <div class="bm-topbar"><span class="bm-title">Market</span><span class="bm-chip">$42.5M</span></div>
+      <div class="bm-sub"><span>Resets in 7h 12m</span><span>18 / 20 squad</span></div>
+
+      <div class="bm-hero">
+        <span class="bm-chip" style="font-size:9px">BIGGEST BONUS</span>
+        <div class="h" style="margin-top:7px">Rare Gold · +3 cards</div>
+        <div class="bm-timer" style="font-size:19px;margin-top:6px">03:24:07</div>
+        <div class="bm-price">$6.99 · normally 5 cards, get 8</div>
+      </div>
+
+      <div class="bm-strip">
+        <div class="bm-mini"><b>Premium Gold</b><br><span style="color:hsl(43 96% 65%)">+2 · 9h 41m</span></div>
+        <div class="bm-mini"><b>Icon Pack</b><br><span style="color:hsl(43 96% 65%)">+1 · 21h 08m</span></div>
+      </div>
+
+      <div class="bm-sect">All packs</div>
+      <div class="bm-grid">
+        <div class="bm-tile"><div class="n">Bronze</div><div class="p">Free</div></div>
+        <div class="bm-tile"><div class="n">Silver</div><div class="p">Free</div></div>
+        <div class="bm-tile hi"><div class="n">Gold</div><div class="p">Free · $2.99</div></div>
+        <div class="bm-tile"><div class="n">Premium</div><div class="p">$4.99</div></div>
+        <div class="bm-tile"><div class="n">Rare</div><div class="p">$6.99</div></div>
+        <div class="bm-tile"><div class="n">Icon</div><div class="p">$9.99</div></div>
+      </div>
+
+      <div class="bm-verdict">B · hero + strip</div>
+      <div class="bm-pick">One deal owns the screen, others stay visible</div>
+    </div>
+  </div>
+
+  <div class="bm-col option" data-choice="c" onclick="toggleSelect(this)" style="border:0;background:transparent;padding:0">
+    <div class="bm-phone">
+      <div class="bm-topbar"><span class="bm-title">Market</span><span class="bm-chip">$42.5M</span></div>
+      <div class="bm-tabs">
+        <div class="bm-tab on">Deals · 3</div>
+        <div class="bm-tab">All Packs · 6</div>
+      </div>
+
+      <div class="bm-deal" style="margin-bottom:8px">
+        <div class="bm-dname">Rare Gold</div>
+        <span class="bm-bonus">+3 CARDS</span>
+        <div class="bm-timer">3h 24m left</div>
+        <div class="bm-price">$6.99</div>
+      </div>
+      <div class="bm-deal b2" style="margin-bottom:8px">
+        <div class="bm-dname">Premium Gold</div>
+        <span class="bm-bonus">+2 CARDS</span>
+        <div class="bm-timer">9h 41m left</div>
+        <div class="bm-price">$4.99</div>
+      </div>
+      <div class="bm-deal b3">
+        <div class="bm-dname">Icon Pack</div>
+        <span class="bm-bonus">+1 CARD</span>
+        <div class="bm-timer">21h 08m left</div>
+        <div class="bm-price">$9.99</div>
+      </div>
+
+      <div class="bm-verdict">C · tabbed</div>
+      <div class="bm-pick">Full-size deal cards, but the catalogue hides a tap away</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bm-note">
+  In all three, the countdown is a real deadline that re-arms on a schedule — never a resettable fake timer.
+</div>

@@ -1,5 +1,16 @@
 # LEARNINGS.md — Dynasty Manager
 
+## Player portrait feasibility audit (2026-09-21)
+
+- 2026-09-23: Portrait catalog now contains 844 entries with alpha WebP runtime assets. Full squads replace the earlier 80+ cutoff for the six strongest clubs in each of the five leagues, selected from checked-in squad ratings. Coverage is 770/785 selected players; 15 recorded generation rejections retain fallback cards. See `artifacts/player-portrait-rollout/TOP-CLUB-COVERAGE.md`. Full-resolution sources stay local; committed receipts preserve prompts and provenance. Preview all large batches in pages of 25 to avoid overwhelming simultaneous image decoding. Three ambiguous likenesses needed official references and versioned v2 corrections; visual review does not establish reference-verified identity for every portrait.
+- 2026-09-22: Approved 25-player sample is integrated into `PlayerCard` through `PlayerPortrait` and `getPlayerPortrait`. The static manifest validates source, stable FC ID, known display name and source club; mismatches fall back. This avoids fictional-name leaks and wrong shirts after transfers without changing saves. Runtime assets use compressed WebP; original PNG masters remain authoring inputs. Actual-component preview and validation notes live under `artifacts/player-portrait-sample-25/INTEGRATION.md`.
+
+- Main-game `PlayerCard` currently has no person-specific portrait layer; `PlayerAvatar` is a jersey. Sunday portraits are a separate system.
+- `buildPlayerFromTemplate(..., useRealNames=false)` retains real `fcId`/`source` while replacing names. Portrait lookup must explicitly respect identity presentation, including pack and legacy-save cases.
+- Top-five-league community roster inventory: 96 clubs, 2,500 distinct IDs, no missing IDs within that snapshot. Re-run `node scripts/audit-portrait-readiness.mjs`; this excludes runtime fillers and save changes.
+- Current community IDs are unprefixed; base FC26 templates use year-prefixed IDs. Verify canonical identity before mapping faces. `PlayerCard` labels mental as DRI, and GK attribute mappings differ between ingestion pipelines.
+- Detailed findings, rollout and unverified device/asset requirements: `docs/player-portrait-system-audit.md`. User reports campaign images accepted for the App Store; this audit did not inspect App Store Connect or establish asset rights.
+
 ## App Store campaign exports (2026-09-09)
 
 - Owner approved the new charcoal/emerald/gold concepts. Preserve 01 and 03 byte-for-byte; use the six approved replacement masters for 02 and 04–08.

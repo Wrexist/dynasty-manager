@@ -1,0 +1,10 @@
+{
+  "fcId": "80045",
+  "name": "Radoslaw Zelezny",
+  "prompt": "Use case: identity-preserve. Generate a photorealistic football-game cutout portrait of the EXACT young man in the attached AS Roma signing photo: Radoslaw Dominik Zelezny (Radosław Żelezny), Polish goalkeeper born 2006. Reference is authoritative identity reference: preserve his youthful face, close short brown buzz-cut hairstyle, clean-shaven face, light skin, facial structure and proportions. Centered head and upper chest, near-frontal slight three-quarter pose, neutral confident expression. Face roughly 45 percent of square canvas height, complete hair with generous clearance. No hands or other objects. Soft studio light upper left. Plain crew-neck football shirt in AS Roma primary burgundy #8E1F2F without badge, sponsor or number. Genuine alpha-transparent background with clean hair and ear edges. No gray circle, backdrop, exterior shadow, glow, text, card frame or checkerboard. Preserve the reference identity closely, do not substitute an older goalkeeper.",
+  "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-8ce4540a-bae6-4922-8931-11cf2972fbe6.png",
+  "reference": "zelezny-roma.jpg",
+  "referenceUrl": "https://www.asroma.com/en/news/73543/radoslaw-zelezny-signs-for-roma",
+  "tool": "built-in image_gen",
+  "reason": "Correct older-looking identity mismatch with official signing reference"
+}

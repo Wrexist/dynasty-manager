@@ -1,0 +1,84 @@
+{
+  "checks": [
+    {
+      "frame": "bronze",
+      "count": 95
+    },
+    {
+      "frame": "silver",
+      "count": 95
+    },
+    {
+      "frame": "gold",
+      "count": 95
+    },
+    {
+      "frame": "icon",
+      "count": 95
+    },
+    {
+      "frame": "premium",
+      "count": 95
+    },
+    {
+      "frame": "rise-to-glory",
+      "count": 95
+    },
+    {
+      "frame": "champions",
+      "count": 95
+    },
+    {
+      "frame": "elite",
+      "count": 95
+    },
+    {
+      "frame": "world-class",
+      "count": 95
+    },
+    {
+      "frame": "legends",
+      "count": 95
+    },
+    {
+      "frame": "dynasty",
+      "count": 95
+    },
+    {
+      "frame": "golden-era",
+      "count": 95
+    },
+    {
+      "frame": "royal-reserve",
+      "count": 95
+    },
+    {
+      "frame": "ballondor",
+      "count": 95
+    },
+    {
+      "size": "xs",
+      "count": 95
+    },
+    {
+      "size": "sm",
+      "count": 95
+    },
+    {
+      "size": "md",
+      "count": 95
+    },
+    {
+      "size": "lg",
+      "count": 95
+    },
+    {
+      "size": "xl",
+      "count": 95
+    }
+  ],
+  "errors": [],
+  "cycle": "passed",
+  "mobileOverflow": false,
+  "catalog": 170
+}

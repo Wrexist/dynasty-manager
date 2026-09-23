@@ -1,0 +1,379 @@
+{
+  "source": "Checked-in game roster; not live squads",
+  "scope": "Six strongest clubs per league; full squads",
+  "total": 785,
+  "portraits": 770,
+  "clubs": [
+    {
+      "id": "manchester-city",
+      "name": "Manchester City",
+      "league": "eng",
+      "squadQuality": 93,
+      "total": 26,
+      "portraits": 26,
+      "missing": []
+    },
+    {
+      "id": "liverpool",
+      "name": "Liverpool",
+      "league": "eng",
+      "squadQuality": 92,
+      "total": 28,
+      "portraits": 28,
+      "missing": []
+    },
+    {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "league": "eng",
+      "squadQuality": 90,
+      "total": 24,
+      "portraits": 24,
+      "missing": []
+    },
+    {
+      "id": "chelsea",
+      "name": "Chelsea",
+      "league": "eng",
+      "squadQuality": 84,
+      "total": 30,
+      "portraits": 28,
+      "missing": [
+        {
+          "id": "272978",
+          "name": "Jorrel Hato",
+          "overall": 78,
+          "deferred": true
+        },
+        {
+          "id": "261530",
+          "name": "Dário Essugo",
+          "overall": 75,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "newcastle-united",
+      "name": "Newcastle United",
+      "league": "eng",
+      "squadQuality": 82,
+      "total": 28,
+      "portraits": 25,
+      "missing": [
+        {
+          "id": "223334",
+          "name": "Joelinton",
+          "overall": 82,
+          "deferred": true
+        },
+        {
+          "id": "251809",
+          "name": "Sven Botman",
+          "overall": 82,
+          "deferred": true
+        },
+        {
+          "id": "186345",
+          "name": "Kieran Trippier",
+          "overall": 80,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "aston-villa",
+      "name": "Aston Villa",
+      "league": "eng",
+      "squadQuality": 80,
+      "total": 22,
+      "portraits": 22,
+      "missing": []
+    },
+    {
+      "id": "real-madrid",
+      "name": "Real Madrid",
+      "league": "esp",
+      "squadQuality": 95,
+      "total": 26,
+      "portraits": 25,
+      "missing": [
+        {
+          "id": "272505",
+          "name": "Endrick",
+          "overall": 77,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "barcelona",
+      "name": "FC Barcelona",
+      "league": "esp",
+      "squadQuality": 90,
+      "total": 23,
+      "portraits": 22,
+      "missing": [
+        {
+          "id": "277643",
+          "name": "Lamine Yamal",
+          "overall": 89,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "atletico-madrid",
+      "name": "Atlético Madrid",
+      "league": "esp",
+      "squadQuality": 86,
+      "total": 24,
+      "portraits": 24,
+      "missing": []
+    },
+    {
+      "id": "athletic-bilbao",
+      "name": "Athletic Bilbao",
+      "league": "esp",
+      "squadQuality": 76,
+      "total": 24,
+      "portraits": 24,
+      "missing": []
+    },
+    {
+      "id": "real-sociedad",
+      "name": "Real Sociedad",
+      "league": "esp",
+      "squadQuality": 76,
+      "total": 25,
+      "portraits": 25,
+      "missing": []
+    },
+    {
+      "id": "villarreal",
+      "name": "Villarreal CF",
+      "league": "esp",
+      "squadQuality": 76,
+      "total": 28,
+      "portraits": 28,
+      "missing": []
+    },
+    {
+      "id": "inter-milan",
+      "name": "Inter Milan",
+      "league": "ita",
+      "squadQuality": 90,
+      "total": 25,
+      "portraits": 23,
+      "missing": [
+        {
+          "id": "224232",
+          "name": "Nicolò Barella",
+          "overall": 87,
+          "deferred": true
+        },
+        {
+          "id": "277327",
+          "name": "Francesco Pio Esposito",
+          "overall": 71,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "napoli",
+      "name": "SSC Napoli",
+      "league": "ita",
+      "squadQuality": 87,
+      "total": 27,
+      "portraits": 27,
+      "missing": []
+    },
+    {
+      "id": "atalanta",
+      "name": "Atalanta",
+      "league": "ita",
+      "squadQuality": 84,
+      "total": 25,
+      "portraits": 25,
+      "missing": []
+    },
+    {
+      "id": "ac-milan",
+      "name": "AC Milan",
+      "league": "ita",
+      "squadQuality": 82,
+      "total": 23,
+      "portraits": 23,
+      "missing": []
+    },
+    {
+      "id": "juventus",
+      "name": "Juventus",
+      "league": "ita",
+      "squadQuality": 82,
+      "total": 26,
+      "portraits": 26,
+      "missing": []
+    },
+    {
+      "id": "as-roma",
+      "name": "AS Roma",
+      "league": "ita",
+      "squadQuality": 76,
+      "total": 28,
+      "portraits": 28,
+      "missing": []
+    },
+    {
+      "id": "bayern-munich",
+      "name": "Bayern Munich",
+      "league": "ger",
+      "squadQuality": 92,
+      "total": 25,
+      "portraits": 25,
+      "missing": []
+    },
+    {
+      "id": "bayer-leverkusen",
+      "name": "Bayer Leverkusen",
+      "league": "ger",
+      "squadQuality": 88,
+      "total": 26,
+      "portraits": 26,
+      "missing": []
+    },
+    {
+      "id": "borussia-dortmund",
+      "name": "Borussia Dortmund",
+      "league": "ger",
+      "squadQuality": 84,
+      "total": 28,
+      "portraits": 27,
+      "missing": [
+        {
+          "id": "262105",
+          "name": "Julien Duranville",
+          "overall": 72,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "rb-leipzig",
+      "name": "RB Leipzig",
+      "league": "ger",
+      "squadQuality": 82,
+      "total": 29,
+      "portraits": 28,
+      "missing": [
+        {
+          "id": "204638",
+          "name": "Willi Orban",
+          "overall": 84,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "eintracht-frankfurt",
+      "name": "Eintracht Frankfurt",
+      "league": "ger",
+      "squadQuality": 80,
+      "total": 28,
+      "portraits": 27,
+      "missing": [
+        {
+          "id": "244257",
+          "name": "Jonathan Burkardt",
+          "overall": 82,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "stuttgart",
+      "name": "VfB Stuttgart",
+      "league": "ger",
+      "squadQuality": 80,
+      "total": 32,
+      "portraits": 31,
+      "missing": [
+        {
+          "id": "229584",
+          "name": "Pascal Stenzel",
+          "overall": 70,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "paris-saint-germain",
+      "name": "Paris Saint-Germain",
+      "league": "fra",
+      "squadQuality": 93,
+      "total": 23,
+      "portraits": 22,
+      "missing": [
+        {
+          "id": "270673",
+          "name": "Warren Zaïre-Emery",
+          "overall": 80,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "monaco",
+      "name": "AS Monaco",
+      "league": "fra",
+      "squadQuality": 82,
+      "total": 27,
+      "portraits": 27,
+      "missing": []
+    },
+    {
+      "id": "marseille",
+      "name": "Olympique de Marseille",
+      "league": "fra",
+      "squadQuality": 80,
+      "total": 32,
+      "portraits": 32,
+      "missing": []
+    },
+    {
+      "id": "lille",
+      "name": "Lille OSC",
+      "league": "fra",
+      "squadQuality": 78,
+      "total": 27,
+      "portraits": 27,
+      "missing": []
+    },
+    {
+      "id": "lyon",
+      "name": "Olympique Lyonnais",
+      "league": "fra",
+      "squadQuality": 76,
+      "total": 23,
+      "portraits": 22,
+      "missing": [
+        {
+          "id": "263139",
+          "name": "Dominik Greif",
+          "overall": 78,
+          "deferred": true
+        }
+      ]
+    },
+    {
+      "id": "rennes",
+      "name": "Stade Rennais FC",
+      "league": "fra",
+      "squadQuality": 74,
+      "total": 23,
+      "portraits": 23,
+      "missing": []
+    }
+  ]
+}

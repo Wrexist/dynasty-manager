@@ -11,6 +11,8 @@ import { hapticLight } from '@/utils/haptics';
 import { getPlayerCardArt, getFitnessHexColor } from '@/utils/uiHelpers';
 import { getPersonalityLabel } from '@/utils/personality';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { getPlayerPortrait } from '@/utils/playerPortrait';
+import { PlayerPortrait } from './PlayerPortrait';
 
 const ATTR_LABELS: Record<keyof PlayerAttributes, string> = {
   pace: 'PAC',
@@ -167,6 +169,7 @@ export const PlayerCard = memo(function PlayerCard({
   className,
 }: PlayerCardProps) {
   const tk = sizeTokens(size);
+  const portrait = getPlayerPortrait(player);
   const cardArt = getPlayerCardArt(player.overall, {
     ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
     // Chips crop their art to fill a 3:4 box (see sizeTokens), which would
@@ -254,6 +257,8 @@ export const PlayerCard = memo(function PlayerCard({
         style={cardArt.filter ? { filter: cardArt.filter } : undefined}
       />
 
+      {portrait && <PlayerPortrait key={portrait.src} src={portrait.src} chip={tk.chip} frame={cardArt.src} />}
+
       {/* Targeted darkening for legibility on the larger shields where the
           stat panel sits on top of the gray band. The xs pitch tile leaves
           the artwork clean — text already has heavy text-shadows for
@@ -275,6 +280,12 @@ export const PlayerCard = memo(function PlayerCard({
                 }
               : {}),
             background:
+              portrait
+                // Leave the shirt/name area clear; text shadows supply contrast.
+                // Only a faint tint remains at the very bottom of the artwork.
+                ? 'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.18), transparent 75%),'
+                  + 'linear-gradient(to bottom, transparent 75%, rgba(0,0,0,0.06) 100%)'
+                :
               cardArt.scrim === 'strong'
                 // Pack frames and the Ballon d'Or card put a light burst
                 // exactly where the rating and the surname sit, so the scrim

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "manchester-city",
+    "name": "Manchester City",
+    "league": "eng",
+    "squadQuality": 93
+  },
+  {
+    "id": "liverpool",
+    "name": "Liverpool",
+    "league": "eng",
+    "squadQuality": 92
+  },
+  {
+    "id": "arsenal",
+    "name": "Arsenal",
+    "league": "eng",
+    "squadQuality": 90
+  },
+  {
+    "id": "chelsea",
+    "name": "Chelsea",
+    "league": "eng",
+    "squadQuality": 84
+  },
+  {
+    "id": "newcastle-united",
+    "name": "Newcastle United",
+    "league": "eng",
+    "squadQuality": 82
+  },
+  {
+    "id": "aston-villa",
+    "name": "Aston Villa",
+    "league": "eng",
+    "squadQuality": 80
+  },
+  {
+    "id": "real-madrid",
+    "name": "Real Madrid",
+    "league": "esp",
+    "squadQuality": 95
+  },
+  {
+    "id": "barcelona",
+    "name": "FC Barcelona",
+    "league": "esp",
+    "squadQuality": 90
+  },
+  {
+    "id": "atletico-madrid",
+    "name": "Atlético Madrid",
+    "league": "esp",
+    "squadQuality": 86
+  },
+  {
+    "id": "athletic-bilbao",
+    "name": "Athletic Bilbao",
+    "league": "esp",
+    "squadQuality": 76
+  },
+  {
+    "id": "real-sociedad",
+    "name": "Real Sociedad",
+    "league": "esp",
+    "squadQuality": 76
+  },
+  {
+    "id": "villarreal",
+    "name": "Villarreal CF",
+    "league": "esp",
+    "squadQuality": 76
+  },
+  {
+    "id": "inter-milan",
+    "name": "Inter Milan",
+    "league": "ita",
+    "squadQuality": 90
+  },
+  {
+    "id": "napoli",
+    "name": "SSC Napoli",
+    "league": "ita",
+    "squadQuality": 87
+  },
+  {
+    "id": "atalanta",
+    "name": "Atalanta",
+    "league": "ita",
+    "squadQuality": 84
+  },
+  {
+    "id": "ac-milan",
+    "name": "AC Milan",
+    "league": "ita",
+    "squadQuality": 82
+  },
+  {
+    "id": "juventus",
+    "name": "Juventus",
+    "league": "ita",
+    "squadQuality": 82
+  },
+  {
+    "id": "as-roma",
+    "name": "AS Roma",
+    "league": "ita",
+    "squadQuality": 76
+  },
+  {
+    "id": "bayern-munich",
+    "name": "Bayern Munich",
+    "league": "ger",
+    "squadQuality": 92
+  },
+  {
+    "id": "bayer-leverkusen",
+    "name": "Bayer Leverkusen",
+    "league": "ger",
+    "squadQuality": 88
+  },
+  {
+    "id": "borussia-dortmund",
+    "name": "Borussia Dortmund",
+    "league": "ger",
+    "squadQuality": 84
+  },
+  {
+    "id": "rb-leipzig",
+    "name": "RB Leipzig",
+    "league": "ger",
+    "squadQuality": 82
+  },
+  {
+    "id": "eintracht-frankfurt",
+    "name": "Eintracht Frankfurt",
+    "league": "ger",
+    "squadQuality": 80
+  },
+  {
+    "id": "stuttgart",
+    "name": "VfB Stuttgart",
+    "league": "ger",
+    "squadQuality": 80
+  },
+  {
+    "id": "paris-saint-germain",
+    "name": "Paris Saint-Germain",
+    "league": "fra",
+    "squadQuality": 93
+  },
+  {
+    "id": "monaco",
+    "name": "AS Monaco",
+    "league": "fra",
+    "squadQuality": 82
+  },
+  {
+    "id": "marseille",
+    "name": "Olympique de Marseille",
+    "league": "fra",
+    "squadQuality": 80
+  },
+  {
+    "id": "lille",
+    "name": "Lille OSC",
+    "league": "fra",
+    "squadQuality": 78
+  },
+  {
+    "id": "lyon",
+    "name": "Olympique Lyonnais",
+    "league": "fra",
+    "squadQuality": 76
+  },
+  {
+    "id": "rennes",
+    "name": "Stade Rennais FC",
+    "league": "fra",
+    "squadQuality": 74
+  }
+]
