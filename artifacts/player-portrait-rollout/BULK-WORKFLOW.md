@@ -1,0 +1,20 @@
+# Resumable portrait batches
+
+Repository contents include runtime WebP assets, manifests, prompt receipts, validation reports and saved card review sheets. Full-resolution `sources/`, downloaded `references/` and `rejected-variants/` remain local and are ignored by Git. A fresh clone can render the interactive previews and run `verify` using the committed assets; `prepare` and source validation require the original PNG archive. Receipt paths document the generating machine and are not portable download links.
+
+Use `node scripts/plan-portrait-batch.mjs <new-batch-id> 100` to refresh coverage and create a new queue (up to 1000 per manifest). The planner refuses to overwrite existing batches and excludes already integrated or explicitly deferred players. It selects the highest-rated remaining players from the checked-in game roster, not a live squad feed. `policy.json` now selects full squads for the six strongest clubs in each of the five leagues, explicitly authorized by the user after the earlier 80+ restriction. `top-clubs-selection.json` records the clubs, ranked by squadQuality, reputation and name. Existing portraits remain integrated. Each new manifest snapshots its selection policy; optional clubIds restrict selection and integration.
+
+Generate each portrait with built-in image_gen, using bounded concurrency (ten requests for the full-squad run). Save each returned source immediately to the batch's `sources/<fcId>.png` and save its prompt, tool, identity and original generated path in `receipts/<fcId>.json`. On resume, skip completed receipts/sources and recorded failures; do not regenerate the batch. Save each failure immediately in receipts/<fcId>-error.json, then aggregate `{id,error}` entries in generation-failures.json. Do not silently retry rejected requests or mark them completed.
+
+With Vite running on port 5180 (or set `PORTRAIT_PREVIEW_ORIGIN`):
+
+1. `node scripts/portrait-batch.mjs <batch-id> status` reports source coverage.
+2. `node scripts/portrait-batch.mjs <batch-id> seal` separates recorded failures; it refuses unaccounted missing files.
+3. `node scripts/portrait-batch.mjs <batch-id> prepare` validates transparency, preserves alpha, encodes 512-square WebP at quality 0.92, and caches results by source/output SHA-256. It can run during generation to prepare available files; missing files make that interim run exit nonzero. Run again after sealing for the final result.
+4. `node scripts/portrait-batch.mjs <batch-id> integrate` validates every included asset and roster ID before merging into the existing catalog. It writes no saved-game data or ratings. It creates a paginated real-component preview.
+5. `node scripts/portrait-batch.mjs <batch-id> verify` checks every new portrait on 14 card fronts and five sizes, plus cycling, mobile overflow, and presence of all catalog files. It saves four preview pages for a 95–100-player batch. Inspect those pages visually; automated checks do not prove likeness.
+6. Refresh coverage, run focused card tests, typecheck, build and size checks once for the completed bulk batch.
+
+Runtime assets live under `public/player-portraits/<batch-id>/`. Full-resolution sources remain outside public. Reuse the approved portrait prompt and primary club colors. Future work must account for deferred identities separately; they remain part of the remaining coverage count.
+
+For large batches, preview and verification paginate 25 cards at a time to bound image requests. Review every saved sheet. Names shared by multiple footballers need disambiguation: use the full name, roster position and an official identity reference where available. Name-plus-club prompts can still produce the wrong person (found for João Mário and Arthur). Reference-photo corrections are recorded separately and preserve originals; set manifest player.assetVersion to v2 for versioned source and runtime filenames. Use the correction verification script to check only changed assets across all 19 variations and refresh affected sheets. Do not claim every likeness is reference-verified from automated checks alone.

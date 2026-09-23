@@ -1,0 +1,30 @@
+# All 577 new player-card previews
+
+Generated portraits rendered with the game's actual PlayerCard component. The final page contains two new players.
+
+[Interactive preview](http://127.0.0.1:5180/artifacts/player-portrait-rollout/top-clubs-full-05/cards.html) · [Club coverage](../TOP-CLUB-COVERAGE.md)
+
+- [Players 1–25](cards-1.png)
+- [Players 26–50](cards-2.png)
+- [Players 51–75](cards-3.png)
+- [Players 76–100](cards-4.png)
+- [Players 101–125](cards-5.png)
+- [Players 126–150](cards-6.png)
+- [Players 151–175](cards-7.png)
+- [Players 176–200](cards-8.png)
+- [Players 201–225](cards-9.png)
+- [Players 226–250](cards-10.png)
+- [Players 251–275](cards-11.png)
+- [Players 276–300](cards-12.png)
+- [Players 301–325](cards-13.png)
+- [Players 326–350](cards-14.png)
+- [Players 351–375](cards-15.png)
+- [Players 376–400](cards-16.png)
+- [Players 401–425](cards-17.png)
+- [Players 426–450](cards-18.png)
+- [Players 451–475](cards-19.png)
+- [Players 476–500](cards-20.png)
+- [Players 501–525](cards-21.png)
+- [Players 526–550](cards-22.png)
+- [Players 551–575](cards-23.png)
+- [Players 576–577](cards-24.png)

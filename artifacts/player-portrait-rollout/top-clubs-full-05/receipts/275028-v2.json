@@ -1,0 +1,10 @@
+{
+  "fcId": "275028",
+  "name": "Arthur Augusto de Matos Soares",
+  "prompt": "Use case: identity-preserve. Make a photorealistic football-game cutout portrait of the EXACT PERSON in the reference, Arthur Augusto de Matos Soares. Reference role: authoritative identity reference. Preserve this person's face, skin tone, distinctive facial structure and hairstyle. Reframe to centered head and upper chest, near-frontal slight three-quarter angle, neutral confident expression, hands outside frame. Face roughly 45 percent canvas height, full hair with generous clearance. Soft studio light upper left. Plain crew-neck football shirt color #E32221, without logo or sponsor. Square canvas. Genuine alpha-transparent background, clean hair and ear edges. No backdrop, gray circle, glow, exterior shadow, text, card frame or checkerboard. Preserve reference identity closely.",
+  "source": "C:\\Users\\IsacC\\.codex\\generated_images\\01a0c55a-6563-70b3-bd9e-c0e774056f0e\\exec-5e9a3480-422a-48b2-a2f8-211b6a37ee0a.png",
+  "reference": "arthur-leverkusen.png",
+  "referenceUrl": "https://www.bayer04.de/es-es/player/werkself-1/bayer-04-leverkusen/arthur",
+  "tool": "built-in image_gen",
+  "reason": "Correct same-name identity mix-up found during visual review"
+}

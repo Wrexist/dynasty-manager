@@ -71,3 +71,9 @@ data/fc27/*.json
 # On-demand tool cache (marketing ad encoder's ffmpeg — see
 # marketing/postproduction/fetch-ffmpeg.mjs). Never committed: 79 MB.
 .cache
+
+# Full-resolution portrait generation inputs stay local; ship alpha WebP assets,
+# provenance, validation reports and card review sheets instead.
+artifacts/player-portrait-rollout/*/sources/
+artifacts/player-portrait-rollout/*/references/
+artifacts/player-portrait-rollout/*/rejected-variants/

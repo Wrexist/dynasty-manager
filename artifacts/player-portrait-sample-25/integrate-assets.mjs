@@ -5,7 +5,8 @@ const read=p=>{const c={exports:{}};vm.runInNewContext(ts.transpileModule(fs.rea
 const {byClub}=read('src/data/communityPack/byClub.ts');
 const {players}=JSON.parse(fs.readFileSync('artifacts/player-portrait-sample-25/team-colors/manifest.json','utf8'));
 const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-const entries=[]; const fixtures=[];
+// Keep later batches when refreshing this original pilot.
+const entries=fs.existsSync('src/data/playerPortraits.ts') ? Object.entries(read('src/data/playerPortraits.ts').PLAYER_PORTRAITS) : []; const fixtures=[];
 for(const p of players){
  const matches=Object.entries(byClub).flatMap(([clubId,ps])=>ps.filter(t=>norm(t.fn+' '+t.ln)===norm(p.name)||(norm(t.fn)===norm(t.ln)&&norm(t.ln)===norm(p.name))).map(t=>({clubId,t})));
  if(matches.length!==1)throw Error('Ambiguous mapping: '+p.name);

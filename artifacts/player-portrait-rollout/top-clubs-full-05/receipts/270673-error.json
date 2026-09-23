@@ -1,0 +1,5 @@
+{
+  "id": "270673",
+  "name": "Warren Zaïre-Emery",
+  "error": "image generation failed: http 400 Bad Request: Some(\"{\\n  \\\"error\\\": {\\n    \\\"message\\\": \\\"Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID ac83cf30-ef3c-4282-bd70-0f228fdce960.\\\",\\n    \\\"type\\\": \\\"image_generation_user_error\\\",\\n    \\\"param\\\": null,\\n    \\\"code\\\": \\\"moderation_blocked\\\",\\n    \\\"moderation_details\\\": {\\n      \\\"moderation_stage\\\": \\\"output\\\",\\n      \\\"categories\\\": [\\n        \\\"public-figure\\\"\\n      ]\\n    }\\n  }\\n}\")"
+}
