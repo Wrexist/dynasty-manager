@@ -1,5 +1,12 @@
 # App Store localization kit — 37 locales
 
+> **24 September 2026 status:** These files are drafts. Only English (US) and
+> English (UK) were found published in App Store Connect. Do not infer historical
+> rollout dates from repository edits. Promotional text is not search-indexed,
+> and the “editable any time” subtitle/keyword instructions below are outdated.
+> Use the [conversion audit](../../../docs/conversion-recovery-2026-09-24.md) for
+> current live changes, evidence, and the TestFlight-before-review gate.
+
 > **2026-07-29 — season refresh.** The World Cup 2026 window closed on
 > 19 July 2026. All 37 locales are pivoted onto the 2026-27 club season in the
 > four **indexed** fields — App Name, Subtitle, Promotional Text, Keywords —
