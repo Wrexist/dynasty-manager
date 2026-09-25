@@ -37,6 +37,10 @@
  *     when scouting.maxAssignments === 0 (user has no scout on staff
  *     yet — Staff hire row is added as a replacement so the checklist
  *     can still complete).
+ *   - Free-pack row done when openedPacks.length > 0; hidden entirely when
+ *     no free pack can be opened right now (today's device-wide free opens
+ *     already used, squad full, or a challenge blocks packs), so it never
+ *     becomes an orphan row.
  *   - Advance-week row never ticks; advancing hides the entire card via
  *     the week-guard.
  *
@@ -51,7 +55,8 @@ import { toast } from 'sonner';
 import { useGameStore } from '@/store/gameStore';
 import { ONBOARDING_COMPLETION_XP } from '@/config/gameBalance';
 import { useShallow } from 'zustand/react/shallow';
-import { Banknote, Search, Calendar, UserPlus, ClipboardList, Check, X, ChevronRight, ArrowRight } from 'lucide-react';
+import { Banknote, Search, Calendar, UserPlus, ClipboardList, Gift, Check, X, ChevronRight, ArrowRight } from 'lucide-react';
+import type { PackTierKey } from '@/types/game';
 import type { GameScreen } from '@/types/game';
 import { hapticLight } from '@/utils/haptics';
 import { readSessionJson, writeSessionJson, STORAGE_KEYS } from '@/store/helpers/persistence';
@@ -61,6 +66,10 @@ import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { cn } from '@/lib/utils';
 
 const DISMISS_KEY = STORAGE_KEYS.ONBOARDING_CHECKLIST_DISMISSED;
+
+/** Free tiers the first-pack row can point at. Any one of them being openable
+ *  for free right now keeps the row tickable. */
+const ONBOARDING_FREE_PACK_TIERS: PackTierKey[] = ['daily', 'bronze', 'silver'];
 
 interface WalkthroughStep {
   text: string;
@@ -80,7 +89,7 @@ interface ChecklistItem {
 
 export function OnboardingChecklist() {
   const { t } = useTranslation();
-  const { week, season, sponsorOffers, scouting, managerProgression, hideOnboarding, matchGamePlan, hasMatchThisWeek } = useGameStore(
+  const { week, season, sponsorOffers, scouting, managerProgression, hideOnboarding, matchGamePlan, hasMatchThisWeek, packsOpened } = useGameStore(
     useShallow(s => ({
       week: s.week,
       season: s.season,
@@ -89,6 +98,7 @@ export function OnboardingChecklist() {
       managerProgression: s.managerProgression,
       hideOnboarding: s.settings.hideOnboarding,
       matchGamePlan: s.matchGamePlan,
+      packsOpened: (s.openedPacks || []).length,
       // The game-plan task is only offerable if there is actually a match to
       // plan for. A club with a week-1 bye would otherwise get a row it
       // cannot tick, which is the orphan-row problem the scout row already
@@ -100,6 +110,7 @@ export function OnboardingChecklist() {
     })),
   );
   const setScreen = useGameStore(s => s.setScreen);
+  const canOpenPack = useGameStore(s => s.canOpenPack);
   const completeOnboardingChecklist = useGameStore(s => s.completeOnboardingChecklist);
 
   const [dismissed, setDismissed] = useState(() => readSessionJson<boolean>(DISMISS_KEY) === true);
@@ -122,7 +133,17 @@ export function OnboardingChecklist() {
   // Setting a plan is the one task that changes how the team plays, so it
   // gates completion alongside the two admin rows.
   const gamePlanTaskDone = !hasMatchThisWeek || matchGamePlan !== 'none';
-  const allTasksDone = gamePlanTaskDone && sponsorTaskDone && scoutTaskDone;
+  // The first pack is the moment the ads and the store page promise, so the
+  // first session has to deliver it — a new player can open three free packs
+  // on day one but nothing pointed them at the Market. Offered only while a
+  // free open is actually available (the daily allowance is device-wide, so a
+  // second career on the same day may already have spent it).
+  const packTaskDone = packsOpened > 0;
+  const freePackReady = !packTaskDone
+    && ONBOARDING_FREE_PACK_TIERS.some(k => canOpenPack(k, 'free').ok);
+  const showPackRow = packTaskDone || freePackReady;
+  const allTasksDone = gamePlanTaskDone && sponsorTaskDone && scoutTaskDone
+    && (!showPackRow || packTaskDone);
   const eligibleToShow =
     week === 1 && season === 1 &&
     (managerProgression?.prestigeLevel ?? 0) === 0 &&
@@ -193,6 +214,25 @@ export function OnboardingChecklist() {
         { text: 'Tap the one that answers what you just read. Each card names what it costs you as well as what it gives.' },
       ],
       successCue: 'Your chosen plan stays highlighted and this row ticks. After the final whistle, the post-match summary adds a line telling you how the plan played out.',
+    });
+  }
+
+  if (showPackRow) {
+    items.push({
+      id: 'free-pack',
+      label: t('onboardingChecklist.freePack.label'),
+      description: t('onboardingChecklist.freePack.description'),
+      icon: Gift,
+      done: packTaskDone,
+      screen: 'packs',
+      whyItMatters: t('onboardingChecklist.freePack.why'),
+      steps: [
+        { text: t('onboardingChecklist.freePack.step1') },
+        { text: t('onboardingChecklist.freePack.step2') },
+        { text: t('onboardingChecklist.freePack.step3') },
+        { text: t('onboardingChecklist.freePack.step4') },
+      ],
+      successCue: t('onboardingChecklist.freePack.success'),
     });
   }
 
