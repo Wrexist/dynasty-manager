@@ -915,7 +915,11 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const unempAI = processAIWeekly(
       simClubs, simPlayers, msgs, state.transferMarket, state.freeAgents,
       state.activeLoans, state.transferNews || [], simDivTables, newWeek, state.season,
-      state.playerClubId, unempWindowOpen,
+      // No player club: `playerClubId` still names the club that let the
+      // manager go (nothing clears it), and passing it here exempted that
+      // club from AI income, wages, renewals and transfers — its budget and
+      // squad froze for the whole spell out of work. Nobody manages it now.
+      '', unempWindowOpen,
     );
 
     // Re-enrich vacancies with updated league data

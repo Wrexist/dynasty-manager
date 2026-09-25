@@ -125,4 +125,20 @@ describe('an unemployed career keeps the world moving', () => {
     expect(s.players[aiPid].injuryWeeks, 'AI club injury did not tick').toBe(4);
     expect(s.players[exClubPid].injuryWeeks, 'ex-club injury did not tick').toBe(4);
   });
+
+  it('runs the ex-club\'s finances like any other club nobody manages', async () => {
+    // `playerClubId` still names the club that let the manager go, and the
+    // unemployed week passed it to `processAIWeekly` — which skips that club's
+    // income and wages, so its budget froze for the whole spell out of work.
+    const s0 = useGameStore.getState();
+    const budgetBefore = s0.clubs[CLUB].budget;
+    useGameStore.setState({
+      gameMode: 'career',
+      careerManager: { ...(s0.careerManager ?? {}), contract: null, unemployedWeeks: 0 } as never,
+    });
+
+    await useGameStore.getState().advanceWeek();
+
+    expect(useGameStore.getState().clubs[CLUB].budget, 'ex-club budget frozen').not.toBe(budgetBefore);
+  });
 });
