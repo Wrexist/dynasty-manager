@@ -321,7 +321,7 @@ consumable player-pack IAPs (RevenueCat).
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
 
-## Architecture (~139K LOC hand-written across ~490 files, plus ~410K LOC generated data)
+## Architecture (~170K LOC hand-written across ~530 files excluding tests, plus ~380K LOC generated data)
 
 ```
 .claude/
@@ -808,6 +808,7 @@ as `/<filename>`; include `$ARGUMENTS` for user input):
 | `/ad-meta` | Meta/Instagram/Reels ad brief (reads `marketing/`) |
 | `/ad-tiktok` | TikTok ad brief (reads `marketing/`) |
 | `/marketing-playbook` | UA strategy reference (budgets, CPI, SKAN) |
+| `/goals` | Pick up the next open item from `GOALS.md` (now: `docs/audit-2026-09-25.md`) |
 
 ## Claude Code Project Settings
 
@@ -866,7 +867,7 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   finishing the migration.
 - `orchestration/weekAdvance.ts` (3,482 LOC) and `pages/Dashboard.tsx` (2,168 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
-- Generated data dwarfs the code (~410K vs ~139K LOC) — keep it lazily imported; `size:check` is the guard.
+- Generated data dwarfs the code (~380K vs ~170K LOC) — keep it lazily imported; `size:check` is the guard.
 - framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.
 - Ads are stubbed out (see Monetization) — re-enabling AdMob is a documented, multi-step job in `utils/ads.ts`.
 
