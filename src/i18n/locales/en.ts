@@ -656,6 +656,14 @@ export const en = {
   'sponsorOfferSheet.performanceBonus': "Performance Bonus",
   'sponsorOfferSheet.duration': "Duration",
   'sponsorOfferSheet.weeklyPay': "Weekly Pay",
+  // ── content: live event mechanics (FestivalHub) ──
+  'festivalHub.winPoints': "+{points} pts for every match you win during the festival.",
+  'festivalHub.bonus.derby': "Derby wins earn +{points}.",
+  'festivalHub.bonus.draw': "Draws earn +{points}.",
+  'festivalHub.bonus.cleanSheet': "Clean sheets earn +{points}.",
+  'festivalHub.bonus.goal': "+{points} per goal you score (up to {cap} a match).",
+  'festivalHub.bonus.academy': "+{points} per academy graduate who plays (up to {cap} a match).",
+  'festivalHub.bonus.signing': "+{points} per signing you complete (up to {cap} a day).",
 } as const;
 
 export default en;

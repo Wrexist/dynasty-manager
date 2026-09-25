@@ -679,6 +679,11 @@ export interface LiveEventProgress {
   matchWinDate?: string;
   /** Number of match-win awards taken on `matchWinDate`. */
   matchWinCount?: number;
+  // ── content: signing awards (events with `signingPoints`) ──
+  /** Local day key of the last signing award (for its own daily cap). */
+  signingDate?: string;
+  /** Number of signing awards taken on `signingDate`. */
+  signingCount?: number;
 }
 
 export function readLiveEventProgress(): LiveEventProgress | null {
@@ -695,6 +700,8 @@ export function readLiveEventProgress(): LiveEventProgress | null {
       claimedTierIds: Array.isArray(parsed.claimedTierIds) ? parsed.claimedTierIds.filter((t: unknown) => typeof t === 'string') : [],
       matchWinDate: typeof parsed.matchWinDate === 'string' ? parsed.matchWinDate : undefined,
       matchWinCount: typeof parsed.matchWinCount === 'number' ? parsed.matchWinCount : undefined,
+      signingDate: typeof parsed.signingDate === 'string' ? parsed.signingDate : undefined,
+      signingCount: typeof parsed.signingCount === 'number' ? parsed.signingCount : undefined,
     };
   } catch (err) {
     if (raw !== null) breadcrumbCorruption('readLiveEventProgress', raw, err);

@@ -112,7 +112,10 @@ describe('liveEvents — Derby Days derby multiplier', () => {
 
   it('a derby win in an event without the flag scores like any other win', () => {
     expect(matchWinPointsFor(wc, true)).toBe(wc.matchWinPoints);
-    expect(matchWinPointsFor(generateMonthlyEvent(at(2026, 9, 10)), true)).toBe(5);
+    // March's festival declares no derby mechanic. (September's Autumn
+    // Rivalries festival now does — its tagline promises derby season.)
+    expect(matchWinPointsFor(generateMonthlyEvent(at(2026, 3, 10)), true)).toBe(5);
+    expect(matchWinPointsFor(generateMonthlyEvent(at(2026, 9, 10)), true)).toBe(10);
   });
 
   it('a derby win still uses one of the day\'s capped awards', () => {

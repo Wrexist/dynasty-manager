@@ -21,11 +21,25 @@ import {
   getTrackStatus,
   getEventDaysRemaining,
   canCheckInToday,
-  matchWinPointsFor,
+  getEventBonuses,
+  type EventBonus,
   type LiveEventProgress,
 } from '@/utils/liveEvents';
+import { t } from '@/i18n';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
+
+/** One line per mechanic the event declares (see `LiveEvent`). */
+function bonusLine(b: EventBonus): string {
+  switch (b.kind) {
+    case 'derby': return t('festivalHub.bonus.derby', { points: b.points });
+    case 'draw': return t('festivalHub.bonus.draw', { points: b.points });
+    case 'cleanSheet': return t('festivalHub.bonus.cleanSheet', { points: b.points });
+    case 'goal': return t('festivalHub.bonus.goal', { points: b.points, cap: b.cap });
+    case 'academy': return t('festivalHub.bonus.academy', { points: b.points, cap: b.cap });
+    case 'signing': return t('festivalHub.bonus.signing', { points: b.points, cap: b.cap });
+  }
+}
 
 function FestivalHub() {
   const festivalCheckIn = useGameStore(s => s.festivalCheckIn);
@@ -148,9 +162,8 @@ function FestivalHub() {
             ? `${nextTier.tier.points - progress.points} pts to ${nextTier.tier.label}`
             : 'All reward tiers unlocked — nice run!'}
         </p>
-        <p className="text-[10px] text-primary/70 mb-3">
-          +{event.matchWinPoints} pts for every match you win during the festival.
-          {event.derbyWinMultiplier > 1 && ` Derby wins earn +${matchWinPointsFor(event, true)}.`}
+        <p className="text-[11px] text-primary/70 mb-3">
+          {[t('festivalHub.winPoints', { points: event.matchWinPoints }), ...getEventBonuses(event).map(bonusLine)].join(' ')}
         </p>
 
         <button
