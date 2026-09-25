@@ -43,8 +43,10 @@ describe('repository hygiene', () => {
   it.skipIf(!hasGit)('tracks no file that .gitignore excludes', () => {
     // The general form of the FC25 case: a file committed before (or around)
     // its ignore rule stays tracked for good. scripts/.icons-debug.html, a raw
-    // scraper page dump, was the other one.
-    const out = execFileSync('git', ['ls-files', '--cached', '--ignored', '--exclude-standard'], {
+    // scraper page dump, was the other one. Only the repo's own .gitignore
+    // files count — `--exclude-standard` would also apply a developer's global
+    // excludes and fail this on their machine alone.
+    const out = execFileSync('git', ['ls-files', '--cached', '--ignored', '--exclude-per-directory=.gitignore'], {
       cwd: REPO_ROOT,
       encoding: 'utf8',
     });
