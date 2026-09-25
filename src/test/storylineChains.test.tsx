@@ -350,6 +350,23 @@ describe('storyline chains in advanceWeek', () => {
       && m.body.includes(`${target.firstName} ${target.lastName} left the club`))).toBe(true);
   });
 
+  it('ends a chain early when its player no longer exists (released academy prospect)', { timeout: 60_000 }, async () => {
+    const st = useGameStore.getState();
+    const target = st.players[st.clubs[CLUB].playerIds[0]];
+    const { [target.id]: _gone, ...rest } = st.players;
+    useGameStore.setState({
+      players: rest,
+      clubs: { ...st.clubs, [CLUB]: { ...st.clubs[CLUB], playerIds: st.clubs[CLUB].playerIds.filter(id => id !== target.id), lineup: st.clubs[CLUB].lineup.filter(id => id !== target.id), subs: st.clubs[CLUB].subs.filter(id => id !== target.id) } },
+      activeStorylineChains: [{ chainId: 'wonderkid-hype', startWeek: st.week - 2, currentStep: 0, choices: [0], targetPlayerId: target.id }],
+      completedStorylineChainIds: STORYLINE_CHAINS.map(c => `${c.id}@${st.season}`),
+    });
+    await useGameStore.getState().advanceWeek();
+    const after = useGameStore.getState();
+    expect(after.activeStorylineChains.some(c => c.chainId === 'wonderkid-hype')).toBe(false);
+    expect(after.pendingStoryline?.body ?? '').not.toMatch(/your star player/i);
+    expect(after.messages.some(m => m.title === 'Wonderkid Hype — Resolved')).toBe(true);
+  });
+
   it('an untargeted chain resolves without the "Your star player saga" line', { timeout: 60_000 }, async () => {
     const st = useGameStore.getState();
     useGameStore.setState({

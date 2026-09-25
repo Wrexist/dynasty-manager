@@ -2047,15 +2047,19 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // A player-focused chain ends early once its player has left the club —
     // otherwise the next steps would keep telling a story about someone who is
     // gone (a sold star still "distracted by the transfer talk").
-    const departedTarget = chain.targetPlayerId && newPlayers[chain.targetPlayerId]?.clubId !== playerClubId
-      ? newPlayers[chain.targetPlayerId] ?? null
-      : null;
-    if (departedTarget && nextStepIdx < chainDef.steps.length) {
+    // A target that no longer exists at all (a released academy prospect is
+    // deleted, not moved) counts as gone too — otherwise the remaining steps
+    // would print the "your star player" fallback about nobody.
+    const targetGone = !!chain.targetPlayerId && newPlayers[chain.targetPlayerId]?.clubId !== playerClubId;
+    if (targetGone && nextStepIdx < chainDef.steps.length) {
+      const departed = newPlayers[chain.targetPlayerId!];
       newCompletedChainIds.push(`${chain.chainId}@${season}`);
       newMessages = addMsg(newMessages, {
         week: newWeek, season, type: 'general',
         title: `${chainDef.name} — Resolved`,
-        body: `The story ended when ${departedTarget.firstName} ${departedTarget.lastName} left the club.`,
+        body: departed
+          ? `The story ended when ${departed.firstName} ${departed.lastName} left the club.`
+          : 'The story ended when the player left the club.',
       });
       return kept;
     }

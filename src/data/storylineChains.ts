@@ -620,16 +620,19 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
   // real injured player, a real goal drought, the table) so they read as
   // *this* club's story rather than a generic one.
   {
+    // The rival is a real derby (many of which span two cities: El Clásico,
+    // Der Klassiker) or an earned grudge from anywhere, so the copy never
+    // claims a shared city.
     id: 'derby-build-up',
     name: 'Derby Week',
     steps: [
       {
         weekOffset: 0,
         title: 'Derby Week',
-        body: 'It\'s derby week. {rivalName} are next, the city is split down the middle, and every newspaper wants a quote from you.',
+        body: 'It\'s derby week. {rivalName} are next, both sets of fans have been counting the days, and every newspaper wants a quote from you.',
         icon: 'swords',
         options: [
-          { label: 'Promise the fans a win', text: 'You tell the supporters {clubName} will own the city again this weekend.', effects: { morale: 4, boardConfidence: -1, fanMood: 7 } },
+          { label: 'Promise the fans a win', text: 'You tell the supporters {clubName} will have the bragging rights again this weekend.', effects: { morale: 4, boardConfidence: -1, fanMood: 7 } },
           { label: 'Keep it low-key', text: 'You call it three points like any other and refuse to feed the headlines.', effects: { morale: 2, boardConfidence: 3, fanMood: -1 } },
           { label: 'Talk up the rivals', text: 'You praise {rivalName} publicly and let the pressure settle on their shoulders.', effects: { morale: 3, boardConfidence: 2, fanMood: 2 } },
         ],
@@ -647,8 +650,8 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
       },
       {
         weekOffset: 3,
-        title: 'One City',
-        body: 'A local charity has asked both clubs to play a joint community match. {rivalName} have already said yes, so the ball is in your court.',
+        title: 'Common Ground',
+        body: 'A charity has asked both clubs to play a joint fundraising match. {rivalName} have already said yes, so the ball is in your court.',
         icon: 'handshake',
         options: [
           { label: 'Accept gladly', text: 'You send senior players alongside the academy to show {clubName} is bigger than the rivalry.', effects: { morale: 3, boardConfidence: 5, fanMood: 4 } },
