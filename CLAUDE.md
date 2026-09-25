@@ -1,10 +1,10 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-08-28 (app v1.6.0, save schema v93).
+> Last verified against the codebase 2026-09-25 (latest shipped v1.6.0, save schema v93).
 > If the numbers below disagree with the code, trust the code — and update this file.
-> `npm run docs:check` verifies the countable claims (schema version, file counts,
-> LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
-> file cannot silently drift again.
+> `npm run docs:check` verifies the countable claims (schema and shipped versions,
+> file counts, LOC of the named files, Tech Stack versions) at EVERY occurrence and
+> `-- --fix` updates them. It runs in preflight, so this file cannot silently drift again.
 
 ## TestFlight Release Notes ("What's New")
 
@@ -302,7 +302,7 @@ consumable player-pack IAPs (RevenueCat).
 ## Tech Stack
 - **React 18.3.1** + **TypeScript 5.9.3** (non-strict) via **Vite 7.3.2** (SWC plugin)
 - **Tailwind CSS 3.4.19** + `tailwindcss-animate` + HSL CSS variables (dark-only theme)
-- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 8 files in `src/components/ui/`
+- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 5 files in `src/components/ui/`
 - **Zustand 5.0.12** — modular store: `gameStore.ts` composition + **16 slices** + 5 helpers
 - **React Router DOM 7.18.3** — **HashRouter** (`#/` URLs). Routes: `/`, `/mode-select`,
   `/select-club`, `/create-manager`, `/challenge`, `/whats-new`, `/subscribe`, `/game`, `*`.
@@ -314,7 +314,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 266 test files in `src/test/`
+- **Vitest 4.1.11 + jsdom + Testing Library** — 269 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -340,7 +340,7 @@ src/
 │   │   └── icons/       → 4 premium icon components
 │   ├── ui/              → 5 shadcn/ui files (DO NOT modify unless asked)
 │   ├── ErrorBoundary, SaveRecoveryDialog, AnalyticsConsentModal
-├── config/              → 41 files: gameBalance, matchEngine, matchSpeed, tactics,
+├── config/              → 42 files: gameBalance, matchEngine, matchSpeed, tactics,
 │                          transfers, contracts, training, staff, scouting, youth,
 │                          chemistry, personality, playoffs, continental, packs,
 │                          monetization, legal, sponsorship, merchandise, managerCareer,
@@ -355,17 +355,17 @@ src/
 │   ├── nationalPlayerPool.ts → GENERATED FC26-derived national rosters (11K LOC)
 │   ├── league.ts        → fixture generation, table builder, derbies, country helpers
 │   ├── cup.ts           → domestic cup draw/sim (round weeks choreographed, see Gotchas)
-│   ├── continentalDraw.ts, nations.ts (51 national teams), challenges.ts,
+│   ├── continentalDraw.ts, nations.ts (65 national teams), challenges.ts,
 │   │   pressConferences.ts, storylineChains.ts, boardPitches.ts,
 │   │   clubTemplateAliases.ts, whatsNew.ts, pendingNews.ts
 ├── engine/
-│   ├── match.ts         → match sim (1,828 LOC, event-based, minute-by-minute)
+│   ├── match.ts         → match sim (2,243 LOC, event-based, minute-by-minute)
 │   └── match/helpers.ts
 ├── hooks/               → 13 hooks: useGameSelectors, useLineupOptimizer,
 │                          useSwipeGesture, useKeyboardInset, useFocusTrap,
 │                          useReducedMotionPref (the single source of truth for
 │                          "should this animate?"), …
-├── pages/               → 70 pages: Dashboard (2,192 LOC), MatchDay, GameShell,
+├── pages/               → 70 pages: Dashboard (2,168 LOC), MatchDay, GameShell,
 │                          SquadPage, TacticsPage, TransferPage, TrainingPage,
 │                          StaffPage, ScoutingPage, YouthAcademy, FacilitiesPage,
 │                          FinancePage, MerchandisePage, BoardPage, CupPage,
@@ -376,17 +376,18 @@ src/
 │                          WhatsNewPage, SettingsPage, HelpPage, ClubSelection, …
 ├── store/
 │   ├── gameStore.ts     → Zustand composition of 16 slices
-│   ├── storeTypes.ts    → GameState interface (492 LOC)
+│   ├── storeTypes.ts    → GameState interface (719 LOC)
 │   ├── slices/          → core, club, transfer, match, systems, orchestration,
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs
-│   │   ├── orchestrationSlice.ts (1,201 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3482 LOC — THE game loop),
-│   │                        seasonEnd.ts (1,651), matchActions.ts (1,611),
-│   │                        initGame.ts (587), tournaments.ts, helpers.ts
+│   │   ├── orchestrationSlice.ts (1,546 LOC — façade) delegating to:
+│   │   └── orchestration/ → weekAdvance.ts (3,482 LOC — THE game loop),
+│   │                        seasonEnd.ts (2,179 LOC), matchActions.ts (2,160 LOC),
+│   │                        initGame.ts (736 LOC), tournaments.ts, playoff.ts,
+│   │                        worldCupMatchActions.ts, communityPackRuntime.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
 │                          development.ts, rosterOps.ts
-├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
+├── types/game.ts        → ALL types (3,735 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 45 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
 ├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v93),
@@ -395,7 +396,7 @@ src/
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 266 test files incl. longevity/stress suites, adversarial
+├── test/                → 269 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode)
@@ -403,9 +404,9 @@ src/
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,094 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
+1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,482 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
 2. **`src/store/storeTypes.ts`** — complete `GameState` interface (719 LOC).
-3. **`src/types/game.ts`** — all types (2,083 LOC). Single source of truth.
+3. **`src/types/game.ts`** — all types (3,735 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
 5. **`src/engine/match.ts`** — match simulation (2243 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
@@ -445,7 +446,7 @@ Champions Cup = 8 groups of 4 then knockout) + Super Cup. Qualification spots
 are allocated by league rank (1–30) from coefficients
 (`src/config/continental.ts`, `src/utils/continentalCoefficients.ts`).
 
-**International:** 51 national teams (`src/data/nations.ts`) across 5
+**International:** 65 national teams (`src/data/nations.ts`) across 5
 confederations with FC26-derived player pools. The manager can receive
 national-team job offers and run 23-man squads through international
 tournaments alongside the club job (`nationalTeamSlice`, `utils/international.ts`).
@@ -709,7 +710,7 @@ Player identities draw from the **community pack** real-player dataset
 - **Never check subscription SKUs against `monetization.entitlements`** — see Entitlement invariants above.
 - **Generated data is not source code:** `src/data/communityPack/*`, `src/data/nationalPlayerPool.ts` are tool-generated. Never hand-edit; regenerate via the fc26/scrape scripts.
 - HashRouter: deep links are `#/route`; route changes don't hit the server.
-- `package.json.version` (1.3.0) must never regress below the top `whatsNew.ts` entry — CI guard will fail the TestFlight build.
+- `package.json.version` must never regress below the top `whatsNew.ts` entry (latest shipped v1.6.0) — the guard fails the TestFlight and Android builds.
 
 ## Commands
 ```bash
@@ -718,7 +719,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (266 test files)
+npm run test         # Vitest (269 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
@@ -774,7 +775,7 @@ as `/<filename>`; include `$ARGUMENTS` for user input):
 
 | Command | Purpose |
 |---------|---------|
-| `/balance` | Game balance tuning across the 33 config files |
+| `/balance` | Game balance tuning across the 42 config files |
 | `/feature` | Feature scaffolding (types → config → slice → page → tests) |
 | `/match-engine` | Match engine development (engine/match.ts + helpers) |
 | `/test` | Test generation following existing Vitest patterns |
@@ -841,7 +842,7 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   release on this count, and do not advertise Swedish (or any) localisation
   in store copy or release notes until a future release explicitly commits to
   finishing the migration.
-- `orchestration/weekAdvance.ts` (3,094 LOC) and `pages/Dashboard.tsx` (2,192 LOC) are the new oversized files — use `/refactor` for guided extraction.
+- `orchestration/weekAdvance.ts` (3,482 LOC) and `pages/Dashboard.tsx` (2,168 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~410K vs ~139K LOC) — keep it lazily imported; `size:check` is the guard.
 - framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.
