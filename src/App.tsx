@@ -5,6 +5,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RouteScrollReset } from "@/components/RouteScrollReset";
 import TitleScreen from "./pages/TitleScreen";
 // SaveRecoveryDialog is a Radix Dialog that appears on a CONDITION — a corrupt
 // save — yet importing it eagerly pulled @radix-ui/react-dialog into the boot
@@ -75,6 +76,7 @@ const App = () => {
       <TooltipProvider>
         <Sonner />
         <HashRouter>
+          <RouteScrollReset />
           <Suspense fallback={null}><SaveRecoveryDialog /></Suspense>
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
