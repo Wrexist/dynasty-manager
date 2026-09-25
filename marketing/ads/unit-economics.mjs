@@ -39,7 +39,7 @@ function loadPrices() {
   const required = [
     'com.dynastymanager.pro',
     'com.dynastymanager.pro.monthly',
-    'com.dynastymanager.pro.annual',
+    'com.dynastymanager.pro.yearly',
     'com.dynastymanager.pro.lifetime',
     'com.dynastymanager.bundle.all',
   ];
@@ -109,7 +109,7 @@ function parseArgs(argv) {
   const priceAlias = {
     'price-pro': 'com.dynastymanager.pro',
     'price-monthly': 'com.dynastymanager.pro.monthly',
-    'price-annual': 'com.dynastymanager.pro.annual',
+    'price-annual': 'com.dynastymanager.pro.yearly',
     'price-lifetime': 'com.dynastymanager.pro.lifetime',
     'price-bundle': 'com.dynastymanager.bundle.all',
   };
@@ -172,7 +172,7 @@ function model(cfg, prices) {
     {
       label: 'Pro Annual',
       rate: cfg.annualStart * cfg.trialToPaid,
-      unit: prices['com.dynastymanager.pro.annual'],
+      unit: prices['com.dynastymanager.pro.yearly'],
       qty: 1,
     },
     { label: 'Consumable player packs', rate: 1, unit: cfg.consumableArpi, qty: 1 },
