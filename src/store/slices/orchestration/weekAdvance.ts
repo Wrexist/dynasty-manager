@@ -4,7 +4,7 @@ import { calculateReputationTier, generateJobVacancies, generateCompetitors, get
 import {
   REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
-import { buildLeagueTable, buildAllDivisionTables, LEAGUES } from '@/data/league';
+import { buildLeagueTable, buildAllDivisionTables, fitDivisionFixturesToSeason, LEAGUES } from '@/data/league';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
 import {
@@ -860,8 +860,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     for (const [leagueId, clubIds] of Object.entries(state.divisionClubs)) {
       if (!clubIds?.length) continue;
-      const leagueFixtures = [...(state.divisionFixtures[leagueId] || [])];
-      let changed = false;
+      // Fit every division's remaining rounds onto the season being played
+      // (midweek double rounds for longer divisions) — see
+      // `fitDivisionFixturesToSeason`. A no-op once the division fits.
+      const scheduled = state.divisionFixtures[leagueId] || [];
+      const fitted = fitDivisionFixturesToSeason(scheduled, state.totalWeeks || TOTAL_WEEKS, newWeek);
+      const leagueFixtures = [...fitted];
+      let changed = fitted !== scheduled;
       for (let fi = 0; fi < leagueFixtures.length; fi++) {
         const m = leagueFixtures[fi];
         // `> newWeek`, not `!== newWeek`: mirror the employed path's catch-up.
@@ -1418,7 +1423,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (leagueId === playerDiv) continue;
     const leagueFixtures = updatedDivisionFixtures[leagueId];
     if (!leagueFixtures) continue;
-    const updatedLeagueFixtures = [...leagueFixtures];
+    // A division longer than the user's season plays its extra rounds as
+    // midweek doubles instead of leaving them for the season-end catch-up.
+    const updatedLeagueFixtures = [...fitDivisionFixturesToSeason(leagueFixtures, state.totalWeeks || TOTAL_WEEKS, week)];
     for (let i = 0; i < updatedLeagueFixtures.length; i++) {
       const m = updatedLeagueFixtures[i];
       // `<= week`, not `=== week`: an AI fixture whose week slipped past

@@ -107,6 +107,12 @@ describe('an unemployed season still plays every competition', () => {
     expect(s.domesticSuperCup?.winnerId).toBeTruthy();
     expect(s.continentalSuperCup?.played).toBe(true);
 
+    // …and every division — the 46-round lower tiers included — has finished
+    // its league season on the 38-week calendar (S9: midweek double rounds).
+    for (const [leagueId, fixtures] of Object.entries(s.divisionFixtures)) {
+      expect(fixtures.filter(m => !m.played).length, `${leagueId}: unplayed fixtures`).toBe(0);
+    }
+
     // Nobody is managed, so the competitions post nothing: the only new inbox
     // traffic is the unemployed branch's own weekly "Between Jobs" note plus
     // AI-world news. No "Cup:", "Eliminated" or "Winners!" message may appear.
