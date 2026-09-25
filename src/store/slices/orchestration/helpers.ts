@@ -22,7 +22,9 @@ import type {
   ContinentalTournamentState,
   SuperCupMatch,
   Match,
+  TacticalInstructions,
 } from '@/types/game';
+import { getAICounterTactics } from '@/config/aiManager';
 import { LEAGUES, ALL_CLUBS } from '@/data/league';
 import {
   BOARD_OBJ_XP_CRITICAL,
@@ -731,6 +733,24 @@ export function stripAiMatchDetail(result: Match, playerClubId: string): Match {
   if (!result.events?.length && !result.stats) return result;
   const { events: _events, stats: _stats, ...rest } = result as Match & Record<string, unknown>;
   return { ...rest, events: [] } as Match;
+}
+
+/**
+ * The tactics both sides take into an AI-vs-AI match: each AI manager reads
+ * the opponent's default setup (`getAICounterTactics`). ONE rule for every AI
+ * path — the week tick's divisions (employed and unemployed) and the AI round
+ * played alongside the player's own match — so no division plays on a
+ * different rulebook. Undefined when either club has no AI profile (the
+ * engine then falls back to the profile's defaults). Rolls home, then away.
+ */
+export function aiMatchTactics(hc: Club, ac: Club): { home?: TacticalInstructions; away?: TacticalInstructions } {
+  const hp = hc.aiManagerProfile;
+  const ap = ac.aiManagerProfile;
+  if (!hp || !ap) return {};
+  return {
+    home: getAICounterTactics(hp, ap.defaultTactics, ac.formation || '4-4-2'),
+    away: getAICounterTactics(ap, hp.defaultTactics, hc.formation || '4-4-2'),
+  };
 }
 
 /**

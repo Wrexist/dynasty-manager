@@ -30,7 +30,6 @@ import { grantXP, hasPerk } from '@/utils/managerPerks';
 
 import type { JobVacancy } from '@/types/game';
 import { PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES } from '@/config/managerCareer';
-import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_FORM_MATCHES, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
 import { FORCED_RETIREMENT_AGE_GRACE_YEARS, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
@@ -87,7 +86,7 @@ import { generateProactiveOffer, getReputationTierLabel } from '@/utils/managerC
 import { refreshCommunityPackMarket, seedCommunityPackFreeAgents } from './communityPackRuntime';
 import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 // simcal: match-counted suspensions for the other-divisions AI fixtures.
-import { buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
+import { buildFixtureWeeksByClub, aiMatchTactics } from '@/store/slices/orchestration/helpers';
 
 /**
  * Week-advancement pipeline extracted from orchestrationSlice.ts.
@@ -894,10 +893,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         }
         const hBenchAI = hSquadAI.bench;
         const aBenchAI = aSquadAI.bench;
-        const hProfile = hc.aiManagerProfile;
-        const aProfile = ac.aiManagerProfile;
-        const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
-        const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
+        const { home: hTacticsAI, away: aTacticsAI } = aiMatchTactics(hc, ac);
         const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, state.season, undefined, hBenchAI, aBenchAI);
         leagueFixtures[fi] = stripAiMatchDetail(result, state.playerClubId);
         applyAIMatchEvents(result.events, simPlayers, simClubs, newWeek, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId, unempFixtureWeeks);
@@ -1352,10 +1348,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       continue;
     }
     // AI counter-tactics: each team reads the opponent's default setup
-    const hProfile = hc.aiManagerProfile;
-    const aProfile = ac.aiManagerProfile;
-    const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
-    const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
+    const { home: hTacticsAI, away: aTacticsAI } = aiMatchTactics(hc, ac);
     const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
     updatedFixtures[idx] = stripAiMatchDetail(result, playerClubId);
     applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId, fixtureWeeksByClub);
@@ -1464,10 +1457,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       // a side a man down for the rest of the match), without derbies, and on
       // the profile's kickoff tactics only — a different rulebook from the
       // division the player was watching.
-      const hProfileOther = hc.aiManagerProfile;
-      const aProfileOther = ac.aiManagerProfile;
-      const hTacticsOther = hProfileOther && aProfileOther ? getAICounterTactics(hProfileOther, aProfileOther.defaultTactics, ac.formation || '4-4-2') : undefined;
-      const aTacticsOther = aProfileOther && hProfileOther ? getAICounterTactics(aProfileOther, hProfileOther.defaultTactics, hc.formation || '4-4-2') : undefined;
+      const { home: hTacticsOther, away: aTacticsOther } = aiMatchTactics(hc, ac);
       const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsOther, aTacticsOther, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSquadOther.bench, aSquadOther.bench);
       updatedLeagueFixtures[i] = stripAiMatchDetail(result, playerClubId);
       applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId, fixtureWeeksByClub);

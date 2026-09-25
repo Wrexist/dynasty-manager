@@ -29,7 +29,7 @@ import { generatePressConference, getPostMatchPressContext, buildPressQuestionVa
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { neutralVenue } from '@/engine/match/helpers';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
-import { applyAIMatchEvents, buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
+import { aiMatchTactics, applyAIMatchEvents, buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
 import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
@@ -1036,7 +1036,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
+    // Same counter-tactics every other AI-vs-AI path uses (see `aiMatchTactics`).
+    const aiTactics = aiMatchTactics(hc2, ac2);
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, aiTactics.home, aiTactics.away, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
     fullFixtures[idx] = stripAiMatchDetail(aiResult, playerClubId);
     applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId, aiFixtureWeeks);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
@@ -1622,7 +1624,9 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
+    // Same counter-tactics every other AI-vs-AI path uses (see `aiMatchTactics`).
+    const aiTactics = aiMatchTactics(hc2, ac2);
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, aiTactics.home, aiTactics.away, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
     fullFixtures2[idx] = stripAiMatchDetail(aiResult, playerClubId);
     applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId, aiFixtureWeeks2);
     updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
