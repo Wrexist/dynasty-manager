@@ -10,7 +10,8 @@ import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveC
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
-import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
+import { openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
+import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
@@ -80,8 +81,6 @@ const COSMETIC_PACK_IDS: ProductId[] = [
 const ShopPage = () => {
   const navigate = useNavigate();
   const monetization = useGameStore(s => s.monetization);
-  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const setCosmetic = useGameStore(s => s.setCosmetic);
   const clearCosmetic = useGameStore(s => s.clearCosmetic);
   const [purchaseProduct, setPurchaseProduct] = useState<ProductId | null>(null);
@@ -193,18 +192,6 @@ const ShopPage = () => {
     setPurchaseProduct(productId);
   };
 
-  /** Sync entitlements + subscription from RevenueCat after a purchase or restore */
-  const syncAfterPurchase = async () => {
-    const ids = await getEntitlements();
-    if (ids.length > 0) restoreEntitlements(ids);
-    const info = await getCustomerInfo();
-    // Only write a confirmed, non-null subscription — a transient/empty
-    // customerInfo must never clear an active sub (isSubscriptionActive handles
-    // real expiry via expiresAt). See purchases.extractSubscriptionInfo.
-    const sub = extractSubscriptionInfo(info);
-    if (sub) updateSubscription(sub);
-  };
-
   const handleConfirmPurchase = async () => {
     if (!purchaseProduct || purchasing) return;
     const productId = purchaseProduct;
@@ -215,36 +202,30 @@ const ShopPage = () => {
     // must not inflate the initiated denominator.
     track('purchase_initiated', { productId, surface: 'shop' });
     try {
-      const result = await purchaseViaSDK(productId);
-      // Only an explicit cancel means no charge. A completed purchase with an
-      // empty granted list (entitlement-mapping lag) still proceeds to the
-      // sync below, which re-reads entitlements from RevenueCat.
-      if (result.cancelled) {
+      // Same path as the paywall (utils/purchaseSync): grant, re-sync, and on
+      // a throw re-read the store before calling it a failure — the SDK can
+      // throw after the charge, and this page used to report exactly that
+      // case as "could not be confirmed" even when the re-sync found it.
+      const outcome = await purchaseAndSync(productId);
+      if (outcome.status === 'cancelled') {
         track('purchase_cancelled', { productId, surface: 'shop' });
         infoToast('Purchase Cancelled', 'No charge was made.');
         setPurchaseProduct(null);
         return;
       }
-      restoreEntitlements(result.granted);
-      await syncAfterPurchase();
+      if (outcome.status === 'failed') {
+        addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
+        Sentry.captureException(outcome.error, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
+        track('purchase_failed', { productId, surface: 'shop' });
+        setPurchaseError(
+          'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
+        );
+        return;
+      }
       hapticMedium();
       track('purchase_completed', { productId, surface: 'shop' });
       successToast('Purchase complete!');
       setPurchaseProduct(null);
-    } catch (err) {
-      // The throw could come from before OR after the App Store charge —
-      // RevenueCat's SDK doesn't always distinguish receipt-validation
-      // failures from network errors. Defensive recovery: attempt a
-      // post-failure sync so a successful charge gets picked up on the
-      // next entitlement read (RevenueCat re-fetches receipt). Capture
-      // the actual error to Sentry so we can triage real-money issues.
-      addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
-      Sentry.captureException(err, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
-      try { await syncAfterPurchase(); } catch { /* second-stage sync best-effort */ }
-      track('purchase_failed', { productId, surface: 'shop' });
-      setPurchaseError(
-        'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
-      );
     } finally {
       setPurchasing(false);
     }
@@ -255,28 +236,18 @@ const ShopPage = () => {
     setPurchaseError(null);
     track('restore_clicked', {});
     try {
-      const granted = await restoreViaSDK();
-      if (granted.length > 0) restoreEntitlements(granted);
-
-      // Sync BEFORE deciding what to tell the user. `mapEntitlements`
-      // deliberately excludes subscription SKUs (they would outlive the sub in
-      // `entitlements`), so a monthly/annual customer's restore legitimately
-      // returns [] — their Pro comes back only through extractSubscriptionInfo.
-      // Toasting off `granted.length` alone told every subscription-only
-      // customer "No Purchases Found" moments before their sub was restored.
-      // SettingsPage and SubscribeOnboarding already do this; the Shop never
-      // did.
-      await syncAfterPurchase();
-
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0) {
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      // Syncs BEFORE deciding what to tell the user: a subscription-only
+      // customer's restore returns no entitlement IDs, and their Pro comes
+      // back only through the subscription record (see restoreAndSync).
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0) {
+        successToast('Purchases Restored', `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`);
       } else if (proActive) {
         successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
-      track('restore_completed', { restoredCount: granted.length });
+      track('restore_completed', { restoredCount: restored.length });
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'ShopPage.restore' } });
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');

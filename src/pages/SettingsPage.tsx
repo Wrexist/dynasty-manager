@@ -26,7 +26,8 @@ import {
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
-import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
+import { openSubscriptionManagement } from '@/utils/purchases';
+import { restoreAndSync } from '@/utils/purchaseSync';
 import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
@@ -129,8 +130,6 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
   const setScreen = useGameStore(s => s.setScreen);
-  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const resetEntitlementsForTesting = useGameStore(s => s.resetEntitlementsForTesting);
   const startCaptureScenario = useGameStore(s => s.startCaptureScenario);
   const gameStarted = useGameStore(s => s.gameStarted);
@@ -233,27 +232,14 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const handleRestorePurchases = async () => {
     setRestoringPurchases(true);
     try {
-      const granted = await restorePurchases();
-      if (granted.length > 0) restoreEntitlements(granted);
-
-      // Sync the subscription BEFORE deciding what to tell the user.
-      // `mapEntitlements` deliberately excludes subscription SKUs (they'd
-      // outlive the sub in `entitlements`), so a monthly/annual customer's
-      // restore legitimately returns `[]` — their Pro is recoverable only
-      // through extractSubscriptionInfo. Toasting off `granted.length` alone
-      // told every subscription-only customer "No Purchases Found" moments
-      // before their sub was actually restored. This is the primary Restore
-      // entry point for existing users, and the one App Review exercises.
-      // SubscribeOnboarding already got this treatment; Settings never did.
-      // Only write a confirmed, non-null sub so a transient/empty customerInfo
-      // can't clear an active subscription.
-      const info = await getCustomerInfo();
-      const sub = extractSubscriptionInfo(info);
-      if (sub) updateSubscription(sub);
-
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0) {
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      // The primary Restore entry point for existing users, and the one App
+      // Review exercises. Shares one implementation with the paywall and the
+      // Shop (utils/purchaseSync): it always syncs the subscription record, so
+      // a subscription-only customer — whose restore returns no entitlement
+      // IDs — is told their Pro is active rather than "No Purchases Found".
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0) {
+        successToast('Purchases Restored', `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`);
       } else if (proActive) {
         successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
