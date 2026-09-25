@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { CHALLENGES } from '@/data/challenges';
-import { QUESTIONS as PRESS_QUESTIONS } from '@/data/pressConferences';
+import { QUESTIONS as PRESS_QUESTIONS } from '@/data/pressQuestionBank';
 import { generateFixtures } from '@/data/league';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { MANAGER_PERKS, xpForLevel } from '@/utils/managerPerks';
