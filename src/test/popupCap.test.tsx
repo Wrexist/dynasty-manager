@@ -20,6 +20,11 @@ import {
 import { BLOCKING_POPUPS_PER_ADVANCE } from '@/config/gameBalance';
 import { useGameStore } from '@/store/gameStore';
 import { digestNote, farewellNotes, gemNote, midSeasonNote } from '@/utils/overlayInbox';
+import { MemoryRouter } from 'react-router-dom';
+import Dashboard from '@/pages/Dashboard';
+import { ACHIEVEMENTS } from '@/utils/achievements';
+import { MID_SEASON_WEEK } from '@/config/ui';
+import { getFlag, removeFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 
 const CAP = BLOCKING_POPUPS_PER_ADVANCE;
 const empty = (): PresentationLedger => ({ shown: new Set(), suppressed: new Set() });
@@ -308,5 +313,94 @@ describe('overflow notes carry what the popup would have shown', () => {
   it('mid-season report names position, points and confidence', () => {
     expect(midSeasonNote({ position: 3, points: 41, boardConfidence: 67.4 }).body)
       .toBe('Halfway point: 3rd with 41 points. Board confidence stands at 67%.');
+  });
+});
+
+// ── The Dashboard's converters ──
+//
+// The coordinator tests above use a stand-in overlay. These drive the real
+// Dashboard, whose converters are what actually file its popups and clear
+// their state — a converter that files but does not clear leaves the popup
+// asking for the screen, and it shows (stale) after the next advance.
+
+describe('Dashboard — overflow is filed and cleared by the real converters', () => {
+  beforeEach(() => {
+    resetPresentationLedger();
+    filed.length = 0;
+    sessionStorage.clear();
+    // Keep the launch-only daily reward out of it: it is never filed.
+    removeFlag(STORAGE_KEYS.WELCOME_SHOWN);
+    useGameStore.getState().initGame('celtic');
+    const s = useGameStore.getState();
+    removeFlag(`dynasty-midseason-s${s.season}`);
+    // Mid-season week, so the mid-season report (component state) wants the
+    // screen too.
+    useGameStore.setState({
+      week: MID_SEASON_WEEK, currentScreen: 'dashboard', weeklyDigest: null, pendingPressConference: null,
+      pendingStoryline: null, pendingTransferTalk: null, pendingGemReveal: null, pendingFarewell: [],
+      pendingAchievementIds: [], settings: { ...s.settings, hideOnboarding: true },
+    });
+  });
+
+  it('files an achievement, the mid-season report, a gem and a farewell once the advance had its two popups', () => {
+    // Spend this advance's budget.
+    const spent = render(
+      <PresentationQueueProvider>
+        <Fake id="weeklyDigest" />
+        <Fake id="celebration" />
+      </PresentationQueueProvider>,
+    );
+    dismissVisible('weeklyDigest');
+    dismissVisible('celebration');
+    spent.unmount();
+
+    const s = useGameStore.getState();
+    const achievement = ACHIEVEMENTS.find(a => !a.hidden)!;
+    const gemPlayerId = Object.keys(s.players).find(id => s.players[id].clubId && s.players[id].clubId !== s.playerClubId)!;
+    const gemPlayer = s.players[gemPlayerId];
+    useGameStore.setState({
+      pendingAchievementIds: [achievement.id],
+      pendingGemReveal: { playerId: gemPlayerId, region: 'Asia' },
+      pendingFarewell: [{ playerId: 'old', playerName: 'Old Timer', seasonsServed: 9, stats: [] }],
+    });
+
+    render(<MemoryRouter><PresentationQueueProvider><Dashboard /></PresentationQueueProvider></MemoryRouter>);
+
+    const after = useGameStore.getState();
+    const titles = after.messages.map(m => m.title);
+    // Filed…
+    expect(titles).toContain(`Achievement unlocked: ${achievement.title}`);
+    expect(titles).toContain('Mid-season report');
+    expect(titles).toContain(`Hidden gem: ${gemPlayer.firstName} ${gemPlayer.lastName}`);
+    expect(titles).toContain('Farewell, Old Timer');
+    // …and cleared, so none of them asks for the screen again next advance.
+    expect(after.pendingGemReveal).toBeNull();
+    expect(after.pendingFarewell).toEqual([]);
+    expect(getFlag(`dynasty-midseason-s${after.season}`)).toBe(true);
+    expect(screen.queryByText(achievement.title)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Continue Season/ })).toBeNull();
+    // Each exactly once.
+    for (const title of [`Achievement unlocked: ${achievement.title}`, 'Mid-season report', 'Farewell, Old Timer']) {
+      expect(titles.filter(t => t === title)).toHaveLength(1);
+    }
+    // The next advance brings a fresh budget. A converter that filed without
+    // clearing its popup's state would now show that popup, stale.
+    act(() => { useGameStore.setState({ week: MID_SEASON_WEEK + 1 }); });
+    expect(screen.queryByText(achievement.title)).toBeNull();
+    expect(screen.queryByText('Old Timer', { exact: false })).toBeNull();
+  });
+
+  it('shows them normally when the advance still has budget', () => {
+    const s = useGameStore.getState();
+    useGameStore.setState({
+      pendingFarewell: [{ playerId: 'old', playerName: 'Old Timer', seasonsServed: 9, stats: [] }],
+    });
+    const before = s.messages.length;
+    render(<MemoryRouter><PresentationQueueProvider><Dashboard /></PresentationQueueProvider></MemoryRouter>);
+    // The mid-season report outranks the farewell and has the screen; nothing
+    // was filed.
+    expect(screen.getByRole('button', { name: /Continue Season/ })).toBeTruthy();
+    expect(useGameStore.getState().messages.length).toBe(before);
+    expect(useGameStore.getState().pendingFarewell).toHaveLength(1);
   });
 });
