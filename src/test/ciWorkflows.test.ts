@@ -2,9 +2,11 @@
  * Guardrails on the CI workflows — pinned structurally, like the source-map
  * test, because a workflow regression is invisible until the build it breaks.
  */
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { describe, it, expect, afterEach } from 'vitest';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -18,10 +20,19 @@ function workflow(rel: string): string {
     .join('\n');
 }
 
-/** The indented block under `key:` (its child lines), or '' if absent. */
+/** The child lines of the first `key:` mapping (deeper-indented lines and
+ *  blank lines until the indent returns), or '' if the key is absent. */
 function block(src: string, key: string): string {
-  const m = src.match(new RegExp(`^(\\s*)${key}:\\s*\\n((?:\\1\\s+.*\\n?)+)`, 'm'));
-  return m ? m[2] : '';
+  const lines = src.split('\n');
+  const start = lines.findIndex(l => new RegExp(`^\\s*${key}:\\s*$`).test(l));
+  if (start < 0) return '';
+  const indent = lines[start].search(/\S/);
+  const out: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.trim() !== '' && line.search(/\S/) <= indent) break;
+    out.push(line);
+  }
+  return out.join('\n');
 }
 
 describe('android-build.yml', () => {
@@ -80,5 +91,89 @@ describe('release.yml', () => {
       expect(sync).toContain(written);
       expect(add).toContain(written);
     }
+  });
+});
+
+describe('pr-checks.yml', () => {
+  const src = workflow('.github/workflows/pr-checks.yml');
+  const scripts = JSON.parse(readFileSync(resolve(REPO_ROOT, 'package.json'), 'utf8')).scripts;
+
+  it('runs the release gate by name, so CI and local preflight cannot drift', () => {
+    expect(src).toMatch(/run:\s*npm run preflight:full\s*$/m);
+    // The bundle budgets live in scripts/check-eager-bundle.mjs now, not in an
+    // inline shell copy that local preflight never ran.
+    expect(src).not.toMatch(/bundle-budget\.json/);
+    expect(src).not.toMatch(/\bjq\b/);
+  });
+
+  it('preflight:full is preflight with the full suite — never a weaker gate', () => {
+    const steps = (cmd: string) => cmd.split('&&').map(x => x.trim());
+    expect(steps(scripts['preflight:full'])).toEqual(
+      steps(scripts.preflight).map(x => (x === 'npm run test:fast' ? 'npm run test' : x)),
+    );
+    expect(steps(scripts['preflight:full'])).toContain('npm run size:check');
+    expect(scripts['size:check']).toContain('check-eager-bundle.mjs');
+  });
+
+  it('cancels superseded runs and bounds every job', () => {
+    expect(block(src, 'concurrency')).toMatch(/cancel-in-progress:\s*true/);
+    const jobs = block(src, 'jobs').match(/^ {2}[\w-]+:\s*$/gm) ?? [];
+    const timeouts = src.match(/^\s+timeout-minutes:\s*\d+/gm) ?? [];
+    expect(jobs.length).toBeGreaterThan(0);
+    expect(timeouts.length, 'a job has no timeout-minutes').toBe(jobs.length);
+  });
+});
+
+describe('check-eager-bundle.mjs enforces every budget', () => {
+  const SCRIPT = resolve(REPO_ROOT, 'scripts/check-eager-bundle.mjs');
+  const dirs: string[] = [];
+  afterEach(() => { while (dirs.length) rmSync(dirs.pop(), { recursive: true, force: true }); });
+
+  /** A fake build: an eager entry chunk plus whatever lazy chunks are given. */
+  function run(lazy: Record<string, number>) {
+    const root = mkdtempSync(join(tmpdir(), 'bundle-budget-'));
+    dirs.push(root);
+    mkdirSync(join(root, 'dist/assets'), { recursive: true });
+    mkdirSync(join(root, '.github'));
+    writeFileSync(join(root, 'dist/index.html'), '<script type="module" src="/assets/index-abc.js"></script>');
+    writeFileSync(join(root, 'dist/assets/index-abc.js'), 'x'.repeat(1000));
+    for (const [name, bytes] of Object.entries(lazy)) {
+      writeFileSync(join(root, 'dist/assets', name), 'y'.repeat(bytes));
+    }
+    writeFileSync(join(root, '.github/bundle-budget.json'), JSON.stringify({
+      eagerGzHardLimitBytes: 100_000,
+      mainChunkHardLimitBytes: 100_000,
+      coreJsTargetBytes: 3_000,
+      coreJsHardLimitBytes: 5_000,
+      communityPackHardLimitBytes: 4_000,
+    }));
+    const r = spawnSync(process.execPath, [SCRIPT], { cwd: root, encoding: 'utf8' });
+    return { code: r.status, out: `${r.stdout}${r.stderr}` };
+  }
+
+  it('passes a build inside every budget', () => {
+    const r = run({ 'lazy-1.js': 1000, 'byClub-1.js': 3000 });
+    expect(r.code, r.out).toBe(0);
+    expect(r.out).not.toMatch(/::warning::/);
+  });
+
+  it('warns, but passes, over the core target', () => {
+    const r = run({ 'lazy-1.js': 3000 });
+    expect(r.code, r.out).toBe(0);
+    expect(r.out).toMatch(/::warning::Core JS/);
+  });
+
+  it('fails when lazy app chunks push core JS over its hard limit', () => {
+    // Eager payload and main chunk are tiny, so only the core budget can trip.
+    const r = run({ 'lazy-1.js': 3000, 'lazy-2.js': 2000 });
+    expect(r.code, r.out).toBe(1);
+    expect(r.out).toMatch(/Core JS .* exceeds/);
+  });
+
+  it('keeps community-pack chunks out of core and holds them to their own limit', () => {
+    const r = run({ 'freeAgents-1.js': 2500, 'cpLeagueSquads-1.js': 2000 });
+    expect(r.code, r.out).toBe(1);
+    expect(r.out).toMatch(/Community pack chunks .* exceed/);
+    expect(r.out).not.toMatch(/Core JS .* exceeds/);
   });
 });
