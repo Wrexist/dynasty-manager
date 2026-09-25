@@ -21,6 +21,7 @@ import {
   getTrackStatus,
   getEventDaysRemaining,
   canCheckInToday,
+  matchWinPointsFor,
   type LiveEventProgress,
 } from '@/utils/liveEvents';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
@@ -147,7 +148,10 @@ function FestivalHub() {
             ? `${nextTier.tier.points - progress.points} pts to ${nextTier.tier.label}`
             : 'All reward tiers unlocked — nice run!'}
         </p>
-        <p className="text-[10px] text-primary/70 mb-3">+{event.matchWinPoints} pts for every match you win during the festival.</p>
+        <p className="text-[10px] text-primary/70 mb-3">
+          +{event.matchWinPoints} pts for every match you win during the festival.
+          {event.derbyWinMultiplier > 1 && ` Derby wins earn +${matchWinPointsFor(event, true)}.`}
+        </p>
 
         <button
           type="button"

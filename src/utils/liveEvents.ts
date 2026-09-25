@@ -90,19 +90,27 @@ export function applyCheckIn(
   };
 }
 
+/** Points a won match is worth in `event` — `derbyWinMultiplier` applies
+ *  only to derby wins, and only in events that declare one. */
+export function matchWinPointsFor(event: LiveEvent, isDerby: boolean): number {
+  const mult = isDerby ? (event.derbyWinMultiplier ?? 1) : 1;
+  return event.matchWinPoints * mult;
+}
+
 /** Progress after a won match, honouring the per-day cap. No-op (returns the
  *  same record) once the day's cap is hit. Pure. */
 export function applyMatchWin(
   progress: LiveEventProgress,
   event: LiveEvent,
   now: Date = new Date(),
+  isDerby = false,
 ): LiveEventProgress {
   const today = localDateKey(now);
   const count = progress.matchWinDate === today ? (progress.matchWinCount ?? 0) : 0;
   if (count >= MATCH_WIN_POINTS_DAILY_CAP) return progress;
   return {
     ...progress,
-    points: progress.points + event.matchWinPoints,
+    points: progress.points + matchWinPointsFor(event, isDerby),
     matchWinDate: today,
     matchWinCount: count + 1,
   };
@@ -111,13 +119,13 @@ export function applyMatchWin(
 /** Side-effecting: award Festival Points for a player win, if an event is live.
  *  Safe to call from the match flow — no-op when no event is running, when the
  *  match wasn't won, or on any storage error. Never throws. */
-export function awardFestivalMatchWin(won: boolean, now: Date = new Date()): void {
+export function awardFestivalMatchWin(won: boolean, isDerby = false, now: Date = new Date()): void {
   if (!won) return;
   try {
     const event = getActiveLiveEvent(now);
     if (!event) return;
     const progress = readActiveFestivalProgress(event);
-    const next = applyMatchWin(progress, event, now);
+    const next = applyMatchWin(progress, event, now, isDerby);
     if (next.points !== progress.points) writeLiveEventProgress(next);
   } catch { /* festival points are best-effort — never break a match */ }
 }

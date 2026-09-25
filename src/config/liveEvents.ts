@@ -37,6 +37,11 @@ export interface LiveEvent {
   /** Festival Points granted for each won match during the window (capped per
    *  day — see MATCH_WIN_POINTS_DAILY_CAP) so the festival rewards *playing*. */
   matchWinPoints: number;
+  /** Multiplier on `matchWinPoints` for a win in a derby (a `DERBIES` fixture
+   *  or an earned grudge rivalry — see `getEffectiveMatchIntensity`). Omitted
+   *  = derbies score like any other win. A derby win still uses one of the
+   *  day's MATCH_WIN_POINTS_DAILY_CAP awards. */
+  derbyWinMultiplier?: number;
   /** Reward track, ascending by `points`. */
   tiers: LiveEventTier[];
 }
@@ -107,11 +112,12 @@ export const SPECIAL_EVENTS: LiveEvent[] = [
   {
     id: 'derby-days-2026',
     name: 'Derby Days',
-    tagline: 'Rivalry season. Every win counts double for the neighbours.',
+    tagline: 'Rivalry season. Derby wins count double on the rewards track.',
     start: '2026-10-17',
     end: '2026-11-08',
     checkInPoints: 10,
     matchWinPoints: 5,
+    derbyWinMultiplier: 2,
     tiers: marqueeTiers(['Local Pride', 'Bragging Rights', 'City Rivals', 'Derby Winner', 'King of the City']),
   },
   {
@@ -127,7 +133,7 @@ export const SPECIAL_EVENTS: LiveEvent[] = [
   {
     id: 'winter-window-2027',
     name: 'Winter Window',
-    tagline: 'Deadline season. Daily check-ins fund the rebuild.',
+    tagline: 'Deadline season. Check in daily and win matches to climb the track.',
     start: '2027-01-22',
     end: '2027-02-14',
     checkInPoints: 10,

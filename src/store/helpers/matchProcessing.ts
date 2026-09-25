@@ -2,6 +2,7 @@ import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMa
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
 import { awardFestivalMatchWin } from '@/utils/liveEvents';
+import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { signalFirstWinForNotifications } from '@/utils/notifications';
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
@@ -315,7 +316,11 @@ export function processMatchResult(
 
   // Live-event hook: a win during an active festival window earns Festival
   // Points (device-global, capped per day). No-op off-window; never throws.
-  awardFestivalMatchWin(won);
+  // A derby win is worth more in events that declare `derbyWinMultiplier`
+  // (Derby Days). Same derby test the match itself was played under:
+  // pre-match rivalries, so this result's grudge change doesn't count.
+  const isDerbyMatch = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId) > 0;
+  awardFestivalMatchWin(won, isDerbyMatch);
 
   // Career milestones
   const newMilestones: CareerMilestone[] = [];
