@@ -89,7 +89,7 @@ describe('R14: a live match replays identically after a reload', () => {
 });
 
 describe('liveMatchSeed', () => {
-  const base = { careerId: 'c-1', activeSlot: 1, playerClubId: CLUB, season: 1, invincibleUsedThisSeason: false };
+  const base = { careerId: 'c-1', activeSlot: 1, playerClubId: CLUB, season: 1, week: 30, invincibleUsedThisSeason: false };
 
   it('is stable for the same match and stage', () => {
     expect(liveMatchSeed(base, 'm1', 'first-half')).toBe(liveMatchSeed({ ...base }, 'm1', 'first-half'));
@@ -101,6 +101,11 @@ describe('liveMatchSeed', () => {
     expect(liveMatchSeed(base, 'm1', 'second-half:46')).not.toBe(seed);
     expect(liveMatchSeed({ ...base, season: 2 }, 'm1', 'first-half')).not.toBe(seed);
     expect(liveMatchSeed({ ...base, careerId: 'c-2' }, 'm1', 'first-half')).not.toBe(seed);
+  });
+
+  it('the two legs of a knockout tie (one tie id, different weeks) draw different streams', () => {
+    expect(liveMatchSeed({ ...base, week: 31 }, 'tie-1', 'first-half'))
+      .not.toBe(liveMatchSeed(base, 'tie-1', 'first-half'));
   });
 
   it('a used Invincible rewind gives the replay a new seed', () => {

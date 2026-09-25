@@ -578,14 +578,18 @@ export function buildMatchSquad(
  *
  * A used Invincible rewind is part of the key, so the perk's replay is still a
  * genuinely new match; replays after that are deterministic again.
+ *
+ * The week is part of the key because the two legs of a continental knockout
+ * tie share one id (`tie.id`): without it both legs drew the same stream with
+ * the venues swapped, so the second leg echoed the first.
  */
 export function liveMatchSeed(
-  state: Pick<GameState, 'careerId' | 'activeSlot' | 'playerClubId' | 'season' | 'invincibleUsedThisSeason'>,
+  state: Pick<GameState, 'careerId' | 'activeSlot' | 'playerClubId' | 'season' | 'week' | 'invincibleUsedThisSeason'>,
   matchId: string,
   stage: string,
 ): number {
   const career = state.careerId ?? `slot-${state.activeSlot}:${state.playerClubId}`;
-  return fnv1a(`${career}|${state.season}|${matchId}|${state.invincibleUsedThisSeason ? 'rewound' : ''}|${stage}`);
+  return fnv1a(`${career}|${state.season}|${state.week}|${matchId}|${state.invincibleUsedThisSeason ? 'rewound' : ''}|${stage}`);
 }
 
 /** Run a synchronous match step with `Math.random` on the match's seed. Steps
