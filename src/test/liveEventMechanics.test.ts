@@ -209,7 +209,8 @@ describe('game hooks', () => {
     expect(ev.id).toBe('winter-window-2027');
     // The earlier cases advance real weeks, and the AI can sign every free agent
     // in that time — so bring one in if the pool has run dry.
-    if (!useGameStore.getState().freeAgents.some(id => useGameStore.getState().players[id])) {
+    // (FREE_AGENT_SPAWN_MIN is 0, so one spawn can bring nobody — retry.)
+    for (let i = 0; i < 20 && !useGameStore.getState().freeAgents.some(id => useGameStore.getState().players[id]); i++) {
       const spawned = spawnFreeAgents(useGameStore.getState().season);
       useGameStore.setState(s => ({
         players: { ...s.players, ...spawned.players },
