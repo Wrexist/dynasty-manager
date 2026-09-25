@@ -2,6 +2,8 @@ import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, Tra
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { PostSeasonSnapshot } from '@/store/slices/orchestration/seasonEnd';
 import type { HalfState } from '@/engine/match';
+// ── home: popup cap ──
+import type { InboxNote } from '@/types/game';
 
 export interface GameState {
   // Core
@@ -715,4 +717,11 @@ export interface GameState {
     lastMarketRefreshWeek: number;
     lastSeedSeason: number;
   };
+
+  // ── home: popup cap ──
+  /** File popups that went past the per-advance cap as inbox messages, and
+   *  clear the pending state of the store-backed ones (`weeklyDigest`,
+   *  `gemReveal`, `farewell`) so they stop asking for the screen. Overlays
+   *  whose state lives in a component clear it themselves. */
+  fileOverflowToInbox: (overlayId: string, notes: InboxNote[]) => void;
 }

@@ -809,4 +809,18 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       messages: newMessages,
     });
   },
+
+  // ── home: popup cap ──
+  fileOverflowToInbox: (overlayId: string, notes: import('@/types/game').InboxNote[]) => {
+    const state = get();
+    let messages = state.messages;
+    for (const note of notes) {
+      messages = addMsg(messages, { ...note, week: state.week, season: state.season });
+    }
+    const patch: Partial<GameState> = { messages };
+    if (overlayId === 'weeklyDigest') patch.weeklyDigest = null;
+    if (overlayId === 'gemReveal') patch.pendingGemReveal = null;
+    if (overlayId === 'farewell') patch.pendingFarewell = [];
+    set(patch);
+  },
 });

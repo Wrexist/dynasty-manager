@@ -73,6 +73,8 @@ import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
+import { usePresentationOverflow } from '@/hooks/usePresentationQueue';
+import { digestNote, gemNote, farewellNotes, celebrationNote, achievementNote, midSeasonNote } from '@/utils/overlayInbox';
 import { buildCoachTasks } from '@/utils/gameCoach';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { FormGuide } from '@/components/game/FormGuide';
@@ -329,6 +331,43 @@ const Dashboard = () => {
   const dismissTrophy = () => {
     setPendingTrophy(trophyQueueRef.current.shift() ?? null);
   };
+
+  // ── Popup cap ── One advance may put BLOCKING_POPUPS_PER_ADVANCE popups on
+  // screen; informational ones past that are filed to the inbox instead of
+  // queueing behind each other (utils/presentationQueue.ts). Each converter
+  // files the message AND clears the popup's state, so it stops asking for
+  // the screen. Decisions and trophy lifts are never filed.
+  const fileOverflowToInbox = useGameStore(s => s.fileOverflowToInbox);
+  usePresentationOverflow('weeklyDigest', () => {
+    const s = useGameStore.getState();
+    if (s.weeklyDigest) fileOverflowToInbox('weeklyDigest', [digestNote(s.weeklyDigest, s.week)]);
+  });
+  usePresentationOverflow('gemReveal', () => {
+    const s = useGameStore.getState();
+    if (s.pendingGemReveal) {
+      fileOverflowToInbox('gemReveal', [gemNote(s.pendingGemReveal, s.players[s.pendingGemReveal.playerId])]);
+    }
+  });
+  usePresentationOverflow('farewell', () => {
+    fileOverflowToInbox('farewell', farewellNotes(useGameStore.getState().pendingFarewell));
+  });
+  usePresentationOverflow('celebration', () => {
+    if (majorCelebration) fileOverflowToInbox('celebration', [celebrationNote(majorCelebration)]);
+    setMajorCelebration(null);
+  });
+  usePresentationOverflow('achievement', () => {
+    fileOverflowToInbox('achievement', pendingAchievementQueue.map(achievementNote));
+    setPendingAchievementQueue([]);
+    setCurrentAchievement(null);
+  });
+  usePresentationOverflow('midSeason', () => {
+    const s = useGameStore.getState();
+    const idx = s.leagueTable.findIndex(e => e.clubId === s.playerClubId);
+    fileOverflowToInbox('midSeason', idx === -1 ? [] : [midSeasonNote({
+      position: idx + 1, points: s.leagueTable[idx].points, boardConfidence: s.boardConfidence,
+    })]);
+    dismissMidSeason();
+  });
 
   // No season-reset effect: `recordCelebrationKeys` buckets by season and
   // resets itself when the season changes, so the keys expire correctly even

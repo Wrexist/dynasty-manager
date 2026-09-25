@@ -1370,3 +1370,7 @@ export const TITLE_RACE_MAX_POINTS_GAP = 6;
 /** Relegation battle: within this many places of the bottom. Only offered in a
  *  league that actually relegates — the bottom of the lowest tier is safe. */
 export const RELEGATION_BATTLE_BOTTOM_PLACES = 3;
+/** Blocking popups (distinct overlays) one advance may put on screen. Past
+ *  this, informational popups are filed to the inbox and offers wait for the
+ *  next advance; decisions always show (see `utils/presentationQueue.ts`). */
+export const BLOCKING_POPUPS_PER_ADVANCE = 2;
