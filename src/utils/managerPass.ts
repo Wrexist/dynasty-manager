@@ -291,11 +291,20 @@ export function applyClaimAll(record: ManagerPassRecord, isPro: boolean): Manage
  * Pro is confirmed, the carry comes from the season IMMEDIATELY before the
  * record's own (bounded — an older carry is dead), and the reward is not
  * already owned. Pass `isPro = true` to ask what is waiting behind Pro.
+ *
+ * The same track runs every season, so a carried reward can also be the one
+ * this season's Pro row pays at a tier already reached. That reward is counted
+ * and collected on the track, not a second time here — otherwise the badge,
+ * "Collect all" and the Pro upsell ("N rewards already earned") would count
+ * one cosmetic twice.
  */
 export function carriedProRewards(record: ManagerPassRecord, isPro: boolean): string[] {
   const carry = record.proCarry;
   if (!isPro || !carry || carry.seasonOrdinal !== record.seasonOrdinal - 1) return [];
-  return carry.rewardIds.filter(id => !record.ownedRewardIds.includes(id));
+  const onTrack = new Set(
+    claimablePassRewards(record, true).filter(c => c.track === 'pro').map(c => passRewardId(c.tier, 'pro')),
+  );
+  return carry.rewardIds.filter(id => !record.ownedRewardIds.includes(id) && !onTrack.has(id));
 }
 
 /** Progress after collecting every carried Pro reward; the same record when

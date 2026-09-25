@@ -178,6 +178,19 @@ describe('Manager Pass — last season\'s Pro rewards (carry-over)', () => {
     expect(passClaimableCount(collected, true)).toBe(0);
   });
 
+  it('counts a carried reward once when this season\'s Pro row pays the same cosmetic', () => {
+    // Last season reached tier 4 without Pro; this season has reached tier 2,
+    // whose Pro cells pay the same cosmetics as carried tiers 1 and 2.
+    const nov = { ...rollPassSeason({ ...freshPassRecord(SEP), xp: tiers(4) }, NOV, false), xp: tiers(2) };
+    expect(carriedProRewards(nov, true)).toEqual(proIds(4).slice(2));
+    // Four distinct cosmetics: two on the track, two only in the carry.
+    expect(passClaimableCount(nov, true)).toBe(4);
+    const collected = applyClaimAll(nov, true);
+    expect(collected.ownedRewardIds).toEqual(expect.arrayContaining(proIds(4)));
+    expect(collected.ownedRewardIds.filter(id => proIds(30).includes(id))).toHaveLength(4);
+    expect(passClaimableCount(collected, true)).toBe(0);
+  });
+
   it('carries nothing when the player is Pro at the rollover (they are collected then)', () => {
     const nov = rollPassSeason({ ...freshPassRecord(SEP), xp: tiers(2) }, NOV, true);
     expect(nov.proCarry).toBeNull();
