@@ -4,7 +4,8 @@
  * The card leaves the app, and the pulls are real footballers, so the rights
  * constraint is the thing worth pinning: the card data and the drawn image
  * carry the card face (art, OVR, position), the pack name, the tagline and the
- * App Store link — and never the player's name. Canvas can't render under
+ * App Store link, the portrait when the app shows one, and never the player's
+ * name. Canvas can't render under
  * jsdom, so drawing is smoke-tested against a stub context.
  */
 import { describe, it, expect } from 'vitest';
@@ -87,6 +88,31 @@ describe('drawPackPullCard', () => {
     expect(fillTexts).toContain('Pulled in Dynasty Manager');
     expect(fillTexts).toContain(APP_STORE_LINK_TEXT);
     expect(APP_STORE_LINK_TEXT).toBe('apps.apple.com/app/id6760918006');
+  });
+
+  it('carries the portrait exactly when the in-app card shows one', () => {
+    // Owner decision 2026-09-25 (PLAYBOOK §4): the portrait is shown on the
+    // share card the way the app shows it. Resolved by the same function as
+    // PlayerCard, so an unmatched identity gets none here either.
+    const real = {
+      ...player, source: 'real', fcId: '70824', firstName: 'Giovanni', lastName: 'Leoni', clubId: 'liverpool',
+    } as unknown as Player;
+    expect(buildPackPullCardData(real, labels).portraitSrc).toBe('/player-portraits/top-clubs-full-05/70824.webp');
+    expect(buildPackPullCardData(player, labels).portraitSrc).toBeUndefined();
+    expect(buildPackPullCardData({ ...real, clubId: 'arsenal' } as Player, labels).portraitSrc).toBeUndefined();
+  });
+
+  it('draws the portrait layer over the card art, and not without art', () => {
+    const art = { tag: 'card-art' };
+    const layer = { tag: 'portrait' };
+    const withArt = makeStubCtx();
+    drawPackPullCard(withArt.ctx, CARD_WIDTH, CARD_HEIGHT, buildPackPullCardData(player, labels),
+      art as unknown as CanvasImageSource, layer as unknown as CanvasImageSource);
+    expect(withArt.images).toEqual([art, layer]);
+    const noArt = makeStubCtx();
+    drawPackPullCard(noArt.ctx, CARD_WIDTH, CARD_HEIGHT, buildPackPullCardData(player, labels),
+      null, layer as unknown as CanvasImageSource);
+    expect(noArt.images).toEqual([]);
   });
 
   it('never draws the player name', () => {

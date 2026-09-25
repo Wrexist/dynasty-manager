@@ -11,6 +11,7 @@
 import { Capacitor } from '@capacitor/core';
 import { APP_STORE_URL } from '@/config/legal';
 import { getPlayerCardArt } from '@/utils/uiHelpers';
+import { getPlayerPortrait } from '@/utils/playerPortrait';
 import type { Player } from '@/types/game';
 
 // Story format — matches the marketing kit's poster format (1080×1920).
@@ -40,10 +41,12 @@ export interface MomentCardData {
   shareMessage?: string;
 }
 
-/** The pack best-pull card (growth playbook P1). Rights constraint: it carries
- *  ONLY what the player already sees on the in-app card — the game's own card
- *  art, OVR and position — plus the pack's name. No player name, no portrait:
- *  the pulls are real footballers and this image leaves the app. */
+/** The pack best-pull card (growth playbook P1). It carries what the player
+ *  sees on the in-app card face — the game's card art, the portrait, OVR and
+ *  position — plus the pack's name. The portrait is shown exactly as the app
+ *  shows it (owner decision 2026-09-25, marketing/PLAYBOOK.md §4). The player's
+ *  NAME is still never on it: this image leaves the app, and real names stay
+ *  out of our own copy (PLAYBOOK §4, rung 4). */
 export interface PackPullCardData {
   type: 'pack_pull';
   ovr: number;
@@ -52,6 +55,8 @@ export interface PackPullCardData {
   artSrc: string;
   /** CSS filter the in-app card applies to this art (sub-60 tier), if any. */
   artFilter?: string;
+  /** Portrait cutout, when the in-app card shows one (`getPlayerPortrait`). */
+  portraitSrc?: string;
   /** The pack's display name as the overlay shows it, e.g. 'World Class Pack'. */
   packLabel: string;
   /** Localised 'Pulled in Dynasty Manager'. */
@@ -228,12 +233,13 @@ const PACK_CARD_TOP = 320;
  *  also carries the full URL). */
 export const APP_STORE_LINK_TEXT = APP_STORE_URL.replace(/^https?:\/\//, '');
 
-/** Build the pack best-pull card from a pulled player. Pure. Reads only the
- *  fields the in-app card face shows up top (OVR, position, card art) — the
- *  player's name and portrait are deliberately NOT read, so they cannot leak
- *  onto an image that leaves the app. */
+/** Build the pack best-pull card from a pulled player. Pure. The portrait goes
+ *  through the same resolver as `PlayerCard`, so it appears on the share card
+ *  exactly when it appears in the app. The name is read only by that resolver
+ *  to match the portrait, and is never copied into the payload. */
 export function buildPackPullCardData(
-  player: Pick<Player, 'overall' | 'position' | 'packFrame' | 'ballonDOrTop10HoldSeason'>,
+  player: Pick<Player, 'overall' | 'position' | 'packFrame' | 'ballonDOrTop10HoldSeason'>
+    & Partial<Pick<Player, 'source' | 'fcId' | 'firstName' | 'lastName' | 'clubId'>>,
   labels: { packLabel: string; pulledLabel: string; shareMessage?: string },
 ): PackPullCardData {
   const art = getPlayerCardArt(player.overall, {
@@ -246,6 +252,7 @@ export function buildPackPullCardData(
     position: player.position,
     artSrc: art.src,
     artFilter: art.filter,
+    portraitSrc: getPlayerPortrait(player as Player)?.src,
     packLabel: labels.packLabel,
     pulledLabel: labels.pulledLabel,
     shareMessage: labels.shareMessage,
@@ -254,8 +261,17 @@ export function buildPackPullCardData(
 
 /** Draw the pack best-pull card. `art` is the loaded card image, or null if it
  *  failed to load — then a tier-coloured panel stands in so the share still
- *  works. Exported for smoke-testing against a stub context. */
-export function drawPackPullCard(ctx: PackCtx2D, w: number, h: number, data: PackPullCardData, art: CanvasImageSource | null): void {
+ *  works. `portraitLayer` is the portrait already composited to card size
+ *  (`composePortraitLayer`), drawn over the art. Exported for smoke-testing
+ *  against a stub context. */
+export function drawPackPullCard(
+  ctx: PackCtx2D,
+  w: number,
+  h: number,
+  data: PackPullCardData,
+  art: CanvasImageSource | null,
+  portraitLayer: CanvasImageSource | null = null,
+): void {
   drawBackdrop(ctx, w, h);
   const cx = w / 2;
   const x = (w - PACK_CARD_W) / 2;
@@ -273,6 +289,7 @@ export function drawPackPullCard(ctx: PackCtx2D, w: number, h: number, data: Pac
     ctx.fillStyle = panel;
     ctx.fillRect(x, y, PACK_CARD_W, PACK_CARD_H);
   }
+  if (art && portraitLayer) ctx.drawImage(portraitLayer, x, y, PACK_CARD_W, PACK_CARD_H);
 
   // OVR + position, top-left of the card face — same proportions as
   // `PlayerCard`'s sizeTokens (ovr 0.24w, top 0.093w, left 0.12w, pos 0.067w),
@@ -366,6 +383,43 @@ function loadImage(src: string, timeoutMs = 4000): Promise<HTMLImageElement | nu
   });
 }
 
+/** The portrait at card size, placed the way `PlayerPortrait` places it: a box
+ *  at 25% / 9% of the card, 70% × 49%, image cover-fit and top-aligned,
+ *  feathered by an ellipse (65% × 80% at 52% / 35%, solid to 48%, clear by
+ *  85%), then clipped to the card art's alpha so the face never leaves the
+ *  shield. Returns null when there is no canvas to draw on. */
+function composePortraitLayer(portrait: HTMLImageElement, art: HTMLImageElement): HTMLCanvasElement | null {
+  const off = document.createElement('canvas');
+  off.width = PACK_CARD_W;
+  off.height = PACK_CARD_H;
+  const o = off.getContext('2d');
+  if (!o || !portrait.naturalWidth) return null;
+  const w = PACK_CARD_W, h = PACK_CARD_H;
+  const bx = w * 0.25, by = h * 0.09, bw = w * 0.7, bh = h * 0.49;
+  const scale = Math.max(bw / portrait.naturalWidth, bh / portrait.naturalHeight);
+  const dw = portrait.naturalWidth * scale;
+  const dh = portrait.naturalHeight * scale;
+  o.save();
+  o.beginPath();
+  o.rect(bx, by, bw, bh);
+  o.clip();
+  o.drawImage(portrait, bx + (bw - dw) / 2, by, dw, dh);
+  o.restore();
+
+  o.globalCompositeOperation = 'destination-in';
+  o.save();
+  o.translate(bx + bw * 0.52, by + bh * 0.35);
+  o.scale(bw * 0.65, bh * 0.8);
+  const feather = o.createRadialGradient(0, 0, 0, 0, 0, 1);
+  feather.addColorStop(0.48, 'rgba(0,0,0,1)');
+  feather.addColorStop(0.85, 'rgba(0,0,0,0)');
+  o.fillStyle = feather;
+  o.fillRect(-4, -4, 8, 8);
+  o.restore();
+  o.drawImage(art, 0, 0, w, h);
+  return off;
+}
+
 async function renderCardCanvas(data: ShareableCardData): Promise<HTMLCanvasElement | null> {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
   const canvas = document.createElement('canvas');
@@ -374,8 +428,12 @@ async function renderCardCanvas(data: ShareableCardData): Promise<HTMLCanvasElem
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
   if (data.type === 'pack_pull') {
-    const art = await loadImage(data.artSrc);
-    drawPackPullCard(ctx as unknown as PackCtx2D, CARD_WIDTH, CARD_HEIGHT, data, art);
+    const [art, portrait] = await Promise.all([
+      loadImage(data.artSrc),
+      data.portraitSrc ? loadImage(data.portraitSrc) : Promise.resolve(null),
+    ]);
+    const layer = art && portrait ? composePortraitLayer(portrait, art) : null;
+    drawPackPullCard(ctx as unknown as PackCtx2D, CARD_WIDTH, CARD_HEIGHT, data, art, layer);
   } else {
     drawMomentCard(ctx as unknown as Ctx2D, CARD_WIDTH, CARD_HEIGHT, data);
   }
