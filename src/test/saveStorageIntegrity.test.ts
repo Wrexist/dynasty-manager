@@ -38,6 +38,7 @@ vi.mock('@/store/helpers/idbStorage', () => {
   return {
     __store: store,
     idbGet: vi.fn(async (k: string) => store.get(k) ?? null),
+    idbRead: vi.fn(async (k: string) => ({ ok: true, value: store.get(k) ?? null })),
     idbPut: vi.fn(async (k: string, v: string) => { store.set(k, v); }),
     idbDel: vi.fn(async (k: string) => { store.delete(k); }),
     idbKeys: vi.fn(async () => [...store.keys()]),
@@ -163,5 +164,94 @@ describe('a newer fallback save survives a restart with stale IndexedDB', () => 
     await second.idbPromise;
     expect(localStorage.getItem(STORAGE_KEYS.saveSlotPendingIdb(SLOT))).toBe(marker);
     expect(marker).not.toBeNull();
+  });
+});
+
+describe('a slow IndexedDB at launch cannot wipe a career', () => {
+  beforeEach(() => { __resetSaveStorageForTests(); localStorage.clear(); vi.useRealTimers(); });
+
+  /** Seed slot 1 with an IDB-only career (too big for the localStorage mirror)
+   *  and make its reads hang until `land()` is called. */
+  async function seedUnreadCareer() {
+    const idb = await import('@/store/helpers/idbStorage');
+    const store = (idb as unknown as { __store: Map<string, string> }).__store;
+    store.clear();
+    store.set(MAIN, payload(9));
+    store.set(BACKUP, payload(8));
+    const waiting: Array<() => void> = [];
+    vi.mocked(idb.idbRead).mockImplementation((k: string) => {
+      const read = () => ({ ok: true as const, value: store.get(k) ?? null });
+      if (k !== MAIN && k !== BACKUP) return Promise.resolve(read());
+      return new Promise(resolve => { waiting.push(() => resolve(read())); });
+    });
+    return { idb, store, land: () => waiting.splice(0).forEach(fn => fn()) };
+  }
+
+  it('refuses to write an unread slot, and the late read still restores the career', async () => {
+    vi.useFakeTimers();
+    const { idb, store, land } = await seedUnreadCareer();
+    const { hydrateSaveStorage, isSaveStorageHydrated, subscribeSaveStorage } = await import('@/store/helpers/persistence');
+    const listener = vi.fn();
+    subscribeSaveStorage(listener);
+
+    const ready = hydrateSaveStorage();
+    await vi.advanceTimersByTimeAsync(3000);
+    await ready;
+    vi.useRealTimers();
+    // The title screen is released after the timeout — but slot 1 is unread
+    // and, with no mirror, looks exactly like an empty slot.
+    expect(isSaveStorageHydrated()).toBe(true);
+    expect(isSlotHydrated(SLOT)).toBe(false);
+    expect(readSaveSlot(SLOT)).toBeNull();
+
+    vi.mocked(idb.idbPut).mockClear();
+    const result = writeSaveSlot(SLOT, payload(1)); // "New Game" in that slot
+    expect(result.refused).toBe('slot-not-read');
+    expect(result.lsOk).toBe(false);
+    expect(await result.idbPromise).toBe(false);
+    expect(idb.idbPut).not.toHaveBeenCalled();
+    expect(store.get(MAIN)).toBe(payload(9));
+    expect(localStorage.getItem(MAIN)).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEYS.saveSlotPendingIdb(SLOT))).toBeNull();
+
+    // The read finally lands: memory was not filled by the refused write, so
+    // the career is installed and listeners (the title screen) are told.
+    listener.mockClear();
+    land();
+    await vi.waitFor(() => expect(isSlotHydrated(SLOT)).toBe(true));
+    expect(readSaveSlot(SLOT)).toBe(payload(9));
+    expect(readSaveSlotBackup(SLOT)).toBe(payload(8));
+    expect(listener).toHaveBeenCalled();
+
+    // ...and saves go through normally from then on.
+    expect(writeSaveSlot(SLOT, payload(10)).refused).toBeUndefined();
+  });
+
+  it('a read IDB could not answer leaves the slot unread until a retry succeeds', async () => {
+    const idb = await import('@/store/helpers/idbStorage');
+    const store = (idb as unknown as { __store: Map<string, string> }).__store;
+    store.clear();
+    store.set(MAIN, payload(7));
+    // Open timed out: IDB did not answer, which is not "no save here".
+    vi.mocked(idb.idbRead).mockResolvedValue({ ok: false });
+    const { hydrateSaveStorage, retrySlotHydration } = await import('@/store/helpers/persistence');
+    await hydrateSaveStorage();
+    expect(isSlotHydrated(SLOT)).toBe(false);
+    expect(getSlotSummaries().find(s => s.slot === SLOT)!.exists).toBe(false);
+
+    vi.mocked(idb.idbRead).mockImplementation(async (k: string) => ({ ok: true, value: store.get(k) ?? null }));
+    expect(await retrySlotHydration(SLOT)).toBe(true);
+    expect(isSlotHydrated(SLOT)).toBe(true);
+    expect(readSaveSlot(SLOT)).toBe(payload(7));
+  });
+
+  it('a backup is not promoted-and-cleared into a slot that has not been read', async () => {
+    await seedUnreadCareer();
+    const { hydrateSaveStorage, promoteSaveBackup } = await import('@/store/helpers/persistence');
+    void hydrateSaveStorage();
+    localStorage.setItem(BACKUP, payload(8));
+    promoteSaveBackup(SLOT, payload(8));
+    expect(localStorage.getItem(BACKUP)).toBe(payload(8));
+    expect(readSaveSlotBackup(SLOT)).toBe(payload(8));
   });
 });

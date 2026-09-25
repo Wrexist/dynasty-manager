@@ -430,6 +430,14 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
         catch { return false; }
       },
     });
+    // The slot's IndexedDB read has not completed (slow launch): nothing was
+    // written, deliberately — see writeSaveSlot. Not a storage-full event, so
+    // skip that inbox warning; the next autosave retries once the read lands.
+    if (saveResult.refused) {
+      set({ saveStatus: 'failed', saveFailureMessage: 'Save slot is still loading' });
+      addGameBreadcrumb('save', 'Save refused', { week: state.week, season: state.season, slot: s, reason: saveResult.refused });
+      return Promise.resolve(false);
+    }
     // Only record the change-detection hash once a disk path confirms the
     // write. Recording it unconditionally meant a save where BOTH disk
     // paths failed would short-circuit the next identical "Save Now" to

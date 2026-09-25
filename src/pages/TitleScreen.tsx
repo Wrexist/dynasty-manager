@@ -14,12 +14,16 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
-import { signalReady, saveStorageReady } from '@/main';
+import { signalReady } from '@/main';
 import { errorToast } from '@/utils/gameToast';
 import { hapticMedium, hapticLight } from '@/utils/haptics';
 import {
   clearCommunityPackSlotPref,
+  hydrateSaveStorage,
   isSaveStorageHydrated,
+  isSlotHydrated,
+  retrySlotHydration,
+  subscribeSaveStorage,
   getFlag,
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
@@ -65,11 +69,12 @@ const TitleScreen = () => {
   // (may be empty on mobile when quota was exceeded). Until the IDB hydration
   // promise resolves, `getSlotSummaries` returns empty — so we gate the
   // slot picker on it and bump `refreshKey` once hydration lands.
+  // `hydrateSaveStorage()` returns the same promise main.tsx started at boot.
   const [hydrated, setHydrated] = useState(isSaveStorageHydrated());
   useEffect(() => {
     if (hydrated) return;
     let cancelled = false;
-    saveStorageReady.then(() => {
+    void hydrateSaveStorage().then(() => {
       if (cancelled) return;
       setHydrated(true);
       setRefreshKey(k => k + 1);
@@ -77,11 +82,28 @@ const TitleScreen = () => {
     return () => { cancelled = true; };
   }, [hydrated]);
 
+  // Hydration resolves after at most 3 s even when IndexedDB has not answered.
+  // A slot read that lands later must still replace its placeholder row.
+  useEffect(() => subscribeSaveStorage(() => setRefreshKey(k => k + 1)), []);
+
   // `getSlotSummaries` is a module-level import with no closure state, so it
   // is referentially stable — `refreshKey` is the only real dep (bumping it
   // forces a re-read after delete / reset actions from the Sheet menu).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const slots = useMemo(() => getSlotSummaries(), [refreshKey, hydrated]);
+  // Slots whose IndexedDB read has not completed. Such a slot must never be
+  // offered as New Game: a ~7 MB save is not in the localStorage mirror, so it
+  // reads as empty, and starting a game there overwrote the real career.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const unreadSlots = useMemo(() => new Set([1, 2, 3].filter(n => !isSlotHydrated(n))), [refreshKey, hydrated]);
+  const [retryingSlot, setRetryingSlot] = useState<number | null>(null);
+  const handleRetrySlot = (slot: number) => {
+    if (retryingSlot !== null) return;
+    setRetryingSlot(slot);
+    // Resolves (true or false) within the IDB open/read timeouts; a success
+    // re-renders through the subscription above.
+    void retrySlotHydration(slot).finally(() => setRetryingSlot(null));
+  };
   const handleContinue = (slot: number) => {
     if (loadGame(slot)) {
       queueMicrotask(() => navigate('/game'));
@@ -238,7 +260,7 @@ const TitleScreen = () => {
         >
           <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-semibold">Save Slots</p>
           <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.3em] font-semibold">
-            {slots.filter(s => s.exists).length}/{slots.length}
+            {slots.filter(s => s.exists && !unreadSlots.has(s.slot)).length}/{slots.length}
           </p>
         </motion.div>
 
@@ -270,7 +292,25 @@ const TitleScreen = () => {
           ))
         ) : slots.map((slot, idx) => (
           <motion.div key={slot.slot} custom={idx + 1} variants={buttonVariants} initial="hidden" animate="visible">
-            {slot.exists ? (
+            {unreadSlots.has(slot.slot) ? (
+              // Hydration timed out before this slot was read. Neither Continue
+              // (it would load a copy we cannot save back) nor New Game.
+              <GlassPanel
+                className="p-0"
+                onClick={() => handleRetrySlot(slot.slot)}
+                aria-label={t('title.slotLoadingAria', { slot: slot.slot })}
+              >
+                <div className="flex items-center gap-3 px-4 py-3.5" aria-busy={retryingSlot === slot.slot}>
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0">
+                    <RotateCcw className={cn('w-[18px] h-[18px] text-muted-foreground', retryingSlot === slot.slot && 'animate-spin')} aria-hidden />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground/90">{t('title.slotLoading')}</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">{t('title.slotLoadingSubtitle', { slot: slot.slot })}</p>
+                  </div>
+                </div>
+              </GlassPanel>
+            ) : slot.exists ? (
               <GlassPanel className="p-0">
                 <div className="relative">
                   <button

@@ -1,5 +1,5 @@
 import type { SlotSummary, MatchViewMode } from '@/types/game';
-import { idbGet, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
+import { idbGet, idbRead, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { fnv1a } from '@/utils/hashString';
 
@@ -60,6 +60,31 @@ let hydrated = false;
 const slotHydrated: boolean[] = [false, false, false, false];
 let hydratePromise: Promise<void> | null = null;
 
+/** Listeners told whenever a slot's IDB read lands or hydration settles. The
+ *  title screen subscribes so a read that arrives AFTER the 3 s timeout still
+ *  replaces the "still loading" row with the real career. */
+const saveStorageListeners = new Set<() => void>();
+
+export function subscribeSaveStorage(listener: () => void): () => void {
+  saveStorageListeners.add(listener);
+  return () => { saveStorageListeners.delete(listener); };
+}
+
+function notifySaveStorage(): void {
+  for (const listener of [...saveStorageListeners]) {
+    try { listener(); } catch { /* a UI listener must never break hydration */ }
+  }
+}
+
+/** True while hydration has started but this slot's IDB read has not
+ *  completed. Only then can a write race the read and clobber a save we have
+ *  not seen. Before `hydrateSaveStorage` is first called there is no read in
+ *  flight to race — production calls it at module load in main.tsx, and unit
+ *  tests that never hydrate exercise the raw write path. */
+function slotReadPending(slot: number): boolean {
+  return hydratePromise !== null && !slotHydrated[slot];
+}
+
 /** Hydrate the in-memory save cache from IndexedDB. Called once at app
  *  start; subsequent calls return the same promise. A marked newer mirror
  *  takes precedence over stale IDB. Otherwise, if IDB is empty for
@@ -94,15 +119,33 @@ export function hydrateSaveStorage(): Promise<void> {
       ]);
     } finally {
       hydrated = true;
+      notifySaveStorage();
     }
   })();
   return hydratePromise;
 }
 
+/** Re-attempt the IDB read for a slot whose read has not completed (timed
+ *  out, blocked, or wedged). Safe to call repeatedly: every branch of
+ *  `hydrateOneSlot` only fills empty cache entries. Resolves true once the
+ *  slot has been read. */
+export async function retrySlotHydration(slot: number): Promise<boolean> {
+  if (slotHydrated[slot]) return true;
+  try { await hydrateOneSlot(slot); } catch { /* stays unread; the caller can retry */ }
+  return slotHydrated[slot] === true;
+}
+
 async function hydrateOneSlot(slot: number): Promise<void> {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
-  const [idbMain, idbBackup] = await Promise.all([idbGet(mainKey), idbGet(backupKey)]);
+  const [mainRead, backupRead] = await Promise.all([idbRead(mainKey), idbRead(backupKey)]);
+  // IDB did not answer (open timed out / blocked, request failed or stalled).
+  // That is NOT "this slot is empty": leave it unread so the title screen
+  // keeps it off-limits to New Game and the write path refuses to overwrite
+  // it, and let a retry finish the job.
+  if (!mainRead.ok || !backupRead.ok) return;
+  const idbMain = mainRead.value;
+  const idbBackup = backupRead.value;
   // Never clobber a save written in-session while this async hydrate was in
   // flight — the memory cache is newer than whatever IDB held at app start,
   // and overwriting it would also rotate the stale data into the backup slot
@@ -133,9 +176,10 @@ async function hydrateOneSlot(slot: number): Promise<void> {
       }
     } catch { /* storage unavailable */ }
   }
-  // Reached only when both IDB reads resolved. A timed-out or rejected read
+  // Reached only when both IDB reads completed. A timed-out or failed read
   // leaves this false, which is exactly what the write path needs to know.
   slotHydrated[slot] = true;
+  notifySaveStorage();
 }
 
 /** True once `hydrateSaveStorage` has resolved. UI code that lists slots
@@ -156,6 +200,7 @@ export function __resetSaveStorageForTests(): void {
   hydrated = false;
   hydratePromise = null;
   analyticsConsentMirror = null;
+  saveStorageListeners.clear();
 }
 
 /** True once IndexedDB has actually been read for this slot. Distinct from
@@ -1026,6 +1071,9 @@ export function migrateLegacySave() {
   try {
     const legacy = localStorage.getItem('dynasty-save');
     if (!legacy) return;
+    // Slot 1 may hold an IDB-only career we have not read yet; keep the legacy
+    // key for a later call rather than writing over it.
+    if (slotReadPending(1)) return;
     if (!readSaveSlot(1)) {
       memSlots[1] = legacy;
       void idbPut(STORAGE_KEYS.saveSlot(1), legacy);
@@ -1075,6 +1123,11 @@ export interface SaveWriteResult {
   /** IDB write outcome. Resolves true on success, false on quota / IDB
    *  unavailable / transaction abort. Never rejects — `idbPut` swallows. */
   idbPromise: Promise<boolean>;
+  /** Set when nothing was written at all — no memory, IDB or localStorage —
+   *  because this slot's IDB read has not completed. `lsOk` is false and
+   *  `idbPromise` resolves false, so callers that only check those still see
+   *  a failed save; this field lets them say why. */
+  refused?: 'slot-not-read';
 }
 
 export interface WriteSaveSlotOptions {
@@ -1105,6 +1158,17 @@ function clearPendingIdb(slot: number, raw: string): void {
 }
 
 export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOptions): SaveWriteResult {
+  // Refuse outright while this slot's IDB read is outstanding. Saves are
+  // ~7 MB, so the localStorage mirror rarely holds the main copy and an unread
+  // slot looks empty; writing here overwrote the IDB main of a career nobody
+  // had loaded yet, and the late hydrate then skipped it because memory was
+  // already filled. Memory is left untouched too, so a late read still lands,
+  // and no localStorage mirror / pending marker is written — a marked mirror
+  // would win over the real IDB save on the next launch.
+  if (slotReadPending(slot)) {
+    addGameBreadcrumb('save', 'Save refused: slot not read from IDB yet', { slot, bytes: json.length });
+    return { lsOk: false, idbPromise: Promise.resolve(false), refused: 'slot-not-read' };
+  }
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
@@ -1207,6 +1271,8 @@ export function recoverStaleSaveTmp(): void {
       const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
       const tmp = localStorage.getItem(tmpKey);
       if (tmp === null) continue;
+      // Unread slot: IDB may hold the primary. Decide once it has been read.
+      if (slotReadPending(slot)) continue;
       const hasPrimary = memSlots[slot] !== null || localStorage.getItem(STORAGE_KEYS.saveSlot(slot)) !== null;
       if (!hasPrimary) {
         try {
@@ -1236,7 +1302,9 @@ export function readSaveSlotBackup(slot: number): string | null {
  *  IDB, and localStorage so subsequent reads/writes treat the recovered
  *  data as the new source of truth. */
 export function promoteSaveBackup(slot: number, raw: string): void {
-  writeSaveSlot(slot, raw, { validateOutgoing: () => false });
+  // A refused write left the main untouched — the backup is then the only
+  // copy we hold, so it must not be cleared.
+  if (writeSaveSlot(slot, raw, { validateOutgoing: () => false }).refused) return;
   memSlotBackups[slot] = null;
   void idbDel(STORAGE_KEYS.saveSlotBackup(slot));
   lsRemoveSafe(STORAGE_KEYS.saveSlotBackup(slot));
