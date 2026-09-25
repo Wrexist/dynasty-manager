@@ -47,7 +47,7 @@ import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD
 import { checkChallengeFailed } from '@/data/challenges';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { ALL_CLUBS, getDerbyIntensity, getDerbyName } from '@/data/league';
-import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
+import { STORYLINE_CHAINS, shouldTriggerChain, pickChainTarget, topRivalId, interpolateChainText, type ChainTextVars } from '@/data/storylineChains';
 import { simulateMatch } from '@/engine/match';
 import { applyPlayerDevelopment, seasonGrowthTracker } from '@/store/helpers/development';
 import { crossedBreakthrough, describeGrowthArc } from '@/utils/playerStanding';
@@ -2012,22 +2012,31 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   }
 
   // ── Multi-week Storyline Chains ──
-  // Helper: interpolate {playerName} in storyline text using chain's target player
-  const interpolatePlayerName = (text: string, chain: ActiveStorylineChain) => {
-    if (!chain.targetPlayerId) return text;
-    const p = newPlayers[chain.targetPlayerId];
-    const name = p ? `${p.firstName} ${p.lastName}` : 'your star player';
-    return text.replace(/\{playerName\}/g, name);
+  // Chain text may name the chain's target player, the club and its top rival
+  // (see `interpolateChainText`). The rival is re-derived each week rather than
+  // stored so no persisted field is needed; `derby-build-up` only starts when
+  // this week's opponent IS that rival, so its later steps name the same club.
+  const chainRivalId = topRivalId(playerClubId, clubs, state.rivalries);
+  const chainTextVars = (chain: ActiveStorylineChain): ChainTextVars => {
+    const p = chain.targetPlayerId ? newPlayers[chain.targetPlayerId] : null;
+    return {
+      playerName: p ? `${p.firstName} ${p.lastName}` : undefined,
+      clubName: clubs[playerClubId]?.name,
+      rivalName: chainRivalId ? clubs[chainRivalId]?.name : undefined,
+    };
   };
-  const interpolateEvent = (event: StorylineEvent, chain: ActiveStorylineChain): StorylineEvent => ({
-    ...event,
-    body: interpolatePlayerName(event.body, chain),
-    options: event.options.map(opt => ({
-      ...opt,
-      text: interpolatePlayerName(opt.text, chain),
-      effects: chain.targetPlayerId ? { ...opt.effects, targetPlayerId: chain.targetPlayerId } : opt.effects,
-    })),
-  });
+  const interpolateEvent = (event: StorylineEvent, chain: ActiveStorylineChain): StorylineEvent => {
+    const vars = chainTextVars(chain);
+    return {
+      ...event,
+      body: interpolateChainText(event.body, vars),
+      options: event.options.map(opt => ({
+        ...opt,
+        text: interpolateChainText(opt.text, vars),
+        effects: chain.targetPlayerId ? { ...opt.effects, targetPlayerId: chain.targetPlayerId } : opt.effects,
+      })),
+    };
+  };
 
   const newCompletedChainIds = [...(state.completedStorylineChainIds || [])];
   const updatedChains: ActiveStorylineChain[] = (state.activeStorylineChains || []).reduce<ActiveStorylineChain[]>((kept, chain) => {
@@ -2035,21 +2044,37 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (!chainDef) return kept; // Remove chains with no definition
 
     const nextStepIdx = chain.currentStep + 1;
+    // A player-focused chain ends early once its player has left the club —
+    // otherwise the next steps would keep telling a story about someone who is
+    // gone (a sold star still "distracted by the transfer talk").
+    const departedTarget = chain.targetPlayerId && newPlayers[chain.targetPlayerId]?.clubId !== playerClubId
+      ? newPlayers[chain.targetPlayerId] ?? null
+      : null;
+    if (departedTarget && nextStepIdx < chainDef.steps.length) {
+      newCompletedChainIds.push(`${chain.chainId}@${season}`);
+      newMessages = addMsg(newMessages, {
+        week: newWeek, season, type: 'general',
+        title: `${chainDef.name} — Resolved`,
+        body: `The story ended when ${departedTarget.firstName} ${departedTarget.lastName} left the club.`,
+      });
+      return kept;
+    }
     if (nextStepIdx >= chainDef.steps.length) {
       // Chain complete — add completion summary and track as completed
       // Stamp the season so the cooldown in the trigger block below can expire
       // this marker. Bare ids (legacy saves) read as "long ago" and expire at once.
       newCompletedChainIds.push(`${chain.chainId}@${season}`);
       const targetPlayer = chain.targetPlayerId ? newPlayers[chain.targetPlayerId] : null;
-      const playerLabel = targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : 'Your star player';
       const lastChoice = chain.choices[chain.choices.length - 1];
       const lastStep = chainDef.steps[chainDef.steps.length - 1];
       const chosenOption = lastStep?.options[lastChoice];
       const outcomeText = chosenOption ? `You chose: "${chosenOption.label}".` : '';
+      // Untargeted chains used to read "The Your star player saga is over."
+      const opener = targetPlayer ? `The ${targetPlayer.firstName} ${targetPlayer.lastName} saga is over.` : 'That chapter is closed.';
       newMessages = addMsg(newMessages, {
         week: newWeek, season, type: 'general',
         title: `${chainDef.name} — Resolved`,
-        body: `The ${playerLabel} saga is over. ${outcomeText}`,
+        body: `${opener} ${outcomeText}`.trim(),
       });
       return kept; // Remove completed chain
     }
@@ -2113,9 +2138,22 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // overlap heavily (`injury-crisis` needs only `recentLosses >= 1 && week >= 5`,
     // `dressing-room-power-struggle` `>= 2 && week >= 8`), so early array entries
     // systematically won and every save told the same stories in the same order.
+    // Table + fixture context for the chains that are about the club's
+    // situation (title race, relegation, derby week).
+    const chainTablePos = leagueTable.findIndex(e => e.clubId === playerClubId);
+    const chainLeague = playerClub ? LEAGUES.find(l => l.id === playerClub.divisionId) : undefined;
+    const thisWeekFixture = updatedFixtures.find(m => m.week === newWeek && !m.played
+      && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const thisWeekOpponent = thisWeekFixture
+      ? (thisWeekFixture.homeClubId === playerClubId ? thisWeekFixture.awayClubId : thisWeekFixture.homeClubId)
+      : null;
+    const targetOpts = { recentSigningNames: (state.seasonTransfersBought || []).map(t => t.playerName) };
+
     const eligibleChains: typeof STORYLINE_CHAINS[number][] = [];
     for (const chainDef of STORYLINE_CHAINS) {
       if (season < (chainCooldownUntil.get(chainDef.id) ?? Number.NEGATIVE_INFINITY)) continue;
+      // A targeted chain needs someone to be about.
+      if (chainDef.target && !pickChainTarget(chainDef.target, squadPlayers, targetOpts)) continue;
       const triggered = shouldTriggerChain(chainDef.id, {
         week: newWeek,
         recentWins: recentResults.won,
@@ -2125,6 +2163,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         hasYouthProspect: squadPlayers.some(p => p.age <= 21 && p.potential >= 75),
         budget: playerClub?.budget || 0,
         averageBudget: avgBudget,
+        leaguePosition: chainTablePos >= 0 ? chainTablePos + 1 : undefined,
+        totalTeams: leagueTable.length || undefined,
+        relegationSpots: chainLeague?.relegationSpots ?? 0,
+        derbyThisWeek: !!chainRivalId && thisWeekOpponent === chainRivalId,
       });
       if (triggered) eligibleChains.push(chainDef);
     }
@@ -2132,13 +2174,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const chainDef = eligibleChains.length > 0 ? pick(eligibleChains) : null;
     if (chainDef) {
       // Identify the target player for player-specific chains
-      let targetPlayerId: string | undefined;
-      if (chainDef.id === 'star-player-transfer-saga') {
-        const starPlayer = squadPlayers
-          .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
-          .sort((a, b) => b.overall - a.overall)[0];
-        if (starPlayer) targetPlayerId = starPlayer.id;
-      }
+      const targetPlayerId = chainDef.target
+        ? pickChainTarget(chainDef.target, squadPlayers, targetOpts)?.id
+        : undefined;
 
       const newChain: ActiveStorylineChain = {
         chainId: chainDef.id,
