@@ -108,7 +108,12 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
      * the fail-open empty list, so a network failure can't strip a paying user.
      *
      * Subscriptions are untouched: their status lives exclusively in
-     * `subscription.expiresAt` and never in `entitlements`.
+     * `subscription.expiresAt` and never in `entitlements`. The exception is a
+     * ONE-TIME record in the subscription slot — `extractSubscriptionInfo`
+     * writes Lifetime there, and `isSubscriptionExpired` never ends it — which
+     * is dropped by the same definitive answer that prunes its entitlement.
+     * Without that, a refunded Lifetime lost the entitlement but kept Pro
+     * forever through the slot.
      */
     reconcileEntitlements: (ownedProductIds: ProductId[]) => {
       _set((s) => {
@@ -130,8 +135,18 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
         // here. They keep Pro: `bundle.all` is itself in
         // `PRO_ONE_TIME_PRODUCT_IDS`, and the next restore re-grants Lifetime.
         const kept = s.monetization.entitlements.filter(id => owned.has(id));
-        if (kept.length === s.monetization.entitlements.length) return {};
-        return { monetization: { ...s.monetization, entitlements: kept } };
+        const sub = s.monetization.subscription;
+        const nonRecurring = sub != null
+          && (sub.tier === 'lifetime' || PRODUCTS[sub.productId]?.type !== 'subscription');
+        const dropSub = nonRecurring && !owned.has(sub.productId);
+        if (kept.length === s.monetization.entitlements.length && !dropSub) return {};
+        return {
+          monetization: {
+            ...s.monetization,
+            entitlements: kept,
+            subscription: dropSub ? null : sub,
+          },
+        };
       });
       mirrorDevicePurchases();
     },

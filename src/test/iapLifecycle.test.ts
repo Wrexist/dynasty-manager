@@ -65,7 +65,7 @@ import {
 import { purchaseAndSync, restoreAndSync, syncStoreState } from '@/utils/purchaseSync';
 import {
   purchaseProduct, purchaseConsumable, isPaymentPendingError, extractSubscriptionInfo,
-  getStoreAvailability, openSubscriptionManagement, restorePurchases,
+  getStoreAvailability, openSubscriptionManagement, restorePurchases, getEntitlementsDefinitive,
 } from '@/utils/purchases';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { __resetClockHighWaterCache } from '@/store/helpers/persistence';
@@ -347,6 +347,42 @@ describe('a refunded, revoked or lapsed subscription ends when the store says so
     expect(extractSubscriptionInfo(customer({
       active: {}, all: { pro: proEntitlement(LIFETIME, { isActive: false, expiresInDays: null }) },
     }) as never)).toBeNull();
+  });
+
+  it('a refunded Lifetime loses Pro at the launch reconcile — the Lifetime record in the subscription slot goes too', async () => {
+    storeSells(LIFETIME);
+    const owned = customer({ active: { pro: proEntitlement(LIFETIME, { expiresInDays: null }) }, purchased: [LIFETIME] });
+    mockPurchases.purchasePackage.mockResolvedValue({ customerInfo: owned });
+    storeRecord(owned);
+    await purchaseAndSync(LIFETIME);
+    // Lifetime is recorded twice: the entitlement AND a never-expiring
+    // `tier: 'lifetime'` record in the subscription slot.
+    expect(monetization().subscription).toMatchObject({ tier: 'lifetime', productId: LIFETIME });
+
+    // The launch sync's definitive answer still lists Lifetime: nothing changes.
+    useGameStore.getState().reconcileEntitlements((await getEntitlementsDefinitive())!);
+    expect(monetization().subscription).toMatchObject({ tier: 'lifetime' });
+    expect(isPro(monetization())).toBe(true);
+
+    // Apple refund: the store no longer lists it anywhere.
+    storeRecord(customer({ active: {}, all: { pro: proEntitlement(LIFETIME, { isActive: false, expiresInDays: null }) } }));
+    useGameStore.getState().reconcileEntitlements((await getEntitlementsDefinitive())!);
+    await syncStoreState();
+
+    expect(monetization().entitlements).toEqual([]);
+    expect(monetization().subscription).toBeNull();
+    expect(isPro(monetization())).toBe(false);
+  });
+
+  it('the launch reconcile never touches a recurring subscription record', () => {
+    const monthly = {
+      tier: 'monthly' as const, productId: MONTHLY, expiresAt: iso(Date.now() + 20 * DAY),
+      grantedAt: iso(Date.now()), isInGracePeriod: false, willRenew: true, isTrial: false,
+    };
+    useGameStore.getState().updateSubscription(monthly);
+    useGameStore.getState().reconcileEntitlements([]);
+    expect(monetization().subscription).toEqual(monthly);
+    expect(isPro(monetization())).toBe(true);
   });
 
   it('a lapsed subscription loses Pro while Lifetime or the bundle keeps it', () => {

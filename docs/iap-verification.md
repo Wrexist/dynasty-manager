@@ -98,7 +98,7 @@ the three cosmetic packs. The retired SKU is not sold anywhere and still restore
 | C / Q / E / U | as §2.2 | as §2.2 | `iapMatrix › <sku> (pro-one-time) › …` |
 | R | "N products restored"; bundle re-expands | `restoreAndSync` | `iapMatrix › … › restore`; `iapLifecycle › restore › …expanding the bundle`; `iapMatrix › the retired com.dynastymanager.pro…` |
 | X | n/a — never expires. Keeps Pro when a subscription lapses | `isPro` | `iapMatrix › a lapsed <sku> subscription › keeps Pro when <keeper> is owned` |
-| F | Pruned at the next launch sync that gets a definitive store answer | `getEntitlementsDefinitive` → `reconcileEntitlements` | `entitlementReconciliation` |
+| F | Pruned at the next launch sync that gets a definitive store answer — the entitlement **and** the never-expiring Lifetime record `extractSubscriptionInfo` puts in the subscription slot (before this, a refunded Lifetime kept Pro forever through that record) | `getEntitlementsDefinitive` → `reconcileEntitlements` | `entitlementReconciliation`; `iapLifecycle › a refunded Lifetime loses Pro at the launch reconcile…` |
 
 ### 2.4 Cosmetic packs — Manager Identity (`.pack.manager`), Stadium (`.pack.stadium`), Dynasty Legacy (`.pack.legends`)
 
@@ -229,7 +229,8 @@ Configuration). RevenueCat needs the StoreKit test certificate uploaded for this
    within 72 hours.
 2. **Refund:** in Manage Transactions, refund the Yearly transaction, then relaunch.
    **Expect:** Pro gone at launch (it used to survive until the original expiry).
-   Loading an older save must not bring it back.
+   Loading an older save must not bring it back. Repeat with **Lifetime**: refund it,
+   relaunch online — Pro gone, Settings shows no Pro badge.
 3. **Billing grace:** enable Billing Grace Period + Billing Retry in the StoreKit file,
    let a renewal fail. **Expect:** Pro kept, amber "Payment issue detected" in Settings
    and Shop; after grace ends, Pro gone.
