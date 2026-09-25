@@ -10,12 +10,16 @@
 // a PNG on the clipboard inside WKWebView.
 import { Capacitor } from '@capacitor/core';
 import { APP_STORE_URL } from '@/config/legal';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
+import type { Player } from '@/types/game';
 
 // Story format — matches the marketing kit's poster format (1080×1920).
 export const CARD_WIDTH = 1080;
 export const CARD_HEIGHT = 1920;
 
 export type MomentType = 'world_cup' | 'shootout';
+/** Every card this module can render — moments plus the pack best-pull card. */
+export type ShareCardType = MomentType | 'pack_pull';
 
 /** The state-derived content of one moment card. `subject`/`detail` are the
  *  long, user-controlled strings (nation / club names) and are truncated to
@@ -35,6 +39,28 @@ export interface MomentCardData {
   /** Optional caption attached to the native share sheet alongside the image. */
   shareMessage?: string;
 }
+
+/** The pack best-pull card (growth playbook P1). Rights constraint: it carries
+ *  ONLY what the player already sees on the in-app card — the game's own card
+ *  art, OVR and position — plus the pack's name. No player name, no portrait:
+ *  the pulls are real footballers and this image leaves the app. */
+export interface PackPullCardData {
+  type: 'pack_pull';
+  ovr: number;
+  position: string;
+  /** Card frame / tier shield artwork (same resolver as `PlayerCard`). */
+  artSrc: string;
+  /** CSS filter the in-app card applies to this art (sub-60 tier), if any. */
+  artFilter?: string;
+  /** The pack's display name as the overlay shows it, e.g. 'World Class Pack'. */
+  packLabel: string;
+  /** Localised 'Pulled in Dynasty Manager'. */
+  pulledLabel: string;
+  /** Optional caption attached to the native share sheet alongside the image. */
+  shareMessage?: string;
+}
+
+export type ShareableCardData = MomentCardData | PackPullCardData;
 
 export type ShareCardMethod = 'share' | 'download';
 
@@ -97,14 +123,9 @@ type Ctx2D = Pick<
   textAlign: CanvasTextAlign; textBaseline: CanvasTextBaseline;
 };
 
-/** Draw the moment card onto a 2D context sized `w`×`h`. Pure drawing, never
- *  throws on a well-formed context; the offscreen-canvas plumbing lives in
- *  `renderMomentCanvas`. Exported for smoke-testing against a stub context. */
-export function drawMomentCard(ctx: Ctx2D, w: number, h: number, data: MomentCardData): void {
-  const measure = (t: string, px: number): number => {
-    ctx.font = `700 ${px}px ${HEAD_FONT}`;
-    return ctx.measureText(t).width;
-  };
+/** Shared chrome of every card: gradient, gold glow, frame and brand lockup.
+ *  Leaves `textAlign`/`textBaseline` at center/middle. */
+function drawBackdrop(ctx: Ctx2D, w: number, h: number): void {
   const cx = w / 2;
 
   // Background gradient.
@@ -137,6 +158,18 @@ export function drawMomentCard(ctx: Ctx2D, w: number, h: number, data: MomentCar
   ctx.fillStyle = MUTED;
   ctx.font = `600 34px ${BODY_FONT}`;
   ctx.fillText('FOOTBALL', cx, 236);
+}
+
+/** Draw the moment card onto a 2D context sized `w`×`h`. Pure drawing, never
+ *  throws on a well-formed context; the offscreen-canvas plumbing lives in
+ *  `renderCardCanvas`. Exported for smoke-testing against a stub context. */
+export function drawMomentCard(ctx: Ctx2D, w: number, h: number, data: MomentCardData): void {
+  const measure = (t: string, px: number): number => {
+    ctx.font = `700 ${px}px ${HEAD_FONT}`;
+    return ctx.measureText(t).width;
+  };
+  const cx = w / 2;
+  drawBackdrop(ctx, w, h);
 
   // Centrepiece emoji.
   ctx.fillStyle = TEXT;
@@ -181,6 +214,116 @@ export function drawMomentCard(ctx: Ctx2D, w: number, h: number, data: MomentCar
   ctx.fillText('Dynasty Manager: Football — on the App Store', cx, h - 120);
 }
 
+/** Drawing surface for the pack card — the moment surface plus images. */
+type PackCtx2D = Ctx2D & Pick<CanvasRenderingContext2D, 'drawImage'> & { filter?: string };
+
+// Card geometry on the 1080×1920 story. 2:3 like every `public/player-cards/`
+// file (1024×1536), so the art is drawn unscaled in aspect — its alpha is the
+// card's edge, exactly as in-app.
+const PACK_CARD_W = 640;
+const PACK_CARD_H = 960;
+const PACK_CARD_TOP = 320;
+
+/** `apps.apple.com/app/id…` — the link printed on the card (the share sheet
+ *  also carries the full URL). */
+export const APP_STORE_LINK_TEXT = APP_STORE_URL.replace(/^https?:\/\//, '');
+
+/** Build the pack best-pull card from a pulled player. Pure. Reads only the
+ *  fields the in-app card face shows up top (OVR, position, card art) — the
+ *  player's name and portrait are deliberately NOT read, so they cannot leak
+ *  onto an image that leaves the app. */
+export function buildPackPullCardData(
+  player: Pick<Player, 'overall' | 'position' | 'packFrame' | 'ballonDOrTop10HoldSeason'>,
+  labels: { packLabel: string; pulledLabel: string; shareMessage?: string },
+): PackPullCardData {
+  const art = getPlayerCardArt(player.overall, {
+    ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+    packFrame: player.packFrame,
+  });
+  return {
+    type: 'pack_pull',
+    ovr: player.overall,
+    position: player.position,
+    artSrc: art.src,
+    artFilter: art.filter,
+    packLabel: labels.packLabel,
+    pulledLabel: labels.pulledLabel,
+    shareMessage: labels.shareMessage,
+  };
+}
+
+/** Draw the pack best-pull card. `art` is the loaded card image, or null if it
+ *  failed to load — then a tier-coloured panel stands in so the share still
+ *  works. Exported for smoke-testing against a stub context. */
+export function drawPackPullCard(ctx: PackCtx2D, w: number, h: number, data: PackPullCardData, art: CanvasImageSource | null): void {
+  drawBackdrop(ctx, w, h);
+  const cx = w / 2;
+  const x = (w - PACK_CARD_W) / 2;
+  const y = PACK_CARD_TOP;
+
+  if (art) {
+    const prevFilter = ctx.filter;
+    if (data.artFilter && typeof prevFilter === 'string') ctx.filter = data.artFilter;
+    ctx.drawImage(art, x, y, PACK_CARD_W, PACK_CARD_H);
+    if (typeof prevFilter === 'string') ctx.filter = prevFilter;
+  } else {
+    const panel = ctx.createLinearGradient(x, y, x + PACK_CARD_W, y + PACK_CARD_H);
+    panel.addColorStop(0, GOLD);
+    panel.addColorStop(1, 'hsl(222, 30%, 14%)');
+    ctx.fillStyle = panel;
+    ctx.fillRect(x, y, PACK_CARD_W, PACK_CARD_H);
+  }
+
+  // OVR + position, top-left of the card face — same proportions as
+  // `PlayerCard`'s sizeTokens (ovr 0.24w, top 0.093w, left 0.12w, pos 0.067w),
+  // over the same dark radial scrim the in-app card uses behind them.
+  // Filled over the gradient's own bounding square so it fades to zero before
+  // any edge — a rect cut through the glow would read as a box the card does
+  // not have (the art's alpha is the card's edge).
+  const sx = x + PACK_CARD_W * 0.18;
+  const sy = y + PACK_CARD_H * 0.17;
+  const sr = PACK_CARD_W * 0.34;
+  const scrim = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+  scrim.addColorStop(0, 'rgba(0,0,0,0.7)');
+  scrim.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = scrim;
+  ctx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
+
+  const ovrPx = Math.round(PACK_CARD_W * 0.24);
+  const posPx = Math.round(PACK_CARD_W * 0.067);
+  const left = x + PACK_CARD_W * 0.12;
+  const top = y + PACK_CARD_W * 0.093;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = TEXT;
+  ctx.font = `900 ${ovrPx}px ${HEAD_FONT}`;
+  ctx.fillText(String(data.ovr), left, top);
+  ctx.font = `700 ${posPx}px ${HEAD_FONT}`;
+  ctx.fillText(data.position, left + 4, top + ovrPx * 0.98);
+
+  // Pack name (gold, fitted) + tagline + link.
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const maxTextW = w - 200;
+  const label = data.packLabel.toUpperCase();
+  const labelPx = fitFontPx(label, maxTextW, 96, 48, (t, px) => {
+    ctx.font = `700 ${px}px ${HEAD_FONT}`; return ctx.measureText(t).width;
+  });
+  ctx.fillStyle = GOLD;
+  ctx.font = `700 ${labelPx}px ${HEAD_FONT}`;
+  ctx.fillText(label, cx, y + PACK_CARD_H + 130);
+
+  ctx.fillStyle = TEXT;
+  ctx.font = `600 48px ${BODY_FONT}`;
+  ctx.fillText(truncateToWidth(data.pulledLabel, maxTextW, 48, (t, px) => {
+    ctx.font = `600 ${px}px ${BODY_FONT}`; return ctx.measureText(t).width;
+  }), cx, y + PACK_CARD_H + 230);
+
+  ctx.fillStyle = MUTED;
+  ctx.font = `600 34px ${BODY_FONT}`;
+  ctx.fillText(APP_STORE_LINK_TEXT, cx, h - 120);
+}
+
 /** Best-effort pre-check for whether a share/download path exists at all, so
  *  the button can hide when it can't do anything. The runtime share still
  *  degrades independently (a `canShare({files})` false at call time falls back
@@ -201,22 +344,41 @@ export function detectShareCapability(): ShareCapability {
 }
 
 /** `dynasty-world-champions-2026-07-10.png`. */
-export function buildMomentFilename(type: MomentType, date: Date = new Date()): string {
+export function buildMomentFilename(type: ShareCardType, date: Date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
-  const slug = type === 'world_cup' ? 'world-champions' : 'shootout-win';
+  const slug = type === 'world_cup' ? 'world-champions' : type === 'pack_pull' ? 'pack-pull' : 'shootout-win';
   return `dynasty-${slug}-${y}-${m}-${d}.png`;
 }
 
-function renderMomentCanvas(data: MomentCardData): HTMLCanvasElement | null {
+/** Load a same-origin image for canvas drawing. Resolves null on error or
+ *  after `timeoutMs` — a missing cover must degrade the card, never hang it. */
+function loadImage(src: string, timeoutMs = 4000): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    if (typeof Image === 'undefined') { resolve(null); return; }
+    const img = new Image();
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    img.onload = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = () => { clearTimeout(timer); resolve(null); };
+    img.decoding = 'async';
+    img.src = src;
+  });
+}
+
+async function renderCardCanvas(data: ShareableCardData): Promise<HTMLCanvasElement | null> {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
   const canvas = document.createElement('canvas');
   canvas.width = CARD_WIDTH;
   canvas.height = CARD_HEIGHT;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  drawMomentCard(ctx as unknown as Ctx2D, CARD_WIDTH, CARD_HEIGHT, data);
+  if (data.type === 'pack_pull') {
+    const art = await loadImage(data.artSrc);
+    drawPackPullCard(ctx as unknown as PackCtx2D, CARD_WIDTH, CARD_HEIGHT, data, art);
+  } else {
+    drawMomentCard(ctx as unknown as Ctx2D, CARD_WIDTH, CARD_HEIGHT, data);
+  }
   return canvas;
 }
 
@@ -268,8 +430,8 @@ function tryDownloadBlob(blob: Blob, filename: string): ShareCardResult | null {
 /** Render the card and share it. Degrades share → download → unsupported,
  *  ordered by platform (native prefers the share sheet; web prefers a
  *  download). Never throws. */
-export async function shareMomentCard(data: MomentCardData): Promise<ShareCardResult> {
-  const canvas = renderMomentCanvas(data);
+export async function shareMomentCard(data: ShareableCardData): Promise<ShareCardResult> {
+  const canvas = await renderCardCanvas(data);
   if (!canvas) return { ok: false, error: 'unsupported' };
   const blob = await canvasToBlob(canvas);
   if (!blob) return { ok: false, error: 'unsupported' };

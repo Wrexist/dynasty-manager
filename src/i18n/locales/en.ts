@@ -559,6 +559,9 @@ export const en = {
   'packOpeningOverlay.sellPricingDetail':
     'Quick-sell pays {rate}% of a card\u2019s value up to {threshold}, and {taper}% above that. Anything you don\u2019t select is kept.',
   'packOpeningOverlay.guaranteeUnlocked': 'Guarantee Unlocked',
+  'packOpeningOverlay.shareBestPull': 'Share',
+  'packOpeningOverlay.sharePulledIn': 'Pulled in Dynasty Manager',
+  'packOpeningOverlay.shareMessage': 'Pulled from a {pack} in Dynasty Manager: Football.',
   'walkoutReveal.skip': 'Skip',
   'walkoutReveal.skipCinematic': 'Skip cinematic',
   'walkoutReveal.potential': 'Potential',
