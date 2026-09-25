@@ -193,9 +193,18 @@ export const MORALE_LOSS_CHANGE = -10;
 // made defeats morale-neutral or positive; the win-side narrative boost is
 // already capped at +5, so the loss side must be bounded too.
 export const NARRATIVE_MORALE_LOSS_REDUCTION_CAP = 6;
+// Form moves SYMMETRICALLY with the result. It used to be +5 / -2 / -8, which
+// across any league (wins and defeats are equal in number) is a net -1.6 per
+// match — before the rating term's own -1.4 bias below. Nothing pulled it back,
+// so AI form ratcheted down from ~65 at kickoff to ~40 by the end of season 1,
+// ~25 in season 2 and ~15 in season 3, and every AI side's conversion fell with
+// it (form is 15% of shot quality in the engine). That was most of the
+// season-on-season scoring decline measured on real saves (audit S6). See
+// `nextMatchForm` in orchestration/helpers.ts for the reversion that holds the
+// league mean at FORM_NEUTRAL.
 export const FORM_WIN_CHANGE = 5;
-export const FORM_LOSS_CHANGE = -8;
-export const FORM_DRAW_CHANGE = -2;
+export const FORM_LOSS_CHANGE = -5;
+export const FORM_DRAW_CHANGE = 0;
 
 // ── Match Rating → Morale / Form ──
 // Layered ON TOP of the team result above, never replacing it. The team result
@@ -209,8 +218,25 @@ export const MORALE_PER_RATING_POINT = 2.5;
 /** Cap must stay below |MORALE_LOSS_CHANGE| (10) or a good game inverts a defeat. */
 export const MORALE_RATING_ADJ_CAP = 5;
 export const FORM_PER_RATING_POINT = 2.0;
-/** Cap must stay below |FORM_LOSS_CHANGE| (8) for the same reason. */
+/** Cap must stay below |FORM_LOSS_CHANGE| (5) for the same reason. */
 export const FORM_RATING_ADJ_CAP = 4;
+
+// ── simcal: form mean reversion ──
+/** The form every player drifts back toward. 50 is what the engine treats as
+ *  neutral (`pickAttacker` weights `form - 50`). */
+export const FORM_NEUTRAL = 50;
+/** Fraction of the gap to FORM_NEUTRAL closed on every match played, so form
+ *  reads roughly the last ten games. A side that wins 60% and loses 20% settles
+ *  near 70, one that loses 60% near 30 — form stays a signal, it no longer
+ *  saturates at 100 for the champions or bottoms out at 10 for everyone else. */
+export const FORM_MEAN_REVERSION = 0.1;
+/** Match rating that moves form neither way. This is the MEASURED league-mean
+ *  rating (the same number development centres on), not RATING_MORALE_BASELINE's
+ *  7.0: centred there, the average player lost 1.4 form per match from the
+ *  rating term alone. */
+export const FORM_RATING_BASELINE = DEV_RATING_BASELINE;
+export const FORM_MIN = 10;
+export const FORM_MAX = 100;
 
 // ── Match Fitness Carry-Over ──
 /** When true, the per-minute fitness the engine already computed is written back

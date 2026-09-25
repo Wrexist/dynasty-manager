@@ -9,7 +9,6 @@ import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives
 import {
   FITNESS_DRAIN_PER_MATCH, FITNESS_MIN_POST_MATCH,
   MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE, NARRATIVE_MORALE_LOSS_REDUCTION_CAP,
-  FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
   MATCH_INJURY_WEEKS_MIN, MATCH_INJURY_WEEKS_RANGE,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
   CONFIDENCE_WIN_CHANGE, CONFIDENCE_LOSS_CHANGE, CONFIDENCE_DRAW_CHANGE,
@@ -21,13 +20,13 @@ import {
   getExpectedPosition,
   MAX_PLAYER_MATCH_HISTORY,
   RATING_MORALE_BASELINE, MORALE_PER_RATING_POINT, MORALE_RATING_ADJ_CAP,
-  FORM_PER_RATING_POINT, FORM_RATING_ADJ_CAP,
   MATCH_FITNESS_CARRY_ENABLED, MATCH_FITNESS_CARRY_SCALE,
 } from '@/config/gameBalance';
 import {
   computeMinutesPlayed,
   extractFinalMatchFitness,
   getYellowAccumulationBanWeek,
+  nextMatchForm,
 } from '@/store/slices/orchestration/helpers';
 import { DEMAND_MORALE_WIN_BONUS, DEMAND_MORALE_LOSS_PENALTY, MOTIVATE_FATIGUE_MULTIPLIER, CALM_FATIGUE_MULTIPLIER, DEMAND_FATIGUE_MULTIPLIER } from '@/config/teamTalk';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
@@ -244,12 +243,9 @@ export function processMatchResult(
         : 1;
       const moraleStability = getMoraleStability(p.personality);
       p.morale = Math.min(100, Math.max(10, p.morale + Math.round(moraleDelta * moraleStability * motivationMod)));
-      let formDelta = won ? FORM_WIN_CHANGE : lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
-      if (rating != null) {
-        formDelta += Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
-          (rating - RATING_MORALE_BASELINE) * FORM_PER_RATING_POINT));
-      }
-      p.form = Math.min(100, Math.max(10, p.form + Math.round(formDelta)));
+      // One form rule for every club — `nextMatchForm` (mean-reverting, result
+      // dominant). This block used to carry its own copy of the AI formula.
+      p.form = nextMatchForm(p.form, won, lost, rating);
       newPlayers[pid] = p;
     }
   });

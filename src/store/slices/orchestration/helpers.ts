@@ -44,9 +44,13 @@ import {
   CATCH_UP_EXPECTED_GOALS,
   YELLOW_ACCUMULATION_THRESHOLDS,
   YELLOW_ACCUMULATION_BAN_WEEKS,
-  RATING_MORALE_BASELINE,
   FORM_PER_RATING_POINT,
   FORM_RATING_ADJ_CAP,
+  FORM_NEUTRAL,
+  FORM_MEAN_REVERSION,
+  FORM_RATING_BASELINE,
+  FORM_MIN,
+  FORM_MAX,
   REPLACEMENT_QUALITY_REP_MULTIPLIER,
   REPLACEMENT_QUALITY_BASE,
   REPLACEMENT_QUALITY_VARIANCE,
@@ -165,6 +169,35 @@ export function getYellowAccumulationBanWeek(
   );
   if (!crossed) return null;
   return week + 1 + YELLOW_ACCUMULATION_BAN_WEEKS;
+}
+
+/**
+ * A player's form after a match he took part in (or, for the player's own club,
+ * a match his side played — the whole squad feels the result).
+ *
+ * ONE rule for the player's club (`processMatchResult`) and every AI club
+ * (`applyAIMatchEvents`), so the two can never drift apart again.
+ *
+ * Three terms: the team result (symmetric, so a league's wins and defeats
+ * cancel), the individual rating around the measured league-mean rating, and a
+ * pull back toward FORM_NEUTRAL. Without the pull form was a one-way ratchet:
+ * measured on a real save, AI form fell 65 -> 40 -> 25 -> 15 over three seasons
+ * while the champions' squad sat pinned at 100.
+ *
+ * The team result stays dominant: a win never lowers form and a defeat never
+ * raises it, however far from neutral the player starts or however well he
+ * played. The pull only decides how MUCH.
+ */
+export function nextMatchForm(form: number, won: boolean, lost: boolean, rating?: number | null): number {
+  let change = won ? FORM_WIN_CHANGE : lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
+  if (rating != null) {
+    change += Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
+      (rating - FORM_RATING_BASELINE) * FORM_PER_RATING_POINT));
+  }
+  change += (FORM_NEUTRAL - form) * FORM_MEAN_REVERSION;
+  if (won) change = Math.max(1, change);
+  else if (lost) change = Math.min(-1, change);
+  return Math.min(FORM_MAX, Math.max(FORM_MIN, Math.round(form + change)));
 }
 
 /**
@@ -353,15 +386,12 @@ export function applyAIMatchEvents(
         rating = Math.max(3, Math.min(10, Math.round(rating * 10) / 10));
 
         const prev = newPlayers[p.id];
-        // Team result stays dominant; the rating only softens or sharpens it.
-        const formChange = (side.won ? FORM_WIN_CHANGE : side.lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE)
-          + Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
-            (rating - RATING_MORALE_BASELINE) * FORM_PER_RATING_POINT));
         newPlayers[p.id] = {
           ...prev,
           appearances: prev.appearances + 1,
           minutesPlayed: (prev.minutesPlayed || 0) + (minutes[p.id] ?? 0),
-          form: Math.min(100, Math.max(10, prev.form + Math.round(formChange))),
+          // Same rule as the player's club — see `nextMatchForm`.
+          form: nextMatchForm(prev.form, side.won, side.lost, rating),
           seasonRatingTotal: (prev.seasonRatingTotal || 0) + rating,
           seasonRatedMatches: (prev.seasonRatedMatches || 0) + 1,
         };
