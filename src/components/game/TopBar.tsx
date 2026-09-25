@@ -346,7 +346,7 @@ export function TopBar() {
             <button
               disabled={matchLocked}
               onClick={() => setScreen('career-overview')}
-              className="min-h-11 px-1 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+              className="min-h-11 min-w-11 px-1 flex items-center justify-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               title={`${getReputationTierLabel(reputationTier)} (${Math.round(careerManager.reputationScore)})`}
             >
               <Star className="w-3 h-3 fill-primary" />
@@ -356,7 +356,7 @@ export function TopBar() {
             <button
               disabled={matchLocked}
               onClick={() => setScreen('perks')}
-              className="min-h-11 px-1 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+              className="min-h-11 min-w-11 px-1 flex items-center justify-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               title={`Level ${managerProgression.level} — ${xpProgress.current}/${xpProgress.needed} XP`}
             >
               <Star className="w-3 h-3 fill-primary" />

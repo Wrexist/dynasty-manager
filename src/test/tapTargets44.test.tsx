@@ -69,8 +69,9 @@ function expect44(file: string, anchor: string, opts: { width?: boolean; count?:
 
 describe('44px tap targets — the controls the playthrough measured', () => {
   it('top bar: the level / reputation chip', () => {
-    expect44('components/game/TopBar.tsx', 'Lv.{managerProgression.level}');
-    expect44('components/game/TopBar.tsx', "onClick={() => setScreen('career-overview')}");
+    // Width too: at Lv.1 the chip measured 43px wide once it was 44 tall.
+    expect44('components/game/TopBar.tsx', 'Lv.{managerProgression.level}', { width: true });
+    expect44('components/game/TopBar.tsx', "onClick={() => setScreen('career-overview')}", { width: true });
   });
 
   it('dashboard banners: the Starter Kit and live-event dismiss buttons', () => {
