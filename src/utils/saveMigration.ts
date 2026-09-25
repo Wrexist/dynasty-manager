@@ -23,6 +23,9 @@ const migrations: Record<number, MigrationFn> = {
   // to exactly that key while `careerId` is null — so the continuing career
   // keeps updating its own row. Only careers started by `initGame` from v93
   // on get a fresh id.
+  // Same version also adds optional `Player.ballonDOrTop10OverallDelta` (the
+  // exact overall the Ballon d'Or top-10 boost applied). Absent on older saves
+  // by design: `revertBallonDorTop10Boost` falls back to the formula delta.
   92: (data) => ({
     ...data,
     careerId: typeof (data as { careerId?: unknown }).careerId === 'string'
