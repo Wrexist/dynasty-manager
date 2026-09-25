@@ -73,6 +73,7 @@ const CareerOverview = lazy(() => import('./CareerOverview'));
 const BallonDor = lazy(() => import('./BallonDor'));
 const FestivalHub = lazy(() => import('./FestivalHub'));
 const DynastyLegacy = lazy(() => import('./DynastyLegacy'));
+const ManagerPassPage = lazy(() => import('./ManagerPassPage'));
 const WorldCupResult = lazy(() => import('./WorldCupResult'));
 const WorldCupDraw = lazy(() => import('./WorldCupDraw'));
 const WorldCupDashboard = lazy(() => import('./WorldCupDashboard'));
@@ -150,6 +151,7 @@ const screens: Record<string, React.ComponentType> = {
   'ballon-dor': BallonDor,
   'festival': FestivalHub,
   'dynasty-legacy': DynastyLegacy,
+  'manager-pass': ManagerPassPage,
   'world-cup-draw': WorldCupDraw,
   'world-cup-result': WorldCupResult,
   'rivalries': RivalriesPage,

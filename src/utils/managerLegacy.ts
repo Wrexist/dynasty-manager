@@ -81,6 +81,11 @@ export function computeManagerLegacy(entries: HallEntry[]): ManagerLegacy {
 /** Every tier, lowest first. */
 export const LEGACY_TIER_ORDER: LegacyTier[] = ['Rookie', ...TIER_THRESHOLDS.map(t => t.tier)];
 
+/** Lifetime trophies needed to reach `tier` (0 for Rookie). */
+export function legacyTierThreshold(tier: LegacyTier): number {
+  return TIER_THRESHOLDS.find(t => t.tier === tier)?.at ?? 0;
+}
+
 /** Earned cosmetics unlocked at `tier` — cumulative over every tier up to it. */
 export function legacyUnlockedRewardIds(tier: LegacyTier): string[] {
   const upTo = LEGACY_TIER_ORDER.indexOf(tier);

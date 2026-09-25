@@ -55,6 +55,14 @@ export function getManagerPassSeason(now: Date = new Date()): ManagerPassSeason 
   };
 }
 
+/** The season with this ordinal — for drawing a stored record's own season,
+ *  which is the right one to show even if the device clock disagrees. */
+export function passSeasonFromOrdinal(ordinal: number): ManagerPassSeason {
+  const year = Math.floor(ordinal / SEASONS_PER_YEAR);
+  const themeIndex = ordinal - year * SEASONS_PER_YEAR;
+  return getManagerPassSeason(new Date(year, themeIndex * MANAGER_PASS_SEASON_MONTHS, 1, 12));
+}
+
 /** Whole days left in `season`, 0 on its last day. */
 export function getPassSeasonDaysRemaining(season: ManagerPassSeason, now: Date = new Date()): number {
   return Math.max(0, daysBetween(localDateKey(now), season.end) ?? 0);

@@ -5,7 +5,7 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'settings', 'season-summary', 'calendar', 'match-prep',
   'league-table', 'comparison', 'manager-profile', 'cup', 'league-cup', 'champions-cup', 'shield-cup', 'super-cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help', 'whats-new',
   'national-team', 'national-squad-picker', 'international-tournament', 'conference-cup',
-  'job-market', 'career-overview', 'ballon-dor', 'festival', 'dynasty-legacy', 'world-cup-draw', 'world-cup-result',
+  'job-market', 'career-overview', 'ballon-dor', 'festival', 'dynasty-legacy', 'manager-pass', 'world-cup-draw', 'world-cup-result',
   'rivalries', 'competitions', 'career-retired',
   // Sunday League's only non-tab, non-sub-nav screen. Everything else in the
   // mode is either a tab (hub / teamsheet / table / clubhouse) or a member of
@@ -50,6 +50,7 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'ballon-dor': 'trophy-cabinet',
   'festival': 'dashboard',
   'dynasty-legacy': 'hall-of-managers',
+  'manager-pass': 'dynasty-legacy',
   'rivalries': 'dashboard',
   'competitions': 'dashboard',
   'career-retired': 'hall-of-managers',
@@ -106,6 +107,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'ballon-dor': "Ballon d'Or",
   'festival': 'Festival',
   'dynasty-legacy': 'Manager Legacy',
+  'manager-pass': 'Manager Pass',
   'world-cup-draw': 'The Draw',
   'world-cup-result': 'World Cup',
   'rivalries': 'Rivalries',
@@ -173,6 +175,8 @@ export const UNEMPLOYED_ALLOWED_SCREENS = new Set<GameScreen>([
   'trophy-cabinet', 'hall-of-managers', 'perks', 'help', 'whats-new', 'shop',
   'ballon-dor', 'league-table', 'calendar', 'team-detail', 'season-summary',
   'player-detail', 'dynasty-legacy', 'career-retired',
+  // legacy: cosmetic-only, device-global — nothing here needs a club.
+  'manager-pass',
 ]);
 
 // BottomNav tabs shown when unemployed in career mode
