@@ -1,7 +1,7 @@
 import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMatchRecord } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
-import { awardFestivalMatchWin } from '@/utils/liveEvents';
+import { awardFestivalMatchResult } from '@/utils/liveEvents';
 import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { signalFirstWinForNotifications } from '@/utils/notifications';
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
@@ -330,8 +330,17 @@ export function processMatchResult(
   // A derby win is worth more in events that declare `derbyWinMultiplier`
   // (Derby Days). Same derby test the match itself was played under:
   // pre-match rivalries, so this result's grudge change doesn't count.
+  // Events may also pay for draws, clean sheets, goals and academy graduates
+  // who played (see `LiveEvent`); a match that earns nothing uses no award.
   const isDerbyMatch = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId) > 0;
-  awardFestivalMatchWin(won, isDerbyMatch);
+  awardFestivalMatchResult({
+    won,
+    drawn: !won && !lost,
+    isDerby: isDerbyMatch,
+    goalsFor: isHome ? result.homeGoals : result.awayGoals,
+    goalsAgainst: isHome ? result.awayGoals : result.homeGoals,
+    academyAppearances: participantIds.filter(pid => newPlayers[pid]?.clubId === playerClubId && newPlayers[pid]?.isFromYouthAcademy).length,
+  });
 
   // Career milestones
   const newMilestones: CareerMilestone[] = [];

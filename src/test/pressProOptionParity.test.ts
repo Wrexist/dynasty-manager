@@ -12,11 +12,13 @@
  * Math.random pinned to the question's slot) and, per stat, the Pro answer
  * must not exceed the best free answer to the same question.
  */
-import { describe, it, expect, afterAll } from 'vitest';
-import { QUESTIONS, generatePressConference, resetPressConferenceMemory } from '@/data/pressConferences';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
+import { generatePressConference, resetPressConferenceMemory, loadPressQuestionBank } from '@/data/pressConferences';
+import { QUESTIONS } from '@/data/pressQuestionBank';
 import type { PressConference } from '@/types/game';
 
 const realRandom = Math.random;
+beforeAll(() => loadPressQuestionBank());
 afterAll(() => { Math.random = realRandom; resetPressConferenceMemory(); });
 
 const STATS = ['morale', 'boardConfidence', 'fanMood'] as const;

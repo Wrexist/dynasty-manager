@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { awardFestivalSigning } from '@/utils/liveEvents';
 import { absWeek } from '@/utils/staff';
 import { getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
@@ -606,6 +607,9 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       ...merchUpdate,
       ...(fee > club.budget && galacticoOk ? { galacticoUsedThisSeason: true } : {}),
     });
+    // Live events that pay for signings (Winter Window…). Device-level XP track,
+    // sim-neutral, capped per day; no-op otherwise. Never throws.
+    awardFestivalSigning();
     // Career mode: grow negotiation stat on successful transfer
     const postState = get();
     if (postState.gameMode === 'career' && postState.careerManager) {
@@ -871,6 +875,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       messages: newMessages,
     });
+    awardFestivalSigning();
     return { success: true, message: `${player.firstName} ${player.lastName} signed on a free transfer!` };
   },
 

@@ -25,7 +25,7 @@ import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { pickAiMatchSquad, stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
 import { getEffectiveMatchIntensity } from '@/utils/rivalries';
-import { generatePressConference, getPostMatchPressContext } from '@/data/pressConferences';
+import { generatePressConference, getPostMatchPressContext, buildPressQuestionVars } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
@@ -912,7 +912,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       currentContinentalMatchId: null,
       currentContinentalCompetition: null,
       lastMatchCompetition: matchCompetition,
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       preMatchLeaguePosition: prePos,
@@ -973,7 +973,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
 
     const pe = pressExtrasFor(get());
     const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
-    const press = generatePressConference(pressContext, isPro(get().monetization));
+    const press = generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match));
     const drama = detectMatchDrama(result, playerClubId, clubs);
     const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
 
@@ -1045,7 +1045,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Generate post-match press conference
   const pe = pressExtrasFor(get());
     const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
-  const press = generatePressConference(pressContext, isPro(get().monetization));
+  const press = generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match));
 
   // Update session stats for wins/losses
   const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
@@ -1543,7 +1543,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time',
       lastMatchCompetition: 'Pre-Season Friendly',
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       lastMatchXPGain: Math.round((processed.xpGain || 0) * 0.5),
@@ -1572,7 +1572,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
       currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
@@ -1626,7 +1626,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   // Generate post-match press conference
   const pe2 = pressExtrasFor(get());
   const pressContext2 = getPostMatchPressContext(processed.won, processed.lost, pe2.recentForm, pe2.hasListedPlayers, pe2.extras);
-  const press2 = generatePressConference(pressContext2, isPro(get().monetization));
+  const press2 = generatePressConference(pressContext2, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match));
 
   const syncedDivFixtures2 = { ...state.divisionFixtures, [state.playerDivision]: fullFixtures2 };
   set({
@@ -1745,7 +1745,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
         halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
         currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
@@ -1800,7 +1800,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         boardConfidence: processed.confidence, managerStats: processed.managerStats,
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
         managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
-        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
         lastMatchDrama: etDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       });
       // Persist the played match immediately — autosave otherwise only fires
@@ -2102,7 +2102,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
       currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
@@ -2145,7 +2145,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       boardConfidence: processed.confidence, managerStats: processed.managerStats,
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
-      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
     });

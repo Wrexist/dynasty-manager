@@ -9,6 +9,12 @@
  *
  * Rewards are sim-neutral: a daily check-in earns Festival Points, and point
  * milestones pay out manager XP only — never match, training, or transfer maths.
+ *
+ * Every event pays for check-ins and wins; an event can also declare its own
+ * MECHANIC (derby wins ×2, draws, clean sheets, goals, academy graduates who
+ * play, completed signings) so events play differently rather than all being
+ * "check in + win". A tagline must only promise a mechanic the event declares
+ * — `liveEventMechanics.test.ts` holds that line.
  */
 
 export interface LiveEventTier {
@@ -44,11 +50,41 @@ export interface LiveEvent {
   derbyWinMultiplier?: number;
   /** Reward track, ascending by `points`. */
   tiers: LiveEventTier[];
+  // ── content: event mechanics (all optional; omitted = off). Match
+  // mechanics pay through their own per-day award (MATCH_BONUS_POINTS_DAILY_CAP),
+  // separate from the win award, so a bonus never costs a win. A match that
+  // earns nothing uses neither. ──
+  /** Festival Points for a drawn match (an "unbeaten" event). */
+  drawPoints?: number;
+  /** Bonus when the player's side keeps a clean sheet, whatever the result. */
+  cleanSheetPoints?: number;
+  /** Points per goal scored, up to GOAL_POINTS_MAX_PER_MATCH a match. */
+  goalPoints?: number;
+  /** Points per academy graduate (`isFromYouthAcademy`) who plays, up to
+   *  ACADEMY_APPEARANCES_MAX_PER_MATCH a match. */
+  academyAppearancePoints?: number;
+  /** Points per completed signing (fee or free agent), up to
+   *  SIGNING_POINTS_DAILY_CAP a day. */
+  signingPoints?: number;
 }
 
 /** Max match-win point awards per local day — keeps the festival a nudge to
  *  play, not a grind. */
 export const MATCH_WIN_POINTS_DAILY_CAP = 3;
+// ── content: event mechanic caps ──
+/** Goals that earn `goalPoints` in one match (a 9-0 is not nine times the fun). */
+export const GOAL_POINTS_MAX_PER_MATCH = 4;
+/** Academy graduates who earn `academyAppearancePoints` in one match. */
+export const ACADEMY_APPEARANCES_MAX_PER_MATCH = 3;
+/** Signings that earn `signingPoints` per local day — sign-and-release farming
+ *  of free agents is bounded here. */
+export const SIGNING_POINTS_DAILY_CAP = 2;
+/** Matches per local day whose event BONUS (draw, clean sheet, goals, academy
+ *  graduates) pays. Counted apart from MATCH_WIN_POINTS_DAILY_CAP so a bonus
+ *  can never use up a win award: sharing the one counter let a 1-2 loss in a
+ *  goals event spend one of the day's three match awards, leaving a later win
+ *  worth nothing — the "bonus" event then paid less than a plain one. */
+export const MATCH_BONUS_POINTS_DAILY_CAP = 3;
 
 /** The 2026 FIFA World Cup runs June 11 – July 19, 2026 (USA/Canada/Mexico).
  *  The Festival window tracks the real tournament so the in-app event lines up
@@ -123,31 +159,34 @@ export const SPECIAL_EVENTS: LiveEvent[] = [
   {
     id: 'festive-fixtures-2026',
     name: 'Festive Fixtures',
-    tagline: 'The busiest run of the season. Show up every day and cash in.',
+    tagline: 'The busiest run of the season. Draws score too — stay unbeaten.',
     start: '2026-12-18',
     end: '2027-01-04',
     checkInPoints: 10,
     matchWinPoints: 5,
+    drawPoints: 2,
     tiers: marqueeTiers(['Boxing Day', 'Congestion', 'Squad Depth', 'Unbeaten Run', 'Festive Champion']),
   },
   {
     id: 'winter-window-2027',
     name: 'Winter Window',
-    tagline: 'Deadline season. Check in daily and win matches to climb the track.',
+    tagline: 'Deadline season. Every signing you complete earns Festival Points.',
     start: '2027-01-22',
     end: '2027-02-14',
     checkInPoints: 10,
     matchWinPoints: 5,
+    signingPoints: 10,
     tiers: marqueeTiers(['Scouting', 'First Bid', 'Negotiation', 'Deal Agreed', 'Deadline Hero']),
   },
   {
     id: 'run-in-2027',
     name: 'The Run-In',
-    tagline: 'Trophies are decided now. Check in daily through the final stretch.',
+    tagline: 'Defences win titles. Every clean sheet earns bonus points.',
     start: '2027-04-16',
     end: '2027-05-16',
     checkInPoints: 10,
     matchWinPoints: 5,
+    cleanSheetPoints: 3,
     tiers: marqueeTiers(['Squeaky Bum Time', 'Six-Pointer', 'Title Race', 'Final Day', 'Champion']),
   },
 ];
@@ -175,21 +214,27 @@ const MONTHLY_TIERS: LiveEventTier[] = [
   { id: 'champion',  points: 150, xp: 150, label: 'Champion' },
 ];
 
+/** Event mechanics a monthly theme can switch on (see `LiveEvent`). */
+type EventMechanics = Pick<LiveEvent, 'derbyWinMultiplier' | 'drawPoints' | 'cleanSheetPoints' | 'goalPoints' | 'academyAppearancePoints' | 'signingPoints'>;
+
 /** Themed name per calendar month (1-based index). Football-flavoured but
- *  season-agnostic so it reads well year-round for a global audience. */
-const MONTHLY_THEMES: { name: string; tagline: string }[] = [
+ *  season-agnostic so it reads well year-round for a global audience. Several
+ *  themes used to promise a mechanic their name implied ("Derby season", "Chase
+ *  the goals", "Deal season") while paying for check-ins and wins only; each
+ *  now declares the mechanic its tagline names. */
+const MONTHLY_THEMES: ({ name: string; tagline: string } & EventMechanics)[] = [
   { name: 'New Year Kickoff Festival', tagline: 'Start the year strong — check in daily to climb the rewards track.' },
-  { name: 'Winter Cup Festival',       tagline: 'Brave the winter fixtures — daily check-ins earn Festival Points.' },
+  { name: 'Winter Cup Festival',       tagline: 'Brave the winter fixtures — every clean sheet earns bonus points.', cleanSheetPoints: 3 },
   { name: 'Spring Surge Festival',     tagline: 'The run-in begins — check in daily and chase the rewards.' },
   { name: 'Title Run-In Festival',     tagline: 'Every point counts — check in daily to climb the track.' },
   { name: 'Season Finale Festival',    tagline: 'The finale is here — daily check-ins earn Festival Points.' },
-  { name: 'Summer Transfer Festival',  tagline: 'Deal season — check in daily to climb the rewards track.' },
-  { name: 'Pre-Season Festival',       tagline: 'Build for the new campaign — daily check-ins earn rewards.' },
+  { name: 'Summer Transfer Festival',  tagline: 'Deal season — every signing you complete earns Festival Points.', signingPoints: 10 },
+  { name: 'Pre-Season Festival',       tagline: 'Build for the new campaign — academy graduates who play earn bonus points.', academyAppearancePoints: 2 },
   { name: 'Kickoff Festival',          tagline: 'A new season kicks off — check in daily to climb the track.' },
-  { name: 'Autumn Rivalries Festival', tagline: 'Derby season — daily check-ins earn Festival Points.' },
-  { name: 'Golden Boot Festival',      tagline: 'Chase the goals — check in daily to climb the rewards track.' },
+  { name: 'Autumn Rivalries Festival', tagline: 'Derby season — derby wins count double on the rewards track.', derbyWinMultiplier: 2 },
+  { name: 'Golden Boot Festival',      tagline: 'Chase the goals — every goal you score earns a bonus point.', goalPoints: 1 },
   { name: 'International Break Festival', tagline: 'Nations collide — daily check-ins earn Festival Points.' },
-  { name: 'Festive Fixtures Festival', tagline: 'Pack the calendar — check in daily to climb the track.' },
+  { name: 'Festive Fixtures Festival', tagline: 'Pack the calendar — draws score too, so stay unbeaten.', drawPoints: 2 },
 ];
 
 /** Two-digit, zero-padded string for a 1-based month. */
@@ -207,15 +252,16 @@ export function generateMonthlyEvent(now: Date = new Date()): LiveEvent {
   const year = now.getFullYear();
   const month = now.getMonth() + 1; // 1-based
   const lastDay = new Date(year, month, 0).getDate(); // day 0 of next month = last day of this one
-  const theme = MONTHLY_THEMES[month - 1];
+  const { name, tagline, ...mechanics } = MONTHLY_THEMES[month - 1];
   return {
     id: `monthly-${year}-${pad2(month)}`,
-    name: theme.name,
-    tagline: theme.tagline,
+    name,
+    tagline,
     start: `${year}-${pad2(month)}-01`,
     end: `${year}-${pad2(month)}-${pad2(lastDay)}`,
     checkInPoints: 10,
     matchWinPoints: 5,
     tiers: MONTHLY_TIERS,
+    ...mechanics,
   };
 }

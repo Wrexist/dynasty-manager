@@ -1821,7 +1821,16 @@ export interface StorylineChainDef {
   name: string;
   steps: StorylineChainStep[];
   /** Condition function is evaluated at runtime; chain definitions just store the id */
+  // ── content: storyline chain targets ──
+  /** The squad player the chain is about — resolved once when the chain starts
+   *  (stored as `ActiveStorylineChain.targetPlayerId`) and substituted for
+   *  `{playerName}`. A targeted chain is only eligible when a player fits. */
+  target?: StorylineChainTarget;
 }
+
+// ── content: storyline chain targets ──
+/** Who a player-focused storyline chain is about (see `pickChainTarget`). */
+export type StorylineChainTarget = 'star' | 'youth' | 'injured' | 'new-signing' | 'striker';
 
 export interface ActiveStorylineChain {
   chainId: string;

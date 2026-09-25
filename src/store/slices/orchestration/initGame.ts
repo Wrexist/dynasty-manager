@@ -512,11 +512,17 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const initialStaff = generateInitialStaff(pcInit.reputation);
   const availableHires = generateStaffMarket();
   const youthCoachQuality = getStaffBonus(initialStaff, 'youth-coach');
+  // Youth positions lean toward the squad's gaps; the preview is next
+  // season's actual intake (see generateIntakePreview).
+  const initSquad = (pcInit.playerIds || []).map(id => allPlayers[id]).filter(Boolean);
   const { prospects: youthProspects, players: youthPlayers } = generateYouthProspects(
-    clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), selectedClubData?.squadQuality
+    clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), selectedClubData?.squadQuality,
+    { squad: initSquad },
   );
   youthPlayers.forEach(p => { allPlayers[p.id] = p; });
-  const nextIntakePreview = generateIntakePreview(pcInit.youthRating);
+  const nextIntakePreview = generateIntakePreview(pcInit.youthRating, {
+    youthCoachQuality, clubSquadQuality: selectedClubData?.squadQuality, squad: [...initSquad, ...youthPlayers],
+  });
   const scoutCount = initialStaff.filter(s => s.role === 'scout').length;
 
   // Generate cup draws and pre-season friendlies — scheduled on the player

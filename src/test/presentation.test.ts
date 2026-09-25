@@ -8,14 +8,15 @@
  *   - celebration dedupe keys being thrown away on navigation;
  *   - the curated live-event list rotting into permanently-dead code.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { isWeeklyDigestSignificant, type WeeklyDigestSummary } from '@/config/ui';
 import { detectTrophyMoments } from '@/utils/celebrations';
 import type { LeagueTableEntry } from '@/types/game';
 import { SPECIAL_EVENTS } from '@/config/liveEvents';
 import { getUpcomingSpecialEvent } from '@/utils/liveEvents';
-import { QUESTIONS, generatePressConference, resetPressConferenceMemory, PRESS_RECENT_MEMORY } from '@/data/pressConferences';
+import { generatePressConference, resetPressConferenceMemory, PRESS_RECENT_MEMORY, loadPressQuestionBank } from '@/data/pressConferences';
+import { QUESTIONS } from '@/data/pressQuestionBank';
 
 // ── Weekly digest significance ──
 
@@ -174,6 +175,7 @@ describe('recordCelebrationKeys', () => {
 // ── Press-conference variety ──
 
 describe('generatePressConference', () => {
+  beforeAll(() => loadPressQuestionBank());
   beforeEach(() => resetPressConferenceMemory());
 
   it('never asks the same question twice in a row', () => {
