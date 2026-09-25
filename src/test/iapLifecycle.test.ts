@@ -68,55 +68,13 @@ import {
 import { openExternalUrl } from '@/utils/externalUrl';
 import { __resetClockHighWaterCache } from '@/store/helpers/persistence';
 import type { ProductId } from '@/types/game';
+import { DAY, iso, customer, proEntitlement } from './helpers/revenueCat';
 
-const DAY = 24 * 60 * 60 * 1000;
 const MONTHLY: ProductId = 'com.dynastymanager.pro.monthly';
 const YEARLY: ProductId = 'com.dynastymanager.pro.yearly';
 const LIFETIME: ProductId = 'com.dynastymanager.pro.lifetime';
 const BUNDLE: ProductId = 'com.dynastymanager.bundle.all';
 const MANAGER_PACK: ProductId = 'com.dynastymanager.pack.manager';
-
-const iso = (ms: number) => new Date(ms).toISOString();
-
-interface EntitlementOpts {
-  expiresInDays?: number | null;
-  isActive?: boolean;
-  periodType?: string;
-  billingIssue?: boolean;
-  unsubscribed?: boolean;
-}
-
-/** A RevenueCat `pro` entitlement unlocked by `productId`. */
-function proEntitlement(productId: ProductId, opts: EntitlementOpts = {}) {
-  const { expiresInDays = 30, isActive = true, periodType = 'NORMAL', billingIssue = false, unsubscribed = false } = opts;
-  return {
-    identifier: 'pro',
-    isActive,
-    willRenew: !unsubscribed,
-    periodType,
-    productIdentifier: productId,
-    productPlanIdentifier: null,
-    expirationDate: expiresInDays == null ? null : iso(Date.now() + expiresInDays * DAY),
-    billingIssueDetectedAt: billingIssue ? iso(Date.now() - DAY) : null,
-    unsubscribeDetectedAt: unsubscribed ? iso(Date.now() - DAY) : null,
-  };
-}
-
-/** A CustomerInfo payload in the shape the Capacitor bridge delivers. */
-function customer(opts: {
-  active?: Record<string, unknown>;
-  all?: Record<string, unknown>;
-  purchased?: string[];
-} = {}) {
-  const active = opts.active ?? {};
-  return {
-    entitlements: { active, all: opts.all ?? active },
-    allPurchasedProductIdentifiers: opts.purchased ?? [],
-    activeSubscriptions: [],
-    originalAppUserId: '$RCAnonymousID:test',
-    nonSubscriptionTransactions: [],
-  };
-}
 
 /** The store will sell `productId` through the current offering. */
 function storeSells(productId: ProductId) {
