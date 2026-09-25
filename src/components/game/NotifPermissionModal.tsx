@@ -10,13 +10,15 @@
  * simply marks the one-time prompt shown (opt-in stays unanswered, so the
  * Settings toggle still works later). Either way it never re-appears.
  */
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { Bell, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 import {
   isFirstWinPromptPending,
@@ -66,6 +68,12 @@ export function NotifPermissionModal() {
     resolveFirstWinPrompt();
   }, []);
 
+  // Escape is "Not now", same as the backdrop and the X: the opt-in stays
+  // unanswered, so nothing is lost by dismissing.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, visible);
+  useEscapeClose(handleDismiss, visible);
+
   return (
     <AnimatePresence>
       {visible && (
@@ -79,10 +87,13 @@ export function NotifPermissionModal() {
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" style={{ touchAction: 'none' }} onClick={handleDismiss} />
 
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label={t('notifPermissionModal.enableMatchReminders')}
-            className="relative bg-card/95 backdrop-blur-xl border border-primary/40 rounded-2xl max-w-sm w-full p-6 overflow-hidden shadow-[0_0_40px_rgba(234,179,8,0.12)]"
+            aria-labelledby="notif-permission-title"
+            aria-describedby="notif-permission-body"
+            tabIndex={-1}
+            className="relative bg-card/95 backdrop-blur-xl border border-primary/40 rounded-2xl max-w-sm w-full p-6 overflow-hidden shadow-[0_0_40px_rgba(234,179,8,0.12)] focus:outline-none"
             initial={{ scale: 0.9, opacity: 0, y: 16 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.92, opacity: 0, y: 10 }}
@@ -101,19 +112,19 @@ export function NotifPermissionModal() {
               <div className="mx-auto w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-b from-primary/30 to-primary/10 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)]">
                 <Bell className="w-6 h-6" />
               </div>
-              <h2 className="text-lg font-black font-display text-foreground">Never miss a moment</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h2 id="notif-permission-title" className="text-lg font-black font-display text-foreground">Never miss a moment</h2>
+              <p id="notif-permission-body" className="text-sm text-muted-foreground leading-relaxed">
                 Great win! Turn on reminders and we&apos;ll nudge you about your next big match,
                 pending transfer offers and your daily streak — no spam, just your season.
               </p>
               <div className="space-y-2 pt-1">
-                <Button className="w-full" onClick={() => { void handleEnable(); }}>
+                <Button className="w-full h-11" onClick={() => { void handleEnable(); }}>
                   Enable reminders
                 </Button>
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="w-full h-9 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  className="w-full h-11 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Not now
                 </button>

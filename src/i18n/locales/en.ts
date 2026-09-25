@@ -772,6 +772,17 @@ export const en = {
   'dashboard.more.claimObjectiveAria': "Claim {xp} XP for {title}",
   'dashboard.more.viewAll': "View all",
   'dashboard.more.navigateTo': "Navigate to {screen}",
+
+  // ── a11y: dialogs, steppers, match-review exits ──
+  'matchPrep.simConfirmTitle': 'Simulate this match?',
+  'matchPrep.simConfirmBody': "Instant Sim plays the match out immediately — you won't be able to make substitutions, change tactics, or influence it live.",
+  'matchPrep.simConfirmAction': 'Sim Match',
+  'contractNegotiation.shorterContract': 'Shorter contract',
+  'contractNegotiation.longerContract': 'Longer contract',
+  'matchReview.advanceToNextWeek': 'Advance to Next Week',
+  'matchReview.nextMatchThisWeek': 'Next Match This Week',
+  'matchReview.backToDashboard': 'Back to Dashboard',
+  'matchReview.advancing': 'Advancing...',
 } as const;
 
 export default en;

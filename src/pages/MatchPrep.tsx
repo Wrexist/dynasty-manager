@@ -10,6 +10,7 @@ import { SectionHeader } from '@/components/game/SectionHeader';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { OptimizeResultModal } from '@/components/game/OptimizeResultModal';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getRatingColor } from '@/utils/uiHelpers';
@@ -657,26 +658,21 @@ const MatchPrep = () => {
         </div>
       </div>
 
-      {/* Confirm instant sim — it forfeits all live tactical control. */}
-      {confirmSim && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <GlassPanel className="p-5 max-w-sm w-full space-y-4">
-            <h3 className="text-base font-bold text-foreground font-display">Simulate this match?</h3>
-            <p className="text-sm text-muted-foreground">
-              Instant Sim plays the match out immediately — you won't be able to make
-              substitutions, change tactics, or influence it live.
-            </p>
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1 h-9 gap-1.5" onClick={runSim}>
-                <Zap className="w-4 h-4" /> Sim Match
-              </Button>
-              <Button size="sm" variant="outline" className="flex-1 h-9" onClick={() => setConfirmSim(false)}>
-                Cancel
-              </Button>
-            </div>
-          </GlassPanel>
-        </div>
-      )}
+      {/* Confirm instant sim — it forfeits all live tactical control. Goes
+          through ConfirmDialog (as TransferPage's confirms do) rather than a
+          hand-rolled overlay: that brings dialog semantics, a labelled title,
+          Escape / backdrop tap to cancel, a focus trap with focus restored to
+          the Sim button, and 44px buttons. Cancelling is always safe here —
+          nothing has been simulated until Sim Match is tapped. */}
+      <ConfirmDialog
+        open={confirmSim}
+        onOpenChange={setConfirmSim}
+        title={t('matchPrep.simConfirmTitle')}
+        description={t('matchPrep.simConfirmBody')}
+        confirmLabel={t('matchPrep.simConfirmAction')}
+        variant="default"
+        onConfirm={runSim}
+      />
 
       <OptimizeResultModal result={optimizeResult} onDismiss={dismissOptimizeResult} />
     </div>

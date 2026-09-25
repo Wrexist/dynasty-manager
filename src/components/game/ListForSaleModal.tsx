@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -48,6 +49,10 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
 
   useScrollLock();
   useEscapeClose(onClose);
+  // It already declared dialog semantics, but focus stayed on the page behind
+  // it: Tab walked the dimmed screen and closing dropped focus to <body>.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
 
   const top3 = useMemo(() => getTop3Attributes(player.attributes), [player]);
 
@@ -97,7 +102,9 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
 
         {/* Modal */}
         <motion.div
-          className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto bg-card/95 backdrop-blur-xl border border-border/50 rounded-b-2xl sm:rounded-2xl sm:mx-4"
+          ref={dialogRef}
+          tabIndex={-1}
+          className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto bg-card/95 backdrop-blur-xl border border-border/50 rounded-b-2xl sm:rounded-2xl sm:mx-4 focus:outline-none"
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -60, opacity: 0 }}

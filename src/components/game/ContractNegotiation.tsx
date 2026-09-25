@@ -147,7 +147,7 @@ export function ContractNegotiation() {
             </div>
           </div>
           {!isComplete && (
-            <button type="button" onClick={cancelNegotiation} aria-label="Cancel negotiation" className="p-1.5 rounded-lg hover:bg-muted/50">
+            <button type="button" onClick={cancelNegotiation} aria-label="Cancel negotiation" className="min-w-11 min-h-11 -my-1 -mr-2 flex items-center justify-center rounded-lg hover:bg-muted/50">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
@@ -238,21 +238,32 @@ export function ContractNegotiation() {
                     <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-muted-foreground">Contract Length</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* 44px hit areas around a compact 28px chip. The negative
+                      margin keeps the row as tall as the old 24px buttons made
+                      it; the overhang sits inside the card's p-3 padding. */}
+                  <div className="flex items-center -my-2.5">
                     <button
+                      type="button"
                       onClick={() => setCustomYears(Math.max(CONTRACT_MIN_YEARS, currentYears - 1))}
                       disabled={currentYears <= CONTRACT_MIN_YEARS}
-                      className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center hover:bg-muted/80 disabled:opacity-30 transition-colors"
+                      aria-label={t('contractNegotiation.shorterContract')}
+                      className="group w-11 h-11 flex items-center justify-center disabled:opacity-30"
                     >
-                      <Minus className="w-3 h-3" />
+                      <span aria-hidden className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center group-hover:bg-muted/80 transition-colors">
+                        <Minus className="w-3.5 h-3.5" />
+                      </span>
                     </button>
-                    <span className="text-foreground font-bold w-14 text-center text-sm">{currentYears} yr{currentYears !== 1 ? 's' : ''}</span>
+                    <span className="text-foreground font-bold w-14 text-center text-sm" aria-live="polite">{currentYears} yr{currentYears !== 1 ? 's' : ''}</span>
                     <button
+                      type="button"
                       onClick={() => setCustomYears(Math.min(CONTRACT_MAX_YEARS, currentYears + 1))}
                       disabled={currentYears >= CONTRACT_MAX_YEARS}
-                      className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center hover:bg-muted/80 disabled:opacity-30 transition-colors"
+                      aria-label={t('contractNegotiation.longerContract')}
+                      className="group w-11 h-11 flex items-center justify-center disabled:opacity-30"
                     >
-                      <Plus className="w-3 h-3" />
+                      <span aria-hidden className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center group-hover:bg-muted/80 transition-colors">
+                        <Plus className="w-3.5 h-3.5" />
+                      </span>
                     </button>
                   </div>
                 </div>

@@ -14,12 +14,14 @@
  * presentation queue may hold it behind another overlay first).
  */
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Trophy, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TrophyLift } from './TrophyLift';
 import { PackConfetti } from './pack/PackConfetti';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 import { useGameStore } from '@/store/gameStore';
 import { hapticHeavy, hapticSuccess } from '@/utils/haptics';
@@ -46,6 +48,11 @@ export function TrophyCeremonyModal({
   const visible = open && slotActive;
   const somber = tone === 'somber';
   useScrollLock(visible);
+  // The ceremony only acknowledges an outcome already decided, so Escape
+  // dismisses it exactly like the backdrop and Continue do.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, visible);
+  useEscapeClose(onClose, visible);
 
   useEffect(() => {
     if (!visible) return;
@@ -79,13 +86,16 @@ export function TrophyCeremonyModal({
             </div>
           )}
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label={title}
+            aria-labelledby="trophy-ceremony-title"
+            aria-describedby="trophy-ceremony-subtitle"
+            tabIndex={-1}
             className={
               somber
-                ? 'relative bg-card/95 backdrop-blur-xl border-2 border-destructive/50 rounded-2xl max-w-sm w-full p-7 text-center overflow-hidden shadow-[0_0_50px_rgba(244,63,94,0.18)]'
-                : 'relative bg-card/95 backdrop-blur-xl border-2 border-amber-400/50 rounded-2xl max-w-sm w-full p-7 text-center overflow-hidden shadow-[0_0_50px_rgba(245,178,5,0.2)]'
+                ? 'relative bg-card/95 backdrop-blur-xl border-2 border-destructive/50 rounded-2xl max-w-sm w-full p-7 text-center overflow-hidden shadow-[0_0_50px_rgba(244,63,94,0.18)] focus:outline-none'
+                : 'relative bg-card/95 backdrop-blur-xl border-2 border-amber-400/50 rounded-2xl max-w-sm w-full p-7 text-center overflow-hidden shadow-[0_0_50px_rgba(245,178,5,0.2)] focus:outline-none'
             }
             initial={{ scale: 0.85, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -110,6 +120,7 @@ export function TrophyCeremonyModal({
                 <TrophyLift gold icon={<Trophy className="w-11 h-11" />} />
               )}
               <h2
+                id="trophy-ceremony-title"
                 className={
                   somber
                     ? 'text-2xl font-black font-display text-rose-300 drop-shadow-[0_0_12px_rgba(244,63,94,0.4)]'
@@ -118,8 +129,8 @@ export function TrophyCeremonyModal({
               >
                 {title}
               </h2>
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
-              <Button className="w-full mt-2" onClick={onClose}>
+              <p id="trophy-ceremony-subtitle" className="text-sm text-muted-foreground">{subtitle}</p>
+              <Button className="w-full mt-2 h-11" onClick={onClose}>
                 Continue
               </Button>
             </div>
