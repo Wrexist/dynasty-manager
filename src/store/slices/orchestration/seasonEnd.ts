@@ -62,7 +62,7 @@ import { generateAIManagerProfile } from '@/config/aiManager';
 
 import { createMilestone } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
-import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
+import { buildHallEntry, saveToHall, hallEntryId } from '@/utils/hallOfManagers';
 import { carryStorylineCooldowns } from '@/utils/storylines';
 
 import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
@@ -1764,8 +1764,10 @@ function finalizeSeason(
   const finalState = get();
   const playerClubForHall = finalState.clubs[playerClubId];
   if (playerClubForHall) {
+    // Keyed per CAREER, not per slot: a slot key let a new career in the same
+    // slot overwrite the previous career's row.
     const hallEntry = buildHallEntry(
-      `slot-${finalState.activeSlot}`,
+      hallEntryId(finalState),
       playerClubForHall.name,
       finalState.seasonHistory,
       finalState.managerStats,

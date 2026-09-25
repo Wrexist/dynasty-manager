@@ -12,11 +12,25 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 92;
+const CURRENT_VERSION = 93;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v92 -> v93: per-career Hall of Managers key (`careerId`). Deliberately NOT
+  // minted here: a save that predates the field is a career whose hall row is
+  // already stored under the legacy `slot-N` key, and `hallEntryId` falls back
+  // to exactly that key while `careerId` is null — so the continuing career
+  // keeps updating its own row. Only careers started by `initGame` from v93
+  // on get a fresh id.
+  92: (data) => ({
+    ...data,
+    careerId: typeof (data as { careerId?: unknown }).careerId === 'string'
+      ? (data as { careerId: string }).careerId
+      : null,
+    version: 93,
+  }),
+
   // v91 -> v92: Hall of Legends. `retiredLegends` starts empty — a loaded save
   // has archived nobody, and the seasons already played cannot be re-judged
   // (their retirees were deleted at the time, per the old behaviour). The two

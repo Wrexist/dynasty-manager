@@ -37,6 +37,11 @@ export interface GameState {
   seasonHistory: SeasonHistory[];
   settings: GameSettings;
   activeSlot: number;
+  /** Stable id of the career in this save, minted by `initGame` (schema v93).
+   *  Keys this career's Hall of Managers entry so a new career started in the
+   *  same slot adds a row instead of overwriting the previous career's.
+   *  Null for saves that predate v93 — those keep the legacy `slot-N` key. */
+  careerId: string | null;
 
   // Autosave status (UI-only — not persisted)
   saveStatus: 'idle' | 'saving' | 'saved' | 'failed';

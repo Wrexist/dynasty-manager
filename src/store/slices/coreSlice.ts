@@ -43,6 +43,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   settings: { matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, soundEnabled: true, hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false, digestOnlyWhenSignificant: true } as GameSettings,
   celebrationDedupe: { season: 1, keys: [] as string[] },
   activeSlot: 1,
+  careerId: null as string | null,
   transferNews: [] as TransferNewsEntry[],
 
   // Autosave status (transient — not persisted to disk)

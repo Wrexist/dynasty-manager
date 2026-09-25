@@ -36,7 +36,7 @@ import { findTournamentMatch } from '@/store/slices/orchestration/helpers';
 import { generateAIManagerProfile } from '@/config/aiManager';
 
 import { createDefaultProgression, MANAGER_PERKS, canUnlockPerk } from '@/utils/managerPerks';
-import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
+import { buildHallEntry, saveToHall, hallEntryId } from '@/utils/hallOfManagers';
 import { PRESTIGE_RESTART_PERK_XP } from '@/utils/prestige';
 
 import type { PerkId, ManagerProgression } from '@/types/game';
@@ -348,6 +348,9 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
     // be listed here explicitly: v92's whole point was persisting the hall,
     // and an unlisted field is silently dropped on every save.
     retiredLegends: state.retiredLegends || [],
+    // Hall of Managers key for this career (v93). Must be listed explicitly —
+    // an unlisted field is dropped on every save.
+    careerId: state.careerId ?? null,
     // ── Previously-unsaved fields (v68 fix) ──
     // Each of these is mutated by gameplay but was missing from the save
     // payload, so accumulated state was silently dropped on every reload.
@@ -556,6 +559,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     pendingPressConference: null, activeNegotiation: null,
     pendingFarewell: [], pendingStoryline: null,
     openedPacks: [], packPityCounter: 0, retiredLegends: [], lastPackWeek: 0, lastPackSeason: 0,
+    careerId: null,
     dailyPackOpens: { date: '', free: {}, ad: {} },
     weeklyPackBonus: null,
     activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
@@ -1107,6 +1111,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         // v92 forgot to persist it) would keep the PREVIOUS session's hall —
         // a cross-slot leak that endSeason would then commit into this save.
         retiredLegends: data.retiredLegends || [],
+        // Explicit, never inherited: a pre-v93 save has no careerId and must
+        // fall back to its legacy `slot-N` hall key, not adopt the id of the
+        // career that was loaded before it.
+        careerId: typeof data.careerId === 'string' ? data.careerId : null,
         sponsorDeals: data.sponsorDeals || [],
         sponsorOffers: data.sponsorOffers || [],
         sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},
@@ -1371,8 +1379,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Save to Hall of Managers before resetting
     try {
       const club = state.clubs[state.playerClubId];
+      // Update this career's own row (the one season-end has been writing)
+      // rather than adding a second row for the same history — the re-init
+      // below mints a new careerId, so the next career gets its own row.
       const entry = buildHallEntry(
-        `prestige-${Date.now()}`,
+        hallEntryId(state),
         club?.name || 'Unknown Club',
         state.seasonHistory,
         state.managerStats,

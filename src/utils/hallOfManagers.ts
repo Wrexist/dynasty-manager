@@ -23,6 +23,21 @@ export interface HallEntry {
   continentalWins?: number;
 }
 
+/** Careers kept on disk. Every reader that TOTALS the hall (Dynasty Legacy,
+ *  the status chip) sums all stored rows, so this is the history the lifetime
+ *  numbers are built from — it used to be 20, which let the 21st career push
+ *  an old one out and made lifetime totals go down. */
+export const HALL_MAX_STORED = 100;
+/** Rows the Hall of Managers leaderboard shows. */
+export const HALL_DISPLAY_MAX = 20;
+
+/** Hall key for the career in a save: its stable `careerId` (v93+), or the
+ *  legacy per-slot key for a career that started before careerIds existed, so
+ *  that continuing career keeps updating the row it already has. */
+export function hallEntryId(state: { careerId?: string | null; activeSlot: number }): string {
+  return state.careerId || `slot-${state.activeSlot}`;
+}
+
 /** Load hall of managers from localStorage */
 export function loadHall(): HallEntry[] {
   let raw: string | null = null;
@@ -57,9 +72,9 @@ export function saveToHall(entry: HallEntry): void {
   } else {
     hall.push(entry);
   }
-  // Keep top 20 by titles then winRate
+  // Rank by titles then winRate; keep the best HALL_MAX_STORED
   hall.sort((a, b) => b.titles - a.titles || b.winRate - a.winRate);
-  writeHallData(JSON.stringify(hall.slice(0, 20)));
+  writeHallData(JSON.stringify(hall.slice(0, HALL_MAX_STORED)));
 }
 
 /** Build a hall entry from current game state */

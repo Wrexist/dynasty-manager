@@ -137,6 +137,30 @@ describe('save payload carries every field the store declares persisted', () => 
   });
 });
 
+describe('careerId (Hall of Managers key, v93) is persisted', () => {
+  beforeEach(() => fresh(TOP_TIER_CLUB));
+
+  it('writes careerId and round-trips it', () => {
+    const id = useGameStore.getState().careerId;
+    expect(typeof id).toBe('string');
+    useGameStore.getState().saveGame(SLOT);
+    expect(savedPayload().careerId).toBe(id);
+    useGameStore.setState({ careerId: 'other' });
+    useGameStore.getState().loadGame(SLOT);
+    expect(useGameStore.getState().careerId).toBe(id);
+  });
+
+  it('a save without careerId never inherits the previous session\'s id', () => {
+    useGameStore.getState().saveGame(SLOT);
+    const data = savedPayload();
+    delete data.careerId; // a pre-v93 save
+    writeSaveSlot(SLOT, JSON.stringify(data));
+    useGameStore.setState({ careerId: 'leaked-from-other-slot' });
+    useGameStore.getState().loadGame(SLOT);
+    expect(useGameStore.getState().careerId).toBeNull();
+  });
+});
+
 describe('playoffState survives a reload', () => {
   beforeEach(() => {
     fresh(PLAYOFF_CLUB);

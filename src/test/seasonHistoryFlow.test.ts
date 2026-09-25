@@ -15,6 +15,8 @@ import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 import type { CupState, ContinentalTournamentState, LeagueTableEntry } from '@/types/game';
 import { STORYLINE_CHAIN_COOLDOWN_SEASONS } from '@/config/playoffs';
 import { carryStorylineCooldowns } from '@/utils/storylines';
+import { loadHall, saveToHall, buildHallEntry, HALL_MAX_STORED } from '@/utils/hallOfManagers';
+import { writeHallData } from '@/store/helpers/persistence';
 
 import { withSeededRandom } from './helpers/seasonFixtures';
 
@@ -55,6 +57,8 @@ function restoreBaseline() {
     boardConfidence: baseline.boardConfidence,
     activeStorylineChains: baseline.activeStorylineChains,
     completedStorylineChainIds: baseline.completedStorylineChainIds,
+    careerId: baseline.careerId,
+    activeSlot: baseline.activeSlot,
   }));
   useGameStore.setState(fresh);
 }
@@ -296,5 +300,51 @@ describe('carryStorylineCooldowns', () => {
   it('stays bounded — a marker is never duplicated', () => {
     const out = carryStorylineCooldowns(['injury-crisis@5'], [{ chainId: 'injury-crisis', startWeek: 1, currentStep: 0, choices: [] }], 5);
     expect(out).toEqual(['injury-crisis@5']);
+  });
+});
+
+// ── Hall of Managers ──────────────────────────────────────────────────
+
+describe('endSeason — Hall of Managers is keyed per career, not per slot', () => {
+  beforeEach(() => writeHallData('[]'));
+
+  it('initGame mints a career id', () => {
+    expect(typeof baseline!.careerId).toBe('string');
+    expect(baseline!.careerId!.length).toBeGreaterThan(0);
+  });
+
+  it('two careers played in the same slot both stay in the hall', () => {
+    fillLeagueTablesForRollover();
+    useGameStore.setState({ activeSlot: 1, careerId: 'career-a' });
+    withSeededRandom(21, () => useGameStore.getState().endSeason());
+
+    // A brand-new career in the SAME slot (initGame would mint a new id).
+    restoreBaseline();
+    fillLeagueTablesForRollover();
+    useGameStore.setState({ activeSlot: 1, careerId: 'career-b' });
+    withSeededRandom(22, () => useGameStore.getState().endSeason());
+
+    const ids = loadHall().map(e => e.id);
+    expect(ids).toContain('career-a');
+    expect(ids).toContain('career-b');
+  });
+
+  it('a pre-v93 career (no careerId) keeps updating its legacy slot row', () => {
+    fillLeagueTablesForRollover();
+    useGameStore.setState({ activeSlot: 2, careerId: null });
+    withSeededRandom(23, () => useGameStore.getState().endSeason());
+    expect(loadHall().map(e => e.id)).toEqual(['slot-2']);
+  });
+});
+
+describe('saveToHall retention', () => {
+  beforeEach(() => writeHallData('[]'));
+
+  it('keeps well past 20 careers so lifetime totals do not shrink', () => {
+    const stats = { totalWins: 10, totalDraws: 5, totalLosses: 5 };
+    for (let i = 0; i < 30; i++) saveToHall(buildHallEntry(`c-${i}`, `Club ${i}`, [], stats, 0));
+    expect(loadHall()).toHaveLength(30);
+    for (let i = 30; i < HALL_MAX_STORED + 5; i++) saveToHall(buildHallEntry(`c-${i}`, `Club ${i}`, [], stats, 0));
+    expect(loadHall()).toHaveLength(HALL_MAX_STORED);
   });
 });

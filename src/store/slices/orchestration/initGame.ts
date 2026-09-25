@@ -665,6 +665,9 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     pendingStoryline: null,
     activeStorylineChains: [],
     completedStorylineChainIds: [],
+    // Every initGame starts a fresh seasonHistory + managerStats, i.e. a new
+    // Hall of Managers record — give it its own key (see `hallEntryId`).
+    careerId: safeRandomUUID(),
     pendingFarewell: [],
     openedPacks: [],
     packPityCounter: 0,
