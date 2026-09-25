@@ -63,6 +63,7 @@ import { generateAIManagerProfile } from '@/config/aiManager';
 import { createMilestone } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
+import { carryStorylineCooldowns } from '@/utils/storylines';
 
 import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
 import {
@@ -1669,7 +1670,9 @@ function finalizeSeason(
     retiredLegends: legendArchive,
     activeChallenge: endChallenge,
     activeStorylineChains: [],
-    completedStorylineChainIds: [],
+    // Keep the season-stamped cooldown markers; wiping them here defeated
+    // STORYLINE_CHAIN_COOLDOWN_SEASONS and let chains repeat back-to-back.
+    completedStorylineChainIds: carryStorylineCooldowns(state.completedStorylineChainIds, state.activeStorylineChains, season),
     pendingStoryline: null,
     freeAgents: freeAgentIds, transferNews: [],
     ...(farewells.length > 0 ? { pendingFarewell: farewells.sort((a, b) => b.seasonsServed - a.seasonsServed) } : {}),

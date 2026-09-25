@@ -13,6 +13,8 @@ import { useGameStore } from '@/store/gameStore';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 import type { CupState, ContinentalTournamentState, LeagueTableEntry } from '@/types/game';
+import { STORYLINE_CHAIN_COOLDOWN_SEASONS } from '@/config/playoffs';
+import { carryStorylineCooldowns } from '@/utils/storylines';
 
 import { withSeededRandom } from './helpers/seasonFixtures';
 
@@ -51,6 +53,8 @@ function restoreBaseline() {
     shieldCup: baseline.shieldCup,
     conferenceCup: baseline.conferenceCup,
     boardConfidence: baseline.boardConfidence,
+    activeStorylineChains: baseline.activeStorylineChains,
+    completedStorylineChainIds: baseline.completedStorylineChainIds,
   }));
   useGameStore.setState(fresh);
 }
@@ -246,5 +250,51 @@ describe('endSeason — overall season history entry', () => {
     withSeededRandom(8, () => useGameStore.getState().endSeason());
 
     expect(getLatestHistory().position).toBe(1);
+  });
+});
+
+// ── Storyline chain cooldowns ─────────────────────────────────────────
+
+describe('endSeason — storyline chain cooldowns survive the rollover', () => {
+  it('a chain completed in season N is still on cooldown in season N+1', () => {
+    fillLeagueTablesForRollover();
+    const season = useGameStore.getState().season;
+    useGameStore.setState({ completedStorylineChainIds: [`media-scandal@${season}`] });
+
+    withSeededRandom(11, () => useGameStore.getState().endSeason());
+
+    const after = useGameStore.getState();
+    expect(after.season).toBe(season + 1);
+    expect(after.completedStorylineChainIds).toContain(`media-scandal@${season}`);
+  });
+
+  it('a chain dropped mid-story at season end is put on cooldown, not forgotten', () => {
+    fillLeagueTablesForRollover();
+    const season = useGameStore.getState().season;
+    useGameStore.setState({
+      activeStorylineChains: [{ chainId: 'injury-crisis', startWeek: 30, currentStep: 0, choices: [0] }],
+      completedStorylineChainIds: [],
+    });
+
+    withSeededRandom(12, () => useGameStore.getState().endSeason());
+
+    const after = useGameStore.getState();
+    expect(after.activeStorylineChains).toEqual([]);
+    expect(after.completedStorylineChainIds).toContain(`injury-crisis@${season}`);
+  });
+});
+
+describe('carryStorylineCooldowns', () => {
+  it('keeps markers still cooling next season and prunes expired / legacy ones', () => {
+    const ending = 10;
+    const stillCooling = `fan-protests@${ending + 2 - STORYLINE_CHAIN_COOLDOWN_SEASONS}`;
+    const expired = `board-takeover@${ending + 1 - STORYLINE_CHAIN_COOLDOWN_SEASONS}`;
+    const out = carryStorylineCooldowns([stillCooling, expired, 'legacy-bare-id', `media-scandal@${ending}`], [], ending);
+    expect(out).toEqual([stillCooling, `media-scandal@${ending}`]);
+  });
+
+  it('stays bounded — a marker is never duplicated', () => {
+    const out = carryStorylineCooldowns(['injury-crisis@5'], [{ chainId: 'injury-crisis', startWeek: 1, currentStep: 0, choices: [] }], 5);
+    expect(out).toEqual(['injury-crisis@5']);
   });
 });
