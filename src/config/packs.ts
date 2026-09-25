@@ -736,6 +736,15 @@ const RARITY_LABELS: Record<keyof PackRarityWeights, string> = {
 
 const RARITY_ORDER: (keyof PackRarityWeights)[] = ['legendary', 'gold', 'silver', 'bronze', 'common'];
 
+/** Every rarity rung with its own band, lowest first — the key printed under
+ *  each odds table so a rarity name reads the same in every pack. Derived from
+ *  `PACK_RARITY_BANDS`, the table the generator rolls. */
+export function packRarityLegend(): { rarity: keyof PackRarityWeights; name: string; minOvr: number; maxOvr: number }[] {
+  return [...RARITY_ORDER].reverse().map(k => ({
+    rarity: k, name: RARITY_LABELS[k], minOvr: PACK_RARITY_BANDS[k][0], maxOvr: PACK_RARITY_BANDS[k][1],
+  }));
+}
+
 /**
  * Published per-card odds for a pack, derived from the SAME config the
  * generator reads.
@@ -802,11 +811,22 @@ export function describePackOdds(
       const clampedLo = Math.max(t.ovrMin, Math.min(lo, t.ovrMax));
       const clampedHi = Math.max(clampedLo, Math.min(hi, t.ovrMax));
       const band = clampedLo === clampedHi ? `${clampedLo}` : `${clampedLo}-${clampedHi}`;
+      // A rarity name means ONE band in every pack. Printing only the clamped
+      // band made "Silver" read 70–74 on the Daily's sheet and 78–79 on World
+      // Class's (playthrough 2026-09, R11) — as if the word changed meaning.
+      // The rung's own band leads; the part this pack deals follows.
+      const clamped = clampedLo !== lo || clampedHi !== hi;
       return {
-        label: `${RARITY_LABELS[k]} (${band} OVR)`,
+        label: clamped
+          ? `${RARITY_LABELS[k]} (${lo}-${hi}), ${band} OVR in this pack`
+          : `${RARITY_LABELS[k]} (${band} OVR)`,
         chance: (merged.get(k) as number) / total,
         minOvr: clampedLo,
         maxOvr: clampedHi,
+        rarity: k,
+        rarityName: RARITY_LABELS[k],
+        rarityMinOvr: lo,
+        rarityMaxOvr: hi,
       };
     });
 }
