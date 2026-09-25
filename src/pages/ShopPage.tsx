@@ -198,16 +198,18 @@ const ShopPage = () => {
   const annualAmount = amountFor('com.dynastymanager.pro.yearly');
   const annualSavingsPct = savingsPct(monthlyAmount != null ? monthlyAmount * 12 : null, annualAmount);
 
-  /** A derived per-period amount in the storefront's currency, via Intl.
-   *  Splicing `toFixed(2)` into the store's price string rendered "2.08 €" and
-   *  "¥250.00". USD only when the store has not answered at all (web/dev), the
-   *  same rule as `amountFor`; on device, no currency code omits the line. */
-  const perPeriod = (id: ProductId, divisor: number): string | null =>
-    formatPerPeriodPrice(amountFor(id), divisor, storeCurrency ?? (storeAnswered ? undefined : 'USD'));
-
   /** Display price — store-localised when available, USD config price otherwise. */
   const priceFor = (productId: ProductId) =>
     storePrices[productId] || formatPrice(PRODUCTS[productId].priceUsd);
+
+  /** A derived per-period amount in the storefront's currency, written in the
+   *  shape of the product's own price string (so "$24.99" pairs with "$2.08",
+   *  not the device locale's "US$2.08"). Splicing `toFixed(2)` into the store's
+   *  price string rendered "2.08 €" and "¥250.00". USD only when the store has
+   *  not answered at all (web/dev), the same rule as `amountFor`; on device, no
+   *  currency code omits the line. */
+  const perPeriod = (id: ProductId, divisor: number): string | null =>
+    formatPerPeriodPrice(amountFor(id), divisor, storeCurrency ?? (storeAnswered ? undefined : 'USD'), undefined, priceFor(id));
 
   const handlePurchase = (productId: ProductId) => {
     setPurchaseError(null);

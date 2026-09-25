@@ -88,6 +88,30 @@ describe('formatPerPeriodPrice ("Works out at X/month")', () => {
     expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-US')).toBe('$2.08');
   });
 
+  // Playthrough 2026-09 (R10): "$24.99/year" beside "Works out at US$2.08/month".
+  // en-GB spells a US dollar "US$" in the default currency display.
+  it('a US dollar reads "$" in any device locale (narrowSymbol)', () => {
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-GB')).toBe('$2.08');
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-CA')).toBe('$2.08');
+  });
+
+  it('takes the shape of the store price it sits beside', () => {
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-GB', '$24.99')).toBe('$2.08');
+    // The store string is authoritative, even where it says "US$".
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-US', 'US$24.99')).toBe('US$2.08');
+    expect(formatPerPeriodPrice(24.99, 12, 'EUR', 'en-US', '24,99\u00a0€')).toBe('2,08\u00a0€');
+    expect(formatPerPeriodPrice(3000, 12, 'JPY', 'en-GB', '¥3,000')).toBe('¥250');
+    expect(formatPerPeriodPrice(33000, 12, 'KRW', 'en-US', '₩33,000')).toBe('₩2,750');
+    expect(formatPerPeriodPrice(1234.56, 1, 'EUR', 'en-US', '1.234,56 €')).toBe('1.234,56 €');
+  });
+
+  it('never trusts a store string that does not say the total', () => {
+    // No minor unit, a different number, or no number at all → Intl.
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-GB', '$25')).toBe('$2.08');
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-GB', '$19.99')).toBe('$2.08');
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-GB', 'Free')).toBe('$2.08');
+  });
+
   it('omits the line rather than guessing', () => {
     expect(formatPerPeriodPrice(24.99, 12, undefined)).toBeNull();
     expect(formatPerPeriodPrice(null, 12, 'USD')).toBeNull();

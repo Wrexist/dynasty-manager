@@ -286,13 +286,17 @@ const SubscribeOnboarding = () => {
     return pct > 0 ? pct : null;
   })();
 
-  /** Yearly expressed per month in the storefront's currency, via Intl. Same
-   *  fallback rule as `amountFor`: USD only when the store has not answered at
-   *  all (web/dev); on device, no currency code means no line. */
+  /** Yearly expressed per month in the storefront's currency. Same fallback
+   *  rule as `amountFor`: USD only when the store has not answered at all
+   *  (web/dev); on device, no currency code means no line. Written in the
+   *  shape of the yearly price it sits beside ("$24.99" → "$2.08", never
+   *  "US$2.08" because the device locale is en-GB). */
   const annualPerMonth = formatPerPeriodPrice(
     annualAmount,
     12,
     storeCurrency ?? (storeAnswered ? undefined : 'USD'),
+    undefined,
+    priceFor('com.dynastymanager.pro.yearly'),
   );
 
   const finish = () => {
