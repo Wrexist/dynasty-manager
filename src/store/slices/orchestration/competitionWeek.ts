@@ -1,10 +1,10 @@
-import type { CareerMilestone, Club, Message, Player } from '@/types/game';
+import type { CareerMilestone, Club, ContinentalTournamentState, CupTie, Message, Player } from '@/types/game';
 import type { GameState } from '../../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, getCompetitionCalendar } from '@/config/continental';
 import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FORFEIT_SCORE } from '@/config/gameBalance';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
-import { advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
+import { CUP_BYE_MARKER, advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { simulateMatch } from '@/engine/match';
 import { neutralVenue } from '@/engine/match/helpers';
@@ -68,8 +68,75 @@ export interface CompetitionWeekResult {
   milestones: CareerMilestone[];
 }
 
+// ── simfinish: re-hire consistency ──
+
+/** True when `clubId` has LOST a decided tie in this cup (a bye is not a tie). */
+function cupLostBy(ties: readonly CupTie[], clubId: string): boolean {
+  return ties.some(t => {
+    if (!t.played || t.awayClubId === CUP_BYE_MARKER) return false;
+    if (t.homeClubId !== clubId && t.awayClubId !== clubId) return false;
+    if (t.winnerId) return t.winnerId !== clubId;
+    if (t.homeGoals === t.awayGoals) return false; // undecided — advanceCupRound settles it
+    return (t.homeGoals > t.awayGoals ? t.homeClubId : t.awayClubId) !== clubId;
+  });
+}
+
+/**
+ * A cup's `eliminated` flag re-derived for `clubId`. Returns the same object
+ * when it already agrees, which is always the case for a manager who has
+ * stayed at one club: `eliminated` is set exactly when their club loses a tie.
+ */
+export function alignCupToClub<C extends { ties: CupTie[]; eliminated: boolean }>(cup: C, clubId: string): C {
+  const eliminated = cupLostBy(cup.ties, clubId);
+  return eliminated === cup.eliminated ? cup : { ...cup, eliminated };
+}
+
+/**
+ * A continental tournament's `playerGroupId` / `playerEliminated` re-derived
+ * for `clubId`, with the same meaning the draw, the knockout generator and the
+ * match paths give them: not drawn -> eliminated; in a group during the group
+ * stage -> alive; in the knockout rounds -> alive until a tie is lost; not in
+ * them once they have started -> out. Same object when nothing changes.
+ */
+export function alignContinentalToClub(
+  t: ContinentalTournamentState | null,
+  clubId: string,
+): ContinentalTournamentState | null {
+  if (!t) return t;
+  const group = t.groups.find(g => g.clubIds.includes(clubId));
+  // A stored id naming a real group this club is not in belongs to another
+  // club. One that names no group at all is left alone (nothing to derive from).
+  const storedIsReal = t.groups.some(g => g.id === t.playerGroupId);
+  const playerGroupId = group ? group.id : (storedIsReal ? null : (t.playerGroupId ?? null));
+  const koTies = t.knockoutTies.filter(k => k.homeClubId === clubId || k.awayClubId === clubId);
+  const playerEliminated = koTies.length > 0
+    ? koTies.some(k => k.winnerId != null && k.winnerId !== clubId)
+    : t.currentPhase === 'group' ? !group : true;
+  if (playerGroupId === (t.playerGroupId ?? null) && playerEliminated === t.playerEliminated) return t;
+  return { ...t, playerGroupId, playerEliminated };
+}
+
 export function progressCompetitionsWeek(input: CompetitionWeekInput): CompetitionWeekResult {
-  const { state, clubs, week, season, playerClubId, eloRankings } = input;
+  const { clubs, week, season, playerClubId, eloRankings } = input;
+  // The "your club" flags are re-derived for the club managed THIS week. They
+  // are written incrementally (a lost tie sets `eliminated`), so they describe
+  // whichever club the manager had when each one was written: a manager
+  // re-hired mid-season by another club in the same league — which keeps the
+  // season's draws — inherited the old club's exit (`eliminated` /
+  // `playerEliminated`) or its survival, and the continental match finder,
+  // board objectives and competition status then read the wrong club. For a
+  // manager who has stayed put this is a no-op. `''` (unemployed): nothing to
+  // align.
+  const state: GameState = playerClubId
+    ? {
+      ...input.state,
+      cup: alignCupToClub(input.state.cup, playerClubId),
+      leagueCup: input.state.leagueCup ? alignCupToClub(input.state.leagueCup, playerClubId) : input.state.leagueCup,
+      championsCup: alignContinentalToClub(input.state.championsCup, playerClubId),
+      shieldCup: alignContinentalToClub(input.state.shieldCup, playerClubId),
+      conferenceCup: alignContinentalToClub(input.state.conferenceCup, playerClubId),
+    }
+    : input.state;
   const newPlayers = input.players;
   let newMessages = input.messages;
   const newTimeline: CareerMilestone[] = [];
