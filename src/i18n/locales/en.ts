@@ -656,6 +656,11 @@ export const en = {
   'sponsorOfferSheet.performanceBonus': "Performance Bonus",
   'sponsorOfferSheet.duration': "Duration",
   'sponsorOfferSheet.weeklyPay': "Weekly Pay",
+
+  // ── a11y: dialogs, steppers, match-review exits ──
+  'matchPrep.simConfirmTitle': 'Simulate this match?',
+  'matchPrep.simConfirmBody': "Instant Sim plays the match out immediately — you won't be able to make substitutions, change tactics, or influence it live.",
+  'matchPrep.simConfirmAction': 'Sim Match',
 } as const;
 
 export default en;
