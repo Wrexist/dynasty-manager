@@ -2742,21 +2742,30 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Loan development: loaned-out players gain appearances and develop based on loan club quality
   for (const loan of state.activeLoans) {
+    // A player loaned IN to the user's club plays the user's real matches and
+    // develops through the user's own weekly pass — fabricating appearances on
+    // top would double-count his season.
+    if (loan.toClubId === playerClubId) continue;
     const loanedPlayer = newPlayers[loan.playerId];
     if (!loanedPlayer || !loanedPlayer.onLoan) continue;
     const loanClub = clubs[loan.toClubId];
     if (!loanClub) continue;
+    // The borrower now fields its loanees, so a real match this week already
+    // credited the appearance, minutes and form — don't fabricate a second one.
+    const playedForReal = loanedPlayer.appearances > (state.players[loan.playerId]?.appearances ?? 0);
     // Weekly playing chance scales with player quality vs loan club level:
     // a player at or above the loan club's level is a guaranteed starter
     // (HIGH chance); one below it fights for minutes (LOW). The comparison
     // was inverted, giving over-qualified loanees the LOW chance.
     const playChance = loanedPlayer.overall >= (loanClub.reputation * LOAN_QUALITY_FORMULA_REP_MULT + LOAN_QUALITY_FORMULA_BASE) ? LOAN_PLAY_CHANCE_HIGH : LOAN_PLAY_CHANCE_LOW;
-    if (Math.random() < playChance) {
+    if (playedForReal || Math.random() < playChance) {
       const lp = { ...loanedPlayer };
-      lp.appearances += 1;
-      // Fitness and form fluctuate based on simulated match performance
-      lp.fitness = Math.max(50, Math.min(100, lp.fitness - LOAN_FITNESS_DRAIN + Math.floor(Math.random() * 6)));
-      lp.form = Math.min(100, Math.max(20, lp.form + Math.floor(Math.random() * 10) - 4));
+      if (!playedForReal) {
+        lp.appearances += 1;
+        // Fitness and form fluctuate based on simulated match performance
+        lp.fitness = Math.max(50, Math.min(100, lp.fitness - LOAN_FITNESS_DRAIN + Math.floor(Math.random() * 6)));
+        lp.form = Math.min(100, Math.max(20, lp.form + Math.floor(Math.random() * 10) - 4));
+      }
       lp.morale = Math.min(100, Math.max(30, lp.morale + 2)); // playing regularly boosts morale
       // Development: young players on loan develop from playing time
       if (lp.age < LOAN_YOUNG_AGE_THRESHOLD && lp.overall < lp.potential) {

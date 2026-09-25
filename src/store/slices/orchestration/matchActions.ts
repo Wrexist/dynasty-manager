@@ -7,7 +7,7 @@ import {
 import { buildLeagueTable } from '@/data/league';
 
 import type { GameState } from '../../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, isAwayOnLoan } from '@/utils/helpers';
 
 import { hasPerk } from '@/utils/managerPerks';
 
@@ -490,7 +490,8 @@ function pressExtrasFor(state: GameState): {
  * (Feyenoord, S4 W16 League Cup at home to a PSV carrying 8 injured in a 22-man
  * squad) and reproduced here in `matchStartability.test.ts`.
  *
- * A player out on loan is never picked, in any tier — he is at another club.
+ * A player out on loan AWAY from this club is never picked, in any tier — he is
+ * at another club. A player loaned IN is part of this squad and plays.
  */
 export function buildPlayerMatchXI(
   club: Club,
@@ -498,7 +499,7 @@ export function buildPlayerMatchXI(
   week: number,
 ): Player[] {
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  const isAvailable = (p: Player) => !isSuspended(p) && !p.injured && !p.onLoan;
+  const isAvailable = (p: Player) => !isSuspended(p) && !p.injured && !isAwayOnLoan(p, club.id);
   const xi: Player[] = [];
   const picked = new Set<string>();
   const push = (p: Player) => {
@@ -527,7 +528,7 @@ export function buildPlayerMatchXI(
   const reserves = (club.playerIds || [])
     .map(id => players[id])
     .filter(Boolean)
-    .filter(p => !picked.has(p.id) && !p.onLoan)
+    .filter(p => !picked.has(p.id) && !isAwayOnLoan(p, club.id))
     .sort((a, b) =>
       (a.injuryDetails?.weeksRemaining ?? 1) - (b.injuryDetails?.weeksRemaining ?? 1) ||
       b.overall - a.overall);

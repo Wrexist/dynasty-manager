@@ -1,6 +1,6 @@
 import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
 import { generatePersonality } from '@/utils/personality';
-import { pick, clamp, safeRandomUUID } from '@/utils/helpers';
+import { pick, clamp, safeRandomUUID, isAwayOnLoan } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
 import { recomputeDerivedEconomics, recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import {
@@ -619,7 +619,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
 }
 
 export function selectBestLineup(players: Player[], formation: FormationType, currentWeek?: number): { lineup: Player[]; subs: Player[] } {
-  const isAvailable = (p: Player) => !p.injured && !p.onLoan && !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek);
+  const isAvailable = (p: Player) => !p.injured && !isAwayOnLoan(p) && !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek);
   const slots = FORMATION_POSITIONS[formation];
   const used = new Set<string>();
 

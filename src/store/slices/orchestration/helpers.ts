@@ -63,6 +63,7 @@ import {
   AI_RATING_OVERALL_PIVOT, AI_RATING_OVERALL_SCALE,
 } from '@/config/aiSimulation';
 import { pendingSuperCup } from '@/utils/superCup';
+import { isAwayOnLoan } from '@/utils/helpers';
 
 /**
  * Reset the module-level real-player claim registry and re-claim every
@@ -467,7 +468,7 @@ export function pickAiMatchSquad(
 
   if (honourSavedLineup && club.lineup?.length) {
     const isAvailable = (p: Player) =>
-      !!p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
+      !!p && !p.injured && !isAwayOnLoan(p, club.id) && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
     const used = new Set<string>();
     const onBooks = new Set(club.playerIds);
     const take = (id: string | undefined) => {
@@ -525,7 +526,7 @@ export function pickAiMatchSquad(
   if (xi.length < AI_MIN_MATCH_PLAYERS) {
     const picked = new Set(xi.map(p => p.id));
     const reserves = squad
-      .filter(p => !picked.has(p.id) && !p.onLoan)
+      .filter(p => !picked.has(p.id) && !isAwayOnLoan(p, club.id))
       .sort((a, b) => (a.injuryDetails?.weeksRemaining ?? 1) - (b.injuryDetails?.weeksRemaining ?? 1) || b.overall - a.overall);
     for (const p of reserves) {
       if (xi.length >= AI_MIN_MATCH_PLAYERS) break;
