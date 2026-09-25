@@ -55,3 +55,30 @@ describe('android-build.yml', () => {
     expect(block(src, 'with')).toMatch(/cache:\s*npm/);
   });
 });
+
+describe('release.yml', () => {
+  const src = workflow('.github/workflows/release.yml');
+
+  it('stages only the files the version bump writes', () => {
+    // `git add -A` / `git add .` are banned project-wide; here they would
+    // commit anything else on the runner straight to main.
+    expect(src).not.toMatch(/git add (-A|--all|\.)(\s|$)/m);
+    const add = src.match(/git add ([^\n]+)/);
+    expect(add, 'release.yml no longer stages the bump').not.toBeNull();
+    expect(add[1].split(/\s+/).sort()).toEqual([
+      'android/app/build.gradle',
+      'ios/App/App.xcodeproj/project.pbxproj',
+      'package-lock.json',
+      'package.json',
+    ]);
+  });
+
+  it('stages every file sync-version.mjs writes', () => {
+    const sync = readFileSync(resolve(REPO_ROOT, 'scripts/sync-version.mjs'), 'utf8');
+    const add = src.match(/git add ([^\n]+)/)[1];
+    for (const written of ['ios/App/App.xcodeproj/project.pbxproj', 'android/app/build.gradle']) {
+      expect(sync).toContain(written);
+      expect(add).toContain(written);
+    }
+  });
+});
