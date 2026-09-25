@@ -172,7 +172,15 @@ portrait cards (no single face held > 0.5s), the reveal grid, and captions like
 "this game has real players with real faces" without any one person being the
 advertisement.
 
-**Decision owed by you (log it in `ads/RELEASE-READINESS.md` §1.1):**
+**Owner decision, 2026-09-25:** portraits are shown the way the game already
+shows them. That covers organic video, the in-app "Share best pull" card and
+headless-captured pack footage. The stated reason is that this is the build
+Apple accepted. Real players' **names** still stay out of our own hooks,
+captions, titles and store fields (rung 4 unchanged). Recorded here so the
+next session does not relitigate it. Apple's acceptance is not rights
+clearance, so the risk stays accepted, not removed.
+
+**Still open (log it in `ads/RELEASE-READINESS.md` §1.1):**
 (a) stay at rung ≤ 2 — this playbook works fully at rung 2; or
 (b) get the lawyer's opinion and, if favourable, unlock rung 3 for store assets
 and paid. Do not drift into rung 3 by accident because a screenshot looked good.
@@ -215,8 +223,8 @@ real event every week. Use each one three times:
 
 | # | Change | Why it's growth | Size |
 |---|---|---|---|
-| P1 | **Share button on walkout / best-pull summary** → 9:16 image card via existing `utils/shareCard.ts` + `utils/share.ts` (card art, OVR, "Pulled in Dynasty Manager", App Store link). No share exists in the pack overlay today. | Every rare pull becomes a free ad posted by the only person more credible than you: the player. | S–M |
-| P2 | **Guaranteed pack inside the first session** (verify FTUE — no starter/welcome pack found in onboarding code). | An ad that shows a walkout must deliver one in the first 5 minutes, or it is a soft fail-ad and D1 pays for it. | S |
+| P1 ✅ | **Share button on walkout / best-pull summary** (shipped 2026-09-25: "Share best pull" in the pack summary) → 9:16 image card via existing `utils/shareCard.ts` + `utils/share.ts` (card art, OVR, "Pulled in Dynasty Manager", App Store link). No share exists in the pack overlay today. | Every rare pull becomes a free ad posted by the only person more credible than you: the player. | S–M |
+| P2 ✅ | **Guaranteed pack inside the first session** (shipped 2026-09-25 as an "Open your free pack" Getting Started row that links to Packs) (verify FTUE — no starter/welcome pack found in onboarding code). | An ad that shows a walkout must deliver one in the first 5 minutes, or it is a soft fail-ad and D1 pays for it. | S |
 | P3 | **"Legends from your save" recap** at season end: the retirees who entered the Hall, as a shareable card. | Turns H1 into something players post for us. | M |
 | P4 | Deep links from creator CPPs → open straight to the Market (post-install) | Continuity from ad promise to product | S |
 
@@ -401,7 +409,7 @@ RevenueCat numbers after 30 days; re-run; the paid gate moves with it.
 
 | Weeks | Must ship | Kill / pivot criterion |
 |---|---|---|
-| 1–2 | Correct `docs/apple-review-response.md`; §4 decision logged; App Preview (S1); first screenshot (S2); accounts live; 14 videos posted | — |
+| 1–2 | ✅ Correct `docs/apple-review-response.md`; ✅ 30-day calendar (`content/30-day-calendar.md`); §4 decision logged; App Preview (S1); first screenshot (S2); accounts live; 14 videos posted | — |
 | 3–4 | P2 first-session pack; P1 share card; CPPs for packs/career; daily posting continues | If no format beats 15% 3-s hold after 25 posts → rework hooks from §2.3 research before continuing |
 | 5–8 | 2 paid creators (tier 2), each on their own CPP; IAEs every week; Road to Glory series | Creator CPI > $3 → stop paid creators, stay on gifted tier |
 | 9–12 | Re-run economics with measured inputs; if all §9 gates pass → $300 Spark test | Gates fail → next 30 days go to CVR + retention, not spend |
