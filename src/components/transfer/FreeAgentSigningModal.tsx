@@ -45,6 +45,13 @@ export function FreeAgentSigningModal({
   const signingBonus = calculateSigningBonus(offerWage, offerYears);
   const canAfford = (club?.budget || 0) >= signingBonus;
   const squadFull = (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE;
+  const minWage = Math.round(p.wage * FREE_AGENT_MIN_WAGE_RATIO);
+  const maxWage = Math.round(p.wage * FREE_AGENT_MAX_WAGE_RATIO);
+  // The visible rail is painted separately from the (transparent, 44pt-tall)
+  // input — the ListForSaleModal pattern — so the fill is computed here.
+  const wagePercent = maxWage > minWage
+    ? Math.min(100, Math.max(0, ((offerWage - minWage) / (maxWage - minWage)) * 100))
+    : 0;
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useScrollLock();
@@ -68,16 +75,26 @@ export function FreeAgentSigningModal({
           <div>
             <label htmlFor="free-agent-wage" className="text-xs text-muted-foreground mb-1 block">Weekly Wage</label>
             <div className="flex items-center gap-2">
-              <input
-                id="free-agent-wage"
-                type="range"
-                min={Math.round(p.wage * FREE_AGENT_MIN_WAGE_RATIO)}
-                max={Math.round(p.wage * FREE_AGENT_MAX_WAGE_RATIO)}
-                step={1000}
-                value={offerWage}
-                onChange={e => onSetOfferWage(Number(e.target.value))}
-                className="flex-1"
-              />
+              {/* 44pt-tall grab area (.range-touch): the input's own box IS its
+                  hit box, so a thin native slider was nearly ungrabbable. */}
+              <div className="relative h-11 flex-1">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-muted overflow-hidden"
+                >
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${wagePercent}%` }} />
+                </div>
+                <input
+                  id="free-agent-wage"
+                  type="range"
+                  min={minWage}
+                  max={maxWage}
+                  step={1000}
+                  value={offerWage}
+                  onChange={e => onSetOfferWage(Number(e.target.value))}
+                  className="range-touch relative z-10"
+                />
+              </div>
               <span className="text-sm font-bold text-foreground tabular-nums w-16 text-right">£{(offerWage / 1e3).toFixed(0)}K</span>
             </div>
           </div>
