@@ -9,6 +9,9 @@
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
 import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS, FREE_TRIAL_DAYS, SUB_TRIAL_PRODUCT_IDS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
 import { observeClock } from '@/store/helpers/persistence';
+// legacy: ownership of earned cosmetics. utils/managerPass never imports this
+// module, so there is no cycle.
+import { isEarnedCosmeticOwned } from '@/utils/managerPass';
 
 /**
  * The time entitlement decisions are judged against.
@@ -248,6 +251,9 @@ export function hasProduct(state: MonetizationState, productId: ProductId): bool
 export function hasCosmetic(state: MonetizationState, cosmeticId: string): boolean {
   const item = COSMETIC_ITEMS.find(c => c.id === cosmeticId);
   if (!item) return false;
+  // legacy: an EARNED cosmetic (Manager Pass / Legacy tier) is owned through
+  // play and never appears in `entitlements` — no product grants it.
+  if (item.earnedBy) return isEarnedCosmeticOwned(item);
   return state.entitlements.includes(item.pack);
 }
 

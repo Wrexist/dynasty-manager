@@ -724,4 +724,20 @@ export interface GameState {
    *  `gemReveal`, `farewell`) so they stop asking for the screen. Overlays
    *  whose state lives in a component clear it themselves. */
   fileOverflowToInbox: (overlayId: string, notes: InboxNote[]) => void;
+  // ── legacy: Manager Pass ──
+  /** Render cache of the DEVICE-GLOBAL Manager Pass record (localStorage).
+   *  Not in the save payload. Every action re-reads storage first. */
+  managerPass: import('@/types/game').ManagerPassRecord;
+  /** Re-read storage and roll into the current season. */
+  refreshManagerPass: () => import('@/types/game').ManagerPassRecord;
+  /** Daily check-in: Pass XP gained, or null if already taken today. */
+  checkInManagerPass: () => number | null;
+  /** Collect one reward; null if not claimable (Pro rewards need `isPro()`). */
+  claimManagerPassReward: (tier: number, track: import('@/types/game').ManagerPassTrack) => import('@/types/game').CosmeticItem | null;
+  /** Collect every claimable reward; returns what was collected. */
+  claimAllManagerPassRewards: () => import('@/types/game').CosmeticItem[];
+  /** Apply observed game events; returns Pass XP gained. */
+  recordManagerPassEvents: (events: import('@/types/game').ManagerPassEvent[]) => number;
+  /** Wear an owned earned cosmetic (Pass or Legacy). */
+  equipEarnedCosmetic: (cosmeticId: string) => boolean;
 }

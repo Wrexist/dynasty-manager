@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Shield, Landmark, Shirt, ListOrdered, Flag,
   Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, Crown, HelpCircle, Briefcase, Search, Medal, Swords,
-  Dumbbell, UserCog, Sprout, Users, Package, ArrowLeftRight, TrendingUp, Zap, History,
+  Dumbbell, UserCog, Sprout, Users, Package, ArrowLeftRight, TrendingUp, Zap, History, Ticket,
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -81,6 +81,7 @@ const DRAWER_ITEM_META: Partial<Record<GameScreen, Omit<DrawerItem, 'screen'>>> 
   'trophy-cabinet': { label: 'Trophies', icon: Medal, description: 'Your honours & achievements' },
   perks: { label: 'Perks', icon: Zap, description: 'Earn XP & unlock bonuses' },
   'dynasty-legacy': { label: 'Legacy', icon: History, description: 'Your lifetime record across all saves' },
+  'manager-pass': { label: 'Manager Pass', icon: Ticket, description: 'Season rewards: free + Pro track' },
   'hall-of-managers': { label: 'Hall of Fame', icon: Star, description: 'Cross-save leaderboard' },
   // App
   shop: { label: 'Shop', icon: Crown, description: 'Dynasty Pro & cosmetics', gold: true },

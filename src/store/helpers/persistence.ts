@@ -455,6 +455,11 @@ export const STORAGE_KEYS = {
    *  new event starts fresh. Not save-scoped — Festival Points are a
    *  device-level engagement reward, not part of any career. */
   LIVE_EVENT_PROGRESS: 'dynasty-live-event-progress',
+  /** legacy: localStorage — device-global Manager Pass progress (JSON
+   *  ManagerPassRecord). Not save-scoped for the same reason Festival points
+   *  are not: the pass belongs to the player, so a new career neither resets
+   *  it nor earns it twice, and collected cosmetics show in every slot. */
+  MANAGER_PASS: 'dynasty-manager-pass',
   /** localStorage: device-global opt-in for local notification reminders.
    *  '1' = on, '0' = off, missing = never asked. Device-level (not save-scoped)
    *  and paired with the OS permission, which is the ultimate gate. */
@@ -701,6 +706,23 @@ export function readLiveEventProgress(): LiveEventProgress | null {
 export function writeLiveEventProgress(record: LiveEventProgress): void {
   try { localStorage.setItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS, JSON.stringify(record)); }
   catch { /* storage unavailable — non-fatal */ }
+}
+
+// ── legacy: Manager Pass (device-global) ──
+
+/** Raw Manager Pass JSON, or null. Parsing and validation live in
+ *  `utils/managerPass.ts` (`parsePassRecord`), which also memoises on this
+ *  string — ownership checks run on every render of a cosmetic surface. */
+export function readManagerPassData(): string | null {
+  try { return localStorage.getItem(STORAGE_KEYS.MANAGER_PASS); }
+  catch { return null; }
+}
+
+/** False when storage refused the write (quota / unavailable). The caller
+ *  (`savePassRecord`) then keeps the record in memory for the session. */
+export function writeManagerPassData(json: string): boolean {
+  try { localStorage.setItem(STORAGE_KEYS.MANAGER_PASS, json); return true; }
+  catch { return false; }
 }
 
 // ── Completed Challenges (device-global) ──

@@ -214,6 +214,11 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + status.rewardXP },
     });
     track('daily_streak_claim', { streak: status.current, xp: status.rewardXP });
+    // legacy: the daily login claim is also the day's Manager Pass check-in,
+    // so Pass XP comes from the check-in players already make (the modal
+    // auto-presents on the Dashboard). Once per day either way — the Pass
+    // page's own button then reads "checked in". Pass XP is cosmetic-only.
+    get().checkInManagerPass();
     return status;
   },
 

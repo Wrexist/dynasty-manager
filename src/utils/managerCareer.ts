@@ -77,6 +77,13 @@ import { shuffle, getSuffix } from '@/utils/helpers';
 import { AI_MANAGER_FIRST_NAMES, AI_MANAGER_LAST_NAMES } from '@/config/aiManager';
 import { PITCH_QUESTIONS } from '@/data/boardPitches';
 import type { PitchQuestionDef } from '@/data/boardPitches';
+// ── legacy: job-market reputation from the lifetime Legacy tier ──
+// Every job-market helper below takes a trailing `reputationBonus` that
+// defaults to the player's current Legacy bonus (config/managerPass.ts). It
+// changes which clubs list, approach or start you — never a match, training,
+// a transfer or the board. Tests pass it explicitly.
+import { getLegacyJobReputationBonus } from '@/utils/managerLegacy';
+import { LEGACY_START_OFFER_UPGRADE_BONUS } from '@/config/managerPass';
 
 // ── Helpers ──
 
@@ -246,7 +253,10 @@ export function generateJobVacancies(
   season: number,
   week: number,
   playerClubId?: string,
+  reputationBonus: number = getLegacyJobReputationBonus(),
 ): JobVacancy[] {
+  // legacy: the board sees the manager's reputation plus their Legacy.
+  const effectiveReputation = managerReputation + Math.max(0, reputationBonus);
   const allClubs = Object.values(clubs);
   const candidates = allClubs.filter(club => {
     // Never show vacancy for the manager's own club
@@ -256,7 +266,7 @@ export function generateJobVacancies(
     if (!league) return false;
     // Filter to clubs the manager could realistically manage
     const minRep = getMinReputationForLeague(league.qualityTier);
-    return managerReputation >= minRep * 0.5; // Show vacancies slightly above reach too
+    return effectiveReputation >= minRep * 0.5; // Show vacancies slightly above reach too
   });
 
   const shuffled = shuffle(candidates);
@@ -264,7 +274,11 @@ export function generateJobVacancies(
 
   return selected.map(club => {
     const league = LEAGUES.find(l => l.id === club.divisionId);
-    const minRep = getMinReputationForLeague(league?.qualityTier || 4);
+    // legacy: the listed bar is lowered by the Legacy bonus. Everything
+    // downstream reads this one number — the apply gate (careerSlice /
+    // JobMarket compare raw reputation to it), the interview score and the
+    // rival candidates — so the bonus is applied exactly once, here.
+    const minRep = Math.max(0, getMinReputationForLeague(league?.qualityTier || 4) - Math.max(0, reputationBonus));
 
     // Expiry wraps on the GLOBAL season clock — wrapping on the vacancy
     // club's league.totalWeeks let offers survive far longer than configured
@@ -396,6 +410,7 @@ export function negotiateSalary(
 
 export function generateStartingOffers(
   clubs: Record<string, Pick<Club, 'id' | 'name' | 'divisionId' | 'reputation'>>,
+  reputationBonus: number = getLegacyJobReputationBonus(),
 ): JobOffer[] {
   const allClubs = Object.values(clubs);
 
@@ -409,6 +424,15 @@ export function generateStartingOffers(
 
   const shuffled = shuffle(lowerTierClubs);
   const selected = shuffled.slice(0, STARTING_JOB_OFFERS);
+
+  // legacy: a decorated manager's reputation precedes them — from Elite up,
+  // one starting offer comes from the league tier above the usual start.
+  if (reputationBonus >= LEGACY_START_OFFER_UPGRADE_BONUS && selected.length > 0) {
+    const bestStart = Math.min(...CAREER_START_QUALITY_TIERS);
+    const upTier = Math.max(1, bestStart - 1);
+    const upgraded = shuffle(allClubs.filter(club => LEAGUES.find(l => l.id === club.divisionId)?.qualityTier === upTier));
+    if (upgraded.length > 0) selected[0] = upgraded[0];
+  }
 
   return selected.map(club => {
     const league = LEAGUES.find(l => l.id === club.divisionId);
@@ -466,8 +490,10 @@ export function generateProactiveOffer(
   season: number,
   week: number,
   existingOfferClubIds: string[] = [],
+  reputationBonus: number = getLegacyJobReputationBonus(),
 ): JobOffer | null {
   if (!manager.contract) return null;
+  const effectiveReputation = manager.reputationScore + Math.max(0, reputationBonus);
 
   // Determine current league tier
   const currentClub = clubs[playerClubId];
@@ -500,7 +526,7 @@ export function generateProactiveOffer(
   // Reputation bonus: manager is too good for current league
   const nextTierUp = Math.max(1, currentTier - 1) as 1 | 2 | 3 | 4;
   const minRepForHigherLeague = getMinReputationForLeague(nextTierUp);
-  if (manager.reputationScore >= minRepForHigherLeague && currentTier > 1) {
+  if (effectiveReputation >= minRepForHigherLeague && currentTier > 1) {
     chance += PROACTIVE_OFFER_REP_BONUS;
   }
 
@@ -531,7 +557,7 @@ export function generateProactiveOffer(
     if (!eligibleTiers.includes(league.qualityTier)) return false;
     // Club must be reachable by manager's reputation
     const minRep = getMinReputationForLeague(league.qualityTier);
-    return manager.reputationScore >= minRep * 0.7;
+    return effectiveReputation >= minRep * 0.7;
   });
 
   if (candidateClubs.length === 0) return null;
@@ -609,10 +635,12 @@ export function generateUnemployedOffer(
   week: number,
   existingOfferClubIds: string[] = [],
   playerClubId?: string,
+  reputationBonus: number = getLegacyJobReputationBonus(),
 ): JobOffer | null {
+  const effectiveReputation = manager.reputationScore + Math.max(0, reputationBonus);
   // Probability: base + reputation bonus for high-rep managers
   let chance = UNEMPLOYED_OFFER_BASE_CHANCE;
-  const repTier = calculateReputationTier(manager.reputationScore);
+  const repTier = calculateReputationTier(effectiveReputation);
   if (repTier === 'continental' || repTier === 'world_class' || repTier === 'legendary') {
     chance += UNEMPLOYED_OFFER_REP_BONUS;
   }
@@ -627,7 +655,7 @@ export function generateUnemployedOffer(
     if (!league) return false;
     const minRep = getMinReputationForLeague(league.qualityTier);
     // Club must be reachable by manager's reputation (more lenient than employed offers)
-    return manager.reputationScore >= minRep * 0.5;
+    return effectiveReputation >= minRep * 0.5;
   });
 
   if (candidateClubs.length === 0) return null;
