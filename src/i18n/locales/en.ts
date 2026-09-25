@@ -490,6 +490,12 @@ export const en = {
   'seasonSummary.seasonSummary': 'Season Summary',
   'staffPage.release': 'Release',
   'subscribeOnboarding.closePaywall': 'Close paywall',
+  // In-game Pro upsell banner. The trial line shows only when the store
+  // confirms this Apple ID can start the free trial (see utils/trialOffer.ts).
+  'proUpsell.upgrade': 'Upgrade to Dynasty Pro',
+  'proUpsell.unlock': 'Unlock',
+  'proUpsell.trialLine': 'Dynasty Pro · {days}-day free trial',
+  'proUpsell.tryFree': 'Try free',
   'superCupPage.seasonOpener': 'Season opener',
   'titleScreen.challengeMode': 'Challenge Mode',
   'titleScreen.loadingSaveSlot': 'Loading save slot',

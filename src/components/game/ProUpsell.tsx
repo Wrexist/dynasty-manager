@@ -1,6 +1,10 @@
+import { useEffect, useState } from 'react';
 import { Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useGameStore } from '@/store/gameStore';
+import { probeTrialOfferDays } from '@/utils/trialOffer';
 
 interface ProUpsellProps {
   feature: string;
@@ -13,13 +17,26 @@ interface ProUpsellProps {
  *  7-day free trial — the strongest offer in the ladder — so every in-game Pro
  *  upsell used to land on the one purchase surface that hides it.
  *
- *  Deliberately only the routing half of that fix: the trial copy is NOT
- *  replicated into the Shop, because SubscribeOnboarding gates it on a store
- *  eligibility check (isEligibleForIntroOffer) that the Shop has no equivalent
- *  of. Copying the claim without the check is the Guideline 3.1.2(c) exposure
- *  on a second surface. */
+ *  The banner names the free trial only when the store confirms this Apple ID
+ *  can start it, using the paywall's own per-plan rule (`probeTrialOfferDays`),
+ *  so it never promises a trial the paywall then withholds (3.1.2(c)). Before
+ *  that check existed the banner could not mention the trial at all, which left
+ *  the one-time cold-open paywall as the only place a player ever saw it. */
 export function ProUpsell({ feature, className }: ProUpsellProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const hasSubscriptionRecord = useGameStore(s => s.monetization.subscription != null);
+  const [trialDays, setTrialDays] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (hasSubscriptionRecord) {
+      setTrialDays(null);
+      return;
+    }
+    let cancelled = false;
+    probeTrialOfferDays().then(days => { if (!cancelled) setTrialDays(days); });
+    return () => { cancelled = true; };
+  }, [hasSubscriptionRecord]);
 
   return (
     <button
@@ -32,9 +49,13 @@ export function ProUpsell({ feature, className }: ProUpsellProps) {
       <Crown className="w-4 h-4 text-primary shrink-0" />
       <div className="text-left flex-1 min-w-0">
         <p className="text-xs font-semibold text-foreground">{feature}</p>
-        <p className="text-[10px] text-muted-foreground">Upgrade to Dynasty Pro</p>
+        <p className="text-[10px] text-muted-foreground">
+          {trialDays ? t('proUpsell.trialLine', { days: trialDays }) : t('proUpsell.upgrade')}
+        </p>
       </div>
-      <span className="text-[10px] text-primary font-semibold shrink-0">Unlock</span>
+      <span className="text-[10px] text-primary font-semibold shrink-0">
+        {trialDays ? t('proUpsell.tryFree') : t('proUpsell.unlock')}
+      </span>
     </button>
   );
 }
