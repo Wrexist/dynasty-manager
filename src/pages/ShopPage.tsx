@@ -315,7 +315,7 @@ const ShopPage = () => {
         <button
           onClick={handleRestore}
           disabled={restoring}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          className="min-h-11 px-2 -mr-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
           {restoring ? 'Restoring...' : 'Restore Purchases'}
@@ -408,7 +408,7 @@ const ShopPage = () => {
             {!userIsPro && (
               <button
                 onClick={handlePresentPaywall}
-                className="text-[10px] text-[hsl(var(--gold))] font-semibold hover:text-[hsl(var(--gold)/0.8)] transition-colors flex items-center gap-1 ml-auto"
+                className="min-h-11 px-2 -mr-2 text-[11px] text-[hsl(var(--gold))] font-semibold hover:text-[hsl(var(--gold)/0.8)] transition-colors flex items-center gap-1 ml-auto"
               >
                 <CreditCard className="w-3 h-3" />
                 View Plans

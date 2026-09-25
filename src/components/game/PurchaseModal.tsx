@@ -139,7 +139,7 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
             <button
               onClick={handleCancel}
               disabled={loading}
-              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              className="w-full min-h-11 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
