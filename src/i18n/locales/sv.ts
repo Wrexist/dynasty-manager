@@ -8,6 +8,7 @@
 import type { LocaleMessages } from '../index';
 
 export const messages: LocaleMessages = {
+  'subscribeOnboarding.continueFree': 'Fortsätt gratis',
   'title.newGame': 'Nytt spel',
   'title.newGameSubtitle': 'Plats {slot} · Starta en ny dynasti',
   'title.newGameAria': 'Starta nytt spel på plats {slot}',

@@ -486,16 +486,16 @@ const SubscribeOnboarding = () => {
         transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
       />
 
-      {/* Header — skip button (top-right) */}
+      {/* Keep the free path explicit before the player has seen the game. */}
       <div className="relative z-10 w-full max-w-md flex items-center justify-end pt-3 pb-1 shrink-0">
         <button
           type="button"
           onClick={handleSkip}
           disabled={purchasing}
-          aria-label={t('subscribeOnboarding.closePaywall')}
-          className="w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/10 text-foreground/80 hover:text-foreground transition-colors disabled:opacity-40"
+          className="min-h-11 px-4 rounded-full flex items-center justify-center gap-2 bg-white/[0.06] border border-white/10 text-sm font-semibold text-foreground/80 hover:text-foreground transition-colors disabled:opacity-40"
         >
-          <X className="w-4 h-4" />
+          {t('subscribeOnboarding.continueFree')}
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 
@@ -571,7 +571,7 @@ const SubscribeOnboarding = () => {
                 onClick={handleSkip}
                 className="px-4 py-2 rounded-xl text-[12px] font-semibold text-muted-foreground border border-border/60"
               >
-                Continue Free
+                {t('subscribeOnboarding.continueFree')}
               </button>
             </div>
           </div>
