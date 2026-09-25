@@ -17,6 +17,7 @@ import {
   drawPackPullCard,
 } from '@/utils/shareCard';
 import { getPlayerCardArt } from '@/utils/uiHelpers';
+import { pickBestPull } from '@/components/game/pack/packHelpers';
 import type { Player } from '@/types/game';
 
 const player = {
@@ -117,5 +118,21 @@ describe('pack share card format', () => {
 
   it('names the file as a pack pull', () => {
     expect(buildMomentFilename('pack_pull', new Date(2026, 8, 25))).toBe('dynasty-pack-pull-2026-09-25.png');
+  });
+});
+
+describe('pickBestPull', () => {
+  it('shares the Hall of Legends card over a higher-rated ordinary pull', () => {
+    const hall = { overall: 88, legendId: 'hall-1' };
+    const ordinary = { overall: 92, legendId: undefined };
+    expect(pickBestPull([ordinary, hall])).toBe(hall);
+  });
+
+  it('otherwise picks the highest OVR, first on ties', () => {
+    const a = { overall: 85, legendId: undefined };
+    const b = { overall: 90, legendId: undefined };
+    const c = { overall: 90, legendId: undefined };
+    expect(pickBestPull([a, b, c])).toBe(b);
+    expect(pickBestPull([])).toBeNull();
   });
 });

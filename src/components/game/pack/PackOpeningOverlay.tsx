@@ -14,7 +14,7 @@ import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
 import { PackStadium } from './PackStadium';
 import { WalkoutReveal } from './WalkoutReveal';
-import { tierForOvr } from './packHelpers';
+import { pickBestPull, tierForOvr } from './packHelpers';
 import { ShareMomentButton } from '@/components/game/ShareMomentButton';
 import { buildPackPullCardData } from '@/utils/shareCard';
 import { cn } from '@/lib/utils';
@@ -215,15 +215,16 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   const hasLegendPull = useMemo(() => players.some(p => p.legendId), [players]);
   // Share card for the best pull (growth playbook P1). Built from the card's
   // face only — OVR, position, art — never the player's name or portrait.
+  // Hall-first, like the chip's label, so the card shared is the one named.
   const bestPullShare = useMemo(() => {
-    const best = players.find(p => p.overall === topOvr);
+    const best = pickBestPull(players);
     if (!best) return null;
     return buildPackPullCardData(best, {
       packLabel: tierDef.label,
       pulledLabel: t('packOpeningOverlay.sharePulledIn'),
       shareMessage: t('packOpeningOverlay.shareMessage', { pack: tierDef.label }),
     });
-  }, [players, topOvr, tierDef.label, t]);
+  }, [players, tierDef.label, t]);
   const confettiCount = topOvr >= 90
     ? PACK_ANIM.confetti.icon
     : topOvr >= 84 ? PACK_ANIM.confetti.legendary
