@@ -165,7 +165,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
   if (!liveOffer) {
     return (
       <Sheet open onOpenChange={o => !o && close()}>
-        <SheetContent side="bottom" className={SHEET_CLASS}>
+        <SheetContent aria-describedby={undefined} side="bottom" className={SHEET_CLASS}>
           <SheetTitle className="sr-only">{sponsorName} withdrew their offer</SheetTitle>
           <SpecularEdge />
           {Header}
@@ -226,7 +226,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
   if (mode === 'negotiate') {
     return (
       <Sheet open onOpenChange={o => !o && close()}>
-        <SheetContent side="bottom" className={SHEET_CLASS}>
+        <SheetContent aria-describedby={undefined} side="bottom" className={SHEET_CLASS}>
           <SheetTitle className="sr-only">Negotiate with {sponsorName}</SheetTitle>
           <SpecularEdge />
           {Header}
@@ -298,7 +298,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
 
   return (
     <Sheet open onOpenChange={o => !o && close()}>
-      <SheetContent side="bottom" className={SHEET_CLASS}>
+      <SheetContent aria-describedby={undefined} side="bottom" className={SHEET_CLASS}>
         <SheetTitle className="sr-only">Sponsor offer from {sponsorName}</SheetTitle>
         <SpecularEdge />
         {Header}

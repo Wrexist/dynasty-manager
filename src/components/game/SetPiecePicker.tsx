@@ -119,6 +119,7 @@ export function SetPiecePicker({ role, players, selectedId, onChange }: SetPiece
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
+          aria-describedby={undefined}
           side="bottom"
           className="bg-background border-border/50 rounded-t-2xl h-[85vh] max-h-[85vh] flex flex-col p-0"
         >

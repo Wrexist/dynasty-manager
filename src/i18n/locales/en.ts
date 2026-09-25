@@ -922,6 +922,10 @@ export const en = {
   'dashboard.attention.storylineDetail': '{choices} choices — tap to decide',
   'storylineModal.decideLater': 'Decide later',
   'storylineModal.ignoreStory': 'Ignore this story',
+  // ── uipolish: sheet descriptions for screen readers (Radix Description) ──
+  'moreDrawer.sheetDescription': 'Every screen in the game, grouped by area. Search to jump straight to one.',
+  'substitutionSheet.description': 'Choose a player to take off, then choose his replacement from the bench.',
+  'substitutionSheet.forcedDescription': 'A player cannot continue. Choose his replacement from the bench.',
 } as const;
 
 export default en;

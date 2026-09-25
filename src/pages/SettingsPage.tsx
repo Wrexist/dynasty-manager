@@ -1035,6 +1035,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           smoothly into place. */}
       <Sheet open={feedbackOpen} onOpenChange={setFeedbackOpen}>
         <SheetContent
+          aria-describedby={undefined}
           side="bottom"
           style={{
             paddingBottom: keyboardInset > 0 ? keyboardInset + 24 : undefined,

@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
 import { useState, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useShallow } from 'zustand/react/shallow';
 import { usePlayerClub } from '@/hooks/useGameSelectors';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
@@ -75,6 +76,7 @@ const VP_H = 59;
 const VP_W = 68;
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals, playerCardStatus, playerMatchStats, subbedOnPlayerIds }: SubstitutionSheetProps) {
+  const { t } = useTranslation();
   const { players, matchSubsUsed, week, halfTimeState } = useGameStore(useShallow(s => ({
     players: s.players,
     matchSubsUsed: s.matchSubsUsed,
@@ -574,12 +576,14 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
         >
           <div className="flex flex-col items-center gap-4 py-6 text-center">
             <AlertCircle className="w-10 h-10 text-destructive" />
-            <p className="text-sm font-bold text-foreground">No Substitutions Remaining</p>
-            <p className="text-xs text-muted-foreground px-4">
+            {/* Title + Description, so Radix has both (it warned on every
+                forced-substitution sheet, R19). */}
+            <SheetTitle className="text-sm font-bold text-foreground">No Substitutions Remaining</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground px-4">
               {injuredPlayer
                 ? `${injuredPlayer.lastName} is injured but you have no substitutions left. Your team will continue with 10 players.`
                 : 'All 5 substitutions have been used. No more changes can be made.'}
-            </p>
+            </SheetDescription>
             <Button className="w-full max-w-xs" onClick={() => { hapticLight(); onDismissWithoutSub?.(); }}>
               Acknowledge
             </Button>
@@ -602,6 +606,9 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
         <SheetHeader className="pb-2">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-base font-display">Make Substitution</SheetTitle>
+            <SheetDescription className="sr-only">
+              {forceMode ? t('substitutionSheet.forcedDescription') : t('substitutionSheet.description')}
+            </SheetDescription>
             <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
               {subsRemaining} remaining
             </span>
