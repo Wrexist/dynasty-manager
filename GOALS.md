@@ -2,8 +2,9 @@
 
 > The execution list. Authored 2026-07-09 against **v1.2.0, save schema v72**, from a
 > full-app audit (10 domain passes + competitive benchmark, every claim verified at
-> file:line in live code). This file **supersedes** the open items in `ROADMAP.md`,
-> `IDEAS.md`, and the `AUDIT*`/`UX_POLISH` reports — when they disagree, this file wins.
+> file:line in live code). This file **supersedes** the open items in the archived
+> `ROADMAP.md`, `IDEAS.md`, and `AUDIT*`/`UX_POLISH` reports (all in `docs/archive/`)
+> — when they disagree, this file wins.
 > Work the goals **in order**. When a goal ships, mark it done here; don't let this
 > file rot.
 >
