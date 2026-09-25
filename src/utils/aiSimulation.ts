@@ -16,6 +16,7 @@ import {
 } from '@/config/gameBalance';
 import { getMatchdayIncome, getCommercialIncome, getLeaguePositionPrize } from '@/utils/financeHelpers';
 import { LEAGUES } from '@/data/league';
+import { getAIStyleTactics } from '@/config/aiManager';
 import {
   AI_INCOME_MULTIPLIER, AI_STAFF_COST_PER_REP,
   AI_MAX_WAGE_TO_INCOME_RATIO, AI_EMERGENCY_SELL_WAGE_RATIO,
@@ -804,8 +805,10 @@ function processAIFreeAgents(
 const MENTALITY_OPTIONS: Mentality[] = ['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'];
 const FORMATION_OPTIONS: FormationType[] = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '4-1-4-1', '5-3-2'];
 
-/** AI clubs adapt tactics based on recent form — losing streaks trigger formation/mentality changes */
-function processAITacticalAdaptation(
+/** AI clubs adapt tactics based on recent form — losing streaks trigger
+ *  formation/mentality changes, winning streaks embolden, and once the streak
+ *  is over the manager drifts back toward his own style. */
+export function processAITacticalAdaptation(
   clubs: Record<string, Club>,
   divisionTables: Record<LeagueId, LeagueTableEntry[]>,
   playerClubId: string,
@@ -865,6 +868,26 @@ function processAITacticalAdaptation(
           aiManagerProfile: {
             ...profile,
             defaultTactics: { ...profile.defaultTactics, mentality: MENTALITY_OPTIONS[currentIdx + 1] },
+          },
+        };
+      }
+    } else {
+      // No streak either way: drift one step back toward the manager's own
+      // style. Without this the adaptation was a one-way ratchet — three
+      // defeats ALWAYS stepped the mentality down, two in three did so 30% of
+      // the time, three wins stepped it up only 20% of the time, and nothing
+      // ever undid either. Measured on a real save (Arsenal, community pack,
+      // seeded) the world's `defensive` managers went 54 at kickoff -> 97 ->
+      // 113 -> 120 of 168 over three seasons, and league scoring fell with them
+      // (audit S6 — mutual caution is the engine's lowest-scoring matchup).
+      const baseIdx = MENTALITY_OPTIONS.indexOf(getAIStyleTactics(profile.style).mentality);
+      const currentIdx = MENTALITY_OPTIONS.indexOf(profile.defaultTactics.mentality as Mentality);
+      if (baseIdx >= 0 && currentIdx >= 0 && currentIdx !== baseIdx) {
+        updClubs[clubId] = {
+          ...club,
+          aiManagerProfile: {
+            ...profile,
+            defaultTactics: { ...profile.defaultTactics, mentality: MENTALITY_OPTIONS[currentIdx + (baseIdx > currentIdx ? 1 : -1)] },
           },
         };
       }
