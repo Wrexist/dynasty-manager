@@ -46,6 +46,7 @@ export const PENDING_NEWS: PendingRelease = {
   new: [],
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
+    'Fix/limited deal covers.',
   ],
   fixed: [],
   headline: null,
