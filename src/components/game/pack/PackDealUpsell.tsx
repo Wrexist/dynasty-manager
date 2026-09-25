@@ -36,13 +36,18 @@ export function PackDealUpsell({ deals, onClose, onView, prices, trigger = 'post
     const pack = PACK_TIER_MAP[key];
     return prices === undefined ? pack.iapPriceDisplay : pack.productId ? prices[pack.productId] : undefined;
   };
+  // Backdrop tap closes. `cursor-pointer` is load-bearing, not styling: this
+  // layer is portalled into <body>, where React's click listener is delegated,
+  // and iOS WebKit only dispatches a tap as a click on a non-interactive
+  // element that looks clickable — without it a backdrop tap on an iPhone can
+  // do nothing (device check; Chromium is unaffected).
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/75 p-3 backdrop-blur-md sm:items-center sm:p-6"
+    <div data-testid="pack-deal-backdrop" className="fixed inset-0 z-[100] flex cursor-pointer items-end justify-center bg-black/75 p-3 backdrop-blur-md sm:items-center sm:p-6"
       onClick={event => { if (event.target === event.currentTarget) dismiss(); }}>
       <motion.div ref={ref} role="dialog" aria-modal="true" aria-labelledby="pack-deal-title" aria-describedby="pack-deal-description" tabIndex={-1}
         initial={reduced ? false : { opacity: 0, y: 32, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', damping: 30, stiffness: 310 }}
-        className="relative isolate w-full max-w-md outline-none overflow-y-auto overscroll-contain rounded-[28px] border border-white/15 bg-[#10151e] text-white shadow-[0_32px_100px_rgba(0,0,0,0.65)] max-h-[92dvh]">
+        className="relative isolate w-full max-w-md cursor-auto outline-none overflow-y-auto overscroll-contain rounded-[28px] border border-white/15 bg-[#10151e] text-white shadow-[0_32px_100px_rgba(0,0,0,0.65)] max-h-[92dvh]">
         <div aria-hidden className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/60 to-transparent" />
         <button type="button" onClick={dismiss} aria-label="Close pack offers" className="absolute right-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"><X className="h-[18px] w-[18px]" /></button>
         <header className="px-5 pb-4 pt-6">
