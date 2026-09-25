@@ -271,6 +271,31 @@ describe('MatchDay — Skip to full time', () => {
     expect(button(SKIP)).toBeTruthy();
   });
 
+  it('the Paused panel offers the skip too — free players only once half-time has been reached', () => {
+    const run = stage(leagueBase, 1);
+    render(<MatchDay />);
+    fireEvent.click(button(/Kick Off/)!);
+    tick();
+    // First half, paused: no skip for a free player (same gating as the live row).
+    fireEvent.click(button(/Pause match/)!);
+    expect(screen.getByText('Match Paused')).toBeTruthy();
+    expect(button(SKIP)).toBeNull();
+    fireEvent.click(button(/Resume/)!);
+    runClockUntil(atHalfTime);
+
+    fireEvent.click(button(/Start 2nd Half/)!);
+    tick();
+    fireEvent.click(button(/Pause match/)!);
+    expect(screen.getByText('Match Paused')).toBeTruthy();
+    // The paused panel replaces the live row, so this is the panel's own control.
+    expect(button(/Pause match/)).toBeNull();
+    fireEvent.click(button(SKIP)!);
+    fireEvent.click(button(/^Skip$/)!);
+    expect(isOver()).toBe(true);
+    // Played out through the clock's own segment calls, nothing else.
+    expect(run.calls).toEqual(['first', ...SECOND_HALF_SEGMENTS.map(b => `second:${b}`)]);
+  });
+
   it('the skipped match is the watched match — result, events, ratings, player stats', () => {
     const SEED = 7;
     const watched = stage(leagueBase, SEED);

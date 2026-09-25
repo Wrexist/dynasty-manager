@@ -1827,6 +1827,18 @@ const MatchDayInner = () => {
                   <Button className="flex-1 h-11 text-sm font-bold gap-2" onClick={handleResume}>
                     <Play className="w-4 h-4" /> Resume
                   </Button>
+                  {/* Skip to full time — same gating as the live row (free:
+                      from half-time; Pro: from kickoff). A paused player is
+                      the one most likely to want out. */}
+                  {canSkip && (
+                    <button
+                      onClick={requestSkip}
+                      aria-label={t('matchDay.skipToFullTime')}
+                      className="flex items-center justify-center gap-1.5 px-3 h-11 min-w-[44px] rounded-xl text-xs font-semibold bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 active:scale-[0.97] transition-all"
+                    >
+                      <SkipForward className="w-3.5 h-3.5" aria-hidden="true" /> {t('matchDay.skipShort')}
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       const available = MATCH_SPEEDS.filter(s => !s.pro || userIsPro);
