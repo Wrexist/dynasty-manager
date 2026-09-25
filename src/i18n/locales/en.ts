@@ -914,6 +914,9 @@ export const en = {
   'managerPass.carry.title': "Last season's Pro rewards ({n})",
   'managerPass.carry.readyBody': 'You reached these on the Pro track last season. Collect them before this season ends.',
   'managerPass.carry.lockedBody': 'You reached these on the Pro track last season. Collect them with Dynasty Pro before this season ends.',
+  'dashboard.pass.title': 'Manager Pass',
+  'dashboard.pass.tier': 'Tier {tier}/{max}',
+  'dashboard.pass.toCollect': '{n} to collect',
 } as const;
 
 export default en;

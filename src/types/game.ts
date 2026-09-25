@@ -1976,7 +1976,9 @@ export type ProFeature =
   | 'historical_records'
   | 'instant_sim'
   | 'optimize_lineup'
-  | 'pro_badge';
+  | 'pro_badge'
+  // uifinish: the Manager Pass Pro reward row (cosmetic only).
+  | 'manager_pass_pro';
 
 export type CosmeticCategory = 'avatar' | 'title_badge' | 'celebration_text' | 'stadium_theme' | 'pitch_skin' | 'confetti_style' | 'cabinet_style' | 'prestige_badge' | 'hom_frame'
   // legacy: the manager banner behind the Manager Pass / Legacy heroes. Earned only.

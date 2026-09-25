@@ -353,6 +353,18 @@ export function rollPassSeason(record: ManagerPassRecord, season: ManagerPassSea
   };
 }
 
+/**
+ * What a home surface (Dashboard row, More drawer) shows for the Pass: the
+ * tier reached and how many rewards are collectable, judged on the record
+ * rolled into the season containing `now` IN MEMORY — the render cache may
+ * still hold last season's record until a Pass action writes, and last
+ * season's reached rewards are not collectable in this one. Pure: no write.
+ */
+export function passHomeSummary(record: ManagerPassRecord, isPro: boolean, now: Date = new Date()): { tier: number; claimable: number } {
+  const rolled = rollPassSeason(record, getManagerPassSeason(now), isPro);
+  return { tier: passTierForXp(rolled.xp), claimable: passClaimableCount(rolled, isPro) };
+}
+
 // ── Storage (the only side-effecting section) ──
 
 let memoRaw: string | null | undefined;

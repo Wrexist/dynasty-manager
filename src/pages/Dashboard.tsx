@@ -11,7 +11,8 @@
  *      sagas, objectives, achievements and cliffhangers.
  *   3. The Getting Started checklist (new careers only).
  *   4. The next match.
- *   5. Live-event and starter-kit banners.
+ *   5. Live-event and starter-kit banners, and the one-line Manager Pass
+ *      entry (tier + a count badge when rewards are collectable).
  *   6. "More" — everything else (club overview, objectives, sagas,
  *      achievements, tips, quick links…), collapsed, remembered per device.
  *
@@ -62,6 +63,7 @@ import { NationalTeamOfferModal } from '@/components/game/NationalTeamOfferModal
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { DashboardMore } from '@/components/game/dashboard/DashboardMore';
+import { DashboardPassRow } from '@/components/game/dashboard/DashboardPassRow';
 import { getFlag, setFlag, removeFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 import { usePresentationOverflow } from '@/hooks/usePresentationQueue';
@@ -787,9 +789,10 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* ── 5. Live event + starter-kit offer (both self-hide) ── */}
+      {/* ── 5. Live event + starter-kit offer (both self-hide), Manager Pass ── */}
       <FestivalBanner />
       <StarterKitBanner />
+      <DashboardPassRow />
 
       {/* ── 6. More — everything else, collapsed, remembered per device ── */}
       <button

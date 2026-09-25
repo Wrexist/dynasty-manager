@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PurchaseModal } from '@/components/game/PurchaseModal';
-import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
+import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
 import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, hasRecurringSubscription, formatPerPeriodPrice, getFreeTrialDaysRemaining } from '@/utils/monetization';
@@ -32,6 +32,7 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
   instant_sim: Timer,
   optimize_lineup: Zap,
   pro_badge: Crown,
+  manager_pass_pro: Ticket,
 };
 
 /** Render order for the subscription cards — Yearly first, Monthly last.
