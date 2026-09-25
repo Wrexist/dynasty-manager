@@ -1,45 +1,47 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+/**
+ * Dashboard — the weekly hub.
+ *
+ * Layout, top to bottom, and why:
+ *   1. Header + the ONE Continue button (Match Prep / Advance / Season
+ *      Summary — `selectPrimaryAction`). The core loop is the first thing on
+ *      the page.
+ *   2. "Needs your attention" — only things with an action behind them
+ *      (`selectAttentionItems`), each row tapping to the screen that resolves
+ *      it. Injuries and expiring contracts used to render below the XP bar,
+ *      sagas, objectives, achievements and cliffhangers.
+ *   3. The Getting Started checklist (new careers only).
+ *   4. The next match.
+ *   5. Live-event and starter-kit banners.
+ *   6. "More" — everything else (club overview, objectives, sagas,
+ *      achievements, tips, quick links…), collapsed, remembered per device.
+ *
+ * The post-advance overlays are mounted here and sequenced by the
+ * presentation queue, which also caps them per advance (see
+ * `utils/presentationQueue.ts`); the converters below file the overflow to
+ * the inbox.
+ */
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getSuffix, formatMoney } from '@/utils/helpers';
-import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
-import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
+import { getSuffix } from '@/utils/helpers';
+import { usePlayerClub, useLeaguePosition, useCurrentMatch, findTournamentMatch } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
-import { getActiveCompetitions } from '@/utils/competitionStatus';
-import type { CompetitionStatusEntry } from '@/types/game';
-import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
 import { PressConference } from '@/components/game/PressConference';
-import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
-import { WelcomeCard } from '@/components/game/WelcomeCard';
 import { Button } from '@/components/ui/button';
 import {
-  Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
-  Building2, Search, GraduationCap, Swords,
+  Play, ChevronRight, ChevronDown, Trophy, AlertTriangle, Loader2, FastForward, Swords, Gavel, TrendingDown,
+  Users, Activity, FileText, DollarSign, Clock, UserPlus, UserMinus, Briefcase, Sprout, Flag,
 } from 'lucide-react';
-import { DynamicIcon } from '@/components/game/DynamicIcon';
-import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
-import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
-import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
-import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
-import { getContractUrgency } from '@/utils/contracts';
-import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration, detectTrophyMoments } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
-import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
-import { getReputationTierLabel } from '@/utils/managerCareer';
-import { getTransferWindows } from '@/config/transfers';
-import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
-import { PACK_PITY_THRESHOLD } from '@/config/packs';
+import { checkCelebrations, getDramaCelebration, detectTrophyMoments } from '@/utils/celebrations';
 import type { Celebration, TrophyMoment } from '@/utils/celebrations';
+import { getTransferWindows } from '@/config/transfers';
 import { celebrationToast } from '@/utils/gameToast';
 import { guardAsync } from '@/utils/asyncGuard';
-import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
+import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS, MID_SEASON_WEEK } from '@/config/ui';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
@@ -50,135 +52,92 @@ import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { StarterKitBanner } from '@/components/game/StarterKitBanner';
 import { DailyRewardModal } from '@/components/game/DailyRewardModal';
 import { FestivalBanner } from '@/components/game/FestivalBanner';
-import { ContinueResumeCard } from '@/components/game/ContinueResumeCard';
 import { NotifPermissionModal } from '@/components/game/NotifPermissionModal';
-import { hasUnclaimedFreeDailyPack } from '@/utils/freePacks';
-import { DynastyStatusChip } from '@/components/game/DynastyStatusChip';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
 import { GemRevealModal } from '@/components/game/GemRevealModal';
 import { SessionRecap } from '@/components/game/SessionRecap';
-import { BoardWarning } from '@/components/game/BoardWarning';
 import { NationalTeamOfferModal } from '@/components/game/NationalTeamOfferModal';
-import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
-import { InfoTip } from '@/components/game/InfoTip';
-import { WeeklyDigest, WeeklyDigestInlineCard } from '@/components/game/WeeklyDigest';
-import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
-import { AnimatedNumber } from '@/components/game/AnimatedNumber';
-import { useFlash } from '@/hooks/useFlash';
-import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
-import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
-import { getManagerTips, type TipType } from '@/utils/managerTips';
-import { getActiveRecordChases } from '@/utils/records';
-import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
+import { WeeklyDigest } from '@/components/game/WeeklyDigest';
+import { DashboardMore } from '@/components/game/dashboard/DashboardMore';
+import { getFlag, setFlag, removeFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
-import { buildCoachTasks } from '@/utils/gameCoach';
-import { STORYLINE_CHAINS } from '@/data/storylineChains';
-import { FormGuide } from '@/components/game/FormGuide';
-import { getRecentForm } from '@/utils/formGuide';
-import { computeObjectiveProgress, objectiveXpMultiplier } from '@/utils/weeklyObjectives';
+import { usePresentationOverflow } from '@/hooks/usePresentationQueue';
+import { digestNote, gemNote, farewellNotes, celebrationNote, achievementNote, midSeasonNote } from '@/utils/overlayInbox';
+import {
+  isSeasonOver, getRaceMode, getSeasonStage, selectPrimaryAction, selectAttentionItems, selectNextFixture,
+  effectiveObjectiveXp, countClaimableObjectives, type SeasonStage, type AttentionId, type AttentionItem,
+} from '@/utils/dashboardSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
+import type { TranslationKey } from '@/i18n';
 
-const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
-// Collapse panels animate `height: auto`, which triggers a layout pass on
-// every frame. Spring physics + auto-height re-measures the content each
-// frame and stutters under load (especially with nested motion children
-// like the per-task FloatingXP). A duration-bounded tween with a smooth
-// ease-out cubic finishes in a known number of frames, no re-measuring.
-const COLLAPSE_TRANSITION = { type: 'tween' as const, duration: 0.22, ease: [0.32, 0.72, 0, 1] as const };
-// The chevron rotate is a cheap GPU transform — keep the bouncy spring
-// feel for the affordance toggle without paying the height-animation cost.
-const CHEVRON_SPRING = { type: 'spring' as const, stiffness: 320, damping: 26 };
-// Each tile's tint composes three utilities: foreground icon color,
-// a radial `glow` behind the tile, and a translucent `chip` background
-// for the icon badge. Keeping adjacent tiles visually distinct is the
-// goal — no two tiles share a hue.
-// Quick Links complement the bottom nav instead of duplicating it: Squad,
-// Tactics, Training and Transfers are already one tap away in the bottom bar,
-// so these tiles surface the buried club-management screens instead.
-const QUICK_LINKS = [
-  { label: 'Schedule',   screen: 'calendar'      as const, icon: Calendar,      color: 'text-cyan-400',    glow: 'bg-cyan-500',    chip: 'bg-cyan-500/10 border-cyan-500/30' },
-  { label: 'League',     screen: 'league-table'  as const, icon: Trophy,        color: 'text-amber-400',   glow: 'bg-amber-500',   chip: 'bg-amber-500/10 border-amber-500/30' },
-  { label: 'Finance',    screen: 'finance'       as const, icon: Banknote,      color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
-  { label: 'Facilities', screen: 'facilities'    as const, icon: Building2,     color: 'text-sky-400',     glow: 'bg-sky-500',     chip: 'bg-sky-500/10 border-sky-500/30' },
-  { label: 'Scouting',   screen: 'scouting'      as const, icon: Search,        color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
-  { label: 'Packs',      screen: 'packs'         as const, icon: Package,       color: 'text-yellow-300',  glow: 'bg-yellow-400',  chip: 'bg-yellow-400/10 border-yellow-400/30' },
-  { label: 'Youth',      screen: 'youth-academy' as const, icon: GraduationCap, color: 'text-rose-400',    glow: 'bg-rose-500',    chip: 'bg-rose-500/10 border-rose-500/30' },
-  { label: 'Cup',        screen: 'cup'           as const, icon: BarChart3,     color: 'text-orange-400',  glow: 'bg-orange-500',  chip: 'bg-orange-500/10 border-orange-500/30' },
-];
-const TIP_BG: Record<TipType, string> = {
-  warning: 'bg-destructive/10',
-  tactical: 'bg-blue-500/10',
-  transfer: 'bg-amber-500/10',
-  squad: 'bg-emerald-500/10',
-  info: 'bg-muted/20',
+const SEASON_STAGE_KEY: Record<SeasonStage, TranslationKey> = {
+  preSeason: 'dashboard.stage.preSeason',
+  autumn: 'dashboard.stage.autumn',
+  winter: 'dashboard.stage.winter',
+  spring: 'dashboard.stage.spring',
+  runIn: 'dashboard.stage.runIn',
 };
-const TIP_ICON: Record<TipType, string> = {
-  warning: 'text-destructive',
-  tactical: 'text-blue-400',
-  transfer: 'text-amber-400',
-  squad: 'text-emerald-400',
-  info: 'text-primary',
-};
-const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
-// Icon per competition row on the consolidated Competitions card. Continental
-// keeps the old per-tournament icon cue (Shield for the Shield Cup, Trophy
-// otherwise); Super Cup is Trophy; domestic/league cups use Award.
-function competitionRowIcon(entry: CompetitionStatusEntry) {
-  if (entry.key === 'continental') return entry.screen === 'shield-cup' ? Shield : Trophy;
-  if (entry.key === 'super-cup') return Trophy;
-  return Award;
-}
+const ATTENTION_ICON: Record<AttentionId, React.ElementType> = {
+  ultimatum: Gavel,
+  board: TrendingDown,
+  lineup: Users,
+  injuries: Activity,
+  contracts: FileText,
+  offers: DollarSign,
+  deadline: Clock,
+  'squad-short': UserPlus,
+  'squad-full': UserMinus,
+  'job-offers': Briefcase,
+  youth: Sprout,
+};
+
+const ATTENTION_COPY: Record<AttentionId, { title: TranslationKey; detail: TranslationKey }> = {
+  ultimatum: { title: 'dashboard.attention.ultimatum', detail: 'dashboard.attention.ultimatumDetail' },
+  board: { title: 'dashboard.attention.board', detail: 'dashboard.attention.boardDetail' },
+  lineup: { title: 'dashboard.attention.lineup', detail: 'dashboard.attention.lineupDetail' },
+  injuries: { title: 'dashboard.attention.injuries', detail: 'dashboard.attention.injuriesDetail' },
+  contracts: { title: 'dashboard.attention.contracts', detail: 'dashboard.attention.contractsDetail' },
+  offers: { title: 'dashboard.attention.offers', detail: 'dashboard.attention.offersDetail' },
+  deadline: { title: 'dashboard.attention.deadline', detail: 'dashboard.attention.deadlineDetail' },
+  'squad-short': { title: 'dashboard.attention.squadShort', detail: 'dashboard.attention.squadShortDetail' },
+  'squad-full': { title: 'dashboard.attention.squadFull', detail: 'dashboard.attention.squadFullDetail' },
+  'job-offers': { title: 'dashboard.attention.jobOffers', detail: 'dashboard.attention.jobOffersDetail' },
+  youth: { title: 'dashboard.attention.youth', detail: 'dashboard.attention.youthDetail' },
+};
+
+const SEVERITY_TONE: Record<AttentionItem['severity'], string> = {
+  critical: 'text-destructive bg-destructive/15',
+  warning: 'text-amber-400 bg-amber-500/15',
+  info: 'text-sky-400 bg-sky-500/15',
+};
 
 const Dashboard = () => {
   const { t } = useTranslation();
-  const reduceMotion = useReducedMotionPref();
   // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
-    playerClubId, clubs, players, week, season, fixtures, leagueTable,
-    boardConfidence, boardObjectives,
-    incomingOffers, trainingFocus, cup,
-    leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, domesticSuperCup, continentalSuperCup,
-    weekCliffhangers, objectiveStreak,
-    facilities, scouting, divisionTables, playerDivision,
-    managerProgression, clubRecords, transferWindowOpen, training,
-    weeklyObjectives, shortlist, seasonPhase, totalWeeks,
-    objectivesStartWeek, completedCoachTaskIds,
-    gameMode, careerManager, jobOffers,
-    pendingPressConference, pendingStoryline, pendingTransferTalk,
-    activeChallenge, youthAcademy, fanMood, sessionStats,
+    playerClubId, clubs, players, week, season, fixtures, leagueTable, boardConfidence, boardUltimatum,
+    incomingOffers, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
+    playerDivision, transferWindowOpen, weeklyObjectives, seasonPhase, totalWeeks, gameMode, jobOffers,
+    pendingPressConference, pendingStoryline, pendingTransferTalk, activeChallenge, youthAcademy,
     pendingAchievementIds,
-    activeStorylineChains, unlockedAchievements, packPityCounter, dailyPackOpens,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
-    boardConfidence: s.boardConfidence, boardObjectives: s.boardObjectives,
-    incomingOffers: s.incomingOffers,
-    trainingFocus: s.trainingFocus, cup: s.cup,
+    boardConfidence: s.boardConfidence, boardUltimatum: s.boardUltimatum,
+    incomingOffers: s.incomingOffers, cup: s.cup,
     leagueCup: s.leagueCup, championsCup: s.championsCup,
-    shieldCup: s.shieldCup, conferenceCup: s.conferenceCup, virtualClubs: s.virtualClubs,
+    shieldCup: s.shieldCup, conferenceCup: s.conferenceCup,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
-    weekCliffhangers: s.weekCliffhangers,
-    objectiveStreak: s.objectiveStreak,
-    facilities: s.facilities, scouting: s.scouting,
-    divisionTables: s.divisionTables, playerDivision: s.playerDivision,
-    managerProgression: s.managerProgression, clubRecords: s.clubRecords,
-    transferWindowOpen: s.transferWindowOpen, training: s.training,
-    weeklyObjectives: s.weeklyObjectives, shortlist: s.shortlist,
-    seasonPhase: s.seasonPhase, totalWeeks: s.totalWeeks,
-    objectivesStartWeek: s.objectivesStartWeek, completedCoachTaskIds: s.completedCoachTaskIds,
-    gameMode: s.gameMode, careerManager: s.careerManager, jobOffers: s.jobOffers,
+    playerDivision: s.playerDivision, transferWindowOpen: s.transferWindowOpen,
+    weeklyObjectives: s.weeklyObjectives, seasonPhase: s.seasonPhase, totalWeeks: s.totalWeeks,
+    gameMode: s.gameMode, jobOffers: s.jobOffers,
     pendingPressConference: s.pendingPressConference, pendingStoryline: s.pendingStoryline,
     pendingTransferTalk: s.pendingTransferTalk, activeChallenge: s.activeChallenge,
-    youthAcademy: s.youthAcademy, fanMood: s.fanMood, sessionStats: s.sessionStats,
-    pendingAchievementIds: s.pendingAchievementIds,
-    activeStorylineChains: s.activeStorylineChains,
-    unlockedAchievements: s.unlockedAchievements,
-    packPityCounter: s.packPityCounter || 0,
-    dailyPackOpens: s.dailyPackOpens,
+    youthAcademy: s.youthAcademy, pendingAchievementIds: s.pendingAchievementIds,
   })));
   const tw = getTransferWindows(totalWeeks);
   // Actions — stable references, individual selectors
@@ -187,9 +146,6 @@ const Dashboard = () => {
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const advanceToNextMatch = useGameStore(s => s.advanceToNextMatch);
   const endSeason = useGameStore(s => s.endSeason);
-  const selectPlayer = useGameStore(s => s.selectPlayer);
-  const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
-  const claimObjective = useGameStore(s => s.claimObjective);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const hasCupMatchToo = useMemo(() => {
@@ -198,29 +154,7 @@ const Dashboard = () => {
       week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
     });
   }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup]);
-  // Player's active competitions this season — drives the single consolidated
-  // Competitions card (replaces the six stacked CompetitionStatusCards).
-  const activeCompetitions = useMemo(() => getActiveCompetitions({
-    cup, leagueCup, championsCup, shieldCup, conferenceCup,
-    domesticSuperCup, continentalSuperCup, playerClubId, clubs, virtualClubs,
-  }), [cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, playerClubId, clubs, virtualClubs]);
   const pos = useLeaguePosition();
-  const unread = useUnreadCount();
-  const budgetFlash = useFlash(club?.budget || 0);
-
-  const [showWelcome, setShowWelcome] = useState(() => {
-    if (season === 1 && week === 1 && !getFlag(WELCOME_KEY)) return true;
-    return false;
-  });
-
-  // First run defaults to the single WelcomeCard; "Take the tour" opens the
-  // full 6-panel WelcomeOverlay. Both share the device-global WELCOME_SHOWN
-  // flag — dismissing either surface counts as seen.
-  const [welcomeTour, setWelcomeTour] = useState(false);
-  const dismissWelcome = () => {
-    setShowWelcome(false);
-    setFlag(WELCOME_KEY);
-  };
 
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [advanceDone, setAdvanceDone] = useState(false);
@@ -233,7 +167,6 @@ const Dashboard = () => {
     if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
     if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
   }, []);
-  const [boardWarningDismissed, setBoardWarningDismissed] = useState(false);
   const [midSeasonShown, setMidSeasonShown] = useState(() => getFlag(`dynasty-midseason-s${season}`));
   const showMidSeason = week === MID_SEASON_WEEK && !midSeasonShown;
   const dismissMidSeason = () => { setMidSeasonShown(true); setFlag(`dynasty-midseason-s${season}`); };
@@ -245,17 +178,16 @@ const Dashboard = () => {
   useEffect(() => {
     if (showMidSeason && pendingDigest) dismissWeeklyDigest();
   }, [showMidSeason, pendingDigest, dismissWeeklyDigest]);
-  const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
-  const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
-  // Reset board warning dismissal when confidence changes significantly
-  const prevConfRef = useRef(boardConfidence);
-  useEffect(() => {
-    if (Math.abs(prevConfRef.current - boardConfidence) >= CONFIDENCE_CHANGE_DISMISS_THRESHOLD) {
-      setBoardWarningDismissed(false);
-      prevConfRef.current = boardConfidence;
-    }
-  }, [boardConfidence]);
+
+  // "More" — collapsed by default, remembered per device.
+  const [moreOpen, setMoreOpen] = useState(() => getFlag(STORAGE_KEYS.DASHBOARD_MORE_EXPANDED));
+  const toggleMore = () => {
+    hapticLight();
+    const next = !moreOpen;
+    if (next) setFlag(STORAGE_KEYS.DASHBOARD_MORE_EXPANDED);
+    else removeFlag(STORAGE_KEYS.DASHBOARD_MORE_EXPANDED);
+    setMoreOpen(next);
+  };
 
   // Celebration toasts & modals: fire when week changes (after advanceWeek)
   const prevWeekRef = useRef(week);
@@ -325,6 +257,43 @@ const Dashboard = () => {
   const dismissTrophy = () => {
     setPendingTrophy(trophyQueueRef.current.shift() ?? null);
   };
+
+  // ── Popup cap ── One advance may put BLOCKING_POPUPS_PER_ADVANCE popups on
+  // screen; informational ones past that are filed to the inbox instead of
+  // queueing behind each other (utils/presentationQueue.ts). Each converter
+  // files the message AND clears the popup's state, so it stops asking for
+  // the screen. Decisions and trophy lifts are never filed.
+  const fileOverflowToInbox = useGameStore(s => s.fileOverflowToInbox);
+  usePresentationOverflow('weeklyDigest', () => {
+    const s = useGameStore.getState();
+    if (s.weeklyDigest) fileOverflowToInbox('weeklyDigest', [digestNote(s.weeklyDigest, s.week)]);
+  });
+  usePresentationOverflow('gemReveal', () => {
+    const s = useGameStore.getState();
+    if (s.pendingGemReveal) {
+      fileOverflowToInbox('gemReveal', [gemNote(s.pendingGemReveal, s.players[s.pendingGemReveal.playerId])]);
+    }
+  });
+  usePresentationOverflow('farewell', () => {
+    fileOverflowToInbox('farewell', farewellNotes(useGameStore.getState().pendingFarewell));
+  });
+  usePresentationOverflow('celebration', () => {
+    if (majorCelebration) fileOverflowToInbox('celebration', [celebrationNote(majorCelebration)]);
+    setMajorCelebration(null);
+  });
+  usePresentationOverflow('achievement', () => {
+    fileOverflowToInbox('achievement', pendingAchievementQueue.map(achievementNote));
+    setPendingAchievementQueue([]);
+    setCurrentAchievement(null);
+  });
+  usePresentationOverflow('midSeason', () => {
+    const s = useGameStore.getState();
+    const idx = s.leagueTable.findIndex(e => e.clubId === s.playerClubId);
+    fileOverflowToInbox('midSeason', idx === -1 ? [] : [midSeasonNote({
+      position: idx + 1, points: s.leagueTable[idx].points, boardConfidence: s.boardConfidence,
+    })]);
+    dismissMidSeason();
+  });
 
   // No season-reset effect: `recordCelebrationKeys` buckets by season and
   // resets itself when the season changes, so the keys expire correctly even
@@ -403,266 +372,27 @@ const Dashboard = () => {
     prevWeekRef.current = week;
   }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
 
-  // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
 
-  const entry = useMemo(() => leagueTable.find(e => e.clubId === playerClubId), [leagueTable, playerClubId]);
-
-  const avgMorale = useSquadAverageMorale();
-
-  const pendingOffers = incomingOffers.length;
-
-  // Injured players
-  const injuredPlayers = useMemo(() => (club?.playerIds || [])
-    .map(id => players[id])
-    .filter(Boolean)
-    .filter(p => p.injured && p.clubId === playerClubId), [club, players, playerClubId]);
-
-  // Expiring contracts (end this season)
-  const expiringPlayers = useMemo(() => (club?.playerIds || [])
-    .map(id => players[id])
-    .filter(Boolean)
-    .filter(p => getContractUrgency(p.contractEnd, season) !== null && !p.injured), [club, players, season]);
-
-  // Net weekly income — full breakdown so it matches the Finance page (was the
-  // simplified matchday+commercial-minus-wages estimate, which disagreed across screens).
-  const { breakdown: financeBreakdown } = useFinanceBreakdown();
-  const netWeeklyIncome = financeBreakdown?.net ?? 0;
-
-  // Streak stats
-  const winStreak = useMemo(() => getWinStreak(playerClubId, fixtures), [playerClubId, fixtures]);
-  const unbeatenRun = useMemo(() => getUnbeatenRun(playerClubId, fixtures), [playerClubId, fixtures]);
-  const cleanSheetStreak = useMemo(() => getCleanSheetStreak(playerClubId, fixtures), [playerClubId, fixtures]);
-
-  // Week preview teasers (with fallback so there's always something forward-looking)
-  const weekPreviews = useMemo(() => {
-    if (!club) return [];
-    const ctx = { playerClubId, players, clubs, fixtures, facilities: facilities, scouting: scouting, week, season, totalWeeks, boardObjectives, divisionTables: divisionTables, playerDivision: playerDivision };
-    const items = getWeekPreview(ctx);
-    if (items.length > 0) return items;
-    return getFallbackPreview(ctx);
-  }, [playerClubId, players, clubs, fixtures, facilities, scouting, week, season, totalWeeks, club, boardObjectives, divisionTables, playerDivision]);
-
-  // XP progress to next level
-  const xpProgress = useMemo(() => getXPProgress(managerProgression), [managerProgression]);
-
-  // Next unlockable perk preview
-  const nextPerk = useMemo(() => {
-    const totalXP = getTotalXP(managerProgression);
-    // Find cheapest perk that can be unlocked (has prerequisite met, not yet owned)
-    const available = MANAGER_PERKS
-      .filter(p => !managerProgression.unlockedPerks.includes(p.id))
-      .filter(p => {
-        const { canUnlock, reason } = canUnlockPerk(p, managerProgression);
-        // Show perks that are either unlockable or only blocked by XP (not by prerequisites)
-        return canUnlock || (reason && reason.startsWith('Need'));
-      })
-      .sort((a, b) => a.cost - b.cost);
-    if (available.length === 0) return null;
-    const perk = available[0];
-    const xpNeeded = Math.max(0, perk.cost - totalXP);
-    return { name: perk.name, xpNeeded, icon: perk.icon };
-  }, [managerProgression]);
-
-  // Record chase — is a player close to a club record?
-  const recordChases = useMemo(() => {
-    if (!club) return [];
-    const squad = club.playerIds.map(id => players[id]).filter(Boolean);
-    return getActiveRecordChases(clubRecords, squad, fixtures, playerClubId);
-  }, [club, players, fixtures, playerClubId, clubRecords]);
-
-  // Season race — top 3 teams nearest to player in table
-  const seasonRace = useMemo(() => {
-    if (!entry || leagueTable.length < 3) return [];
-    const playerIdx = leagueTable.indexOf(entry);
-    // Show teams within 2 positions above and below, plus the leader if not visible
-    const nearby = new Set<number>();
-    if (playerIdx > 0) nearby.add(0); // Always show leader
-    for (let i = Math.max(0, playerIdx - 2); i <= Math.min(leagueTable.length - 1, playerIdx + 2); i++) {
-      nearby.add(i);
-    }
-    return [...nearby].sort((a, b) => a - b).slice(0, 5).map(i => ({
-      clubId: leagueTable[i].clubId,
-      shortName: clubs[leagueTable[i].clubId]?.shortName || '?',
-      color: clubs[leagueTable[i].clubId]?.color ?? '#6b7280',
-      points: leagueTable[i].points,
-      position: i + 1,
-      isPlayer: leagueTable[i].clubId === playerClubId,
-    }));
-  }, [leagueTable, entry, clubs, playerClubId]);
-
-  // Recent form — last 5 results
-  const recentForm = useMemo(() => getRecentForm(playerClubId, fixtures), [playerClubId, fixtures]);
-
-  // Fan confidence
-  const _fanConfidence = useMemo(() => club ? getFanConfidence(club.fanBase, boardConfidence) : 0, [club, boardConfidence]);
-
-  // Manager tips
-  const managerTips = useMemo(() => club ? getManagerTips({
-    week, season, totalWeeks, club, players, fixtures,
-    transferWindowOpen: transferWindowOpen,
-    boardConfidence, incomingOffers: incomingOffers.length,
-    tacticalFamiliarity: training.tacticalFamiliarity,
-  }) : [], [week, season, totalWeeks, club, players, fixtures, transferWindowOpen, boardConfidence, incomingOffers.length, training.tacticalFamiliarity]);
-
-  const coachTasks = useMemo(() => {
-    if (!club) return [];
-    return buildCoachTasks({
-      club,
-      fixtures,
-      playerClubId,
-      unreadMessages: unread,
-      objectives: weeklyObjectives,
-      players,
-      transferWindowOpen: transferWindowOpen,
-      scoutAssignments: scouting.assignments,
-      scoutReportsCount: scouting.reports.length,
-      shortlistCount: shortlist.length,
-      week,
-      season,
-      completedTaskIds: completedCoachTaskIds,
-    });
-  }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, season, completedCoachTaskIds]);
-  // A coach task is "claimed" once its id is in completedCoachTaskIds (claiming
-  // is what grants the XP). A task can be completed-but-unclaimed (ready to
-  // claim). Counts + the "all done" state track CLAIMED, and the panel hides
-  // entirely once everything is claimed so it stops taking up space.
-  const isCoachClaimed = useCallback((id: string) => completedCoachTaskIds.includes(id), [completedCoachTaskIds]);
-  const completedCoachTasks = coachTasks.filter(task => isCoachClaimed(task.id)).length;
-  const allCoachTasksDone = coachTasks.length > 0 && completedCoachTasks === coachTasks.length;
-  const [coachCollapsed, setCoachCollapsed] = useState(false);
-
-  // ── Objectives ── claimed-based; panel hides once every objective is claimed.
-  const claimedObjectives = weeklyObjectives.filter(o => o.claimed).length;
-  const allObjectivesDone = weeklyObjectives.length > 0 && weeklyObjectives.every(o => o.completed && o.claimed);
-  const [objectivesCollapsed, setObjectivesCollapsed] = useState(false);
-
-  // ── Active Sagas ──
-  const [sagaCollapsed, setSagaCollapsed] = useState(false);
-  const activeSagas = useMemo(() => {
-    return (activeStorylineChains || []).map(chain => {
-      const def = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
-      if (!def) return null;
-      const targetPlayer = chain.targetPlayerId ? players[chain.targetPlayerId] : null;
-      return { chain, def, targetPlayer };
-    }).filter(Boolean);
-  }, [activeStorylineChains, players]);
-
-  // ── Achievement progress (top 5 closest to completion) ──
-  const [achievementsCollapsed, setAchievementsCollapsed] = useState(false);
-  const achievementProgress = useMemo(() => {
-    const state = useGameStore.getState();
-    const _tick = week; // re-evaluate when week advances (state snapshot changes)
-    return ACHIEVEMENTS
-      .filter(a => !a.hidden && !(unlockedAchievements || []).includes(a.id) && a.progress)
-      .map(a => ({ ...a, prog: a.progress!(state) }))
-      .filter(a => a.prog && a.prog.current > 0 && a.prog.target > 0)
-      .sort((a, b) => (b.prog!.current / b.prog!.target) - (a.prog!.current / a.prog!.target))
-      .slice(0, 5);
-  }, [unlockedAchievements, week]);
-
-
-  const objectivesWithProgress = useMemo(() => {
-    if (!club) return weeklyObjectives;
-    const state = useGameStore.getState();
-    const ctx = {
-      playerClubId,
-      players,
-      playerIds: club.playerIds,
-      fixtures,
-      leagueTable,
-      week,
-      season,
-      lineup: club.lineup || [],
-      // Pass every match source so pre-season friendlies, cup ties,
-      // and continental matches actually move match-based objective
-      // progress (was previously league-only).
-      friendlies: state.friendlies,
-      cupTies: state.cup?.ties,
-      leagueCupTies: state.leagueCup?.ties,
-      championsCup: state.championsCup,
-      shieldCup: state.shieldCup,
-      conferenceCup: state.conferenceCup,
-      domesticSuperCup: state.domesticSuperCup,
-      continentalSuperCup: state.continentalSuperCup,
-    };
-    return computeObjectiveProgress(weeklyObjectives, ctx);
-  }, [weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season]);
-
-  // Coach-task XP is no longer auto-granted on completion — the player claims
-  // each completed task (markCoachTaskComplete grants the XP on the claim tap).
-
-  // Track "just completed" for reward animations
-  const prevCompletedCoachRef = useRef<Set<string> | null>(null);
-  const [justCompletedCoach, setJustCompletedCoach] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (prevCompletedCoachRef.current === null) {
-      prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
-      return;
-    }
-    const prev = prevCompletedCoachRef.current;
-    const newlyDone = new Set<string>();
-    for (const task of coachTasks) {
-      if (task.completed && !prev.has(task.id)) newlyDone.add(task.id);
-    }
-    prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
-    // Light tap when a task becomes ready to claim. XP + the reward animation
-    // now fire on the claim tap (handleClaimCoach), not here.
-    if (newlyDone.size > 0) hapticLight();
-  }, [coachTasks]);
-
-  // Shared with weeklyObjectives + weekAdvance so the number shown here can
-  // never drift from the number granted.
-  const effectiveObjXp = (obj: { xpReward: number; rarity?: string }) =>
-    obj.xpReward * objectiveXpMultiplier(obj as { rarity?: 'common' | 'rare' | 'legendary' });
-
+  // Toast when an objective completes. Its Claim button lives in "More", so
+  // the toast says where to find it and the More toggle carries the count.
   const prevCompletedObjRef = useRef<Set<string> | null>(null);
-  const [justCompletedObj, setJustCompletedObj] = useState<Set<string>>(new Set());
-
   useEffect(() => {
-    if (prevCompletedObjRef.current === null) {
-      prevCompletedObjRef.current = new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId));
-      return;
-    }
+    const done = new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId));
     const prev = prevCompletedObjRef.current;
-    const newlyDone = new Set<string>();
-    for (const obj of weeklyObjectives) {
-      if (obj.completed && !prev.has(obj.objectiveId)) newlyDone.add(obj.objectiveId);
-    }
-    prevCompletedObjRef.current = new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId));
-    if (newlyDone.size > 0) {
-      hapticLight();
-      const allNowDone = weeklyObjectives.every(o => o.completed);
-      if (allNowDone) {
-        celebrationToast('Perfect Month!', 'All objectives complete — claim your rewards!');
-      } else {
-        const newlyDoneObjs = weeklyObjectives.filter(o => newlyDone.has(o.objectiveId));
-        for (const obj of newlyDoneObjs) {
-          celebrationToast('Objective Complete', `${obj.title} — tap Claim for +${effectiveObjXp(obj)} XP`);
-        }
+    prevCompletedObjRef.current = done;
+    if (!prev) return;
+    const newlyDone = weeklyObjectives.filter(o => o.completed && !prev.has(o.objectiveId));
+    if (newlyDone.length === 0) return;
+    hapticLight();
+    if (weeklyObjectives.every(o => o.completed)) {
+      celebrationToast(t('dashboard.objectives.allDoneTitle'), t('dashboard.objectives.allDoneBody'));
+    } else {
+      for (const obj of newlyDone) {
+        celebrationToast(t('dashboard.objectives.doneTitle'), t('dashboard.objectives.doneBody', { title: obj.title, xp: effectiveObjectiveXp(obj) }));
       }
     }
-  }, [weeklyObjectives]);
-
-  // ── Claim handlers ── XP is granted on the claim tap, with a FloatingXP burst.
-  const handleClaimObjective = useCallback((objectiveId: string) => {
-    const obj = weeklyObjectives.find(o => o.objectiveId === objectiveId);
-    if (!obj || !obj.completed || obj.claimed) return;
-    claimObjective(objectiveId);
-    hapticMedium();
-    setJustCompletedObj(new Set([objectiveId]));
-    setTimeout(() => setJustCompletedObj(new Set()), 1000);
-  }, [weeklyObjectives, claimObjective]);
-
-  const handleClaimCoachTask = useCallback((taskId: string) => {
-    if (completedCoachTaskIds.includes(taskId)) return;
-    const wasLast = coachTasks.length > 0 && coachTasks.filter(t => completedCoachTaskIds.includes(t.id)).length + 1 === coachTasks.length;
-    markCoachTaskComplete(taskId);
-    hapticMedium();
-    setJustCompletedCoach(new Set([taskId]));
-    setTimeout(() => setJustCompletedCoach(new Set()), 1000);
-    if (wasLast) celebrationToast('Checklist Complete!', `+${COACH_ALL_TASKS_BONUS_XP} XP bonus earned`);
-  }, [completedCoachTaskIds, coachTasks, markCoachTaskComplete]);
+  }, [weeklyObjectives, t]);
+  const claimableObjectives = countClaimableObjectives(weeklyObjectives);
 
   // Last played match
   const lastMatchInfo = useMemo(() => {
@@ -679,42 +409,38 @@ const Dashboard = () => {
     return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result, week: lastMatch.week };
   }, [fixtures, playerClubId, clubs]);
 
-  // NB: the phase is 'playoff', not 'playoffs'. The plural (behind an `as
-  // string` cast that hid the type error) made this permanently false, so
-  // `seasonOver` stayed true through the whole playoff phase and suppressed
-  // both the Match Prep card and the Advance Week panel — the tie could never
-  // be started and the season could never roll.
+
+  // NB: the phase is 'playoff', not 'playoffs' — see `isSeasonOver`.
   const inPlayoffs = seasonPhase === 'playoff';
   const competitionInfo = getCompetitionInfo(competition, {
     inPlayoffs,
     leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,
   });
 
-  // Season over check — uses totalWeeks from league config, but only when all player matches done and not in playoffs
-  const seasonOver = useMemo(() => {
-    const allMatchesPlayed = fixtures
-      .filter(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)
-      .every(m => m.played);
-    return !inPlayoffs && (week > totalWeeks || (allMatchesPlayed && fixtures.filter(m => m.played).length > 0));
-  }, [fixtures, playerClubId, week, inPlayoffs, totalWeeks]);
-
-  // Title race / relegation battle mode — special UI in final 10 weeks
-  const raceMode = useMemo(() => {
-    if (seasonOver || inPlayoffs) return null;
-    const weeksLeft = totalWeeks - week;
-    if (weeksLeft > 10 || !entry) return null;
-    const playerPos = leagueTable.indexOf(entry) + 1;
-    const totalTeams = leagueTable.length;
-    // Title contender: top 2 and within 6 points of leader
-    if (playerPos <= 2) {
-      const leaderPts = leagueTable[0]?.points || 0;
-      const gap = leaderPts - (entry.points || 0);
-      if (gap <= 6) return 'title' as const;
-    }
-    // Relegation battle: bottom 3
-    if (playerPos >= totalTeams - 2) return 'relegation' as const;
-    return null;
-  }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
+  const seasonOver = useMemo(
+    () => isSeasonOver({ fixtures, playerClubId, week, totalWeeks, seasonPhase }),
+    [fixtures, playerClubId, week, totalWeeks, seasonPhase],
+  );
+  const relegationSpots = LEAGUES.find(d => d.id === playerDivision)?.relegationSpots ?? 0;
+  const raceMode = useMemo(
+    () => getRaceMode({ seasonOver, seasonPhase, week, totalWeeks, leagueTable, playerClubId, relegationSpots }),
+    [seasonOver, seasonPhase, week, totalWeeks, leagueTable, playerClubId, relegationSpots],
+  );
+  const hasMatchThisWeek = !!nextMatch && !!opponent;
+  const primary = selectPrimaryAction({
+    seasonOver, hasMatchThisWeek, hasFixtureThisWeek: !!nextMatch, seasonPhase, week, totalWeeks,
+  });
+  const nextFixture = useMemo(
+    () => (hasMatchThisWeek ? null : selectNextFixture(fixtures, playerClubId, week)),
+    [hasMatchThisWeek, fixtures, playerClubId, week],
+  );
+  const youthReady = youthAcademy.prospects.filter(p => p.readyToPromote).length;
+  const attention = useMemo(() => (club ? selectAttentionItems({
+    club, players, playerClubId, season, week,
+    incomingOffers: incomingOffers.length, boardConfidence, boardUltimatum, leaguePosition: pos,
+    transferWindowOpen, windows: tw, jobOffers: gameMode === 'career' ? jobOffers.length : 0, youthReady, hasMatchThisWeek,
+  }) : []), [club, players, playerClubId, season, week, incomingOffers.length, boardConfidence, boardUltimatum, pos,
+    transferWindowOpen, tw, gameMode, jobOffers.length, youthReady, hasMatchThisWeek]);
 
   if (!club) {
     // `playerClubId` no longer resolves. In career mode `setScreen` redirects an
@@ -731,347 +457,76 @@ const Dashboard = () => {
       </div>
     );
   }
-  const careerReputationLabel = getReputationTierLabel(careerManager?.reputationTier ?? 'unknown');
 
-  // Training focus label map
-  const trainingLabels: Record<string, string> = {
-    fitness: 'Fitness',
-    attacking: 'Attacking',
-    defending: 'Defending',
-    mentality: 'Mentality',
+  const handleAdvance = () => {
+    hapticMedium();
+    setIsAdvancing(true);
+    if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
+    advanceKickoffTimerRef.current = setTimeout(() => {
+      const advancePromise = advanceWeek();
+      guardAsync(
+        advancePromise,
+        'Dashboard.advanceWeek',
+        { title: 'Could not advance week', body: 'Please try again.' },
+      );
+      // Re-enable only after the (async) advance settles — otherwise a fast
+      // second tap fires a concurrent advanceWeek() and double-processes the
+      // week (double income/stats/fixtures). Promise.resolve handles the sync path.
+      Promise.resolve(advancePromise).finally(() => {
+        setIsAdvancing(false);
+        setAdvanceDone(true);
+        hapticHeavy();
+        if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
+        advanceDoneTimerRef.current = setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
+      });
+    }, 50);
   };
 
-  // Attention dots for quick links.
-  // Board-critical confidence is already surfaced via <BoardWarning />, so we
-  // don't re-dot it here (the 'club' tile was removed and that entry would be
-  // dead code anyway).
-  const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
-  const packPityPrimed = packPityRemaining <= 2;
-  // A free daily pack the player hasn't opened today — surfaced as a simple dot
-  // when the higher-priority pity badge isn't showing.
-  const freePackAvailable = hasUnclaimedFreeDailyPack(dailyPackOpens);
-  // Quick-link badges. Squad/Tactics/Training/Transfers moved out of the grid
-  // (they live in the bottom nav), so only the packs badge remains here; the
-  // lineup/window/familiarity nudges surface via Manager Tips instead.
-  const quickLinkBadges: Record<string, { color: string; label?: string; labelColor?: string }> = {
-    ...(packPityPrimed
-      ? {
-          packs: packPityRemaining === 0
-            ? { color: 'bg-gradient-to-br from-amber-200 to-amber-500', label: '✦', labelColor: 'text-amber-950' }
-            : { color: 'bg-gradient-to-br from-amber-300 to-amber-500', label: String(packPityRemaining), labelColor: 'text-amber-950' },
-        }
-      // No pity badge — surface a free-daily-pack nudge instead (simple dot).
-      : freePackAvailable
-        ? { packs: { color: 'bg-emerald-500' } }
-        : {}),
+  const handleSkipToNextMatch = () => {
+    hapticMedium();
+    // Same double-fire hazard as Advance: without setting isAdvancing before
+    // the call, a fast double-tap runs two concurrent multi-week advances.
+    setIsAdvancing(true);
+    const skipPromise = advanceToNextMatch();
+    guardAsync(
+      skipPromise,
+      'Dashboard.advanceToNextMatch',
+      { title: 'Could not advance', body: 'Please try again.' },
+    );
+    Promise.resolve(skipPromise).finally(() => setIsAdvancing(false));
   };
+
+  const nextFixtureOpponent = nextFixture
+    ? clubs[nextFixture.homeClubId === playerClubId ? nextFixture.awayClubId : nextFixture.homeClubId]
+    : null;
+  const isDerby = hasMatchThisWeek && getDerbyIntensity(playerClubId, opponent.id) > 0;
+  const challengeLabel = activeChallenge
+    ? activeChallenge.completed ? t('dashboard.pill.challengeComplete')
+      : activeChallenge.failed ? t('dashboard.pill.challengeFailed')
+      : t('dashboard.pill.challengeActive', { seasons: activeChallenge.seasonsRemaining })
+    : null;
+  const weeksLeft = totalWeeks - week;
 
   return (
-    <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      {/* Welcome for first-time players — single card by default, full tour on request */}
-      {showWelcome && (welcomeTour
-        ? <WelcomeOverlay onComplete={dismissWelcome} />
-        : <WelcomeCard onDismiss={dismissWelcome} onTakeTour={() => setWelcomeTour(true)} />
-      )}
-
-      {/* Daily login-streak reward — auto-presents once per day when claimable. */}
+      {/* ── Overlays (no layout space; sequenced + capped by the presentation queue) ── */}
       <DailyRewardModal />
-
-      {/* First-win notification permission ask — routes through the
-          presentation queue; only appears on native at the first-win peak. */}
       <NotifPermissionModal />
-
-      <PageHint
-        screen="dashboard"
-        title={t('dashboard.yourDashboard')}
-        body={t('dashboard.thisIsYourWeeklyHub')}
-      />
-
-      {/* Live-event banner (World Cup or the generated monthly festival).
-          Links to the Festival hub. */}
-      <FestivalBanner />
-
-      {/* "Continue where you left off" — once per session, deep-links the top
-          pending decision for a returning player. */}
-      <ContinueResumeCard />
-
-      {/* Next Match — deliberately the first content card (only the resume
-          card, which self-hides on week 1 season 1, sits above it). The core
-          loop must be above the fold; everything else is secondary. */}
-      {!seasonOver && nextMatch && opponent ? (
-        <GlassPanel className={cn("p-5", competitionInfo.borderAccent)} onClick={() => setScreen('match-prep')}>
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-wider border',
-              competitionInfo.bg
-            )}>
-              <Trophy className="w-3 h-3" />
-              <span className={competitionInfo.color}>{competitionInfo.name}</span>
-            </span>
-            <span className="text-micro text-muted-foreground">Week {week}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: club.color, color: club.secondaryColor }}
-              >
-                {club.shortName}
-              </div>
-              <p className="text-sm font-bold text-foreground">{club.shortName}</p>
-              <p className="text-micro text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
-            </div>
-            <div className="px-4">
-              <p className="text-2xl font-black text-muted-foreground">VS</p>
-            </div>
-            <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
-              >
-                {opponent.shortName}
-              </div>
-              <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
-              <p className="text-micro text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
-            </div>
-          </div>
-          {hasCupMatchToo && (
-            <div className="flex items-center justify-center gap-1.5 mt-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-              <Trophy className="w-3 h-3 text-primary" />
-              <span className="text-micro font-medium text-primary">Cup match also this week</span>
-            </div>
-          )}
-          <Button
-            className="w-full mt-4 gap-2"
-            onClick={(e) => { e.stopPropagation(); setScreen('match-prep'); }}
-          >
-            <Play className="w-4 h-4" /> Match Prep
-          </Button>
-        </GlassPanel>
-      ) : !seasonOver && (
-        <GlassPanel className="p-5 space-y-3">
-          <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-foreground">
-              {season === 1 && week <= 2 && (club.lineup || []).filter(Boolean).length < 11 ? 'Get Your Team Ready' : 'Training Week'}
-            </p>
-            {season === 1 && week <= 2 && (
-              <p className="text-micro text-muted-foreground">Set your lineup and tactics before advancing</p>
-            )}
-          </div>
-          {/* Activity suggestions */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            {transferWindowOpen && (
-              <button type="button" onClick={() => setScreen('transfers')} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
-                <UserPlus className="w-3 h-3" /> Scout Transfers
-              </button>
-            )}
-            <button type="button" onClick={() => setScreen('training')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
-              <Dumbbell className="w-3 h-3" /> Training
-            </button>
-            {youthAcademy.prospects.some(p => p.readyToPromote) && (
-              <button type="button" onClick={() => setScreen('youth-academy')} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors">
-                <Users className="w-3 h-3" /> Youth Ready
-              </button>
-            )}
-            {scouting.reports.length > 0 && (
-              <button type="button" onClick={() => setScreen('scouting')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
-                <BarChart3 className="w-3 h-3" /> Scout Reports
-              </button>
-            )}
-          </div>
-          <Button className={cn(
-            "w-full gap-2 active:scale-[0.97] transition-all",
-            isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.3)]",
-            advanceDone && "scale-[1.03] shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
-          )} disabled={isAdvancing} onClick={() => {
-            hapticMedium();
-            setIsAdvancing(true);
-            if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
-            advanceKickoffTimerRef.current = setTimeout(() => {
-              const advancePromise = advanceWeek();
-              guardAsync(
-                advancePromise,
-                'Dashboard.advanceWeek',
-                { title: 'Could not advance week', body: 'Please try again.' },
-              );
-              // Re-enable only after the (async) advance settles — otherwise a fast
-              // second tap fires a concurrent advanceWeek() and double-processes the
-              // week (double income/stats/fixtures). Promise.resolve handles the sync path.
-              Promise.resolve(advancePromise).finally(() => {
-                setIsAdvancing(false);
-                setAdvanceDone(true);
-                hapticHeavy();
-                if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
-                advanceDoneTimerRef.current = setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
-              });
-            }, 50);
-          }}>
-            {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
-          </Button>
-          {!nextMatch && seasonPhase === 'regular' && week < totalWeeks && (
-            <button
-              type="button"
-              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5"
-              disabled={isAdvancing}
-              onClick={() => {
-                hapticMedium();
-                // Same double-fire hazard as the Advance button above: without
-                // setting isAdvancing before the call, a fast double-tap runs two
-                // concurrent multi-week advances (double income/stats/fixtures).
-                setIsAdvancing(true);
-                const skipPromise = advanceToNextMatch();
-                guardAsync(
-                  skipPromise,
-                  'Dashboard.advanceToNextMatch',
-                  { title: 'Could not advance', body: 'Please try again.' },
-                );
-                Promise.resolve(skipPromise).finally(() => setIsAdvancing(false));
-              }}
-            >
-              {isAdvancing
-                ? <><Loader2 className="w-3.5 h-3.5 inline mr-1 align-[-2px] animate-spin" /> Advancing...</>
-                : <><FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match</>}
-            </button>
-          )}
-        </GlassPanel>
-      )}
-
-      {/* Persistent legacy/streak visibility — self-hides for fresh installs. */}
-      <DynastyStatusChip />
-
-      {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
-          the user advances week or dismisses it. */}
-      <OnboardingChecklist />
-
-      {/* Starter Kit offer — same product/price as the Shop card, surfaced on
-          the screen new managers actually live on before its 7-day window
-          expires. Self-hides when purchased, dismissed or expired. */}
-      <StarterKitBanner />
-
-      {/* Mid-Season Report (shown at week 23, once per season) */}
       {showMidSeason && <MidSeasonReport onDismiss={dismissMidSeason} />}
-
-      {/* Weekly Digest (post-advanceWeek summary) */}
       <WeeklyDigest />
-
-      {/* Club Identity Hero */}
-      {!seasonOver && !inPlayoffs && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
-          <div className="h-1 rounded-full" style={{ background: `linear-gradient(to right, ${club.color}, transparent)` }} />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-bold font-display text-foreground">{season === 1 && week === 1 ? `Welcome to ${club.name}` : club.name}</p>
-              <p className="text-micro text-muted-foreground">
-                Season {season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Quiet-week digest: the same summary as the modal, inline and optional.
-          Renders only on weeks WeeklyDigest deliberately did not interrupt for. */}
-      <WeeklyDigestInlineCard />
-
-      {/* Career Mode Info Panel */}
-      {gameMode === 'career' && careerManager && (
-        <GlassPanel
-          className="p-3 cursor-pointer"
-          onClick={() => setScreen(jobOffers.length > 0 ? 'job-market' : 'career-overview')}
-          aria-label={
-            careerManager.contract
-              ? 'Open career — view job market or resign'
-              : jobOffers.length > 0
-                ? 'Open job market — review offers'
-                : 'Open career overview'
-          }
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Award className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-foreground">{careerManager.name}</p>
-                <p className="text-micro text-muted-foreground">
-                  Age {careerManager.age} — {careerReputationLabel}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="relative w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center transition-colors hover:bg-primary/20"
-                onClick={(e) => { e.stopPropagation(); setScreen('inbox'); }}
-                aria-label={t('dashboard.inbox')}
-              >
-                <Mail className="w-4 h-4 text-primary" />
-                {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-micro font-bold flex items-center justify-center">
-                    {unread > 99 ? '99+' : unread}
-                  </span>
-                )}
-              </button>
-              <div className="text-right">
-                {careerManager.contract ? (
-                  <p className="text-micro text-muted-foreground">
-                    Contract ends S{careerManager.contract.endSeason}
-                  </p>
-                ) : (
-                  <span className="text-micro bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
-                    Unemployed
-                  </span>
-                )}
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/70 shrink-0" aria-hidden />
-            </div>
-          </div>
-          {jobOffers.length > 0 && (
-            <div className="mt-2 bg-primary/10 rounded-lg px-3 py-1.5">
-              <p className="text-micro text-primary font-semibold">
-                {jobOffers.length} job offer{jobOffers.length > 1 ? 's' : ''} waiting
-              </p>
-            </div>
-          )}
-        </GlassPanel>
-      )}
-
-      {/* National Team Offer Popup */}
       <NationalTeamOfferModal />
-
-      {/* Press Conference (shown after matches) */}
       {pendingPressConference && <PressConference />}
-
-      {/* Storyline Event (shown when triggered) */}
       {pendingStoryline && <StorylineModal />}
-
-      {/* Transfer Talk (shown when player requests transfer) */}
       {pendingTransferTalk && <PlayerTransferTalk />}
-
-      {/* Farewell Modal (shown when a long-serving player departs) */}
       <FarewellModal />
-
-      {/* Hidden Gem Scouting Reveal */}
       <GemRevealModal />
-
-      {/* Session Start Recap — "Welcome back" overlay */}
       <SessionRecap />
-
-      {/* Board Warning (low confidence) */}
-      {!boardWarningDismissed && boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && (
-        <BoardWarning confidence={boardConfidence} onDismiss={() => setBoardWarningDismissed(true)} />
-      )}
-
-      {/* Trophy Ceremony (G4) — league title / domestic cup wins */}
       <TrophyCeremonyModal
         open={!!pendingTrophy}
         onClose={dismissTrophy}
         title={pendingTrophy?.title || ''}
         subtitle={pendingTrophy?.subtitle || ''}
       />
-
-      {/* Major Celebration Modal */}
       <CelebrationModal
         open={!!majorCelebration}
         onClose={() => setMajorCelebration(null)}
@@ -1080,1087 +535,289 @@ const Dashboard = () => {
         icon={majorCelebration?.icon}
         severity={majorCelebration?.severity}
       />
-
-      {/* Achievement Unlock Modal */}
       <AchievementUnlockModal
         open={!!currentAchievement}
         onClose={dismissAchievement}
         achievement={currentAchievement}
       />
 
-      {/* Title Race / Relegation Battle Banner */}
-      {raceMode && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            'rounded-xl px-3 py-2 flex items-center justify-between border',
-            raceMode === 'title'
-              ? 'bg-primary/10 border-primary/40 shadow-[0_0_12px_hsl(var(--primary)/0.15)]'
-              : 'bg-destructive/10 border-destructive/40 shadow-[0_0_12px_hsl(0_84%_60%/0.15)]'
-          )}
-        >
-          <div className="flex items-center gap-2">
-            {raceMode === 'title' ? (
-              <Trophy className="w-4 h-4 text-primary" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 text-destructive" />
-            )}
-            <span className={cn(
-              'text-xs font-black uppercase tracking-wider',
-              raceMode === 'title' ? 'text-primary' : 'text-destructive'
-            )}>
-              {raceMode === 'title' ? 'Title Race' : 'Relegation Battle'}
-            </span>
-          </div>
-          <span className="text-micro text-muted-foreground">
-            {totalWeeks - week} week{totalWeeks - week === 1 ? '' : 's'} left
-          </span>
-        </motion.div>
-      )}
-
-      {/* Active Challenge Banner */}
-      {activeChallenge && !activeChallenge.completed && !activeChallenge.failed && (
-        <div className="bg-primary/10 border border-primary/30 rounded-xl px-3 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-primary" />
-            <span className="text-xs font-semibold text-primary">Challenge Active</span>
-          </div>
-          <span className="text-micro text-muted-foreground">{activeChallenge.seasonsRemaining} season(s) left</span>
-        </div>
-      )}
-
-      {/* Transfer Window Countdown / Deadline Day */}
-      {(week === tw.summerEnd || week === tw.winterEnd) ? (
-        <button type="button" onClick={() => setScreen('transfers')} className="w-full bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2.5 text-left animate-pulse">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-destructive" />
-              <span className="text-xs font-bold text-destructive uppercase tracking-wide">Deadline Day!</span>
-            </div>
-            <span className="text-micro text-muted-foreground">Window closes tonight</span>
-          </div>
-          {pendingOffers > 0 && (
-            <p className="text-micro text-destructive/80 mt-1 font-semibold">{pendingOffers} incoming offer{pendingOffers !== 1 ? 's' : ''} — respond before the window shuts!</p>
-          )}
-        </button>
-      ) : transferWindowOpen && (() => {
-        const windowEnd = week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd;
-        const weeksLeft = windowEnd - week;
-        const windowName = week <= tw.summerEnd ? 'Summer' : 'Winter';
-        const isUrgent = weeksLeft <= 2;
-        // Only show full-width banner when <=4 weeks left; otherwise users find transfers via quick links
-        if (weeksLeft > 4) return null;
-        return (
-          <button
-            type="button"
-            onClick={() => setScreen('transfers')}
-            className={cn(
-              'w-full rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer text-left transition-colors',
-              isUrgent ? 'bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/15' : 'bg-primary/5 border border-primary/20 hover:bg-primary/10'
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <ShoppingBag className={cn('w-4 h-4', isUrgent ? 'text-amber-400' : 'text-primary')} />
-              <span className={cn('text-xs font-semibold', isUrgent ? 'text-amber-400' : 'text-primary')}>
-                {windowName} Transfer Window
-              </span>
-            </div>
-            <span className={cn('text-micro font-medium', isUrgent ? 'text-amber-400' : 'text-muted-foreground')}>
-              {weeksLeft} week{weeksLeft !== 1 ? 's' : ''} remaining
-            </span>
-          </button>
-        );
-      })()}
-      {activeChallenge?.completed && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2 text-center">
-          <span className="text-xs font-bold text-emerald-400">Challenge Complete!</span>
-        </div>
-      )}
-      {activeChallenge?.failed && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 text-center">
-          <span className="text-xs font-bold text-destructive">Challenge Failed</span>
-        </div>
-      )}
-
-      {/* Season End */}
-      {seasonOver && (
-        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <GlassPanel className="p-5 border-primary/40 text-center">
-            <Trophy className="w-8 h-8 text-primary mx-auto mb-2" />
-            <p className="text-lg font-black text-foreground font-display">Season {season} Complete!</p>
-            <p className="text-sm text-muted-foreground mb-3">Final Position: {pos}{getSuffix(pos)}</p>
-            <Button className="w-full gap-2" onClick={() => { hapticHeavy(); endSeason(); }}>
-              View Season Summary
-            </Button>
-          </GlassPanel>
-        </motion.div>
-      )}
-
-      {/* Playoff Banner */}
-      {inPlayoffs && (
-        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Promotion Playoffs</span>
-            </div>
-            <span className="text-micro text-muted-foreground">Week {week} / Season {season}</span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Last Match Result */}
-      {lastMatchInfo && !seasonOver && (
-        <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
-        <GlassPanel className="p-3 flex items-center justify-between" onClick={() => { loadMatchForReview(lastMatchInfo.week); setScreen('match-review'); }} aria-label="View match review">
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              'w-6 h-6 rounded-md flex items-center justify-center text-xs font-black',
-              lastMatchInfo.result === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
-              lastMatchInfo.result === 'L' ? 'bg-destructive/20 text-destructive' :
-              'bg-amber-500/20 text-amber-400'
-            )}>{lastMatchInfo.result}</span>
-            <div>
-              <p className="text-xs font-semibold text-foreground">Last Result: {lastMatchInfo.score} vs {lastMatchInfo.oppName}</p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-        </GlassPanel>
-        </motion.div>
-      )}
-
-      {/* Rivalry Week banner — only when the next match is a derby */}
-      {!seasonOver && nextMatch && opponent && getDerbyIntensity(playerClubId, opponent.id) > 0 && (
-        <GlassPanel className="p-3 flex items-center gap-2" onClick={() => setScreen('rivalries')} aria-label="View rivalries">
-          <Swords className="w-4 h-4 text-orange-400 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-micro font-bold uppercase tracking-wider text-orange-400">Rivalry Week</p>
-            <p className="text-xs font-semibold text-foreground truncate">{getDerbyName(playerClubId, opponent.id) || `vs ${opponent.shortName}`}</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-        </GlassPanel>
-      )}
-
-      {/* Guided checklist for new careers */}
-      {!seasonOver && season <= 2 && coachTasks.length > 0 && !allCoachTasksDone && (
-        <GlassPanel className="p-4 border-primary/20">
-          <button
-            type="button"
-            onClick={() => setCoachCollapsed(c => !c)}
-            aria-expanded={!coachCollapsed}
-            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
-                <ChevronRight className="w-3 h-3 text-primary" />
-              </motion.div>
-              <p className="text-micro text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
-              {allCoachTasksDone && <span className="text-micro text-emerald-400 font-bold">&#10003; Complete</span>}
-            </div>
-            <span className="text-micro text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
-          </button>
-          <PremiumProgress
-            className="mt-2"
-            size="sm"
-            tone={allCoachTasksDone ? 'emerald' : 'primary'}
-            value={coachTasks.length > 0 ? Math.round((completedCoachTasks / coachTasks.length) * 100) : 0}
-            glow={allCoachTasksDone}
-            animate={false}
-          />
-          <AnimatePresence initial={false}>
-            {!coachCollapsed && (
-              <motion.div
-                key="coach-content"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_TRANSITION}
-                className="overflow-hidden"
-                style={{ willChange: 'height' }}
-              >
-                <div className="space-y-2 mt-3">
-                  {coachTasks.map((task) => {
-                    const claimed = isCoachClaimed(task.id);
-                    const claimable = task.completed && !claimed;
-                    return (
-                    <div key={task.id} className="relative">
-                      <div
-                        className={cn(
-                          'w-full rounded-lg px-3 py-2 border transition-colors flex items-start justify-between gap-2',
-                          claimed ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : claimable ? 'bg-primary/10 border-primary/40'
-                            : 'bg-muted/20 border-border/40'
-                        )}
-                      >
-                        <button
-                          type="button"
-                          disabled={!task.screen}
-                          onClick={() => task.screen && setScreen(task.screen)}
-                          className="text-left flex-1 min-w-0"
-                        >
-                          <p className={cn('text-xs font-semibold', claimed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                          <p className="text-micro text-muted-foreground mt-0.5">{task.description}</p>
-                        </button>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {claimable ? (
-                            <button
-                              type="button"
-                              onClick={() => handleClaimCoachTask(task.id)}
-                              aria-label={`Claim ${task.xpReward} XP for ${task.title}`}
-                              className="inline-flex items-center gap-0.5 text-micro font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform"
-                            >
-                              Claim +{task.xpReward}
-                            </button>
-                          ) : claimed ? (
-                            <span className="inline-flex items-center gap-0.5 text-micro font-bold px-1.5 py-0.5 rounded text-emerald-400/70 bg-emerald-500/10">
-                              <PremiumCheck className="w-2.5 h-2.5" />{task.xpReward} XP
-                            </span>
-                          ) : (
-                            <>
-                              <span className="inline-flex items-center gap-0.5 text-micro font-bold px-1.5 py-0.5 rounded text-primary/70 bg-primary/10">+{task.xpReward} XP</span>
-                              <span className={cn(
-                                'text-micro uppercase tracking-wide px-1.5 py-0.5 rounded',
-                                task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                              )}>
-                                {task.priority}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
-                    </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassPanel>
-      )}
-
-      {/* Manager Tips */}
-      {!seasonOver && managerTips.length > 0 && (
-        <GlassPanel className="p-4 border-primary/20">
-          <p className="text-micro text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
-          <div className="space-y-2">
-            {managerTips.map((tip, i) => (
-              <motion.div
-                key={tip.text}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className={cn(
-                  'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
-                  tip.action ? 'cursor-pointer hover:bg-white/5' : '',
-                  TIP_BG[tip.type]
-                )}
-                onClick={() => tip.action && setScreen(tip.action)}
-              >
-                <DynamicIcon name={tip.icon} className={cn("w-4 h-4 shrink-0", TIP_ICON[tip.type])} />
-                <span className="text-xs text-foreground flex-1">{tip.text}</span>
-                {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-              </motion.div>
-            ))}
-          </div>
-        </GlassPanel>
-      )}
-
-      {/* Quick Links Grid */}
-      <div className="grid grid-cols-4 gap-2.5">
-        {QUICK_LINKS.map((link, i) => {
-          const Icon = link.icon;
-          const badge = quickLinkBadges[link.screen];
-          return (
-            <motion.div
-              key={link.label}
-              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={reduceMotion ? { duration: 0 } : { delay: i * 0.03, duration: 0.2 }}
-            >
-              <GlassPanel
-                aria-label={`Navigate to ${link.label}`}
-                className="group relative overflow-hidden px-2 py-3.5 flex flex-col items-center gap-2 bg-gradient-to-br from-card/70 to-card/30 border-border/60 active:scale-95 transition-transform duration-150"
-                onClick={() => setScreen(link.screen)}
-              >
-                <span className={cn('pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full blur-2xl opacity-30', link.glow)} />
-                <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
-                <div className={cn('relative p-1.5 rounded-lg border', link.chip)}>
-                  <Icon className={cn('w-5 h-5', link.color)} />
-                </div>
-                <span className="relative text-xs font-semibold tracking-wide text-foreground whitespace-nowrap">{link.label}</span>
-                {badge && (
-                  badge.label ? (
-                    <span
-                      className={cn(
-                        'absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full ring-2 ring-card',
-                        'flex items-center justify-center font-display font-black tabular-nums leading-none text-micro',
-                        'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_4px_10px_-4px_rgba(251,191,36,0.55)]',
-                        badge.color,
-                        badge.labelColor ?? 'text-foreground',
-                      )}
-                      aria-label={link.screen === 'packs' ? (badge.label === '✦' ? 'Guarantee ready' : `${badge.label} packs to guarantee`) : undefined}
-                    >
-                      {badge.label}
-                    </span>
-                  ) : (
-                    <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-card', badge.color)} />
-                  )
-                )}
-              </GlassPanel>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Training Status Chip + Streaks */}
-      {!seasonOver && !inPlayoffs && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
-              <Dumbbell className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-semibold text-primary">
-                Training: {trainingLabels[trainingFocus] || trainingFocus}
-              </span>
-              <span className="text-micro text-primary/60">|</span>
-              <span className="text-micro font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
-            </div>
-            {transferWindowOpen && (
-              <button
-                type="button"
-                onClick={() => setScreen('transfers')}
-                aria-label={t('dashboard.transferWindowOpenOpenTransfers')}
-                className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer hover:bg-emerald-500/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-              >
-                <ShoppingBag className="w-3 h-3 text-emerald-400" />
-                <span className="text-micro font-medium text-emerald-400">Window open</span>
-              </button>
-            )}
-            <span className="text-micro text-muted-foreground">
-              Wk {week} / S{season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
-            </span>
-          </div>
-
-          {/* Active Streaks */}
-          {(winStreak >= STREAK_MORALE_THRESHOLD || unbeatenRun >= 5 || cleanSheetStreak >= 2 || objectiveStreak >= 2) && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {winStreak >= STREAK_MORALE_THRESHOLD && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1.5"
-                >
-                  <Flame className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="text-xs font-bold text-orange-400">{winStreak} Wins</span>
-                </motion.div>
-              )}
-              {unbeatenRun >= 5 && unbeatenRun > winStreak && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.05 }}
-                  className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 py-1.5"
-                >
-                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-xs font-bold text-emerald-400">{unbeatenRun} Unbeaten</span>
-                </motion.div>
-              )}
-              {cleanSheetStreak >= 2 && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="inline-flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full px-3 py-1.5"
-                >
-                  <Shield className="w-3.5 h-3.5 text-sky-400" />
-                  <span className="text-xs font-bold text-sky-400">{cleanSheetStreak} Clean Sheets</span>
-                </motion.div>
-              )}
-              {objectiveStreak >= 2 && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.15 }}
-                  className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1.5"
-                >
-                  <Award className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-xs font-bold text-amber-400">x{objectiveStreak} Obj. Streak</span>
-                </motion.div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Active Sagas */}
-      {!seasonOver && activeSagas.length > 0 && (
-        <GlassPanel className="p-4 border-amber-500/20">
-          <button
-            type="button"
-            onClick={() => setSagaCollapsed(c => !c)}
-            aria-expanded={!sagaCollapsed}
-            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: sagaCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
-                <ChevronRight className="w-3 h-3 text-amber-400" />
-              </motion.div>
-              <p className="text-micro text-amber-400 uppercase tracking-wider font-semibold">Active Sagas</p>
-              <span className="text-micro text-muted-foreground">{activeSagas.length} active</span>
-            </div>
-          </button>
-          <AnimatePresence initial={false}>
-            {!sagaCollapsed && (
-              <motion.div
-                key="saga-content"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_TRANSITION}
-                className="overflow-hidden"
-                style={{ willChange: 'height' }}
-              >
-                <div className="space-y-2 mt-3">
-                  {activeSagas.map((saga) => {
-                    if (!saga) return null;
-                    const { chain, def, targetPlayer } = saga;
-                    const totalSteps = def.steps.length;
-                    if (chain.currentStep >= totalSteps) return null;
-                    const currentStepDef = def.steps[chain.currentStep];
-                    const Wrapper = targetPlayer ? 'button' : 'div';
-                    return (
-                      <Wrapper
-                        key={chain.chainId}
-                        {...(targetPlayer ? { type: 'button' as const, onClick: () => selectPlayer(targetPlayer.id) } : {})}
-                        className={cn(
-                          'rounded-lg px-3 py-2.5 bg-amber-500/5 border border-amber-500/20 w-full text-left',
-                          targetPlayer && 'hover:bg-amber-500/10 transition-colors cursor-pointer'
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            {currentStepDef && <DynamicIcon name={currentStepDef.icon} className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-                            <p className="text-xs font-semibold text-amber-400 truncate">{def.name}</p>
-                          </div>
-                          <span className="text-micro text-muted-foreground shrink-0">
-                            Step {chain.currentStep + 1}/{totalSteps}
-                          </span>
-                        </div>
-                        {targetPlayer && (
-                          <p className="text-micro text-muted-foreground mb-1.5">
-                            Involving: <span className="text-foreground font-medium">{targetPlayer.firstName} {targetPlayer.lastName}</span>
-                          </p>
-                        )}
-                        {/* Step progress dots */}
-                        <div className="flex items-center gap-1 mb-1.5">
-                          {def.steps.map((_, i) => (
-                            <div
-                              key={i}
-                              className={cn(
-                                'h-1.5 flex-1 rounded-full transition-colors',
-                                i < chain.currentStep ? 'bg-amber-400' : i === chain.currentStep ? 'bg-amber-400/60 animate-pulse' : 'bg-muted/40'
-                              )}
-                            />
-                          ))}
-                        </div>
-                        {currentStepDef && (
-                          <p className="text-micro text-muted-foreground">
-                            <span className="text-foreground font-medium">{currentStepDef.title}</span>
-                            {' — awaiting your decision'}
-                          </p>
-                        )}
-                      </Wrapper>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassPanel>
-      )}
-
-      {/* Monthly Objectives */}
-      {!seasonOver && weeklyObjectives.length > 0 && !allObjectivesDone && (
-        <GlassPanel className="p-4 border-amber-500/20">
-          <button
-            type="button"
-            onClick={() => setObjectivesCollapsed(c => !c)}
-            aria-expanded={!objectivesCollapsed}
-            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <motion.div animate={{ rotate: objectivesCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
-                <ChevronRight className="w-3 h-3 text-amber-400" />
-              </motion.div>
-              <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
-              <span className="text-micro text-muted-foreground">Week {Math.max(1, Math.min(week - (objectivesStartWeek || 1) + 1, OBJECTIVE_CYCLE_WEEKS))}/{OBJECTIVE_CYCLE_WEEKS}</span>
-              {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD && (
-                <span className="text-micro font-bold text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
-                  {OBJECTIVE_STREAK_MULTIPLIER}x Bonus
-                </span>
-              )}
-              {allObjectivesDone && <span className="text-micro text-emerald-400 font-bold">&#10003; Complete</span>}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-micro text-amber-400 font-semibold">
-                {claimedObjectives}/{weeklyObjectives.length}
-              </span>
-              {objectiveStreak > 0 && (
-                <span className="text-micro text-amber-400 font-bold">
-                  Streak: {objectiveStreak}
-                </span>
-              )}
-            </div>
-          </button>
-          <AnimatePresence initial={false}>
-            {!objectivesCollapsed && (
-              <motion.div
-                key="objectives-content"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_TRANSITION}
-                className="overflow-hidden"
-                style={{ willChange: 'height' }}
-              >
-                <div className="space-y-2 mt-3">
-                  {objectivesWithProgress.map((obj) => (
-                    <div
-                      key={obj.objectiveId}
-                      className={cn(
-                        'relative flex items-center gap-2 rounded-lg px-3 py-2 transition-colors',
-                        obj.claimed ? 'bg-emerald-500/10 border border-emerald-500/30'
-                          : obj.completed ? 'bg-primary/10 border border-primary/40'
-                          : 'bg-muted/30 border border-border/30'
-                      )}
-                    >
-                      <DynamicIcon name={obj.icon} className="w-4 h-4 text-primary shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className={cn('text-xs font-semibold truncate', obj.claimed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
-                          {obj.rarity === 'rare' && (
-                            <span className="text-micro font-bold text-blue-400 bg-blue-500/15 px-1 py-0.5 rounded shrink-0">RARE</span>
-                          )}
-                          {obj.rarity === 'legendary' && (
-                            <span className="text-micro font-bold text-primary bg-primary/15 px-1 py-0.5 rounded shrink-0 animate-pulse">LEGENDARY</span>
-                          )}
-                        </div>
-                        <p className="text-micro text-muted-foreground truncate">{obj.description}</p>
-                        {!obj.completed && obj.progress && (
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <PremiumProgress
-                              className="flex-1"
-                              size="sm"
-                              animate={false}
-                              value={Math.min(100, (obj.progress.current / obj.progress.target) * 100)}
-                            />
-                            <span className="text-micro text-muted-foreground tabular-nums">
-                              {obj.progress.current}/{obj.progress.target}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      {obj.completed && !obj.claimed ? (
-                        <button
-                          type="button"
-                          onClick={() => handleClaimObjective(obj.objectiveId)}
-                          aria-label={`Claim ${effectiveObjXp(obj)} XP for ${obj.title}`}
-                          className="inline-flex items-center gap-0.5 text-micro font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform shrink-0"
-                        >
-                          Claim +{effectiveObjXp(obj)}
-                        </button>
-                      ) : (
-                        <span className={cn('inline-flex items-center text-micro font-bold shrink-0', obj.claimed ? 'text-emerald-400' : 'text-sky-400')}>
-                          {obj.claimed ? <PremiumCheck className="w-3 h-3" /> : `+${effectiveObjXp(obj)} XP`}
-                        </span>
-                      )}
-                      <FloatingXP amount={effectiveObjXp(obj)} show={justCompletedObj.has(obj.objectiveId)} />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassPanel>
-      )}
-
-      {/* Achievements In Progress */}
-      {!seasonOver && achievementProgress.length > 0 && (
-        <GlassPanel className="p-4 border-sky-500/20">
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setAchievementsCollapsed(c => !c)}
-              aria-expanded={!achievementsCollapsed}
-              className="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
-            >
-              <motion.div animate={{ rotate: achievementsCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
-                <ChevronRight className="w-3 h-3 text-sky-400" />
-              </motion.div>
-              <p className="text-micro text-sky-400 uppercase tracking-wider font-semibold">Achievements</p>
-              <span className="text-micro text-muted-foreground">
-                {(unlockedAchievements || []).length}/{VISIBLE_ACHIEVEMENT_COUNT}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setScreen('trophy-cabinet')}
-              className="text-micro text-sky-400 font-semibold hover:text-sky-300"
-            >
-              View All
-            </button>
-          </div>
-          <AnimatePresence initial={false}>
-            {!achievementsCollapsed && (
-              <motion.div
-                key="achievements-content"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_TRANSITION}
-                className="overflow-hidden"
-                style={{ willChange: 'height' }}
-              >
-                <div className="space-y-2 mt-3">
-                  {achievementProgress.map((a) => (
-                    <div
-                      key={a.id}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 bg-muted/30 border border-border/30"
-                    >
-                      <DynamicIcon name={a.icon} className="w-4 h-4 text-sky-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-semibold text-foreground truncate">{a.title}</p>
-                          <span className={cn(
-                            'text-micro font-bold uppercase px-1 py-0.5 rounded shrink-0',
-                            a.tier === 'gold' ? 'text-primary bg-primary/15' : a.tier === 'silver' ? 'text-[hsl(var(--silver))] bg-[hsl(var(--silver))]/10' : 'text-[hsl(var(--bronze))] bg-[hsl(var(--bronze))]/10'
-                          )}>
-                            {a.tier}
-                          </span>
-                        </div>
-                        <p className="text-micro text-muted-foreground truncate">{a.description}</p>
-                        {a.prog && (
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <PremiumProgress
-                              className="flex-1"
-                              size="sm"
-                              tone="sky"
-                              animate={false}
-                              value={Math.min(100, (a.prog.current / a.prog.target) * 100)}
-                            />
-                            <span className="text-micro text-muted-foreground tabular-nums">
-                              {a.prog.current}/{a.prog.target} · +{a.tier === 'gold' ? ACHIEVEMENT_XP_GOLD : a.tier === 'silver' ? ACHIEVEMENT_XP_SILVER : ACHIEVEMENT_XP_BRONZE} XP
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassPanel>
-      )}
-
-      {/* XP Progress + Season Race — engagement widgets */}
-      {!seasonOver && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.2 }}
-          className="grid grid-cols-2 gap-3"
-        >
-          {/* XP Progress Widget */}
-          <GlassPanel className="p-4" onClick={() => setScreen('perks')}>
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-4 h-4 text-amber-400" />
-              <span className="text-xs text-muted-foreground">Manager Level</span>
-            </div>
-            <p className="text-2xl font-black text-amber-400 tabular-nums">
-              {managerProgression.level}
-            </p>
-            <div className="mt-1.5">
-              <div className="flex items-center justify-between text-micro mb-0.5">
-                <span className="text-muted-foreground">Next level</span>
-                <span className="text-primary font-semibold tabular-nums">{xpProgress.current}/{xpProgress.needed}</span>
-              </div>
-              <PremiumProgress size="sm" value={xpProgress.percentage} />
-            </div>
-            {nextPerk && (
-              <p className="text-micro text-muted-foreground mt-1.5 truncate">
-                Next: <span className="text-primary font-semibold">{nextPerk.name}</span>
-                {nextPerk.xpNeeded > 0 && <span> ({nextPerk.xpNeeded} XP)</span>}
-                {nextPerk.xpNeeded === 0 && <span className="text-emerald-400"> Ready!</span>}
-              </p>
-            )}
-          </GlassPanel>
-
-          {/* Season Race Mini Widget */}
-          <GlassPanel className="p-4" onClick={() => setScreen('league-table')}>
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">Season Race</span>
-            </div>
-            <div className="space-y-1">
-              {seasonRace.slice(0, 4).map((team) => (
-                <div key={team.clubId} className={cn(
-                  'flex items-center justify-between text-micro rounded px-1 py-0.5',
-                  team.isPlayer ? 'bg-primary/10 font-bold text-primary' : 'text-muted-foreground'
-                )}>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3 text-right tabular-nums">{team.position}</span>
-                    <div
-                      className="w-3 h-3 rounded-full shrink-0"
-                      style={{ backgroundColor: team.color }}
-                    />
-                    <span className="truncate max-w-[60px]">{team.shortName}</span>
-                  </div>
-                  <span className="font-semibold tabular-nums">{team.points}pts</span>
-                </div>
-              ))}
-            </div>
-          </GlassPanel>
-        </motion.div>
-      )}
-
-      {/* Week Preview Teasers */}
-      {!seasonOver && weekPreviews.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.2 }}>
-        <GlassPanel className="p-4">
-          <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold mb-2">Coming Up</p>
-          <div className="space-y-2">
-            {weekPreviews.map((preview, i) => (
-              <div
-                key={`${preview.type}-${i}`}
-                className={cn(
-                  'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
-                  preview.type === 'positive' ? 'bg-emerald-500/10 text-emerald-400' :
-                  preview.type === 'warning' ? 'bg-amber-500/10 text-amber-400' :
-                  'bg-muted/30 text-muted-foreground'
-                )}
-              >
-                <DynamicIcon name={preview.icon} className="w-4 h-4 shrink-0" />
-                <span className="font-medium">{preview.text}</span>
-              </div>
-            ))}
-          </div>
-        </GlassPanel>
-        </motion.div>
-      )}
-
-      {/* Cliffhangers — "one more week" hooks */}
-      {!seasonOver && weekCliffhangers && weekCliffhangers.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <GlassPanel className="p-4 border-primary/20">
-            <p className="text-micro text-primary uppercase tracking-wider font-semibold mb-2">What Happens Next...</p>
-            <div className="space-y-2">
-              {weekCliffhangers.map((hook, i) => (
-                <div
-                  key={`${hook.intensity}-${i}`}
-                  className={cn(
-                    'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
-                    hook.intensity === 'high' ? 'bg-red-500/10 text-red-400 animate-pulse' :
-                    hook.intensity === 'medium' ? 'bg-amber-500/10 text-amber-400' :
-                    'bg-muted/30 text-muted-foreground'
-                  )}
-                >
-                  <DynamicIcon name={hook.icon} className="w-4 h-4 shrink-0" />
-                  <span className="font-medium">{hook.text}</span>
-                </div>
-              ))}
-            </div>
-          </GlassPanel>
-        </motion.div>
-      )}
-
-      {/* Objective streak multiplier lives in the objectives header — no standalone card. */}
-
-      {/* Record Chase — player approaching a club record */}
-      {recordChases.length > 0 && (
-        <GlassPanel className="p-3 border-primary/20">
-          <div className="flex items-center gap-2 text-xs">
-            <Award className="w-4 h-4 text-primary shrink-0" />
-            <span className="text-foreground">
-              <span className="font-bold">{recordChases[0].playerName}</span>
-              {': '}
-              {recordChases[0].current} {recordChases[0].label}. Club record: {recordChases[0].record}.{' '}
-              <span className="text-primary font-semibold">{recordChases[0].record - recordChases[0].current} more to make history!</span>
-            </span>
-          </div>
-        </GlassPanel>
-      )}
-
-      {/* The just-played result renders via the Last Match Result card near the
-          top of the page — no second "Last Result" card here. */}
-
-      {/* Alerts Row */}
-      {(unread > 0 || pendingOffers > 0) && (
-        <div className="flex gap-3">
-          {unread > 0 && (
-            <GlassPanel className="flex-1 p-3 flex items-center gap-2" onClick={() => setScreen('inbox')}>
-              <Mail className="w-4 h-4 text-sky-400" />
-              <span className="text-sm text-foreground font-medium">{unread} unread</span>
-            </GlassPanel>
-          )}
-          {pendingOffers > 0 && (
-            <GlassPanel className="flex-1 p-3 flex items-center gap-2" onClick={() => setScreen('transfers')}>
-              <DollarSign className="w-4 h-4 text-amber-400" />
-              <span className="text-sm text-foreground font-medium">{pendingOffers} offer{pendingOffers > 1 ? 's' : ''}</span>
-            </GlassPanel>
-          )}
-        </div>
-      )}
-
-      {/* Injury Alert Panel */}
-      {injuredPlayers.length > 0 && (
-        <GlassPanel className="p-4 border-destructive/30" onClick={() => setScreen('squad')}>
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-destructive" />
-            <p className="text-xs text-destructive uppercase tracking-wider font-semibold">
-              Injuries ({injuredPlayers.length})
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            {injuredPlayers.map(p => (
-              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={(e) => { e.stopPropagation(); selectPlayer(p.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); selectPlayer(p.id); } }}>
-                <span className="text-sm text-foreground">
-                  {p.firstName[0]}. {p.lastName}
-                  <span className="text-xs text-muted-foreground ml-1.5">({p.position})</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
-                    <div className="h-full rounded-full bg-destructive" style={{ width: `${Math.min(100, Math.max(10, 100 - ((p.injuryWeeks || 0) / 5) * 100))}%` }} />
-                  </div>
-                  <span className="text-xs text-destructive font-medium tabular-nums">
-                    {p.injuryWeeks} wk{p.injuryWeeks !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </GlassPanel>
-      )}
-
-      {/* Contract Expiry Warning */}
-      {expiringPlayers.length > 0 && (
-        <GlassPanel className="p-4 border-amber-500/30" onClick={() => setScreen('squad')}>
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <p className="text-xs text-amber-400 uppercase tracking-wider font-semibold">
-              Expiring Contracts ({expiringPlayers.length})
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            {expiringPlayers.slice(0, 3).map(p => (
-              <div key={p.id} className="flex items-center justify-between">
-                <span className="text-sm text-foreground">
-                  {p.firstName[0]}. {p.lastName}
-                  <span className="text-xs text-muted-foreground ml-1.5">({p.position})</span>
-                </span>
-                <span className="text-xs text-amber-400 font-medium">End of season</span>
-              </div>
-            ))}
-            {expiringPlayers.length > 3 && (
-              <p className="text-xs text-muted-foreground">+{expiringPlayers.length - 3} more</p>
-            )}
-          </div>
-          <p className="text-micro text-muted-foreground mt-2">Tap to view squad and renew contracts</p>
-        </GlassPanel>
-      )}
-
-      {/* Incoming offers are covered by the Alerts Row above — no second card. */}
-
-      {/* Stats Grid */}
-      <div className="space-y-3">
-      <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold">Club Overview</p>
-      <div className="grid grid-cols-2 gap-3">
-        <GlassPanel className="p-4" onClick={() => setScreen('league-table')}>
-          <div className="flex items-center gap-2 mb-1">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span className="text-xs text-muted-foreground">League Pos</span>
-          </div>
-          <p className="text-3xl font-black text-foreground tabular-nums">
-            {pos}<span className="text-sm text-muted-foreground">/{leagueTable.length}</span>
-          </p>
-          <p className="text-micro text-muted-foreground truncate">{LEAGUES.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
-          {lastMatchInfo ? <FormGuide form={recentForm} className="mt-2" /> : <p className="text-micro text-muted-foreground mt-2">No games yet</p>}
-        </GlassPanel>
-
-        <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs text-muted-foreground">Budget</span>
-            <InfoTip text={HELP_TEXTS.budget} />
-          </div>
-          <p className={cn("text-2xl font-black text-foreground tabular-nums", budgetFlash)}>
-            <AnimatedNumber value={club.budget} formatFn={formatMoney} />
-          </p>
-          <p className="text-xs text-muted-foreground tabular-nums">
-            Wage: {formatMoney(club.wageBill)}/w
-          </p>
-        </GlassPanel>
-
-        <GlassPanel className="p-4" onClick={() => setScreen('squad')}>
-          <div className="flex items-center gap-2 mb-1">
-            <Heart className="w-4 h-4 text-red-400" />
-            <span className="text-xs text-muted-foreground">Morale</span>
-            <InfoTip text={HELP_TEXTS.morale} />
-          </div>
-          <p className={cn(
-            'text-2xl font-black tabular-nums',
-            avgMorale > 70 ? 'text-emerald-400' : avgMorale > 40 ? 'text-amber-400' : 'text-destructive'
-          )}>
-            {avgMorale}%
-          </p>
-          <p className="text-micro text-muted-foreground">
-            {avgMorale > 70 ? 'Excellent' : avgMorale > 40 ? 'Decent' : 'Low — affects performance'}
-          </p>
-        </GlassPanel>
-
-        <GlassPanel className={cn("p-4 cursor-pointer", boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && "border-destructive/50 animate-pulse")} onClick={() => setScreen('board')}>
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className={cn("w-4 h-4", getConfidenceColor(boardConfidence).textClass)} />
-            <span className="text-xs text-muted-foreground">Board</span>
-            <InfoTip text={HELP_TEXTS.boardConfidence} />
-          </div>
-          <p className={cn(
-            'text-2xl font-black tabular-nums',
-            getConfidenceColor(boardConfidence).textClass
-          )}>
-            {Math.round(boardConfidence)}%
-          </p>
-          <PremiumProgress
-            className="mt-1.5"
-            size="sm"
-            tone={boardConfidence > 50 ? 'emerald' : boardConfidence > 25 ? 'amber' : 'rose'}
-            value={boardConfidence}
-          />
-          <p className="text-micro text-muted-foreground mt-1">
-            {boardConfidence > 70 ? 'Secure' : boardConfidence > 40 ? 'Under pressure' : 'Sacking risk!'}
-          </p>
-          {boardConfidence <= CONFIDENCE_LOW_THRESHOLD && boardConfidence > 25 && (
-            <p className="text-micro text-destructive/80 mt-0.5">
-              ~{Math.max(1, Math.ceil((boardConfidence - 25) / 4))} more loss{Math.ceil((boardConfidence - 25) / 4) !== 1 ? 'es' : ''} could mean the sack
-            </p>
-          )}
-        </GlassPanel>
-      </div>
-      </div>
-
-      {/* Finance Snapshot + Fan Confidence Row */}
-      <div className="grid grid-cols-2 gap-3">
-        <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('all'); setFinanceSheetOpen(true); }}>
-          <div className="flex items-center gap-2 mb-1">
-            <Banknote className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs text-muted-foreground">Net Income</span>
-          </div>
-          <p className={cn(
-            'text-xl font-black tabular-nums',
-            netWeeklyIncome >= 0 ? 'text-emerald-400' : 'text-destructive'
-          )}>
-            {netWeeklyIncome >= 0 ? '+' : ''}{formatMoney(netWeeklyIncome)}
-          </p>
-          <p className="text-micro text-muted-foreground">per week</p>
-        </GlassPanel>
-
-        <GlassPanel className="p-4" onClick={() => setScreen('club')}>
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-sky-400" />
-            <span className="text-xs text-muted-foreground">Fan Mood</span>
-            <InfoTip text={HELP_TEXTS.fanMood} />
-          </div>
-          <p className={cn(
-            'text-xl font-black tabular-nums',
-            getFanConfidenceColor(fanMood)
-          )}>
-            {fanMood}%
-          </p>
-          <p className="text-micro text-muted-foreground">
-            {fanMood >= FAN_MOOD_HIGH_THRESHOLD ? 'Buzzing' : fanMood >= FAN_MOOD_MID_THRESHOLD ? 'Content' : 'Restless'}
-          </p>
-        </GlassPanel>
-      </div>
-
-      {/* Show More / Less toggle for secondary details */}
-      <button
-        type="button"
-        onClick={() => setShowMoreDetails(prev => !prev)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showMoreDetails && 'rotate-180')} />
-        {showMoreDetails ? 'Show Less' : 'Show More Details'}
-      </button>
-
-      {showMoreDetails && <>
-      {/* Recent form lives in the League tile's FormGuide; upcoming fixtures
-          live on the Schedule screen — neither is duplicated here. */}
-
-      {/* Competitions — one consolidated card listing every active competition
-          (replaces the six stacked CompetitionStatusCards). Taps through to the
-          Competitions hub. */}
-      {activeCompetitions.length > 0 && (
-        <GlassPanel className="p-4" onClick={() => setScreen('competitions')}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-primary" />
-              <p className="text-sm font-semibold text-foreground">Competitions</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div className="space-y-2.5">
-            {activeCompetitions.map(entry => {
-              const Icon = competitionRowIcon(entry);
-              return (
-                // Each row goes to ITS competition. `entry.screen` was computed
-                // and then used only as a React key, so the four registered
-                // screens it names ('champions-cup', 'shield-cup',
-                // 'conference-cup', 'super-cup') had no `setScreen` call site
-                // anywhere and their routing branches were dead. Tapping the
-                // Cup row and landing on a hub you then have to navigate again
-                // is also one tap too many.
-                <button
-                  type="button"
-                  key={entry.screen}
-                  onClick={(e) => { e.stopPropagation(); setScreen(entry.screen); }}
-                  className="w-full flex items-center justify-between gap-3 text-left active:opacity-70 transition-opacity"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Icon className={cn(
-                      'w-4 h-4 shrink-0',
-                      entry.outcome === 'won' ? 'text-primary' : entry.outcome === 'eliminated' ? 'text-destructive' : 'text-muted-foreground',
-                    )} />
-                    <span className="text-sm text-foreground truncate">{entry.title}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">{entry.status}</span>
-                </button>
-              );
-            })}
-          </div>
-        </GlassPanel>
-      )}
-
-      {/* Board Objectives */}
-      <BoardObjectivesCard
-        boardObjectives={boardObjectives}
-        onClick={() => setScreen('board')}
+      <PageHint
+        screen="dashboard"
+        title={t('dashboard.yourDashboard')}
+        body={t('dashboard.thisIsYourWeeklyHub')}
       />
 
-      {/* Session Stats */}
-      {sessionStats && sessionStats.weeksPlayed > 0 && (
-        <div className="flex items-center justify-center gap-4 py-2 text-xs text-muted-foreground">
-          <span>{sessionStats.weeksPlayed}w played</span>
-          <span className="text-emerald-400">{sessionStats.matchesWon}W</span>
-          <span className="text-destructive">{sessionStats.matchesLost}L</span>
-          <span className="text-primary">+{sessionStats.xpEarned} XP</span>
+      {/* ── 1. Header + Continue ── */}
+      <GlassPanel className="p-4 space-y-3">
+        <div className="h-1 rounded-full" style={{ background: `linear-gradient(to right, ${club.color}, transparent)` }} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold font-display text-foreground truncate">{club.name}</h1>
+            <p className="text-[11px] text-muted-foreground">
+              {t('dashboard.header.seasonWeek', { season, week })} · {t(SEASON_STAGE_KEY[getSeasonStage(week, tw)])}
+            </p>
+          </div>
+          {pos > 0 && (
+            <button
+              type="button"
+              onClick={() => setScreen('league-table')}
+              aria-label={t('dashboard.header.positionAria', { position: `${pos}${getSuffix(pos)}` })}
+              className="shrink-0 min-h-11 min-w-11 px-3 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center hover:bg-white/10 transition-colors"
+            >
+              <span className="text-base font-black tabular-nums text-foreground leading-none">{pos}<span className="text-[11px] font-bold text-muted-foreground">{getSuffix(pos)}</span></span>
+              <span className="text-[11px] text-muted-foreground tabular-nums leading-tight">{t('dashboard.header.points', { points: leagueTable.find(e => e.clubId === playerClubId)?.points ?? 0 })}</span>
+            </button>
+          )}
+        </div>
+
+        {(raceMode || inPlayoffs || challengeLabel) && (
+          <div className="flex flex-wrap gap-2">
+            {raceMode && (
+              <span className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider border',
+                raceMode === 'title' ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-destructive/10 border-destructive/40 text-destructive',
+              )}>
+                {raceMode === 'title' ? <Trophy className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                {raceMode === 'title' ? t('dashboard.pill.titleRace', { weeks: weeksLeft }) : t('dashboard.pill.relegationBattle', { weeks: weeksLeft })}
+              </span>
+            )}
+            {inPlayoffs && (
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider border bg-amber-500/10 border-amber-500/30 text-amber-400">
+                <Trophy className="w-3.5 h-3.5" /> {t('dashboard.pill.playoffs')}
+              </span>
+            )}
+            {challengeLabel && (
+              <span className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold border',
+                activeChallenge?.failed ? 'bg-destructive/10 border-destructive/30 text-destructive'
+                  : activeChallenge?.completed ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-primary/10 border-primary/30 text-primary',
+              )}>
+                <Flag className="w-3.5 h-3.5" /> {challengeLabel}
+              </span>
+            )}
+          </div>
+        )}
+
+        {primary.kind === 'season-summary' && (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground text-center">
+              {t('dashboard.cta.seasonComplete', { season, position: `${pos}${getSuffix(pos)}` })}
+            </p>
+            <Button className="w-full h-12 gap-2 text-base font-bold" onClick={() => { hapticHeavy(); endSeason(); }}>
+              <Trophy className="w-5 h-5" /> {t('dashboard.cta.viewSeasonSummary')}
+            </Button>
+          </div>
+        )}
+        {primary.kind === 'match-prep' && (
+          <Button className="w-full h-12 gap-2 text-base font-bold" onClick={() => setScreen('match-prep')}>
+            <Play className="w-5 h-5" /> {t('dashboard.cta.matchPrep', { opponent: opponent?.shortName ?? '' })}
+          </Button>
+        )}
+        {primary.kind === 'advance' && (
+          <div className="space-y-1">
+            <Button
+              className={cn(
+                'w-full h-12 gap-2 text-base font-bold active:scale-[0.97] transition-all',
+                isAdvancing && 'animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.3)]',
+                advanceDone && 'scale-[1.03] shadow-[0_0_16px_hsl(var(--primary)/0.4)]',
+              )}
+              disabled={isAdvancing}
+              onClick={handleAdvance}
+            >
+              {isAdvancing
+                ? <><Loader2 className="w-5 h-5 animate-spin" /> {t('dashboard.cta.advancing')}</>
+                : <><ChevronRight className="w-5 h-5" /> {t('dashboard.cta.advance', { week: primary.nextWeek })}</>}
+            </Button>
+            {primary.canSkipToNextMatch && (
+              <button
+                type="button"
+                className="w-full min-h-11 text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+                disabled={isAdvancing}
+                onClick={handleSkipToNextMatch}
+              >
+                <FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> {t('dashboard.cta.skipToNextMatch')}
+              </button>
+            )}
+          </div>
+        )}
+      </GlassPanel>
+
+      {/* ── 2. Needs your attention — actionable items only ── */}
+      {attention.length > 0 && (
+        <section aria-labelledby="dashboard-attention-title" className="space-y-2">
+          <h2 id="dashboard-attention-title" className="px-1 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+            {t('dashboard.attention.title', { count: attention.length })}
+          </h2>
+          <GlassPanel className="p-1.5">
+            <ul className="divide-y divide-white/5">
+              {attention.map(item => {
+                const Icon = ATTENTION_ICON[item.id];
+                const copy = ATTENTION_COPY[item.id];
+                const detailKey = item.id === 'board' && item.severity === 'critical' ? 'dashboard.attention.boardCriticalDetail' : copy.detail;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => { hapticLight(); setScreen(item.screen); }}
+                      className="w-full min-h-[52px] flex items-center gap-3 px-2.5 py-2 text-left rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors"
+                    >
+                      <span className={cn('shrink-0 w-8 h-8 rounded-lg flex items-center justify-center', SEVERITY_TONE[item.severity])}>
+                        <Icon className="w-4 h-4" aria-hidden />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold text-foreground truncate">{t(copy.title, item.params)}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">{t(detailKey, item.params)}</span>
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </GlassPanel>
+        </section>
+      )}
+
+      {/* ── 3. Getting Started (new careers; self-hides) ── */}
+      <OnboardingChecklist />
+
+      {/* ── 4. The next match ── */}
+      {!seasonOver && (
+        <GlassPanel className={cn('p-4 space-y-3', hasMatchThisWeek && competitionInfo.borderAccent)}>
+          {hasMatchThisWeek ? (
+            <>
+              <div className="flex items-center justify-center gap-2">
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border',
+                  competitionInfo.bg,
+                )}>
+                  <Trophy className="w-3 h-3" />
+                  <span className={competitionInfo.color}>{competitionInfo.name}</span>
+                </span>
+                <span className="text-[11px] text-muted-foreground">{t('dashboard.match.thisWeek', { week })}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-center flex-1">
+                  <div
+                    className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
+                    style={{ backgroundColor: club.color, color: club.secondaryColor }}
+                  >
+                    {club.shortName}
+                  </div>
+                  <p className="text-sm font-bold text-foreground">{club.shortName}</p>
+                  <p className="text-[11px] text-muted-foreground">{isHome ? t('dashboard.match.home') : t('dashboard.match.away')}</p>
+                </div>
+                <p className="px-4 text-2xl font-black text-muted-foreground">{t('dashboard.match.vs')}</p>
+                <div className="text-center flex-1">
+                  <div
+                    className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
+                    style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
+                  >
+                    {opponent.shortName}
+                  </div>
+                  <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
+                  <p className="text-[11px] text-muted-foreground">{isHome ? t('dashboard.match.away') : t('dashboard.match.home')}</p>
+                </div>
+              </div>
+              {hasCupMatchToo && (
+                <p className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-[11px] font-medium text-primary">
+                  <Trophy className="w-3 h-3" /> {t('dashboard.match.cupAlso')}
+                </p>
+              )}
+              {isDerby && (
+                <button
+                  type="button"
+                  onClick={() => setScreen('rivalries')}
+                  className="w-full min-h-11 flex items-center gap-2 px-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-left hover:bg-orange-500/15 transition-colors"
+                >
+                  <Swords className="w-4 h-4 text-orange-400 shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-orange-400">{t('dashboard.match.rivalryWeek')}</span>
+                    <span className="block text-xs font-semibold text-foreground truncate">{getDerbyName(playerClubId, opponent.id) || `vs ${opponent.shortName}`}</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">{t('dashboard.match.nextLeagueMatch')}</p>
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {nextFixture && nextFixtureOpponent
+                    ? t('dashboard.match.nextFixture', {
+                      opponent: nextFixtureOpponent.shortName,
+                      venue: nextFixture.homeClubId === playerClubId ? t('dashboard.match.homeShort') : t('dashboard.match.awayShort'),
+                      week: nextFixture.week,
+                    })
+                    : t('dashboard.match.noFixture')}
+                </p>
+              </div>
+              {nextFixtureOpponent && (
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0"
+                  style={{ backgroundColor: nextFixtureOpponent.color, color: nextFixtureOpponent.secondaryColor }}
+                >
+                  {nextFixtureOpponent.shortName}
+                </div>
+              )}
+            </div>
+          )}
+          {lastMatchInfo && (
+            <button
+              type="button"
+              onClick={() => { loadMatchForReview(lastMatchInfo.week); setScreen('match-review'); }}
+              className="w-full min-h-11 flex items-center justify-between gap-2 px-2 rounded-xl bg-white/[0.03] text-left hover:bg-white/[0.06] transition-colors"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span className={cn(
+                  'w-6 h-6 rounded-md flex items-center justify-center text-xs font-black shrink-0',
+                  lastMatchInfo.result === 'W' ? 'bg-emerald-500/20 text-emerald-400'
+                    : lastMatchInfo.result === 'L' ? 'bg-destructive/20 text-destructive'
+                    : 'bg-amber-500/20 text-amber-400',
+                )}>{lastMatchInfo.result}</span>
+                <span className="text-xs font-semibold text-foreground truncate">
+                  {t('dashboard.match.lastResult', { score: lastMatchInfo.score, opponent: lastMatchInfo.oppName })}
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </button>
+          )}
+        </GlassPanel>
+      )}
+
+      {/* ── 5. Live event + starter-kit offer (both self-hide) ── */}
+      <FestivalBanner />
+      <StarterKitBanner />
+
+      {/* ── 6. More — everything else, collapsed, remembered per device ── */}
+      <button
+        type="button"
+        onClick={toggleMore}
+        aria-expanded={moreOpen}
+        aria-controls="dashboard-more"
+        className="w-full min-h-11 flex items-center justify-between gap-3 px-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">{t('dashboard.more.title')}</span>
+          {claimableObjectives > 0 && (
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+              {t('dashboard.more.toClaim', { count: claimableObjectives })}
+            </span>
+          )}
+        </span>
+        <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          {!moreOpen && <span className="hidden min-[360px]:inline">{t('dashboard.more.hint')}</span>}
+          <ChevronDown className={cn('w-4 h-4 transition-transform', moreOpen && 'rotate-180')} aria-hidden />
+        </span>
+      </button>
+      {moreOpen && (
+        <div id="dashboard-more">
+          <DashboardMore seasonOver={seasonOver} inPlayoffs={inPlayoffs} />
         </div>
       )}
-      </>}
-
     </div>
-    <FinanceBreakdownSheet open={financeSheetOpen} onOpenChange={setFinanceSheetOpen} mode={financeSheetMode} />
-    </>
   );
 };
 

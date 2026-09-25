@@ -41,7 +41,7 @@ const STEPS = [
     icon: LayoutDashboard,
     title: 'Start From Your Dashboard',
     description: 'Your dashboard is your weekly hub. Some weeks have matches, and others are focused on planning, scouting, and development.',
-    hint: 'Play the match card on your Dashboard when one is scheduled; advance the week once your matches are done.',
+    hint: 'Tap Match Prep at the top of your Dashboard when a match is scheduled; advance the week once your matches are done.',
   },
 ];
 

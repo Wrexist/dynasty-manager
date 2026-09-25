@@ -328,10 +328,10 @@ export const STORAGE_KEYS = {
   PACK_DEAL_UPSELL: 'dynasty-pack-deal-upsell',
   /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
   ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
-  /** sessionStorage: per-tab dismissal of the week-1 onboarding checklist.
-   *  Cleared on tab close so reopening the app brings it back while the
-   *  career is still in week 1. Not save-scoped — same checklist applies
-   *  to every new career, dismiss state is intentionally not persisted. */
+  /** sessionStorage: the Getting Started checklist's first-session rows were
+   *  completed this tab, so the card has handed over to the coach tasks.
+   *  (Key name predates the merge — dismissing the checklist is now the
+   *  persisted `settings.hideOnboarding`.) Cleared on tab close. */
   ONBOARDING_CHECKLIST_DISMISSED: 'dynasty-onboarding-checklist-dismissed',
   /** localStorage flag (getFlag/setFlag): the one-off XP reward for finishing
    *  the first-session checklist has been paid. Device-global so a player who
@@ -469,6 +469,10 @@ export const STORAGE_KEYS = {
    *  any career save — deliberately NOT save-scoped, so it persists across new
    *  careers and slot deletion. Badges are cosmetic labels, never entitlements. */
   COMPLETED_CHALLENGES: 'dynasty-completed-challenges',
+  // ── home: Dashboard ──
+  /** localStorage flag (getFlag/setFlag): the Dashboard's collapsed "More"
+   *  section is expanded. A per-device layout preference, not save-scoped. */
+  DASHBOARD_MORE_EXPANDED: 'dynasty-dashboard-more-expanded',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */

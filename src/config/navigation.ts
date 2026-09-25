@@ -184,3 +184,28 @@ export const UNEMPLOYED_TABS: { screen: GameScreen; label: string }[] = [
 
 // Main tabs for swipe navigation when unemployed (derived from UNEMPLOYED_TABS to stay in sync)
 export const UNEMPLOYED_MAIN_TABS: GameScreen[] = UNEMPLOYED_TABS.map(t => t.screen);
+
+// ── home: More drawer groups ──
+export type DrawerGroupId = 'club' | 'competitions' | 'me' | 'app';
+
+/**
+ * The More drawer's groups, in display order. Labels, icons and descriptions
+ * live with the drawer (`components/game/MoreDrawer.tsx`); this is WHERE each
+ * screen goes.
+ *
+ * Screens a sub-nav already owns are deliberately absent — Training, Staff and
+ * Youth (the Squad tab's pills) and Scouting and Packs (the Market tab's). A
+ * second entry in a 25-row drawer was one more place to look, not one more way
+ * in. They stay one search away: drawer search still lists every sub-nav screen
+ * under "Jump to".
+ */
+export const DRAWER_GROUPS: { id: DrawerGroupId; screens: GameScreen[] }[] = [
+  { id: 'club', screens: ['inbox', 'club', 'board', 'finance', 'merchandise', 'facilities', 'comparison'] },
+  { id: 'competitions', screens: ['league-table', 'competitions', 'calendar', 'rivalries', 'national-team', 'ballon-dor'] },
+  { id: 'me', screens: ['career-overview', 'job-market', 'manager-profile', 'trophy-cabinet', 'perks', 'dynasty-legacy', 'hall-of-managers'] },
+  { id: 'app', screens: ['shop', 'help', 'settings'] },
+];
+
+/** Drawer rows that only exist in Manager Career mode. */
+export const CAREER_MODE_DRAWER_SCREENS = new Set<GameScreen>(['career-overview', 'job-market']);
+

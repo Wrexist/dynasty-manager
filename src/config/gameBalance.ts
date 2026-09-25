@@ -1402,3 +1402,24 @@ export const REDEEM_CODE_MAX_REWARD = {
   money: 1_000_000,
   xp: 500,
 } as const;
+// ── home: Dashboard rules (see src/utils/dashboardSelectors.ts) ──
+/** Final stretch (weeks left in the season) in which the Dashboard flags a
+ *  title race or a relegation battle. */
+export const RACE_MODE_WINDOW_WEEKS = 10;
+/** Title race: in the top N places… */
+export const TITLE_RACE_MAX_POSITION = 2;
+/** …and within this many points of the leader. */
+export const TITLE_RACE_MAX_POINTS_GAP = 6;
+/** Relegation battle: within this many places of the bottom. Only offered in a
+ *  league that actually relegates — the bottom of the lowest tier is safe. */
+export const RELEGATION_BATTLE_BOTTOM_PLACES = 3;
+/** Blocking popups (distinct overlays) one advance may put on screen. Past
+ *  this, informational popups are filed to the inbox and offers wait for the
+ *  next advance; decisions always show (see `utils/presentationQueue.ts`). */
+export const BLOCKING_POPUPS_PER_ADVANCE = 2;
+/** The Getting Started checklist's coach tasks run through this season. */
+export const COACH_CHECKLIST_MAX_SEASON = 2;
+/** "Needs your attention": board confidence at or below this is a critical row
+ *  (red); up to `CONFIDENCE_CRITICAL_THRESHOLD` it is a warning. Mirrors the
+ *  old BoardWarning's "Final Warning" tier. */
+export const BOARD_ATTENTION_CRITICAL_CONFIDENCE = 25;

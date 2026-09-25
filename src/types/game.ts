@@ -3732,3 +3732,8 @@ export interface SundayValidationResult {
   /** Every invariant violation found, most severe first. Empty when ok. */
   problems: string[];
 }
+
+// ── home: popup cap ──
+/** An inbox message filed in place of a popup that went past the per-advance
+ *  cap (see `utils/presentationQueue.ts`). Week/season are stamped on filing. */
+export type InboxNote = Pick<Message, 'type' | 'title' | 'body' | 'playerId'>;
