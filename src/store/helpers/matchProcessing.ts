@@ -22,6 +22,7 @@ import {
   RATING_MORALE_BASELINE, MORALE_PER_RATING_POINT, MORALE_RATING_ADJ_CAP,
   MATCH_FITNESS_CARRY_ENABLED, MATCH_FITNESS_CARRY_SCALE,
 } from '@/config/gameBalance';
+import { INBOX_ARRIVES_READ } from '@/config/gameBalance';
 import {
   computeMinutesPlayed,
   extractFinalMatchFitness,
@@ -299,6 +300,8 @@ export function processMatchResult(
     body: won ? `A great result against ${oppName}! The fans are delighted.`
       : lost ? `A disappointing result against ${oppName}. The board will want to see improvement.`
       : `A hard-fought draw against ${oppName}. Onwards.`,
+    // The manager has just watched it — information, not a to-do (R18).
+    read: INBOX_ARRIVES_READ.matchResult,
   });
 
   // Board reaction messages fire only when confidence CROSSES a threshold,

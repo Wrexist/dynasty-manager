@@ -23,6 +23,7 @@ import {
 } from '@/config/gameBalance';
 
 import { NATIONAL_CALLUP_MORALE_BOOST, NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
+import { INBOX_ARRIVES_READ } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
 
@@ -1491,6 +1492,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         week: newWeek, season, type: 'transfer',
         title: `Transfer Rumor${rumorNames.length > 1 ? 's' : ''}: ${rumorNames.length} Player${rumorNames.length > 1 ? 's' : ''}`,
         body: `Clubs are monitoring: ${rumorNames.join(', ')}. No official approaches yet.`,
+        read: INBOX_ARRIVES_READ.transferRumours,
       });
     }
   }
@@ -1508,6 +1510,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           week: newWeek, season, type: 'transfer',
           title: `Bid Expired: ${ep.lastName}`,
           body: `${ec.name}'s ${formatMoney(eo.fee)} offer for ${ep.firstName} ${ep.lastName} has expired.`,
+          read: INBOX_ARRIVES_READ.bidExpired,
         });
       }
     }

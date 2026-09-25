@@ -547,6 +547,28 @@ export const STARTING_TACTICAL_FAMILIARITY = 45;
 
 // ── Max Messages ──
 export const MAX_MESSAGES = 200;
+// ── econ: inbox noise (R18) ──
+/**
+ * Information-only inbox messages that arrive already read. The playthrough
+ * had 67 unread after seven weeks, most of them routine: other clubs'
+ * transfers, rumours, expired bids and sponsor offers, and the result of the
+ * match the manager had just watched. They stay in the inbox; they just do
+ * not ask for attention. Anything that needs a decision (a bid for one of your
+ * players, a sponsor offer, a contract, the board) still arrives unread.
+ */
+export const INBOX_ARRIVES_READ = {
+  aiTransferRoundup: true,
+  transferRumours: true,
+  bidExpired: true,
+  sponsorOfferExpired: true,
+  /** The result of a match the manager played (not one simulated for them). */
+  matchResult: true,
+} as const;
+/** Fold a week's AI-to-AI transfers and loans into one round-up message
+ *  instead of one message per move (the moves stay listed under Transfers). */
+export const INBOX_AI_TRANSFER_ROUNDUP = true;
+/** Moves the round-up lists by name before "and N more". */
+export const INBOX_ROUNDUP_MAX_LINES = 8;
 
 // ── State Growth Caps ──
 export const MAX_FINANCE_HISTORY = 200;

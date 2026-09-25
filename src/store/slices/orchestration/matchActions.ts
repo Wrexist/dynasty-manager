@@ -14,7 +14,7 @@ import { hasPerk } from '@/utils/managerPerks';
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_MIN_MATCH_PLAYERS } from '@/config/aiSimulation';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
-import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM, clubMedicalLevel } from '@/config/gameBalance';
+import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM, clubMedicalLevel, INBOX_ARRIVES_READ } from '@/config/gameBalance';
 import { recordPlayerPlayoffResult } from '@/store/slices/orchestration/playoff';
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
@@ -919,23 +919,23 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     if (cupTie) {
       const roundName = getRoundName(cupTie.round);
       if (processed.won) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the cup!` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the cup!` , read: INBOX_ARRIVES_READ.matchResult });
       } else if (processed.lost) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` , read: INBOX_ARRIVES_READ.matchResult });
       }
     } else if (leagueCupTie) {
       const roundName = getRoundName(leagueCupTie.round);
       if (processed.won) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the League Cup!` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the League Cup!` , read: INBOX_ARRIVES_READ.matchResult });
       } else if (processed.lost) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` , read: INBOX_ARRIVES_READ.matchResult });
       }
     } else if (continentalMatch) {
       const compName = continentalComp === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
       if (processed.won) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Victory`, body: `A great result against ${oppName} (${fScore}) in the ${compName}!` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Victory`, body: `A great result against ${oppName} (${fScore}) in the ${compName}!` , read: INBOX_ARRIVES_READ.matchResult });
       } else if (processed.lost) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Defeat`, body: `A tough loss against ${oppName} (${fScore}) in the ${compName}.` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Defeat`, body: `A tough loss against ${oppName} (${fScore}) in the ${compName}.` , read: INBOX_ARRIVES_READ.matchResult });
       }
     }
 

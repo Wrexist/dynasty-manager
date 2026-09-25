@@ -41,6 +41,7 @@ import {
   AI_TRANSFER_PRESEASON_MULTIPLIER,
 } from '@/config/aiSimulation';
 import { TOTAL_WEEKS } from '@/config/gameBalance';
+import { INBOX_AI_TRANSFER_ROUNDUP, INBOX_ARRIVES_READ, INBOX_ROUNDUP_MAX_LINES } from '@/config/gameBalance';
 import { PRE_SEASON_END } from '@/config/transfers';
 import { detachPlayerFromAllClubs } from '@/store/helpers/rosterOps';
 
@@ -936,6 +937,9 @@ export function processAIWeekly(
   let updNews = [...transferNews];
 
   // 3. Transfer Window activities
+  // Messages already in the inbox before the AI's moves, so the moves' own
+  // messages can be folded into one round-up below (R18).
+  const messagesBeforeMoves = new Set(updMessages.map(m => m.id));
   if (transferWindowOpen) {
     // 3a. AI clubs list players for sale
     const listingResult = processAIListings(updClubs, updPlayers, updMarket, playerClubId, week, season);
@@ -957,6 +961,26 @@ export function processAIWeekly(
     updLoans = loanResult.activeLoans;
     updMessages = loanResult.messages;
     updNews = loanResult.transferNews;
+  }
+
+  // One round-up for the week's AI-to-AI moves instead of one message each:
+  // they were a third of the unread inbox after seven weeks (R18). Every move
+  // is still listed in the Transfers news feed.
+  if (INBOX_AI_TRANSFER_ROUNDUP) {
+    const moves = updMessages.filter(m => !messagesBeforeMoves.has(m.id));
+    if (moves.length > 1) {
+      const kept = updMessages.filter(m => messagesBeforeMoves.has(m.id));
+      const listed = moves.slice(0, INBOX_ROUNDUP_MAX_LINES).map(m => m.title);
+      const more = moves.length - listed.length;
+      updMessages = addMsg(kept, {
+        week, season, type: 'transfer',
+        title: `Transfer round-up: ${moves.length} moves`,
+        body: `${listed.join('\n')}${more > 0 ? `\n…and ${more} more.` : ''}\n\nEvery move is listed under Transfers.`,
+        read: INBOX_ARRIVES_READ.aiTransferRoundup,
+      });
+    } else if (moves.length === 1) {
+      updMessages = updMessages.map(m => (m.id === moves[0].id ? { ...m, read: INBOX_ARRIVES_READ.aiTransferRoundup } : m));
+    }
   }
 
   // 4. Free Agent signings — any time
