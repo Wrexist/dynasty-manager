@@ -7,7 +7,7 @@
  */
 
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
-import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS, FREE_TRIAL_DAYS, SUB_TRIAL_PRODUCT_IDS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
+import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS, FREE_TRIAL_DAYS, SUB_TRIAL_PRODUCT_IDS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
 import { observeClock } from '@/store/helpers/persistence';
 
 /**
@@ -82,6 +82,21 @@ function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
 /** Check if the player has an active subscription */
 export function isSubscriptionActive(state: MonetizationState): boolean {
   return state.subscription != null && !isSubscriptionExpired(state.subscription);
+}
+
+/**
+ * An active store subscription the player can renew, cancel or manage.
+ *
+ * Narrower than `isSubscriptionActive`: `extractSubscriptionInfo` also writes a
+ * Lifetime owner's record into the subscription slot, and the Shop and Settings
+ * used to present that as an "Active Subscription · lifetime" with a Manage
+ * Subscription button leading to a store page that lists nothing. Pro status
+ * itself is untouched — `isPro()` remains the only authority.
+ */
+export function hasRecurringSubscription(state: MonetizationState): boolean {
+  const sub = state.subscription;
+  if (!sub || PRODUCTS[sub.productId]?.type !== 'subscription') return false;
+  return isSubscriptionActive(state);
 }
 
 /**
@@ -263,6 +278,9 @@ export function isStarterKitAvailable(state: MonetizationState): boolean {
   if (state.starterKitDismissed) return false;
   if (state.firstLaunchTimestamp <= 0) return false;
   if (isPro(state)) return false;
+  // Already owns what the kit contains: recommending it again sold the Manager
+  // Identity Pack to its own owner (StoreKit then answers "already purchased").
+  if (STARTER_KIT.includes.every(id => state.entitlements.includes(id))) return false;
   const elapsed = entitlementNow() - state.firstLaunchTimestamp;
   return elapsed < STARTER_KIT_WINDOW_MS;
 }

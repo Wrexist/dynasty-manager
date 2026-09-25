@@ -31,7 +31,7 @@ import { restoreAndSync } from '@/utils/purchaseSync';
 import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
-import { isPro, isSubscriptionActive } from '@/utils/monetization';
+import { isPro, hasRecurringSubscription } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
@@ -227,7 +227,9 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   // (Analytics consent toggle removed — no first-party stats leave the device;
   // see docs/growth-overhaul-plan.md §1.2.)
   const userIsPro = isPro(monetization);
-  const hasActiveSub = isSubscriptionActive(monetization);
+  // Only a store subscription has a renewal date and a Manage button; a
+  // Lifetime record in the subscription slot is shown as the Pro badge alone.
+  const hasActiveSub = hasRecurringSubscription(monetization);
 
   const handleRestorePurchases = async () => {
     setRestoringPurchases(true);

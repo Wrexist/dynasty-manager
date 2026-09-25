@@ -57,7 +57,9 @@ vi.mock('@sentry/react', () => ({
 import * as Sentry from '@sentry/react';
 import { useGameStore } from '@/store/gameStore';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
-import { isPro, isSubscriptionActive, mergeDeviceMonetization } from '@/utils/monetization';
+import {
+  isPro, isSubscriptionActive, mergeDeviceMonetization, hasRecurringSubscription, isStarterKitAvailable,
+} from '@/utils/monetization';
 import { purchaseAndSync, restoreAndSync, syncStoreState } from '@/utils/purchaseSync';
 import {
   purchaseProduct, purchaseConsumable, isPaymentPendingError, extractSubscriptionInfo,
@@ -457,5 +459,46 @@ describe('Android (Google Play) identifiers and management', () => {
     storeRecord(customer());
     await openSubscriptionManagement();
     expect(openExternalUrl).toHaveBeenCalledWith('https://apps.apple.com/account/subscriptions');
+  });
+});
+
+describe('what the Shop and Settings show after a purchase', () => {
+  it('a Lifetime owner is Pro but has no subscription to manage', async () => {
+    const info = customer({ active: { pro: proEntitlement(LIFETIME, { expiresInDays: null }) }, purchased: [LIFETIME] });
+    storeSells(LIFETIME);
+    mockPurchases.purchasePackage.mockResolvedValue({ customerInfo: info });
+    storeRecord(info);
+
+    await purchaseAndSync(LIFETIME);
+
+    // extractSubscriptionInfo files Lifetime in the subscription slot...
+    expect(monetization().subscription).toMatchObject({ tier: 'lifetime', productId: LIFETIME });
+    expect(isPro(monetization())).toBe(true);
+    // ...but there is nothing to renew or cancel, so no "Manage Subscription".
+    expect(hasRecurringSubscription(monetization())).toBe(false);
+  });
+
+  it('an active monthly or yearly plan is a subscription to manage; a lapsed one is not', () => {
+    const base = { isInGracePeriod: false, willRenew: true, isTrial: false };
+    useGameStore.getState().updateSubscription({ ...base, tier: 'monthly', productId: MONTHLY, expiresAt: iso(Date.now() + 10 * DAY) });
+    expect(hasRecurringSubscription(monetization())).toBe(true);
+    useGameStore.getState().updateSubscription({ ...base, tier: 'trial', productId: YEARLY, expiresAt: iso(Date.now() + 5 * DAY), isTrial: true });
+    expect(hasRecurringSubscription(monetization())).toBe(true);
+    useGameStore.getState().updateSubscription({ ...base, tier: 'annual', productId: YEARLY, expiresAt: iso(Date.now() - DAY) });
+    expect(hasRecurringSubscription(monetization())).toBe(false);
+  });
+
+  it('the Starter Kit is not recommended to someone who already owns the Manager Identity Pack', async () => {
+    useGameStore.setState(st => ({ monetization: { ...st.monetization, firstLaunchTimestamp: Date.now() - DAY } }));
+    expect(isStarterKitAvailable(monetization())).toBe(true);
+
+    const info = customer({ purchased: [MANAGER_PACK] });
+    storeSells(MANAGER_PACK);
+    mockPurchases.purchasePackage.mockResolvedValue({ customerInfo: info });
+    storeRecord(info);
+    await purchaseAndSync(MANAGER_PACK);
+
+    expect(monetization().entitlements).toContain(MANAGER_PACK);
+    expect(isStarterKitAvailable(monetization())).toBe(false);
   });
 });

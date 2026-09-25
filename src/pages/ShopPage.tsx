@@ -6,7 +6,7 @@ import { PurchaseModal } from '@/components/game/PurchaseModal';
 import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
-import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive, formatPerPeriodPrice } from '@/utils/monetization';
+import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, hasRecurringSubscription, formatPerPeriodPrice } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
@@ -88,7 +88,9 @@ const ShopPage = () => {
   const [purchaseProduct, setPurchaseProduct] = useState<ProductId | null>(null);
   const [restoring, setRestoring] = useState(false);
   const userIsPro = isPro(monetization);
-  const hasActiveSub = isSubscriptionActive(monetization);
+  // A store subscription to show and manage — NOT a Lifetime record sitting in
+  // the subscription slot (that is Pro with nothing to renew or cancel).
+  const hasActiveSub = hasRecurringSubscription(monetization);
   const onMonthlyPlan = monetization.subscription?.tier === 'monthly';
   const starterKitAvailable = isStarterKitAvailable(monetization);
 
