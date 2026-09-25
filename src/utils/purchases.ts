@@ -471,6 +471,9 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
     if (isUserCancelledError(err)) {
       return false;
     }
+    // Ask to Buy / SCA is not a failure: the caller keeps its pending-credit
+    // marker and waits for approval. Rethrow without paging Sentry.
+    if (isPaymentPendingError(err)) throw err;
     if (import.meta.env.DEV) console.error('[Purchases] Consumable purchase failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.purchaseConsumable' }, extra: { productId } });
     throw err;
@@ -485,6 +488,11 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
 export interface PurchaseOutcome {
   cancelled: boolean;
   granted: ProductId[];
+  /** Set (true) when the store is waiting on approval — Ask to Buy or strong
+   *  customer authentication. Nothing is charged or granted yet; if approval
+   *  comes, the customer-info listener delivers the entitlement. Absent
+   *  otherwise. */
+  pending?: boolean;
 }
 
 /** Purchase a product. Distinguishes user-cancel from a completed
@@ -510,6 +518,12 @@ export async function purchaseProduct(productId: ProductId): Promise<PurchaseOut
     if (isUserCancelledError(err)) {
       // User dismissed the store sheet — not an error, and no charge.
       return { cancelled: true, granted: [] };
+    }
+    if (isPaymentPendingError(err)) {
+      // Ask to Buy: a parent must approve. This used to throw like a store
+      // failure, so a child's request showed "Purchase Could Not Complete" and
+      // paged Sentry, though nothing had gone wrong.
+      return { cancelled: false, pending: true, granted: [] };
     }
     if (import.meta.env.DEV) console.error('[Purchases] Purchase failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.purchaseProduct' }, extra: { productId } });

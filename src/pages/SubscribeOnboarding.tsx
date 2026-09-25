@@ -326,6 +326,15 @@ const SubscribeOnboarding = () => {
         return;
       }
 
+      if (outcome.status === 'pending') {
+        // Ask to Buy: not a failure, and nothing is charged yet. Pro arrives
+        // through the customer-info listener if it is approved, so let the
+        // player carry on into the game instead of parking them here.
+        infoToast(t('iap.pendingTitle'), t('iap.pendingBody'));
+        finish();
+        return;
+      }
+
       if (outcome.status === 'failed') {
         track('purchase_failed', { productId: selected, surface: 'onboarding' });
         addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });

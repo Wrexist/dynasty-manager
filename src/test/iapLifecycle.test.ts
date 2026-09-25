@@ -49,10 +49,12 @@ vi.mock('@sentry/react', () => ({
   addBreadcrumb: vi.fn(),
 }));
 
+import * as Sentry from '@sentry/react';
 import { useGameStore } from '@/store/gameStore';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { purchaseAndSync, restoreAndSync, syncStoreState } from '@/utils/purchaseSync';
+import { purchaseProduct, purchaseConsumable, isPaymentPendingError } from '@/utils/purchases';
 import { __resetClockHighWaterCache } from '@/store/helpers/persistence';
 import type { ProductId } from '@/types/game';
 
@@ -268,5 +270,41 @@ describe('syncStoreState never clears a subscription on an empty answer', () => 
 
     expect(subscription).toBeNull();
     expect(proActive).toBe(true);
+  });
+});
+
+describe('Ask to Buy (payment pending) is waiting, not failing', () => {
+  /** PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR as the iOS bridge sends it. */
+  const askToBuy = { message: 'The payment is pending.', code: '20' };
+
+  it('a subscription awaiting a parent\'s approval is reported as pending, never as a failure', async () => {
+    storeSells(YEARLY);
+    mockPurchases.purchasePackage.mockRejectedValue(askToBuy);
+
+    await expect(purchaseProduct(YEARLY)).resolves.toEqual({ cancelled: false, pending: true, granted: [] });
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('the purchase flow grants nothing while it waits', async () => {
+    storeSells(LIFETIME);
+    mockPurchases.purchasePackage.mockRejectedValue(askToBuy);
+
+    const outcome = await purchaseAndSync(LIFETIME);
+
+    expect(outcome.status).toBe('pending');
+    expect(isPro(monetization())).toBe(false);
+    expect(monetization().subscription).toBeNull();
+    expect(monetization().entitlements).toEqual([]);
+  });
+
+  it('a consumable awaiting approval rethrows for the pack marker, without paging Sentry', async () => {
+    const GOLD: ProductId = 'com.dynastymanager.pack.gold';
+    storeSells(GOLD);
+    mockPurchases.purchasePackage.mockRejectedValue(askToBuy);
+
+    const err = await purchaseConsumable(GOLD).catch(e => e);
+
+    expect(isPaymentPendingError(err)).toBe(true);
+    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 });

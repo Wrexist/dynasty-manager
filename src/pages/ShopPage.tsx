@@ -18,6 +18,7 @@ import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -80,6 +81,7 @@ const COSMETIC_PACK_IDS: ProductId[] = [
 
 const ShopPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const monetization = useGameStore(s => s.monetization);
   const setCosmetic = useGameStore(s => s.setCosmetic);
   const clearCosmetic = useGameStore(s => s.clearCosmetic);
@@ -210,6 +212,13 @@ const ShopPage = () => {
       if (outcome.status === 'cancelled') {
         track('purchase_cancelled', { productId, surface: 'shop' });
         infoToast('Purchase Cancelled', 'No charge was made.');
+        setPurchaseProduct(null);
+        return;
+      }
+      if (outcome.status === 'pending') {
+        // Ask to Buy — nothing charged yet; the entitlement listener grants it
+        // if approved. Not a failure, so no error banner.
+        infoToast(t('iap.pendingTitle'), t('iap.pendingBody'));
         setPurchaseProduct(null);
         return;
       }

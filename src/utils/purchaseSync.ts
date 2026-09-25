@@ -25,6 +25,7 @@ import {
   getEntitlements,
   getCustomerInfo,
   extractSubscriptionInfo,
+  isPaymentPendingError,
 } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -127,6 +128,10 @@ export async function purchaseAndSync(
   try {
     const result = await purchaseProduct(productId);
     if (result.cancelled) return { status: 'cancelled' };
+    if (result.pending) {
+      addGameBreadcrumb('purchase', 'purchase awaiting approval', { productId });
+      return { status: 'pending' };
+    }
 
     if (result.granted.length > 0) useGameStore.getState().restoreEntitlements(result.granted);
     await syncStoreState();
@@ -164,6 +169,7 @@ export async function purchaseAndSync(
       && (sub.isTrial === true || sub.tier === 'trial');
     return { status: 'completed', isTrial };
   } catch (err) {
+    if (isPaymentPendingError(err)) return { status: 'pending' };
     // The throw can arrive AFTER the charge (receipt validation, network) —
     // re-read the store and, if the product is now owned, it was a success.
     try { await syncStoreState(); } catch { /* best-effort recovery */ }

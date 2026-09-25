@@ -656,6 +656,9 @@ export const en = {
   'sponsorOfferSheet.performanceBonus': "Performance Bonus",
   'sponsorOfferSheet.duration': "Duration",
   'sponsorOfferSheet.weeklyPay': "Weekly Pay",
+  // ── iap: purchase outcomes, trials, redeem ──
+  'iap.pendingTitle': 'Waiting for approval',
+  'iap.pendingBody': "It unlocks automatically once the purchase is approved. You're only charged if it is.",
 } as const;
 
 export default en;
