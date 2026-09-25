@@ -25,6 +25,7 @@ import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
 import { formatMoney } from '@/utils/helpers';
 import { SectionHeader } from '@/components/game/SectionHeader';
+import { detectLocaleNation } from '@/utils/localeNation';
 
 const STEPS: ManagerCreationStep[] = ['name', 'nationality', 'age', 'traits', 'offers'];
 
@@ -71,7 +72,12 @@ const ManagerCreation = () => {
   const [step, setStep] = useState<ManagerCreationStep>('name');
   const [managerName, setManagerName] = useState('');
   const [appearance] = useState<ManagerAppearance>({ ...DEFAULT_APPEARANCE });
-  const [nationality, setNationality] = useState<string | null>(null);
+  // Device-locale nationality (`sv-SE` → Sweden), the same default the Sandbox
+  // flow (ClubSelection) uses: it pre-selects a row and heads the list, and
+  // `null` — a locale that maps to no selectable nation — opens the list
+  // unselected, as it always did. A default only; the player can change it.
+  const [localeNation] = useState<string | null>(() => detectLocaleNation());
+  const [nationality, setNationality] = useState<string | null>(localeNation);
   const [age, setAge] = useState(38);
   const [selectedTraits, setSelectedTraits] = useState<ManagerTraitId[]>([]);
   const [selectedOffer, setSelectedOffer] = useState<JobOffer | null>(null);
@@ -193,7 +199,7 @@ const ManagerCreation = () => {
     return NATIONS.filter(n => n.name.toLowerCase().includes(search));
   }, [nationSearch]);
 
-  const nationsByConfederation = useMemo(() => {
+  const nationGroups = useMemo(() => {
     const groups: Record<string, typeof NATIONS> = {};
     for (const nation of filteredNations) {
       const conf = nation.confederation || 'Other';
@@ -203,8 +209,14 @@ const ManagerCreation = () => {
     for (const conf in groups) {
       groups[conf].sort((a, b) => a.baseRanking - b.baseRanking);
     }
-    return groups;
-  }, [filteredNations]);
+    const byConf = Object.entries(groups).map(([conf, nations]) => ({ key: conf, label: CONFEDERATION_LABELS[conf] || conf, nations }));
+    // The device's own nation heads the list, as in ClubSelection. Not while
+    // searching — a search is the player choosing.
+    const detected = localeNation && !nationSearch ? NATIONS.find(n => n.name === localeNation) : null;
+    return detected
+      ? [{ key: 'device', label: t('managerCreation.suggestedNation'), nations: [detected] }, ...byConf]
+      : byConf;
+  }, [filteredNations, localeNation, nationSearch, t]);
 
   // Redirecting to the title screen (no slot in nav state) — render nothing.
   // Placed after all hooks to satisfy the Rules of Hooks.
@@ -342,11 +354,11 @@ const ManagerCreation = () => {
                 )}
 
                 {/* Nation list by confederation */}
-                {Object.entries(nationsByConfederation).map(([conf, nations]) => (
+                {nationGroups.map(({ key: conf, label, nations }) => (
                   <div key={conf}>
                     <div className="flex items-center gap-2 mb-3 px-1">
                       <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
-                        {CONFEDERATION_LABELS[conf] || conf}
+                        {label}
                       </h3>
                       <div className="flex-1 h-px bg-border/30" />
                       <span className="text-micro text-muted-foreground/50 font-medium tabular-nums">

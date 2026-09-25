@@ -917,6 +917,7 @@ export const en = {
   'dashboard.pass.title': 'Manager Pass',
   'dashboard.pass.tier': 'Tier {tier}/{max}',
   'dashboard.pass.toCollect': '{n} to collect',
+  'managerCreation.suggestedNation': 'From your device',
 } as const;
 
 export default en;
