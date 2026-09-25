@@ -18,7 +18,7 @@
 import type { GameState } from '../../storeTypes';
 import type { LeagueId, Match, PlayoffState, PlayoffTieResult } from '@/types/game';
 import { buildLeagueTable, LEAGUES, getDerbyIntensity } from '@/data/league';
-import { determineProRelZones, resumePlayoff } from '@/utils/promotionRelegation';
+import { determineProRelZones, isNeutralPlayoffRound, resumePlayoff } from '@/utils/promotionRelegation';
 import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 import { simulateMatch } from '@/engine/match';
 import { neutralVenue } from '@/engine/match/helpers';
@@ -26,12 +26,6 @@ import { safeRandomUUID } from '@/utils/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
-
-/** The playoff FINAL (two clubs left) is played at a neutral ground; the
- *  semi-finals are hosted by the better-placed side. */
-function isNeutralPlayoffRound(teamsInRound: number): boolean {
-  return teamsInRound <= 2;
-}
 
 /** Build the Match object for a pending tie. Not a league fixture — see header. */
 function makePlayoffMatch(state: GameState, homeClubId: string, awayClubId: string, teamsInRound: number): Match {

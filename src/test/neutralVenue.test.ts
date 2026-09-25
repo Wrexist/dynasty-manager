@@ -256,6 +256,38 @@ describe('fixtures are built neutral where nobody hosts', () => {
     expect(aiFinal?.neutral).toBe(true);
   });
 
+  it('rollover plays the playoff finals of the other divisions neutral; their semi-finals are hosted', () => {
+    // A Premier League save: the Championship, League One and League Two
+    // playoffs are all decided at rollover by `endSeasonImpl`'s resolver, which
+    // must apply the same neutral-final rule as the interactive bracket.
+    const s = useGameStore.getState();
+    const done = <T extends { played: boolean }>(ms: T[]) => ms.map(m => ({ ...m, played: true, homeGoals: 1, awayGoals: 0 }));
+    const divisionFixtures = Object.fromEntries(Object.entries(s.divisionFixtures).map(([id, ms]) => [id, done(ms)]));
+    useGameStore.setState({
+      week: s.totalWeeks,
+      divisionFixtures,
+      fixtures: divisionFixtures[s.playerDivision],
+      cup: { ties: [], currentRound: null, eliminated: false, winner: null },
+      leagueCup: null, championsCup: null, shieldCup: null, conferenceCup: null,
+      domesticSuperCup: null, continentalSuperCup: null,
+    });
+    useGameStore.getState().endSeason();
+    const playoffs = captured.matches.filter(m => m.id.startsWith(`playoff-${s.season}-`));
+    // A tie is a final when both of its clubs already played a semi-final.
+    const seen = new Set<string>();
+    const finals: Match[] = [];
+    const semis: Match[] = [];
+    for (const m of playoffs) {
+      (seen.has(m.homeClubId) && seen.has(m.awayClubId) ? finals : semis).push(m);
+      seen.add(m.homeClubId);
+      seen.add(m.awayClubId);
+    }
+    expect(finals.length).toBeGreaterThan(0);
+    expect(semis.length).toBeGreaterThan(0);
+    for (const m of finals) expect(m.neutral, m.id).toBe(true);
+    for (const m of semis) expect(m.neutral, m.id).toBeUndefined();
+  }, 120_000);
+
   it('the player\'s own Cup Final is neutral in every segment; a league match is not', () => {
     const s = useGameStore.getState();
     const opp = s.divisionClubs[s.playerDivision].find(id => id !== CLUB)!;

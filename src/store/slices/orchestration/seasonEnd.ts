@@ -49,8 +49,9 @@ import {
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
 } from '@/config/playoffs';
 import { resetSeasonGrowth } from '@/store/helpers/development';
-import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
+import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub, isNeutralPlayoffRound } from '@/utils/promotionRelegation';
 import { simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
 import { getDerbyIntensity } from '@/data/league';
 
 import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
@@ -389,7 +390,7 @@ export function endSeasonImpl(set: Set, get: Get) {
   for (const r of state.playoffState?.resolved ?? []) {
     prePlayed.set([r.homeClubId, r.awayClubId].sort().join('|'), r);
   }
-  const resolvePlayoffTie = (homeClubId: string, awayClubId: string): string => {
+  const resolvePlayoffTie = (homeClubId: string, awayClubId: string, teamsInRound?: number): string => {
     const already = prePlayed.get([homeClubId, awayClubId].sort().join('|'));
     if (already) {
       if (already.homeClubId === playerClubId || already.awayClubId === playerClubId) {
@@ -409,6 +410,8 @@ export function endSeasonImpl(set: Set, get: Get) {
       id: `playoff-${state.season}-${homeClubId}-${awayClubId}`,
       week: state.week, season: state.season,
       homeClubId, awayClubId, homeGoals: 0, awayGoals: 0, played: false, events: [],
+      // The final is at a neutral ground — the same rule as `playoff.ts`.
+      ...neutralVenue(isNeutralPlayoffRound(teamsInRound)),
     } as Match;
     const { result } = simulateMatch(
       tie, hc, ac, hp, ap,

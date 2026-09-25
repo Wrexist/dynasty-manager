@@ -49,8 +49,9 @@ export function determineZones(table: LeagueTableEntry[], league: LeagueInfo) {
 // ── Run a simple playoff tournament (best 2 of the playoff candidates) ──
 
 /**
- * Decide one playoff tie. `homeClubId` is the better-placed side, which hosts.
- * Returns the winner's club id.
+ * Decide one playoff tie. `homeClubId` is the better-placed side, which hosts
+ * (the final excepted — see `isNeutralPlayoffRound`). Returns the winner's
+ * club id.
  *
  * Injected rather than imported so this module stays free of the match engine
  * (and so the existing pure tests can keep running it without squads).
@@ -62,6 +63,15 @@ export type PlayoffTieResolver = (
    *  played at a neutral venue). Optional so existing resolvers keep working. */
   teamsInRound?: number,
 ) => string;
+
+/** The playoff FINAL (two clubs left in the bracket) is played at a neutral
+ *  ground; the earlier rounds are hosted by the better-placed side. ONE rule
+ *  for the interactive bracket (`playoff.ts`) and rollover's resolver
+ *  (`seasonEnd.ts`), so the same final cannot be neutral in one and hosted in
+ *  the other. */
+export function isNeutralPlayoffRound(teamsInRound: number | undefined): boolean {
+  return teamsInRound != null && teamsInRound <= 2;
+}
 
 /** Fallback when no resolver is supplied: the better-placed side goes through
  *  this often. Only used by callers that have no squads to simulate with. */
