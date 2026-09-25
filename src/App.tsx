@@ -53,6 +53,17 @@ const App = () => {
     root.classList.toggle('perf-mode', !!performanceMode);
     return () => root.classList.remove('perf-mode');
   }, [performanceMode]);
+  // The in-app Reduced Motion setting reaches CSS through this root class.
+  // MotionConfig below only governs framer-motion, and index.css used to
+  // listen to the OS preference alone — so every `animate-pulse` badge and
+  // Tailwind `transition-*` kept moving for a player who had switched motion
+  // off in Settings. Performance mode implies reduced motion, exactly as it
+  // does for MotionConfig and useReducedMotionPref.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('reduce-motion', !!reducedMotion || !!performanceMode);
+    return () => root.classList.remove('reduce-motion');
+  }, [reducedMotion, performanceMode]);
   // Note: the first-launch analytics consent modal was removed — product
   // analytics travel via RevenueCat + App Store Connect (decision in
   // docs/growth-overhaul-plan.md §1.2), so no first-party stats leave the
