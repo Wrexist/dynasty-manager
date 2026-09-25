@@ -46,6 +46,8 @@ const SLOW_SUITES = [
   // `sundayPersonas` (9s), `sundayStress` (12s) and `sundayStoryQuality` (13s),
   // all of which stayed fast.
   "src/test/sundayCampaign.test.ts",
+  // ── world: full-season simulations (audit 2026-09-25, S5/S9) ──
+  "src/test/unemployedCompetitions.test.ts", // ~19s — one unemployed season
 ];
 
 export default defineConfig({
