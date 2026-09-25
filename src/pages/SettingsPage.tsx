@@ -5,7 +5,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -19,8 +19,6 @@ import {
   deleteAllDynastyData,
   readCommunityPackSlotPref,
   writeCommunityPackSlotPref,
-  readAnalyticsConsent,
-  writeAnalyticsConsent,
   readNotificationsEnabled,
   writeNotificationsEnabled,
   STORAGE_KEYS,
@@ -28,7 +26,7 @@ import {
 import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { triggerTestError } from '@/utils/sentry';
-import { refreshAnalyticsConsent, track } from '@/utils/analytics';
+import { track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';

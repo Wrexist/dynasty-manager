@@ -72,8 +72,16 @@ data/fc27/*.json
 # marketing/postproduction/fetch-ffmpeg.mjs). Never committed: 79 MB.
 .cache
 
-# Full-resolution portrait generation inputs stay local; ship alpha WebP assets,
-# provenance, validation reports and card review sheets instead.
+# Full-resolution portrait generation inputs stay local; ship alpha WebP assets
+# (public/player-portraits/) plus the text provenance: receipts, manifests,
+# validation reports and the batch scripts.
 artifacts/player-portrait-rollout/*/sources/
 artifacts/player-portrait-rollout/*/references/
 artifacts/player-portrait-rollout/*/rejected-variants/
+# Card review sheets and source images are working files, not provenance: 144
+# PNGs were 264 MB of the 267 MB this directory kept in git. Nothing at build or
+# test time reads them. Earlier copies remain in history.
+artifacts/**/*.png
+artifacts/**/*.jpg
+artifacts/**/*.jpeg
+artifacts/**/*.webp

@@ -1,47 +1,49 @@
 ---
 description: Game logic, store, and engine conventions
-globs: ["src/store/**", "src/engine/**", "src/utils/**", "src/data/**"]
+globs: ["src/store/**", "src/engine/**", "src/utils/**", "src/data/**", "src/config/**"]
 ---
 
 # Game Logic Rules
 
-## gameStore.ts
-- This is the heart of the app. Every game action is a Zustand action here.
-- State is immutable — always spread objects/arrays before mutating.
-- Keep helper functions (like `applyPlayerDevelopment`, `addMsg`) outside the store as pure functions.
-- When the store grows past 800 lines, split into slices (e.g., `transferSlice.ts`, `matchSlice.ts`).
+## Store (`src/store/`)
+- `gameStore.ts` only composes slices. Each action lives in the slice that owns it
+  (`clubSlice`, `transferSlice`, `matchSlice`, `packsSlice`, `careerSlice`, …).
+- `orchestrationSlice.ts` is a façade over `slices/orchestration/`:
+  `weekAdvance.ts` (THE game loop), `seasonEnd.ts`, `matchActions.ts`,
+  `initGame.ts`, `tournaments.ts`, `playoff.ts`, `worldCupMatchActions.ts`,
+  `communityPackRuntime.ts`, `helpers.ts`.
+- Shared pure helpers live in `src/store/helpers/` (`persistence.ts`,
+  `idbStorage.ts`, `development.ts`, `matchProcessing.ts`, `rosterOps.ts`).
+- State is immutable: spread nested objects/arrays before changing them in `set()`.
+- `club.lineup` / `club.subs` are player-ID arrays. Map IDs to players and then
+  `filter(Boolean)` — IDs can outlive their players.
+- Selling a player updates both clubs (playerIds, lineup, subs, wageBill, budget),
+  the player's `clubId`, and the transfer market.
 
-## Types
-- ALL types live in `src/types/game.ts`. Import from there.
-- Add new types to `game.ts`, don't create new type files.
-- Use `interface` for objects, `type` for unions/aliases.
-- Formation data (`FORMATION_POSITIONS`, `POSITION_COMPATIBILITY`) lives in `game.ts`.
+## Persistence
+- Never touch `localStorage`/`sessionStorage`/IndexedDB directly — use the helpers
+  in `persistence.ts` (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …).
+- IndexedDB is authoritative; localStorage is a best-effort mirror.
+- Persisted shape change → bump `CURRENT_VERSION` in `utils/saveMigration.ts` + a
+  migration step.
 
-## Match Engine (`src/engine/match.ts`)
-- `simulateMatch()` takes clubs + player arrays, returns a `Match` with events.
-- Events are typed as `MatchEvent` with minute, type, player references.
-- Keep simulation pure — no store access inside the engine.
-- Team strength calc is in `playerGen.ts` (`getTeamStrength`).
+## Types and config
+- ALL types in `src/types/game.ts`; don't create new type files.
+- Balance constants in `src/config/` (`gameBalance.ts` first).
 
-## Player Generation (`src/utils/playerGen.ts`)
-- `generatePlayer()` — single player with position-based attribute profiles.
-- `generateSquad()` — full squad from template (20 positions).
-- `selectBestLineup()` — auto-picks best XI + subs for a formation.
-- `calculateOverallExport()` — weighted overall rating per position.
-- Keep the `POSITION_WEIGHTS` balanced — changes ripple everywhere.
-
-## Data (`src/data/league.ts`)
-- 20 clubs with detailed attributes (budget, reputation, facilities, etc.)
-- `generateFixtures()` — round-robin home and away.
-- `buildLeagueTable()` — processes played fixtures into sorted table.
+## Match engine (`src/engine/match.ts`)
+- `simulateMatch()` is pure: no store access, no UI.
+- The user's own match runs through `playCurrentMatch()`, not `advanceWeek()`.
+- Cup and continental round weeks are choreographed — read the comment block in
+  `src/data/cup.ts` before moving one.
 
 ## Patterns
-- Use `crypto.randomUUID()` for all IDs.
-- Clamp values: `const clamp = (v, min=1, max=99) => Math.max(min, Math.min(max, Math.round(v)))`
-- Random pick: `const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]`
-- Messages: use `addMsg()` helper, cap at 80 messages.
+- IDs: `safeRandomUUID()` from `src/utils/helpers.ts` (iOS < 15.4 lacks
+  `crypto.randomUUID`).
+- Monetization never changes match outcomes, training, transfer values or any other
+  sim parameter.
 
 ## Don'ts
-- Don't access `localStorage` outside of `saveGame`/`loadGame`.
 - Don't import React or components into store/engine/utils files.
-- Don't put UI concerns (toasts, navigation) in store — return results and let components handle UI.
+- Don't put UI concerns (toasts, navigation) in slices — return results.
+- Don't hand-edit generated data; regenerate it with its script.

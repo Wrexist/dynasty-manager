@@ -94,7 +94,7 @@ const REWARDED_AD_IMPL_IS_STUB = false;
 *Verify:* `npx vitest run src/test/launchCrashGuardrails.test.ts` — the guardrail tests pin these as a pair and will fail if you flip only one.
 *If you flip only `NATIVE_ADS_READY`:* Pro users collect every reward and free users collect none — a paid economic advantage, i.e. pay-to-win.
 
-**2.7** Sequence the ATT prompt **after** the existing first-launch `AnalyticsConsentModal`, so users don't get two system-looking dialogs back to back. Add Google UMP for EEA consent.
+**2.7** Show the ATT prompt on its own, never back to back with another system-looking dialog (the first-launch analytics consent modal was removed with the analytics transport; if a consent prompt returns, sequence ATT after it). Add Google UMP for EEA consent.
 
 **2.8** **App Store Connect → App Privacy** → declare **Device ID → Tracking** and **Third-Party Advertising**.
 *If skipped:* rejection, or a privacy-label mismatch after you ship.
