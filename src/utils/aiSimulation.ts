@@ -253,7 +253,7 @@ function processAIContractRenewals(
   playerClubId: string,
 ): { clubs: Record<string, Club>; players: Record<string, Player> } {
   const updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
 
   for (const clubId of Object.keys(updClubs)) {
     if (clubId === playerClubId) continue;
@@ -316,7 +316,7 @@ function processAIListings(
   week: number,
   season: number,
 ): { clubs: Record<string, Club>; players: Record<string, Player>; transferMarket: TransferListing[] } {
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   const updMarket = [...transferMarket];
   const listedPlayerIds = new Set(updMarket.map(l => l.playerId));
 
@@ -370,7 +370,7 @@ function processAIBuying(
   transferNews: TransferNewsEntry[];
 } {
   let updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   let updMarket = [...transferMarket];
   let updMessages = messages;
   const updNews = [...transferNews];
@@ -593,7 +593,7 @@ function processAILoans(
   transferNews: TransferNewsEntry[];
 } {
   let updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   const updLoans = [...activeLoans];
   let updMessages = messages;
   const updNews = [...transferNews];
@@ -718,7 +718,7 @@ function processAIFreeAgents(
   transferNews: TransferNewsEntry[];
 } {
   let updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   let updFreeAgents = [...freeAgents];
   const updNews = [...transferNews];
 
@@ -918,7 +918,15 @@ export function processAIWeekly(
   let updClubs = processAIIncome(clubs, playerClubId, divisionTables);
 
   // 2. Contract Renewals — every week
-  const renewResult = processAIContractRenewals(updClubs, players, season, playerClubId);
+  //
+  // ONE working copy of the player map for the whole AI week. Every stage below
+  // used to spread the full record again on entry — five copies of a
+  // ~5,000-entry map per window week, ~2 ms each on desktop Node before GC. Each
+  // stage reads and writes players only through the map it is handed, and runs
+  // strictly after the previous one, so they can share this copy; the caller's
+  // `players` is never mutated.
+  const workingPlayers = { ...players };
+  const renewResult = processAIContractRenewals(updClubs, workingPlayers, season, playerClubId);
   updClubs = renewResult.clubs;
   let updPlayers = renewResult.players;
   let updMessages = messages;

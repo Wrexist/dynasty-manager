@@ -50,6 +50,9 @@ const SLOW_SUITES = [
   // Three full seasons of the real loop with the community pack (~60s). The
   // per-commit gate keeps `matchCalibrationSmoke.test.ts` (~10s) instead.
   "src/test/matchCalibration.test.ts",
+  // ── world: full-season simulations (audit 2026-09-25, S5/S9) ──
+  "src/test/unemployedCompetitions.test.ts", // ~19s — one unemployed season
+  "src/test/divisionSeasonCalendar.test.ts", // ~15s — one employed season
 ];
 
 export default defineConfig({

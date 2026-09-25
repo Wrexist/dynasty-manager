@@ -1,6 +1,7 @@
 import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry } from '@/types/game';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { PRESEASON_FRIENDLY_COUNT, FRIENDLY_PLACEMENT_MAX_WEEK } from '@/config/gameBalance';
+import { CONTINENTAL_SUPER_CUP_WEEK, DOMESTIC_SUPER_CUP_WEEK, getCompetitionCalendar } from '@/config/continental';
 
 // ── Import all leagues ──
 import { ALL_LEAGUES, ALL_CLUBS_DATA } from './leagues';
@@ -256,6 +257,104 @@ export function generateAllDivisionFixtures(
     }
   }
   return result;
+}
+
+// ── Season calendar fit ──
+// Every division is generated over its OWN length (`generateDivisionFixtures`),
+// but the season ends on the USER's calendar (`state.totalWeeks`, the managed
+// division's length). A Premier League save therefore ran 38 weeks while the
+// Championship, League One and League Two were scheduled over 46: their last 8
+// rounds — 96 fixtures per division, 17% of each season — were never played,
+// and the season-end catch-up filled them with a strength-weighted random
+// scoreline and no player stats — so a sixth of the promotion and relegation
+// race in three divisions was never actually played. The living world has the
+// same shape at every length: a Croatian save (18 weeks) played under half of
+// the Premier League.
+//
+// The fit maps the outstanding rounds onto the weeks that remain, as real
+// football does — longer divisions play midweek double rounds. Rounds stay
+// intact and in order (a club still plays each opponent once per round), and
+// doubled weeks go to weeks with no Cup, League Cup, continental or Super Cup
+// football first, so a club's midweek league game lands on a free midweek.
+
+const busyWeekCache = new Map<number, ReadonlySet<number>>();
+
+/** Weeks of a `seasonWeeks`-week season that already carry knockout football
+ *  (domestic Cup, League Cup, continental, Super Cups). Memoized per length. */
+export function getCompetitionBusyWeeks(seasonWeeks: number): ReadonlySet<number> {
+  const cached = busyWeekCache.get(seasonWeeks);
+  if (cached) return cached;
+  const cal = getCompetitionCalendar(seasonWeeks);
+  const busy = new Set<number>([
+    ...Object.values(cal.cupWeeks),
+    ...Object.values(cal.leagueCupWeeks),
+    ...cal.groupWeeks, ...cal.r16Weeks, ...cal.qfWeeks, ...cal.sfWeeks, cal.finalWeek,
+    DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK,
+  ]);
+  busyWeekCache.set(seasonWeeks, busy);
+  return busy;
+}
+
+/** `count` items of `list`, spread evenly across it (order preserved). */
+function spreadPick(list: number[], count: number): number[] {
+  const n = list.length;
+  if (count <= 0 || n === 0) return [];
+  if (count >= n) return [...list];
+  const out: number[] = [];
+  for (let j = 0; j < count; j++) out.push(list[Math.floor(((j + 0.5) * n) / count)]);
+  return out;
+}
+
+/**
+ * Re-schedule a division's outstanding rounds so all of them fall inside a
+ * `seasonWeeks`-week season, starting no earlier than `fromWeek`.
+ *
+ * Pure and deterministic (no RNG), and a no-op — returning the SAME array —
+ * when every unplayed fixture already falls inside the season, so callers can
+ * run it every week and it only ever acts once per season (or after the
+ * calendar changes under a division, e.g. a league loaded mid-season). Played
+ * fixtures and overdue ones (`week < fromWeek`, which the caller's catch-up
+ * plays this tick anyway) are never moved.
+ *
+ * A "round" is a set of fixtures sharing a week: `generateDivisionFixtures`
+ * stamps each round onto its own week, and a doubled week produced by an
+ * earlier fit simply moves as one unit.
+ */
+export function fitDivisionFixturesToSeason(fixtures: Match[], seasonWeeks: number, fromWeek: number): Match[] {
+  if (!fixtures?.length || !(seasonWeeks >= 1)) return fixtures;
+  if (!fixtures.some(m => !m.played && m.week > seasonWeeks)) return fixtures;
+
+  const start = Math.max(1, Math.min(Math.floor(fromWeek) || 1, seasonWeeks));
+  const roundWeeks = [...new Set(fixtures.filter(m => !m.played && m.week >= start).map(m => m.week))]
+    .sort((a, b) => a - b);
+  const rounds = roundWeeks.length;
+  const weeks = seasonWeeks - start + 1;
+
+  const targets: number[] = [];
+  if (rounds <= weeks) {
+    // Room for one round per week: spread evenly, last round on the last week.
+    for (let i = 0; i < rounds; i++) targets.push(start - 1 + Math.ceil(((i + 1) * weeks) / rounds));
+  } else {
+    // More rounds than weeks: every week takes `base` rounds, and `extra` weeks
+    // take one more — quiet weeks first, then the rest, each spread evenly.
+    const base = Math.floor(rounds / weeks);
+    const extra = rounds - base * weeks;
+    const busy = getCompetitionBusyWeeks(seasonWeeks);
+    const quiet: number[] = [];
+    const loud: number[] = [];
+    for (let w = start; w <= seasonWeeks; w++) (busy.has(w) ? loud : quiet).push(w);
+    const doubled = new Set(spreadPick(quiet, extra));
+    for (const w of spreadPick(loud, extra - doubled.size)) doubled.add(w);
+    for (let w = start; w <= seasonWeeks; w++) {
+      const n = base + (doubled.has(w) ? 1 : 0);
+      for (let k = 0; k < n; k++) targets.push(w);
+    }
+  }
+
+  const moved = new Map<number, number>();
+  roundWeeks.forEach((w, i) => { if (targets[i] !== w) moved.set(w, targets[i]); });
+  if (moved.size === 0) return fixtures;
+  return fixtures.map(m => (!m.played && moved.has(m.week) ? { ...m, week: moved.get(m.week)! } : m));
 }
 
 // ── League Table ──
