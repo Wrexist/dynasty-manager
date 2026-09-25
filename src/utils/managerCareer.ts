@@ -67,6 +67,8 @@ import {
   BOARD_TOLERANCE_START,
   UNEMPLOYED_OFFER_BASE_CHANCE,
   UNEMPLOYED_OFFER_REP_BONUS,
+  JOB_MARKET_REFRESH_SEASON_FRACTIONS,
+  FIRST_TICKED_WEEK,
 } from '@/config/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
@@ -224,6 +226,19 @@ export function getReputationColor(tier: ReputationTier): string {
 }
 
 // ── Job Market ──
+
+/** The weeks of a `totalWeeks`-long season on which the job market refreshes. */
+export function getJobMarketRefreshWeeks(totalWeeks: number): number[] {
+  const len = totalWeeks > 0 ? totalWeeks : TOTAL_WEEKS;
+  const weeks = JOB_MARKET_REFRESH_SEASON_FRACTIONS.map(f =>
+    Math.min(len, Math.max(FIRST_TICKED_WEEK, Math.round(f * len))),
+  );
+  return [...new Set(weeks)];
+}
+
+export function isJobMarketRefreshWeek(week: number, totalWeeks: number): boolean {
+  return getJobMarketRefreshWeeks(totalWeeks).includes(week);
+}
 
 export function generateJobVacancies(
   clubs: Record<string, Club>,

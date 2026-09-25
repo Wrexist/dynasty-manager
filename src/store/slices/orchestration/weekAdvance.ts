@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { Club, Player, TransferListing, Match } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, generateCompetitors, getRetirementAge } from '@/utils/managerCareer';
+import { calculateReputationTier, generateJobVacancies, generateCompetitors, getRetirementAge, isJobMarketRefreshWeek } from '@/utils/managerCareer';
 import {
   REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
@@ -31,7 +31,7 @@ import { createMilestone } from '@/utils/milestones';
 import { grantXP, hasPerk } from '@/utils/managerPerks';
 
 import type { JobVacancy } from '@/types/game';
-import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES } from '@/config/managerCareer';
+import { PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES } from '@/config/managerCareer';
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { getCompetitionCalendar } from '@/config/continental';
@@ -744,7 +744,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     // Refresh job market on configured weeks
     let vacancies = state.jobVacancies;
-    if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
+    if (isJobMarketRefreshWeek(newWeek, state.totalWeeks)) {
       vacancies = generateJobVacancies(state.clubs, cm.reputationScore, state.season, newWeek, state.playerClubId).map(v => {
         const vLeague = LEAGUES.find(l => l.id === v.divisionId);
         return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
@@ -3294,7 +3294,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       // --- Job Market Refresh + Expiry + Desperation (batched into single set) ---
       let updatedVacancies: JobVacancy[] | null = null;
 
-      if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
+      if (isJobMarketRefreshWeek(newWeek, state.totalWeeks)) {
         updatedVacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek, playerClubId).map(v => {
           const vLeague = LEAGUES.find(l => l.id === v.divisionId);
           return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };

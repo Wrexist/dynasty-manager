@@ -60,8 +60,15 @@ export const MOD_MEDIA_PRESS = 0.04;                // +4% press effects per poi
 export const MAX_VACANCIES = 5;
 export const VACANCY_DURATION_WEEKS = 8;
 export const INITIAL_VACANCIES_SHOWN = 3;
-// Values beyond the league's totalWeeks are harmlessly skipped at runtime
-export const JOB_MARKET_REFRESH_WEEKS = [1, 24, 46];
+/** When the job market refreshes, as fractions of the player's league season
+ *  (0 = the first week ticked, 0.5 = mid-season, 1 = the final week). These
+ *  used to be absolute weeks [1, 24, 46] written for a 46-week calendar: week 1
+ *  is never ticked (a tick lands on week + 1), 38-week leagues never reach 46,
+ *  and the 18/22-week leagues never reached 24 either — so they got no
+ *  refresh at all. Resolved per league by `getJobMarketRefreshWeeks`. */
+export const JOB_MARKET_REFRESH_SEASON_FRACTIONS = [0, 0.5, 1];
+/** Earliest week an advance tick can land on (advancing from week 1). */
+export const FIRST_TICKED_WEEK = 2;
 export const STARTING_JOB_OFFERS = 3;
 
 // ── Starting Offer Negotiation ──
