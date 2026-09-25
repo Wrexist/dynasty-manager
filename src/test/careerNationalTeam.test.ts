@@ -10,13 +10,19 @@
  *    advanced, `seasonPhase` stayed `'international'` forever, the next season's
  *    league was simulated underneath it, and the deferred tail (ageing, contract
  *    processing) never ran.
+ *
+ * 2. **Taking a job in another league deleted the nationality and the NT job.**
+ *    A cross-league `moveToNewClub` re-initialises the world through
+ *    `initGame`, which nulls `managerNationality`, `nationalTeam` and
+ *    `nationalTeamOffer`; nothing restored them, and the nationality can only
+ *    be picked once, so the national-team career was gone for good.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { createDefaultManager } from '@/utils/managerCareer';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
-import type { CareerManager, NationalTeamOffer } from '@/types/game';
+import type { CareerManager, JobOffer, NationalTeamOffer } from '@/types/game';
 
 const CLUB_ID = 'celtic';
 const NATION = 'England';
@@ -83,5 +89,74 @@ describe('unemployed career manager with the national-team job', () => {
     // The club calendar did not run underneath the tournament.
     expect(s.week).toBe(weekBefore);
     expect(s.season).toBe(2);
+  });
+});
+
+describe('cross-league move keeps the national-team career', () => {
+  it('restores nationality, the NT job and a squad of players that exist in the new world', () => {
+    useGameStore.setState({
+      gameMode: 'career',
+      careerManager: {
+        ...unemployedManager(),
+        contract: { clubId: CLUB_ID, salary: 5000, startSeason: 1, endSeason: 3, bonuses: [] },
+        careerHistory: [{
+          clubId: CLUB_ID, clubName: 'Celtic', divisionId: 'sco', startSeason: 1, endSeason: null,
+          reason: 'hired', bestFinish: 0, titlesWon: 0,
+        }],
+      },
+    });
+    appointNationalTeam();
+    const before = useGameStore.getState().nationalTeam!;
+    const history = [{ season: 1, opponent: 'France', goalsFor: 2, goalsAgainst: 1, tournament: 'Friendly', round: '' }];
+    useGameStore.setState({
+      nationalTeam: { ...before, formation: '4-4-2', caps: { [before.poolPlayerIds[0]]: 3 }, results: history },
+    });
+
+    const offer = {
+      id: 'offer-x', clubId: 'manchester-city', clubName: 'Manchester City', divisionId: 'eng',
+      salary: 20000, contractLength: 2, bonuses: [],
+    } as unknown as JobOffer;
+    useGameStore.getState().moveToNewClub('manchester-city', offer);
+
+    const s = useGameStore.getState();
+    expect(s.playerClubId).toBe('manchester-city');
+    expect(s.managerNationality).toBe(NATION);
+    const nt = s.nationalTeam;
+    expect(nt, 'national-team job lost on a league change').not.toBeNull();
+    expect(nt!.nationality).toBe(NATION);
+    expect(nt!.formation).toBe('4-4-2');
+    expect(nt!.results).toEqual(history);
+    // Every id the NT state points at must resolve in the rebuilt world.
+    const dangling = [...nt!.squad, ...nt!.lineup, ...nt!.subs, ...nt!.poolPlayerIds].filter(id => !s.players[id]);
+    expect(dangling, 'national team references players that no longer exist').toEqual([]);
+    expect(nt!.squad.length).toBeGreaterThanOrEqual(11);
+    // A carried pool player keeps his caps.
+    expect(s.players[before.poolPlayerIds[0]]).toBeTruthy();
+    expect(nt!.caps[before.poolPlayerIds[0]]).toBe(3);
+  });
+
+  it('keeps a pending national-team offer', () => {
+    useGameStore.setState({
+      gameMode: 'career',
+      careerManager: {
+        ...unemployedManager(),
+        contract: { clubId: CLUB_ID, salary: 5000, startSeason: 1, endSeason: 3, bonuses: [] },
+      },
+    });
+    const offer: NationalTeamOffer = {
+      id: 'nt-offer', nationality: NATION, reason: 'initial',
+      offerSeason: 1, offerWeek: 1, expiresSeason: 1, expiresWeek: 10, status: 'pending',
+    };
+    useGameStore.setState({ managerNationality: NATION, nationalTeamOffer: offer, showNationalTeamOffer: true });
+
+    useGameStore.getState().moveToNewClub('manchester-city', {
+      id: 'offer-y', clubId: 'manchester-city', clubName: 'Manchester City', divisionId: 'eng',
+      salary: 20000, contractLength: 2, bonuses: [],
+    } as unknown as JobOffer);
+
+    const s = useGameStore.getState();
+    expect(s.managerNationality).toBe(NATION);
+    expect(s.nationalTeamOffer).toEqual(offer);
+    expect(s.nationalTeam).toBeNull();
   });
 });
