@@ -252,7 +252,10 @@ export function selectNextFixture(fixtures: Match[], playerClubId: string, week:
 
 export type AttentionId =
   | 'ultimatum' | 'board' | 'lineup' | 'injuries' | 'contracts' | 'offers' | 'deadline'
-  | 'squad-short' | 'squad-full' | 'job-offers' | 'youth';
+  | 'squad-short' | 'squad-full' | 'job-offers' | 'youth'
+  // A storyline decision waiting on the player. It used to render as a large
+  // card ABOVE the Continue button (playthrough 2026-09, R17).
+  | 'storyline';
 
 export type AttentionSeverity = 'critical' | 'warning' | 'info';
 
@@ -281,6 +284,8 @@ export interface AttentionInput {
   jobOffers: number;
   youthReady: number;
   hasMatchThisWeek: boolean;
+  /** The pending storyline decision, if any: its title and number of choices. */
+  storyline?: { title: string; choices: number } | null;
 }
 
 const SEVERITY_RANK: Record<AttentionSeverity, number> = { critical: 0, warning: 1, info: 2 };
@@ -328,6 +333,15 @@ export function selectAttentionItems(input: AttentionInput): AttentionItem[] {
       severity: input.boardConfidence <= BOARD_ATTENTION_CRITICAL_CONFIDENCE ? 'critical' : 'warning',
       screen: 'board',
       params: { confidence: Math.round(input.boardConfidence) },
+    });
+  }
+
+  // A decision only the player can make; the row opens the choice in place
+  // (screen 'dashboard' — the Dashboard handles the tap, not a navigation).
+  if (input.storyline) {
+    items.push({
+      id: 'storyline', severity: 'warning', screen: 'dashboard',
+      params: { title: input.storyline.title, choices: input.storyline.choices },
     });
   }
 

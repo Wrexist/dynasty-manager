@@ -8,7 +8,9 @@
  *   2. "Needs your attention" — only things with an action behind them
  *      (`selectAttentionItems`), each row tapping to the screen that resolves
  *      it. Injuries and expiring contracts used to render below the XP bar,
- *      sagas, objectives, achievements and cliffhangers.
+ *      sagas, objectives, achievements and cliffhangers. A pending storyline
+ *      decision is a row here too, opening its choices in a sheet — it used
+ *      to be a big card above the Continue button.
  *   3. The Getting Started checklist (new careers only) — also the page's
  *      one guide entry ("Take the tour"); the separate "Your Dashboard" hint
  *      card that sat above the Continue button is gone.
@@ -35,7 +37,7 @@ import { PressConference } from '@/components/game/PressConference';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, Trophy, AlertTriangle, Loader2, FastForward, Swords, Gavel, TrendingDown,
-  Users, Activity, FileText, DollarSign, Clock, UserPlus, UserMinus, Briefcase, Sprout, Flag,
+  Users, Activity, FileText, DollarSign, Clock, UserPlus, UserMinus, Briefcase, Sprout, Flag, BookOpen,
 } from 'lucide-react';
 import { LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { cn } from '@/lib/utils';
@@ -96,6 +98,7 @@ const ATTENTION_ICON: Record<AttentionId, React.ElementType> = {
   'squad-full': UserMinus,
   'job-offers': Briefcase,
   youth: Sprout,
+  storyline: BookOpen,
 };
 
 const ATTENTION_COPY: Record<AttentionId, { title: TranslationKey; detail: TranslationKey }> = {
@@ -110,6 +113,7 @@ const ATTENTION_COPY: Record<AttentionId, { title: TranslationKey; detail: Trans
   'squad-full': { title: 'dashboard.attention.squadFull', detail: 'dashboard.attention.squadFullDetail' },
   'job-offers': { title: 'dashboard.attention.jobOffers', detail: 'dashboard.attention.jobOffersDetail' },
   youth: { title: 'dashboard.attention.youth', detail: 'dashboard.attention.youthDetail' },
+  storyline: { title: 'dashboard.attention.storyline', detail: 'dashboard.attention.storylineDetail' },
 };
 
 const SEVERITY_TONE: Record<AttentionItem['severity'], string> = {
@@ -181,6 +185,9 @@ const Dashboard = () => {
   useEffect(() => {
     if (showMidSeason && pendingDigest) dismissWeeklyDigest();
   }, [showMidSeason, pendingDigest, dismissWeeklyDigest]);
+
+  // The storyline decision sheet — opened from its "Needs your attention" row.
+  const [storylineOpen, setStorylineOpen] = useState(false);
 
   // "More" — collapsed by default, remembered per device.
   const [moreOpen, setMoreOpen] = useState(() => getFlag(STORAGE_KEYS.DASHBOARD_MORE_EXPANDED));
@@ -438,12 +445,17 @@ const Dashboard = () => {
     [hasMatchThisWeek, fixtures, playerClubId, week],
   );
   const youthReady = youthAcademy.prospects.filter(p => p.readyToPromote).length;
+  const storylineRow = useMemo(
+    () => (pendingStoryline ? { title: pendingStoryline.title, choices: pendingStoryline.options.length } : null),
+    [pendingStoryline],
+  );
   const attention = useMemo(() => (club ? selectAttentionItems({
     club, players, playerClubId, season, week,
     incomingOffers: incomingOffers.length, boardConfidence, boardUltimatum, leaguePosition: pos,
     transferWindowOpen, windows: tw, jobOffers: gameMode === 'career' ? jobOffers.length : 0, youthReady, hasMatchThisWeek,
+    storyline: storylineRow,
   }) : []), [club, players, playerClubId, season, week, incomingOffers.length, boardConfidence, boardUltimatum, pos,
-    transferWindowOpen, tw, gameMode, jobOffers.length, youthReady, hasMatchThisWeek]);
+    transferWindowOpen, tw, gameMode, jobOffers.length, youthReady, hasMatchThisWeek, storylineRow]);
 
   if (!club) {
     // `playerClubId` no longer resolves. In career mode `setScreen` redirects an
@@ -519,7 +531,9 @@ const Dashboard = () => {
       <WeeklyDigest />
       <NationalTeamOfferModal />
       {pendingPressConference && <PressConference />}
-      {pendingStoryline && <StorylineModal />}
+      {/* A storyline is a row in "Needs your attention", not a card above the
+          Continue button (it pushed Continue to y≈650); the row opens this. */}
+      {pendingStoryline && storylineOpen && <StorylineModal onClose={() => setStorylineOpen(false)} />}
       {pendingTransferTalk && <PlayerTransferTalk />}
       <FarewellModal />
       <GemRevealModal />
@@ -656,7 +670,11 @@ const Dashboard = () => {
                   <li key={item.id}>
                     <button
                       type="button"
-                      onClick={() => { hapticLight(); setScreen(item.screen); }}
+                      onClick={() => {
+                        hapticLight();
+                        if (item.id === 'storyline') setStorylineOpen(true);
+                        else setScreen(item.screen);
+                      }}
                       className="w-full min-h-[52px] flex items-center gap-3 px-2.5 py-2 text-left rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors"
                     >
                       <span className={cn('shrink-0 w-8 h-8 rounded-lg flex items-center justify-center', SEVERITY_TONE[item.severity])}>

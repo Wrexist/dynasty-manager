@@ -917,6 +917,11 @@ export const en = {
   'onboardingChecklist.partFirstSeasons': 'Part 2 of 2 · Your first seasons',
   'onboardingChecklist.partOneDoneTitle': 'Your first week is set up',
   'onboardingChecklist.claimReadyAria': 'Claim {xp} XP for {n} completed steps',
+  // ── uipolish: storyline decisions in "Needs your attention" (Dashboard) ──
+  'dashboard.attention.storyline': 'Decision: {title}',
+  'dashboard.attention.storylineDetail': '{choices} choices — tap to decide',
+  'storylineModal.decideLater': 'Decide later',
+  'storylineModal.ignoreStory': 'Ignore this story',
 } as const;
 
 export default en;
