@@ -487,6 +487,7 @@ export const en = {
   'seasonSummary.seasonSummary': 'Season Summary',
   'staffPage.release': 'Release',
   'subscribeOnboarding.closePaywall': 'Close paywall',
+  'subscribeOnboarding.continueFree': 'Continue Free',
   'superCupPage.seasonOpener': 'Season opener',
   'titleScreen.challengeMode': 'Challenge Mode',
   'titleScreen.loadingSaveSlot': 'Loading save slot',

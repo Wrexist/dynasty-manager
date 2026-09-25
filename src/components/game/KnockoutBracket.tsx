@@ -1,6 +1,7 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import type { ContinentalKnockoutTie, ContinentalCompetition, VirtualClub } from '@/types/game';
 import { cn } from '@/lib/utils';
-import { Shield, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getKnockoutRoundName } from '@/utils/continental';
 
@@ -53,9 +54,7 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs, compRing }: {
     )}>
       {/* Home team */}
       <div className={cn('flex items-center gap-2', tie.winnerId === tie.homeClubId && 'font-bold')}>
-        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: home.color }}>
-          <Shield className="w-2.5 h-2.5 text-white" />
-        </div>
+        <ClubCrest club={home} clubId={tie.homeClubId} size="xs" />
         <span className={cn(
           'text-xs flex-1 truncate',
           tie.homeClubId === playerClubId ? 'text-primary' :
@@ -74,9 +73,7 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs, compRing }: {
 
       {/* Away team */}
       <div className={cn('flex items-center gap-2', tie.winnerId === tie.awayClubId && 'font-bold')}>
-        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: away.color }}>
-          <Shield className="w-2.5 h-2.5 text-white" />
-        </div>
+        <ClubCrest club={away} clubId={tie.awayClubId} size="xs" />
         <span className={cn(
           'text-xs flex-1 truncate',
           tie.awayClubId === playerClubId ? 'text-primary' :

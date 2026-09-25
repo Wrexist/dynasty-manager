@@ -44,7 +44,9 @@ export interface PendingRelease {
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [],
-  improved: [],
+  improved: [
+    'Made the free-play option clearer on the Pro welcome screen.',
+  ],
   fixed: [],
   headline: null,
   summary: null,

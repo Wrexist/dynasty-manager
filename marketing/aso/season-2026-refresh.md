@@ -1,5 +1,13 @@
 # App Store ASO — 2026-27 season window (en-US primary)
 
+> **24 September audit correction:** This is historical draft copy, not a record of
+> published changes. See [the live-data audit and change log](../../docs/conversion-recovery-2026-09-24.md)
+> before applying it. In particular, the no-paywall/ad-removal/trial wording below
+> needs revision; subtitle/keyword changes are not generally editable on an already
+> released version. The asserted 5x title weight and screenshot OCR ranking below
+> are unverified. Current US/UK promotional text and the unsubmitted screenshot
+> experiment are recorded in the audit. TestFlight validation must precede review.
+
 > **Paste-ready** App Store Connect metadata. App Store id **6760918006**.
 > Every field is char-counted against Apple's limit `[n/limit]` and verified by
 > `node marketing/aso/validate-locales.mjs`.

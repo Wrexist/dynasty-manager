@@ -1,0 +1,365 @@
+{
+  "selection": "Highest squadQuality; ties: reputation, budget, ID",
+  "teams": [
+    {
+      "id": "manchester-city",
+      "name": "Manchester City",
+      "rating": 93,
+      "league": "Premier League",
+      "country": "England",
+      "runtime": "/team-crests/vector-v1/manchester-city.099dacc46191.svg"
+    },
+    {
+      "id": "leeds-united",
+      "name": "Leeds United",
+      "rating": 71,
+      "league": "EFL Championship",
+      "country": "England",
+      "runtime": "/team-crests/vector-v1/leeds-united.8662b8797800.svg"
+    },
+    {
+      "id": "birmingham-city",
+      "name": "Birmingham City",
+      "rating": 68,
+      "league": "EFL League One",
+      "country": "England",
+      "runtime": "/team-crests/vector-v1/birmingham-city.82d0cf63cd59.svg"
+    },
+    {
+      "id": "notts-county",
+      "name": "Notts County",
+      "rating": 62,
+      "league": "EFL League Two",
+      "country": "England",
+      "runtime": "/team-crests/vector-v1/notts-county.ea121ce2e7cf.svg"
+    },
+    {
+      "id": "real-madrid",
+      "name": "Real Madrid",
+      "rating": 95,
+      "league": "La Liga",
+      "country": "Spain",
+      "runtime": "/team-crests/vector-v1/real-madrid.9168276dfc5e.svg"
+    },
+    {
+      "id": "ud-almeria",
+      "name": "UD Almería",
+      "rating": 72,
+      "league": "La Liga 2",
+      "country": "Spain",
+      "runtime": "/team-crests/vector-v1/ud-almeria.6778850a62f8.svg"
+    },
+    {
+      "id": "inter-milan",
+      "name": "Inter Milan",
+      "rating": 90,
+      "league": "Serie A",
+      "country": "Italy",
+      "runtime": "/team-crests/vector-v1/inter-milan.36db40a310fb.svg"
+    },
+    {
+      "id": "palermo",
+      "name": "Palermo",
+      "rating": 70,
+      "league": "Serie B",
+      "country": "Italy",
+      "runtime": "/team-crests/vector-v1/palermo.dc5b8ffc9487.svg"
+    },
+    {
+      "id": "bayern-munich",
+      "name": "Bayern Munich",
+      "rating": 92,
+      "league": "Bundesliga",
+      "country": "Germany",
+      "runtime": "/team-crests/vector-v1/bayern-munich.a9e7880bec0b.svg"
+    },
+    {
+      "id": "hamburger-sv",
+      "name": "Hamburger SV",
+      "rating": 69,
+      "league": "2. Bundesliga",
+      "country": "Germany",
+      "runtime": "/team-crests/vector-v1/hamburger-sv.e6e3d47ac2ef.svg"
+    },
+    {
+      "id": "sv-sandhausen",
+      "name": "SV Sandhausen",
+      "rating": 64,
+      "league": "3. Liga",
+      "country": "Germany",
+      "runtime": "/team-crests/vector-v1/sv-sandhausen.caedc44e5720.svg"
+    },
+    {
+      "id": "paris-saint-germain",
+      "name": "Paris Saint-Germain",
+      "rating": 93,
+      "league": "Ligue 1",
+      "country": "France",
+      "runtime": "/team-crests/vector-v1/paris-saint-germain.0ca05dfabec8.svg"
+    },
+    {
+      "id": "fc-lorient",
+      "name": "FC Lorient",
+      "rating": 71,
+      "league": "Ligue 2",
+      "country": "France",
+      "runtime": "/team-crests/vector-v1/fc-lorient.39c235eb37bd.svg"
+    },
+    {
+      "id": "feyenoord",
+      "name": "Feyenoord Rotterdam",
+      "rating": 79,
+      "league": "Eredivisie",
+      "country": "Netherlands",
+      "runtime": "/team-crests/vector-v1/feyenoord.f6410130e7f9.svg"
+    },
+    {
+      "id": "benfica",
+      "name": "SL Benfica",
+      "rating": 82,
+      "league": "Primeira Liga",
+      "country": "Portugal",
+      "runtime": "/team-crests/vector-v1/benfica.6688a29d7c29.svg"
+    },
+    {
+      "id": "club-brugge",
+      "name": "Club Brugge KV",
+      "rating": 80,
+      "league": "Pro League",
+      "country": "Belgium",
+      "runtime": "/team-crests/vector-v1/club-brugge.0f234e0d4ddd.svg"
+    },
+    {
+      "id": "galatasaray",
+      "name": "Galatasaray SK",
+      "rating": 77,
+      "league": "Süper Lig",
+      "country": "Turkey",
+      "runtime": "/team-crests/vector-v1/galatasaray.92fb020c40bd.svg"
+    },
+    {
+      "id": "sparta-prague",
+      "name": "AC Sparta Prague",
+      "rating": 62,
+      "league": "Czech First League",
+      "country": "Czechia",
+      "runtime": "/team-crests/vector-v1/sparta-prague.dca9f7f3d160.svg"
+    },
+    {
+      "id": "olympiacos",
+      "name": "Olympiacos FC",
+      "rating": 62,
+      "league": "Super League Greece",
+      "country": "Greece",
+      "runtime": "/team-crests/vector-v1/olympiacos.eabcfa0071af.svg"
+    },
+    {
+      "id": "legia-warsaw",
+      "name": "Legia Warsaw",
+      "rating": 62,
+      "league": "Ekstraklasa",
+      "country": "Poland",
+      "runtime": "/team-crests/vector-v1/legia-warsaw.3e6d674c5401.svg"
+    },
+    {
+      "id": "fc-copenhagen",
+      "name": "FC Copenhagen",
+      "rating": 64,
+      "league": "Superliga",
+      "country": "Denmark",
+      "runtime": "/team-crests/vector-v1/fc-copenhagen.af5d04f13008.svg"
+    },
+    {
+      "id": "bodo-glimt",
+      "name": "Bodø/Glimt",
+      "rating": 62,
+      "league": "Eliteserien",
+      "country": "Norway",
+      "runtime": "/team-crests/vector-v1/bodo-glimt.8d49e983fb29.svg"
+    },
+    {
+      "id": "young-boys",
+      "name": "BSC Young Boys",
+      "rating": 64,
+      "league": "Super League",
+      "country": "Switzerland",
+      "runtime": "/team-crests/vector-v1/young-boys.2a0d7aeef6d9.svg"
+    },
+    {
+      "id": "rb-salzburg",
+      "name": "FC Red Bull Salzburg",
+      "rating": 65,
+      "league": "Bundesliga",
+      "country": "Austria",
+      "runtime": "/team-crests/vector-v1/rb-salzburg.f8e494b21d66.svg"
+    },
+    {
+      "id": "celtic",
+      "name": "Celtic FC",
+      "rating": 65,
+      "league": "Scottish Premiership",
+      "country": "Scotland",
+      "runtime": "/team-crests/vector-v1/celtic.be4acda96d2b.svg"
+    },
+    {
+      "id": "malmo-ff",
+      "name": "Malmö FF",
+      "rating": 62,
+      "league": "Allsvenskan",
+      "country": "Sweden",
+      "runtime": "/team-crests/vector-v1/malmo-ff.c22b6fbe18d6.svg"
+    },
+    {
+      "id": "dinamo-zagreb",
+      "name": "GNK Dinamo Zagreb",
+      "rating": 63,
+      "league": "Hrvatska Nogometna Liga",
+      "country": "Croatia",
+      "runtime": "/team-crests/vector-v1/dinamo-zagreb.c3a0fc9cf740.svg"
+    },
+    {
+      "id": "ferencvaros",
+      "name": "Ferencvárosi TC",
+      "rating": 63,
+      "league": "Nemzeti Bajnokság I",
+      "country": "Hungary",
+      "runtime": "/team-crests/vector-v1/ferencvaros.e2cb2b16098e.svg"
+    },
+    {
+      "id": "red-star-belgrade",
+      "name": "Red Star Belgrade",
+      "rating": 55,
+      "league": "SuperLiga",
+      "country": "Serbia",
+      "runtime": "/team-crests/vector-v1/red-star-belgrade.a6efdd55ff0b.svg"
+    },
+    {
+      "id": "fcsb",
+      "name": "FCSB",
+      "rating": 53,
+      "league": "Liga 1",
+      "country": "Romania",
+      "runtime": "/team-crests/vector-v1/fcsb.9a67f23e3273.svg"
+    },
+    {
+      "id": "shakhtar-donetsk",
+      "name": "Shakhtar Donetsk",
+      "rating": 60,
+      "league": "Ukrainian Premier League",
+      "country": "Ukraine",
+      "runtime": "/team-crests/vector-v1/shakhtar-donetsk.ebbf6848f4ae.svg"
+    },
+    {
+      "id": "ludogorets-razgrad",
+      "name": "Ludogorets Razgrad",
+      "rating": 53,
+      "league": "First Professional Football League",
+      "country": "Bulgaria",
+      "runtime": "/team-crests/vector-v1/ludogorets-razgrad.f43fac8903df.svg"
+    },
+    {
+      "id": "slovan-bratislava",
+      "name": "Slovan Bratislava",
+      "rating": 51,
+      "league": "Fortuna Liga",
+      "country": "Slovakia",
+      "runtime": "/team-crests/vector-v1/slovan-bratislava.33590f7e329a.svg"
+    },
+    {
+      "id": "hjk-helsinki",
+      "name": "HJK Helsinki",
+      "rating": 48,
+      "league": "Veikkausliiga",
+      "country": "Finland",
+      "runtime": "/team-crests/vector-v1/hjk-helsinki.213d96299a49.svg"
+    },
+    {
+      "id": "vikingur-reykjavik",
+      "name": "Víkingur Reykjavík",
+      "rating": 43,
+      "league": "Úrvalsdeild",
+      "country": "Iceland",
+      "runtime": "/team-crests/vector-v1/vikingur-reykjavik.b37535f6e191.svg"
+    },
+    {
+      "id": "shamrock-rovers",
+      "name": "Shamrock Rovers",
+      "rating": 45,
+      "league": "League of Ireland Premier Division",
+      "country": "Ireland",
+      "runtime": "/team-crests/vector-v1/shamrock-rovers.e790cd3cc0b2.svg"
+    },
+    {
+      "id": "maccabi-tel-aviv",
+      "name": "Maccabi Tel Aviv",
+      "rating": 57,
+      "league": "Israeli Premier League",
+      "country": "Israel",
+      "runtime": "/team-crests/vector-v1/maccabi-tel-aviv.aecceb4d7836.svg"
+    },
+    {
+      "id": "apoel",
+      "name": "APOEL Nicosia",
+      "rating": 48,
+      "league": "Cypriot First Division",
+      "country": "Cyprus",
+      "runtime": "/team-crests/vector-v1/apoel.0c5cadecf4f2.svg"
+    },
+    {
+      "id": "river-plate",
+      "name": "River Plate",
+      "rating": 76,
+      "league": "Liga Profesional",
+      "country": "Argentina",
+      "runtime": "/team-crests/vector-v1/river-plate.c830a545e0ee.svg"
+    },
+    {
+      "id": "inter-miami",
+      "name": "Inter Miami",
+      "rating": 72,
+      "league": "Major League Soccer",
+      "country": "United States",
+      "runtime": "/team-crests/vector-v1/inter-miami.689890c1ebe6.svg"
+    },
+    {
+      "id": "al-hilal",
+      "name": "Al Hilal",
+      "rating": 77,
+      "league": "Saudi Pro League",
+      "country": "Saudi Arabia",
+      "runtime": "/team-crests/vector-v1/al-hilal.3019b8dce985.svg"
+    },
+    {
+      "id": "ulsan-hd-fc",
+      "name": "Ulsan HD FC",
+      "rating": 69,
+      "league": "K League 1",
+      "country": "South Korea",
+      "runtime": "/team-crests/vector-v1/ulsan-hd-fc.d2088ebd7e0b.svg"
+    },
+    {
+      "id": "flamengo",
+      "name": "Flamengo",
+      "rating": 76,
+      "league": "Brasileirão Série A",
+      "country": "Brazil",
+      "runtime": "/team-crests/vector-v1/flamengo.10201b380b9b.svg"
+    },
+    {
+      "id": "auckland-fc",
+      "name": "Auckland FC",
+      "rating": 65,
+      "league": "A-League Men",
+      "country": "Australia",
+      "runtime": "/team-crests/vector-v1/auckland-fc.8f7efebe2f68.svg"
+    },
+    {
+      "id": "mohun-bagan-super-giant",
+      "name": "Mohun Bagan Super Giant",
+      "rating": 65,
+      "league": "Indian Super League",
+      "country": "India",
+      "runtime": "/team-crests/vector-v1/mohun-bagan-super-giant.66ec72435e49.svg"
+    }
+  ]
+}

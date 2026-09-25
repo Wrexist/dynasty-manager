@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useState, useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
@@ -1147,7 +1148,7 @@ const PlayerDetail = () => {
               const buyer = clubs[offer.buyerClubId];
               return (
                 <div key={offer.id} className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full shrink-0" style={{ backgroundColor: buyer?.color }} />
+                  <ClubCrest club={buyer} size="xs" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground">{buyer?.name || '?'}</p>
                     <p className="text-xs text-primary font-bold tabular-nums">

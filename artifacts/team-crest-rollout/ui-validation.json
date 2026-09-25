@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "matrix",
+    "width": 375,
+    "overflow": false,
+    "crestCount": 100,
+    "broken": 0,
+    "errors": []
+  },
+  {
+    "mode": "selection",
+    "width": 375,
+    "overflow": false,
+    "crestCount": 20,
+    "broken": 0,
+    "errors": []
+  },
+  {
+    "mode": "matrix",
+    "width": 1024,
+    "overflow": false,
+    "crestCount": 100,
+    "broken": 0,
+    "errors": []
+  },
+  {
+    "mode": "selection",
+    "width": 1024,
+    "overflow": false,
+    "crestCount": 20,
+    "broken": 0,
+    "errors": []
+  }
+]

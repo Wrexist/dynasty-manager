@@ -9,7 +9,7 @@ import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ClubCrest } from '@/components/game/ClubCrest';
 import { cn } from '@/lib/utils';
-import { Shield, ChevronRight, ChevronDown, Calendar, Award, Target } from 'lucide-react';
+import { ChevronRight, ChevronDown, Calendar, Award, Target } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
 
@@ -29,9 +29,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
     <GlassPanel className={cn('p-3', isPlayerMatch && 'ring-1 ring-cyan-400/40')}>
       <div className="flex items-center gap-2">
         <div className={cn('flex-1 flex items-center gap-2', winnerId === tie.homeClubId && 'font-bold')}>
-          <ClubCrest club={home} size="xs">
-            <Shield className="w-3 h-3" />
-          </ClubCrest>
+          <ClubCrest club={home} clubId={tie.homeClubId} size="xs" />
           <span className={cn(
             'text-sm truncate',
             tie.homeClubId === playerClubId ? 'text-primary' :
@@ -64,9 +62,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           )}>
             {away?.shortName || '???'}
           </span>
-          <ClubCrest club={away} size="xs">
-            <Shield className="w-3 h-3" />
-          </ClubCrest>
+          <ClubCrest club={away} clubId={tie.awayClubId} size="xs" />
         </div>
       </div>
       {tie.penaltyShootout && (

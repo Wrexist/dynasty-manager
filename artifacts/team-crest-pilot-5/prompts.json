@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-25",
+  "mode": "built-in image_gen",
+  "status": "concept samples; not legally cleared or integrated",
+  "teams": [
+    {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "colors": "#EF0107 red and #FFFFFF white",
+      "concept": "A broad chamfered hexagonal badge with three bold ascending white beams separated by red negative space. The beams form a dynamic upward rhythm, not letters. No cannon, weapons, shield silhouette or heraldry.",
+      "prompt": "Use case: logo-brand. Create ONE original football club emblem for a mobile management game, internal design code DM01. Subject: A broad chamfered hexagonal badge with three bold ascending white beams separated by red negative space. The beams form a dynamic upward rhythm, not letters. No cannon, weapons, shield silhouette or heraldry. Color palette strictly #EF0107 red and #FFFFFF white; preserve these hues, no extra colors. Premium flat vector-like sports identity, confident clean geometry, strong negative space, uniform crisp outlines, visually balanced. One emblem centered on a genuinely transparent square background with 10 percent clear padding. Emblem must read at 24px. No text, letters, initials, words, numbers, watermark, mockup, lighting, gradients, texture, bevel or drop shadow. Do not imitate any existing sports logo. Deliver the individual emblem only."
+    },
+    {
+      "id": "chelsea",
+      "name": "Chelsea",
+      "colors": "#034694 royal blue and #FFFFFF white",
+      "concept": "A tall architectural badge with a softly arched top and straight sides tapering gently at the base, containing a bold original four-point compass spark intersecting two short horizontal bars. No lion, animals, staff, circle seal, roses or heraldry.",
+      "prompt": "Use case: logo-brand. Create ONE original football club emblem for a mobile management game, internal design code DM02. Subject: A tall architectural badge with a softly arched top and straight sides tapering gently at the base, containing a bold original four-point compass spark intersecting two short horizontal bars. No lion, animals, staff, circle seal, roses or heraldry. Color palette strictly #034694 royal blue and #FFFFFF white; preserve these hues, no extra colors. Premium flat vector-like sports identity, confident clean geometry, strong negative space, uniform crisp outlines, visually balanced. One emblem centered on a genuinely transparent square background with 10 percent clear padding. Emblem must read at 24px. No text, letters, initials, words, numbers, watermark, mockup, lighting, gradients, texture, bevel or drop shadow. Do not imitate any existing sports logo. Deliver the individual emblem only."
+    },
+    {
+      "id": "liverpool",
+      "name": "Liverpool",
+      "colors": "#C8102E red and #FFFFFF white",
+      "concept": "A compact diamond-shaped badge with softly clipped corners, enclosing three bold interlocking curved bands forming an upward abstract current. No birds, wings, flames, gates, shields, lettering or heraldry.",
+      "prompt": "Use case: logo-brand. Create ONE original football club emblem for a mobile management game, internal design code DM03. Subject: A compact diamond-shaped badge with softly clipped corners, enclosing three bold interlocking curved bands forming an upward abstract current. No birds, wings, flames, gates, shields, lettering or heraldry. Color palette strictly #C8102E red and #FFFFFF white; preserve these hues, no extra colors. Premium flat vector-like sports identity, confident clean geometry, strong negative space, uniform crisp outlines, visually balanced. One emblem centered on a genuinely transparent square background with 10 percent clear padding. Emblem must read at 24px. No text, letters, initials, words, numbers, watermark, mockup, lighting, gradients, texture, bevel or drop shadow. Do not imitate any existing sports logo. Deliver the individual emblem only."
+    },
+    {
+      "id": "manchester-city",
+      "name": "Manchester City",
+      "colors": "#6CABDD sky blue and #FFFFFF white",
+      "concept": "An elegant upright rectangular badge with stepped corners containing a bold abstract rising sun composed of a semicircle above three vertical tapered pillars. No circular seal, ships, roses, eagles, shields or heraldry.",
+      "prompt": "Use case: logo-brand. Create ONE original football club emblem for a mobile management game, internal design code DM04. Subject: An elegant upright rectangular badge with stepped corners containing a bold abstract rising sun composed of a semicircle above three vertical tapered pillars. No circular seal, ships, roses, eagles, shields or heraldry. Color palette strictly #6CABDD sky blue and #FFFFFF white; preserve these hues, no extra colors. Premium flat vector-like sports identity, confident clean geometry, strong negative space, uniform crisp outlines, visually balanced. One emblem centered on a genuinely transparent square background with 10 percent clear padding. Emblem must read at 24px. No text, letters, initials, words, numbers, watermark, mockup, lighting, gradients, texture, bevel or drop shadow. Do not imitate any existing sports logo. Deliver the individual emblem only."
+    },
+    {
+      "id": "manchester-united",
+      "name": "Manchester United",
+      "colors": "#DA291C red and #FBE122 yellow",
+      "concept": "A broad octagonal badge containing a strong yellow six-point geometric star built from three interlocking diagonal solid bars with a tiny red hexagonal negative-space center. No devil, trident, ship, footballs, ribbons, shields or heraldry.",
+      "prompt": "Use case: logo-brand. Create ONE original football club emblem for a mobile management game, internal design code DM05. Subject: A broad octagonal badge containing a strong yellow six-point geometric star built from three interlocking diagonal solid bars with a tiny red hexagonal negative-space center. No devil, trident, ship, footballs, ribbons, shields or heraldry. Color palette strictly #DA291C red and #FBE122 yellow; preserve these hues, no extra colors. Premium flat vector-like sports identity, confident clean geometry, strong negative space, uniform crisp outlines, visually balanced. One emblem centered on a genuinely transparent square background with 10 percent clear padding. Emblem must read at 24px. No text, letters, initials, words, numbers, watermark, mockup, lighting, gradients, texture, bevel or drop shadow. Do not imitate any existing sports logo. Deliver the individual emblem only."
+    }
+  ]
+}

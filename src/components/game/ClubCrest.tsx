@@ -1,31 +1,16 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { getTeamCrest } from '@/utils/teamCrest';
 
 /**
- * ClubCrest — the ONE way a club's identity roundel is drawn.
- *
- * WHY THIS EXISTS: an audit found five different crest renderings across the
- * five screens players see most. `PostMatchPopup` had a genuinely premium
- * treatment (radial-gradient sphere, `color-mix` highlight/shade, inset rim,
- * drop shadow, text shadow) trapped in one file, while `MatchPrep` and
- * `MatchReview` rendered bare empty coloured circles with no short name at
- * all — so both clubs were anonymous dots before AND after the match.
- * This component is that premium treatment, extracted.
- *
- * The sphere is built entirely from the club's own two colours via
- * `color-mix`, so it works for all 756 clubs with no per-club assets:
- *   - highlight  = club colour mixed 75% with white  (top-left specular)
- *   - body       = club colour at 55% stop
- *   - shade      = club colour mixed 70% with black  (bottom-right falloff)
- * plus a 1px rim, a top inner highlight, a bottom inner shade, and a drop
- * shadow so it reads as a physical badge rather than a flat swatch.
- *
- * Club colours are the one sanctioned place for inline `style` (see
- * CLAUDE.md "Design Language") — everything else here is Tailwind.
+ * Shared club identity: a bundled original crest resolved by stable club ID.
+ * Unknown clubs and failed image loads keep the two-color roundel fallback.
+ * Explicit children and non-club identities can bypass the image catalog.
  */
 
 /** Minimal shape a crest needs — accepts Club, VirtualClub, or a nation. */
 export interface CrestClub {
+  id?: string;
   color?: string;
   secondaryColor?: string;
   shortName?: string;
@@ -53,6 +38,10 @@ const SIZE_MAP: Record<CrestSize, { box: string; label: string; labelled: boolea
 
 interface ClubCrestProps {
   club: CrestClub | null | undefined;
+  /** Known fixture ID when the caller has a narrowed club object. */
+  clubId?: string;
+  /** National teams and other explicit non-club identities bypass the catalog. */
+  useAsset?: boolean;
   size?: CrestSize;
   /** `round` = roundel (match screens), `squircle` = club-header badge. */
   shape?: 'round' | 'squircle';
@@ -69,6 +58,8 @@ const FALLBACK_TEXT = 'hsl(220 15% 90%)';
 
 export const ClubCrest = memo(function ClubCrest({
   club,
+  clubId,
+  useAsset = true,
   size = 'md',
   shape = 'round',
   hideLabel = false,
@@ -80,6 +71,12 @@ export const ClubCrest = memo(function ClubCrest({
   const text = club?.secondaryColor || FALLBACK_TEXT;
   const short = club?.shortName || club?.name?.slice(0, 3).toUpperCase() || '';
   const showLabel = labelled && !hideLabel && !children;
+  const src = useAsset && !children ? getTeamCrest(clubId ?? club?.id) : null;
+
+  if (src) {
+    return <CrestImage key={src} src={src} box={box} name={club?.name || short} className={className}
+      fallback={<ClubCrest club={club} size={size} shape={shape} hideLabel={hideLabel} className={className} useAsset={false} />} />;
+  }
 
   return (
     <div
@@ -105,3 +102,14 @@ export const ClubCrest = memo(function ClubCrest({
     </div>
   );
 });
+
+/** Remounting by URL resets failures when the club or asset revision changes. */
+function CrestImage({ src, box, name, className, fallback }: {
+  src: string; box: string; name: string; className?: string; fallback: React.ReactNode;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <>{fallback}</>;
+  return <img src={src} alt={name} width={64} height={64} decoding="async" loading="lazy"
+    className={cn(box, 'shrink-0 object-contain select-none', className)} draggable={false}
+    onError={() => setFailed(true)} />;
+}
