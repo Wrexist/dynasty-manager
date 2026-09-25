@@ -909,6 +909,11 @@ export const en = {
   'matchDay.skipConfirm': 'Skip',
   'matchDay.keepWatching': 'Keep watching',
   'matchDay.skipFailed': "Couldn't skip ahead — not enough available players on the pitch.",
+
+  // ── uifinish: Manager Pass carry-over + surfacing ──
+  'managerPass.carry.title': "Last season's Pro rewards ({n})",
+  'managerPass.carry.readyBody': 'You reached these on the Pro track last season. Collect them before this season ends.',
+  'managerPass.carry.lockedBody': 'You reached these on the Pro track last season. Collect them with Dynasty Pro before this season ends.',
 } as const;
 
 export default en;

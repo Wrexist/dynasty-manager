@@ -93,6 +93,25 @@ describe('ManagerPassPage', () => {
     expect(screen.getByText('Pro track active')).toBeInTheDocument();
   });
 
+  it('shows last season\'s Pro rewards behind Pro, then collects them once Pro is confirmed', async () => {
+    const season = getManagerPassSeason(new Date());
+    savePassRecord({
+      ...freshPassRecord(season),
+      proCarry: { seasonId: 'prev', seasonOrdinal: season.ordinal - 1, rewardIds: ['badge-the-tinkerman', 'badge-the-visionary'] },
+    });
+    const { unmount } = await renderPage(<ManagerPassPage />);
+    expect(screen.getByLabelText("Last season's Pro rewards (2)")).toHaveTextContent(/Collect them with Dynasty Pro/);
+    expect(screen.getByText('Pro track: 2 rewards already earned')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Collect all/ })).toBeNull();
+    unmount();
+
+    useGameStore.setState({ monetization: { ...PRO } });
+    await renderPage(<ManagerPassPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Collect all (2)' }));
+    expect(useGameStore.getState().managerPass.ownedRewardIds).toEqual(['badge-the-tinkerman', 'badge-the-visionary']);
+    expect(screen.queryByLabelText(/Last season's Pro rewards/)).toBeNull();
+  });
+
   it('keeps every tap target at least 44px', async () => {
     seedPass(300);
     await renderPage(<ManagerPassPage />);
