@@ -308,3 +308,25 @@ export function preferredPaywallPlan(
   const withTrial = visibleIds.find(id => trials[id]);
   return withTrial ?? target ?? visibleIds[0];
 }
+
+/**
+ * A store price divided into periods ("works out at X/month"), formatted for
+ * the storefront's currency by `Intl.NumberFormat` — never by splicing
+ * `toFixed(2)` into the store's own price string, which printed "2.08 €" in
+ * Germany and "¥250.00" in Japan (a yen has no minor unit). Null — the caller
+ * omits the line — when the amount or the currency is unknown, or the runtime
+ * rejects the currency code.
+ */
+export function formatPerPeriodPrice(
+  total: number | null | undefined,
+  periods: number,
+  currencyCode: string | undefined,
+  locale?: string,
+): string | null {
+  if (total == null || !Number.isFinite(total) || total <= 0 || !(periods > 0) || !currencyCode) return null;
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(total / periods);
+  } catch {
+    return null;
+  }
+}

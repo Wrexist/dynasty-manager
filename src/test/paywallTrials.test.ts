@@ -8,7 +8,7 @@
  * These tests pin that the claim follows the store, product by product.
  */
 import { describe, it, expect } from 'vitest';
-import { resolvePaywallTrials, preferredPaywallPlan } from '@/utils/monetization';
+import { resolvePaywallTrials, preferredPaywallPlan, formatPerPeriodPrice } from '@/utils/monetization';
 import { FREE_TRIAL_DAYS } from '@/config/monetization';
 import type { ProductId } from '@/types/game';
 
@@ -75,5 +75,24 @@ describe('preferredPaywallPlan', () => {
   it('falls through to the first visible plan when Yearly is not on sale', () => {
     expect(preferredPaywallPlan([LIFETIME, MONTHLY], {})).toBe(LIFETIME);
     expect(preferredPaywallPlan([], {})).toBeUndefined();
+  });
+});
+
+describe('formatPerPeriodPrice ("Works out at X/month")', () => {
+  // The line used to splice `toFixed(2)` into the store's price string, which
+  // is wrong wherever the storefront's decimal separator or minor unit is not
+  // the US one: "2.08 €" in Germany, "¥250.00" in Japan.
+  it('formats in the storefront currency with the locale\'s separators', () => {
+    expect(formatPerPeriodPrice(24.99, 12, 'EUR', 'de-DE')).toBe('2,08\u00a0€');
+    expect(formatPerPeriodPrice(3000, 12, 'JPY', 'en-US')).toBe('¥250');
+    expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-US')).toBe('$2.08');
+  });
+
+  it('omits the line rather than guessing', () => {
+    expect(formatPerPeriodPrice(24.99, 12, undefined)).toBeNull();
+    expect(formatPerPeriodPrice(null, 12, 'USD')).toBeNull();
+    expect(formatPerPeriodPrice(0, 12, 'USD')).toBeNull();
+    expect(formatPerPeriodPrice(24.99, 0, 'USD')).toBeNull();
+    expect(formatPerPeriodPrice(24.99, 12, 'NOT-A-CODE')).toBeNull();
   });
 });

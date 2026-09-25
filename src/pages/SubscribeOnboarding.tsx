@@ -31,7 +31,7 @@ import {
   SUB_TRIAL_PRODUCT_IDS,
 } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
-import { isPro, resolvePaywallTrials, preferredPaywallPlan } from '@/utils/monetization';
+import { isPro, resolvePaywallTrials, preferredPaywallPlan, formatPerPeriodPrice } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
@@ -175,6 +175,8 @@ const SubscribeOnboarding = () => {
   // so a percentage derived from config is wrong in most storefronts even
   // before the currency symbol is. Same convention as ShopPage.
   const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
+  // ISO currency of the storefront those amounts are in, for Intl formatting.
+  const [storeCurrency, setStoreCurrency] = useState<string | undefined>(undefined);
   const [availableIds, setAvailableIds] = useState<ProductId[] | null>(null);
   const [probeNonce, setProbeNonce] = useState(0);
 
@@ -182,11 +184,12 @@ const SubscribeOnboarding = () => {
     let cancelled = false;
     setStoreStatus('loading');
     getStoreAvailability(PLAN_ROWS.map(r => r.productId))
-      .then(({ supported, available, prices, amounts, freeTrialDays }) => {
+      .then(({ supported, available, prices, amounts, currencyCode, freeTrialDays }) => {
         if (cancelled) return;
         setStorePrices(prices);
         setStoreTrialDays(freeTrialDays || {});
         setStoreAmounts(amounts || {});
+        setStoreCurrency(currencyCode);
         // Off-device (web/dev) purchases are mocked — every plan stays live so
         // the flow remains testable in the browser.
         if (!supported) {
@@ -288,17 +291,14 @@ const SubscribeOnboarding = () => {
     return pct > 0 ? pct : null;
   })();
 
-  /** Yearly expressed per month, in the storefront's own formatting. Rebuilds
-   *  the number inside the store's localized string so symbol, placement and
-   *  separators stay correct. Null when there is nothing to model. */
-  const annualPerMonth = (() => {
-    if (annualAmount == null) return null;
-    const value = annualAmount / 12;
-    const localized = storePrices['com.dynastymanager.pro.yearly'];
-    if (!localized) return `$${value.toFixed(2)}`;
-    const numeric = localized.match(/[\d.,]+/);
-    return numeric ? localized.replace(numeric[0], value.toFixed(2)) : null;
-  })();
+  /** Yearly expressed per month in the storefront's currency, via Intl. Same
+   *  fallback rule as `amountFor`: USD only when the store has not answered at
+   *  all (web/dev); on device, no currency code means no line. */
+  const annualPerMonth = formatPerPeriodPrice(
+    annualAmount,
+    12,
+    storeCurrency ?? (storeAnswered ? undefined : 'USD'),
+  );
 
   const finish = () => {
     // Every exit path funnels through here (skip, purchase success, restore
