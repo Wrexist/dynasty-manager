@@ -3,7 +3,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CHALLENGES, getDifficultyColor, getFeaturedChallengeId } from '@/data/challenges';
+import { CHALLENGES, getDifficultyColor, getFeaturedChallengeId, getChallengeStartClubId } from '@/data/challenges';
 import { CLUBS_DATA, LEAGUES } from '@/data/league';
 import { CLUBS_BY_LEAGUE, LEAGUE_REGIONS } from '@/data/leagues';
 import { useGameStore } from '@/store/gameStore';
@@ -54,17 +54,10 @@ const ChallengePicker = () => {
     if (loading) return;
     setSelected(scenario);
 
-    // Resolve the fixed club (preset start or giant-killer's lowest-rep club);
-    // null means the user picks one.
-    let fixedClubId: string | null = scenario.startingClubId || null;
-    // The Great Escape's own comment says the club "will be assigned to
-    // lowest-rep club" — it never was, so "avoid relegation" was winnable with
-    // Manchester City on half budget. Pin it like giant-killer does.
-    if (!fixedClubId && (scenario.id === 'giant-killer' || scenario.id === 'great-escape')) {
-      const lowestRep = [...CLUBS_DATA].sort((a, b) => a.reputation - b.reputation)[0];
-      if (!lowestRep) return;
-      fixedClubId = lowestRep.id;
-    }
+    // Resolve the fixed club (preset start, giant-killer's lowest-rep club, or
+    // the Great Escape's lowest-rep club in a league WITH relegation); null
+    // means the user picks one.
+    const fixedClubId = getChallengeStartClubId(scenario);
     if (!fixedClubId) {
       setPickingClub(true);
       return;
