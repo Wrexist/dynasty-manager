@@ -6,30 +6,68 @@ on:
         description: 'Version code (integer, must increment each release)'
         required: true
         type: number
+      # Blank by default, NOT a literal. The old default was '1.0.0', so a
+      # dispatch that accepted the form as-is built a 1.0.0 AAB whatever
+      # package.json said — the same class of bug as TestFlight build #142,
+      # where a stale version landed on an older release train.
       version_name:
-        description: 'Version name (e.g. 1.0.0, 1.1.0)'
-        required: true
+        description: 'Version name, e.g. 1.6.1. Leave blank to use the version in package.json. Must be >= the latest entry in src/data/whatsNew.ts or the build will fail loudly.'
+        required: false
         type: string
-        default: '1.0.0'
+        default: ''
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
+      - name: Override version name (only when input is set)
+        if: inputs.version_name != ''
+        env:
+          VERSION_NAME_INPUT: ${{ inputs.version_name }}
+        run: |
+          if [[ ! "$VERSION_NAME_INPUT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::Version name must have the form 1.6.0'
+            exit 1
+          fi
+          npm version "$VERSION_NAME_INPUT" --no-git-tag-version --allow-same-version
+
       - run: npm ci
-      - run: npm run lint
-      - run: npm run test
+
+      # One source for the version name: package.json (already overridden on
+      # the runner above when the input was set). Gradle reads VERSION_NAME.
+      - name: Resolve version name and code
+        run: |
+          VERSION_NAME=$(node -p "require('./package.json').version")
+          echo "VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
+          echo "::notice::Building version_name=${VERSION_NAME} version_code=${{ inputs.version_code }}"
+
+      # Same guard as the iOS workflow: refuse a version name older than the
+      # most recently sealed entry in src/data/whatsNew.ts.
+      - name: Guard against marketing version regression
+        run: node scripts/check-marketing-version.mjs
+
+      - name: Validate release candidate
+        run: npm run preflight:full
 
       - name: Build web bundle with production keys
         env:
@@ -56,7 +94,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           VERSION_CODE: ${{ inputs.version_code }}
-          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_NAME: ${{ env.VERSION_NAME }}
         run: |
           cd android
           chmod +x gradlew
