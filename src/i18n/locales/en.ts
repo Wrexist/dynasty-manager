@@ -656,6 +656,14 @@ export const en = {
   'sponsorOfferSheet.performanceBonus': "Performance Bonus",
   'sponsorOfferSheet.duration': "Duration",
   'sponsorOfferSheet.weeklyPay': "Weekly Pay",
+
+  // ── onboarding: Quick Start + device-locale nationality (ClubSelection) ──
+  'clubSelection.quickStart.title': 'Quick start',
+  'clubSelection.quickStart.clubLine': 'Title contender · {league}',
+  'clubSelection.quickStart.cta': 'Manage {club}',
+  'clubSelection.quickStart.loading': 'Setting up...',
+  'clubSelection.quickStart.nationLine': 'Nationality: {nation} · or choose your own below',
+  'clubSelection.suggestedNation': 'From your device',
 } as const;
 
 export default en;
