@@ -28,6 +28,7 @@ import {
 import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
 import { openSubscriptionManagement } from '@/utils/purchases';
 import { restoreAndSync } from '@/utils/purchaseSync';
+import { isRedeemEnabled } from '@/utils/redeemCodes';
 import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
@@ -196,6 +197,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const redeemCode = useGameStore(s => s.redeemCode);
+  const redeemEnabled = isRedeemEnabled();
   const [redeemInput, setRedeemInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const handleRedeem = async () => {
@@ -767,28 +769,34 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
-      <SettingsSection title={t('settings.redeemCode')}>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={redeemInput}
-            onChange={(e) => setRedeemInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
-            placeholder={t('settings.enterCode')}
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            aria-label={t('settings.redeemCodeAria')}
-            className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
-          />
-          <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
-            {redeeming ? 'Redeeming…' : 'Redeem'}
-          </LiquidButton>
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-2 px-1">
-          Got a code? Redeem it for in-game rewards. Each code works once per device.
-        </p>
-      </SettingsSection>
+      {/* Redeem codes are verified offline against a build-time secret. A
+          production build without VITE_REDEEM_SECRET redeems nothing, so the
+          entry point is hidden rather than offering a field that can only say
+          "Invalid Code" (see utils/redeemCodes.getRedeemSecret). */}
+      {redeemEnabled && (
+        <SettingsSection title={t('settings.redeemCode')}>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={redeemInput}
+              onChange={(e) => setRedeemInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
+              placeholder={t('settings.enterCode')}
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label={t('settings.redeemCodeAria')}
+              className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
+            />
+            <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
+              {redeeming ? 'Redeeming…' : 'Redeem'}
+            </LiquidButton>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 px-1">
+            Got a code? Redeem it for in-game rewards. Each code works once per device.
+          </p>
+        </SettingsSection>
+      )}
 
       {/* ─── Purchases & Subscription ─── */}
       <SettingsSection>
