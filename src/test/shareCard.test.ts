@@ -140,8 +140,16 @@ describe('pack pull moment (best-pull share card)', () => {
     expect(m.headline).toBe('BEST PULL');
     expect(m.subject).toBe('Jan Novak');
     expect(m.detail).toBe('86 OVR · ST');
-    expect(m.tagline).toBe('World Class pack');
+    expect(m.tagline).toBe('World Class Pack');
     expect(m.card).toMatchObject({ artSrc: card.artSrc, portraitSrc: card.portraitSrc, overall: 86, position: 'ST' });
+  });
+
+  it('does not double the word when the tier label already says Pack', () => {
+    // Every storefront tier label ends in "Pack"; a weekly skin name does not.
+    const gold = buildPackPullMoment({ name: 'X', overall: 80, position: 'CM', packLabel: 'Gold Pack', legend: false, card });
+    expect(gold.tagline).toBe('Gold Pack');
+    const skin = buildPackPullMoment({ name: 'X', overall: 80, position: 'CM', packLabel: 'The Dynasty', legend: false, card });
+    expect(skin.tagline).toBe('The Dynasty Pack');
   });
 
   it('headlines a Hall of Legends card as one', () => {

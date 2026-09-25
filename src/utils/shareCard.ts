@@ -305,7 +305,8 @@ export function buildPackPullMoment(input: {
     type: 'pack',
     emoji: input.legend ? '👑' : '⭐',
     headline: input.legend ? 'HALL OF LEGENDS' : 'BEST PULL',
-    tagline: `${input.packLabel} pack`,
+    // Tier labels already end in "Pack" ("Gold Pack"); weekly skins do not.
+    tagline: /\bpack$/i.test(input.packLabel.trim()) ? input.packLabel.trim() : `${input.packLabel.trim()} Pack`,
     subject: input.name,
     detail: `${input.overall} OVR · ${input.position}`,
     shareMessage: `Just pulled ${input.name} (${input.overall}) in Dynasty Manager: Football.`,
