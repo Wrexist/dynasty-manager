@@ -700,6 +700,11 @@ export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview 
  *  `pressConferences.ts` — were unreachable. Kept a minority of conferences so
  *  the result still dominates the room, which is what a post-match presser is. */
 export const PRESS_SITUATIONAL_POST_MATCH_CHANCE = 0.35;
+// ── content: personalised press questions ──
+/** A squad's top league scorer is named in a press question ("{scorer} is on
+ *  N goals this season") only once he has at least this many — below it the line
+ *  would praise a player for one goal. */
+export const PRESS_SCORER_MIN_GOALS = 3;
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';

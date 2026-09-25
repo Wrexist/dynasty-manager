@@ -14,6 +14,11 @@ import type { PressConference, PressOption, PressResponseTone } from '@/types/ga
 
 export interface PressQuestionDef {
   question: string;
+  /** Optional variant naming the actual opponent / player / table position.
+   *  Used only when EVERY `{placeholder}` in it can be filled from
+   *  `PressQuestionVars`; otherwise the generic `question` is asked. The
+   *  generic text stays the question's identity (recency memory, tests). */
+  personalized?: string;
   options: Record<'confident' | 'humble' | 'deflect', { text: string; effects: PressOption['effects'] }>;
   proOption?: { tone: PressResponseTone; text: string; effects: PressOption['effects'] };
 }
@@ -23,6 +28,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   post_win: [
     {
       question: 'A great result today. How do you feel about the team\'s performance?',
+      personalized: 'A great result against {opponent} today. How do you feel about the team\'s performance?',
       options: {
         confident: { text: 'We dominated from start to finish. This is the standard we set.', effects: { morale: 8, boardConfidence: 5, fanMood: 8 } },
         humble: { text: 'The lads worked incredibly hard. Credit to every single one of them.', effects: { morale: 12, boardConfidence: 3, fanMood: 5 } },
@@ -32,6 +38,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'The fans seem delighted. Is this the turning point of the season?',
+      personalized: 'The fans seem delighted after beating {opponent}. Is this the turning point of the season?',
       options: {
         confident: { text: 'We\'re building something special here. The fans can see it.', effects: { morale: 6, boardConfidence: 6, fanMood: 10 } },
         humble: { text: 'It\'s a step in the right direction, but we can\'t get carried away.', effects: { morale: 8, boardConfidence: 4, fanMood: 4 } },
@@ -41,6 +48,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'Your striker was clinical today. How important is his form to the team right now?',
+      personalized: '{scorer} is on {scorerGoals} goals this season. How important is his form to the team right now?',
       options: {
         confident: { text: 'He\'s the best in the division and he proved it again today.', effects: { morale: 7, boardConfidence: 4, fanMood: 9 } },
         humble: { text: 'He\'d be the first to say it\'s a team effort. We create the chances, he finishes them.', effects: { morale: 10, boardConfidence: 3, fanMood: 5 } },
@@ -86,6 +94,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'Some fans are already talking about a title challenge. Is that realistic?',
+      personalized: 'After beating {opponent}, some fans are already talking about a title challenge. Is that realistic?',
       options: {
         confident: { text: 'Why not? Look at the squad we\'ve got. We fear nobody.', effects: { morale: 8, boardConfidence: 4, fanMood: 12 } },
         humble: { text: 'It\'s flattering but we\'re taking it one game at a time. A lot can change.', effects: { morale: 6, boardConfidence: 5, fanMood: 3 } },
@@ -97,6 +106,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   post_loss: [
     {
       question: 'A disappointing result. What went wrong out there?',
+      personalized: 'A disappointing result against {opponent}. What went wrong out there?',
       options: {
         confident: { text: 'We\'ll bounce back. One bad day doesn\'t define this squad.', effects: { morale: 5, boardConfidence: -2, fanMood: 3 } },
         humble: { text: 'I take full responsibility. We weren\'t good enough today.', effects: { morale: -3, boardConfidence: 2, fanMood: 5 } },
@@ -106,6 +116,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'The fans are frustrated. Are you worried about your position?',
+      personalized: 'The fans are frustrated after losing to {opponent}. Are you worried about your position?',
       options: {
         confident: { text: 'Not at all. I know exactly what this team is capable of.', effects: { morale: 8, boardConfidence: -3, fanMood: 2 } },
         humble: { text: 'I understand their frustration. We owe them better performances.', effects: { morale: -2, boardConfidence: 4, fanMood: 6 } },
@@ -151,6 +162,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'The fans booed at full time. Do you understand their frustration?',
+      personalized: 'The fans booed at full time after the defeat to {opponent}. Do you understand their frustration?',
       options: {
         confident: { text: 'They\'re entitled to their opinion but they should trust the process. We\'ll turn this around.', effects: { morale: 3, boardConfidence: -1, fanMood: -3 } },
         humble: { text: 'Of course. They pay good money and deserve better. We owe them a response.', effects: { morale: -2, boardConfidence: 4, fanMood: 6 } },
@@ -171,6 +183,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   post_draw: [
     {
       question: 'A draw today. Is that a fair result?',
+      personalized: 'A draw with {opponent} today. Is that a fair result?',
       options: {
         confident: { text: 'We should have won that. We created enough chances.', effects: { morale: 4, boardConfidence: 0, fanMood: 2 } },
         humble: { text: 'A point away from home is always valuable in this league.', effects: { morale: 5, boardConfidence: 2, fanMood: 3 } },
@@ -189,6 +202,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'Both teams cancelled each other out. Is this a sign you need more creativity?',
+      personalized: 'You and {opponent} cancelled each other out. Is this a sign you need more creativity?',
       options: {
         confident: { text: 'We had the chances to win. It\'s about being more ruthless in the final third.', effects: { morale: 4, boardConfidence: 1, fanMood: 3 } },
         humble: { text: 'There\'s always room to improve. We\'ll work on creating better openings in training.', effects: { morale: 5, boardConfidence: 3, fanMood: 2 } },
@@ -225,6 +239,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'The second half was much better than the first. What changed at the break?',
+      personalized: 'The second half against {opponent} was much better than the first. What changed at the break?',
       options: {
         confident: { text: 'I lit a fire under them. They knew what was expected and delivered.', effects: { morale: 6, boardConfidence: 3, fanMood: 6 } },
         humble: { text: 'We made some adjustments and the players responded brilliantly. Credit to them.', effects: { morale: 9, boardConfidence: 4, fanMood: 4 } },
@@ -310,6 +325,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   transfer_rumour: [
     {
       question: 'There are rumours of interest in one of your key players. Can you comment?',
+      personalized: 'There are rumours of interest in {listed}. Can you comment?',
       options: {
         confident: { text: 'No one is leaving. This squad is going places together.', effects: { morale: 10, boardConfidence: 2, fanMood: 6 } },
         humble: { text: 'Every player has a price, but we\'re not actively looking to sell.', effects: { morale: -2, boardConfidence: 5, fanMood: -2 } },
@@ -375,6 +391,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   poor_form: [
     {
       question: 'Your team has been struggling recently. What\'s the plan to turn things around?',
+      personalized: 'Your team has been struggling recently and sits {position} in the table. What\'s the plan to turn things around?',
       options: {
         confident: { text: 'The quality is there. We just need a spark and we\'ll go on a run.', effects: { morale: 6, boardConfidence: -2, fanMood: 3 } },
         humble: { text: 'We\'re working on it every day on the training ground. Hard work fixes everything.', effects: { morale: 4, boardConfidence: 5, fanMood: 4 } },
@@ -440,6 +457,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   good_form: [
     {
       question: 'The team is flying right now. What\'s behind this great run?',
+      personalized: 'The team is flying right now and sits {position} in the table. What\'s behind this great run?',
       options: {
         confident: { text: 'This is just the beginning. We can do even better.', effects: { morale: 8, boardConfidence: 5, fanMood: 8 } },
         humble: { text: 'Team spirit and hard work. Everyone is pulling in the same direction.', effects: { morale: 12, boardConfidence: 3, fanMood: 6 } },
@@ -505,6 +523,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   promotion_race: [
     {
       question: 'You\'re right in the promotion mix. How are you managing the pressure on the squad?',
+      personalized: 'You\'re {position} and right in the promotion mix. How are you managing the pressure on the squad?',
       options: {
         confident: { text: 'Pressure? This is what we\'ve been building towards all season. The lads are loving every minute.', effects: { morale: 10, boardConfidence: 5, fanMood: 9 } },
         humble: { text: 'We take it one game at a time. The table looks after itself if you focus on performances.', effects: { morale: 8, boardConfidence: 4, fanMood: 4 } },
@@ -579,6 +598,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   relegation_battle: [
     {
       question: 'Your team is in a relegation fight. How do you keep the dressing room together?',
+      personalized: 'Your team is {position} and in a relegation fight. How do you keep the dressing room together?',
       options: {
         confident: { text: 'We have too much quality to go down. The table is tight and a couple of wins changes everything.', effects: { morale: 8, boardConfidence: -2, fanMood: 4 } },
         humble: { text: 'Honesty. We\'re in a scrap and everyone needs to accept that and fight for their lives.', effects: { morale: 4, boardConfidence: 5, fanMood: 5 } },
@@ -644,6 +664,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   new_signing: [
     {
       question: 'You\'ve just completed a signing. What does this player bring to the squad?',
+      personalized: 'You\'ve just signed {signing}. What does he bring to the squad?',
       options: {
         confident: { text: 'He\'s exactly what we needed. Quality, experience, and an immediate upgrade on what we had.', effects: { morale: 8, boardConfidence: 5, fanMood: 8 } },
         humble: { text: 'He\'s a good addition. He\'ll need time to settle in, but we think he can really contribute.', effects: { morale: 5, boardConfidence: 4, fanMood: 4 } },
@@ -662,6 +683,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'How quickly can we expect to see the new signing in the starting lineup?',
+      personalized: 'How quickly can we expect to see {signing} in the starting lineup?',
       options: {
         confident: { text: 'He\'s fit, he\'s hungry, and he could go straight into the side. Competition for places just got fierce.', effects: { morale: 6, boardConfidence: 4, fanMood: 8 } },
         humble: { text: 'We\'ll integrate him carefully. There\'s a settling-in period and we need to respect that.', effects: { morale: 4, boardConfidence: 5, fanMood: 3 } },
@@ -680,6 +702,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'Your current players in that position might be worried now. How do you handle that conversation?',
+      personalized: 'Some of your players might be worried about {signing}\'s arrival. How do you handle that conversation?',
       options: {
         confident: { text: 'If they\'re worried, good. Healthy competition raises everyone\'s level.', effects: { morale: 5, boardConfidence: 4, fanMood: 6 } },
         humble: { text: 'I\'ve spoken to them personally. Nobody loses their place without a fair fight for it.', effects: { morale: 7, boardConfidence: 4, fanMood: 4 } },
@@ -698,6 +721,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'How does this signing fit into your long-term vision for the club?',
+      personalized: 'How does {signing} fit into your long-term vision for the club?',
       options: {
         confident: { text: 'He\'s a statement signing. It shows we mean business.', effects: { morale: 7, boardConfidence: 4, fanMood: 9 } },
         humble: { text: 'He fills a gap we identified. It\'s a sensible addition that makes us stronger.', effects: { morale: 5, boardConfidence: 6, fanMood: 3 } },
@@ -709,6 +733,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
   injury_crisis: [
     {
       question: 'Multiple first-team players are sidelined. How severely does this affect your plans?',
+      personalized: 'You have {injuredCount} players in the treatment room. How severely does this affect your plans?',
       options: {
         confident: { text: 'This is why you build a deep squad. The next man steps up — simple as that.', effects: { morale: 8, boardConfidence: 3, fanMood: 6 } },
         humble: { text: 'It\'s a real blow, I won\'t pretend otherwise. But injuries are part of football and we have to adapt.', effects: { morale: 4, boardConfidence: 5, fanMood: 4 } },
@@ -745,6 +770,7 @@ export const QUESTIONS: Record<PressConference['context'], PressQuestionDef[]> =
     },
     {
       question: 'Fans are worried this injury run could derail the season. What\'s your message to them?',
+      personalized: 'Fans are worried {injuredCount} injuries could derail the season. What\'s your message to them?',
       options: {
         confident: { text: 'Stay the faith. This is a test and we\'ll come through it stronger. Every great season has a crisis chapter.', effects: { morale: 9, boardConfidence: 2, fanMood: 8 } },
         humble: { text: 'It\'s a difficult period but we\'re doing everything to get players back as quickly and safely as possible.', effects: { morale: 5, boardConfidence: 4, fanMood: 5 } },

@@ -1,8 +1,8 @@
-import type { PressConference, PressOption } from '@/types/game';
+import type { Player, PressConference, PressOption } from '@/types/game';
 import type { PressQuestionDef } from '@/data/pressQuestionBank';
-import { pick, safeRandomUUID } from '@/utils/helpers';
+import { getSuffix, pick, safeRandomUUID } from '@/utils/helpers';
 import { readPressRecentQuestions, writePressRecentQuestions, clearPressRecentQuestions } from '@/store/helpers/persistence';
-import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE, PRESS_SITUATIONAL_POST_MATCH_CHANCE } from '@/config/gameBalance';
+import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE, PRESS_SITUATIONAL_POST_MATCH_CHANCE, PRESS_SCORER_MIN_GOALS } from '@/config/gameBalance';
 
 type QuestionDef = PressQuestionDef;
 type QuestionBank = Record<PressConference['context'], QuestionDef[]>;
@@ -138,10 +138,104 @@ export function proOptionEffects(q: QuestionDef): PressOption['effects'] {
   return { ...best };
 }
 
-/** Pick a press conference appropriate to the context */
-export function generatePressConference(context: PressConference['context'], proUser = false): PressConference {
+// ── Personalised questions ──
+
+/** Facts a question may name. Every field is optional; a personalised variant
+ *  is only used when all of ITS placeholders are present, so a missing fact
+ *  silently falls back to the generic question rather than a hole in the text. */
+export interface PressQuestionVars {
+  /** The club the player's side has just played. */
+  opponent?: string;
+  /** The squad's top league scorer (only with PRESS_SCORER_MIN_GOALS+). */
+  scorer?: string;
+  scorerGoals?: number;
+  /** The most recent player bought this season who is still in the squad. */
+  signing?: string;
+  /** A squad player on the transfer list. */
+  listed?: string;
+  /** Players currently injured (only when at least one is). */
+  injuredCount?: number;
+  /** League position as an ordinal ("3rd"). */
+  position?: string;
+}
+
+export function ordinal(n: number): string {
+  return `${n}${getSuffix(n)}`;
+}
+
+/** The subset of game state the vars are read from (kept structural so the
+ *  data module does not depend on the store). */
+export interface PressVarsSource {
+  clubs: Record<string, { name: string; playerIds: string[] }>;
+  players: Record<string, Player>;
+  playerClubId: string;
+  seasonTransfersBought?: { playerName: string }[];
+  leagueTable?: { clubId: string }[];
+}
+
+/**
+ * Build the question facts for a post-match press conference. `fixture` is the
+ * match just played (any object with home/away club ids) — the opponent is
+ * whichever side is not the player's.
+ */
+export function buildPressQuestionVars(
+  state: PressVarsSource,
+  fixture?: { homeClubId: string; awayClubId: string } | null,
+): PressQuestionVars {
+  const vars: PressQuestionVars = {};
+  const { clubs, players, playerClubId } = state;
+  if (fixture) {
+    const oppId = fixture.homeClubId === playerClubId ? fixture.awayClubId
+      : fixture.awayClubId === playerClubId ? fixture.homeClubId : null;
+    const opp = oppId ? clubs[oppId] : null;
+    if (opp?.name) vars.opponent = opp.name;
+  }
+  const squad = (clubs[playerClubId]?.playerIds || []).map(id => players[id]).filter(Boolean);
+  const fullName = (p: Player) => `${p.firstName} ${p.lastName}`;
+
+  const scorer = [...squad].sort((a, b) => (b.goals || 0) - (a.goals || 0))[0];
+  if (scorer && (scorer.goals || 0) >= PRESS_SCORER_MIN_GOALS) {
+    vars.scorer = fullName(scorer);
+    vars.scorerGoals = scorer.goals;
+  }
+
+  const squadNames = new Set(squad.map(fullName));
+  const bought = state.seasonTransfersBought || [];
+  for (let i = bought.length - 1; i >= 0; i--) {
+    if (squadNames.has(bought[i].playerName)) { vars.signing = bought[i].playerName; break; }
+  }
+
+  const listed = squad.filter(p => p.listedForSale).sort((a, b) => b.overall - a.overall)[0];
+  if (listed) vars.listed = fullName(listed);
+
+  const injured = squad.filter(p => p.injured).length;
+  if (injured > 0) vars.injuredCount = injured;
+
+  const pos = (state.leagueTable || []).findIndex(e => e.clubId === playerClubId);
+  if (pos >= 0) vars.position = ordinal(pos + 1);
+  return vars;
+}
+
+/** The personalised text for `q`, or null when it has none or any of its
+ *  placeholders has no value in `vars`. */
+export function personalizeQuestion(q: QuestionDef, vars: PressQuestionVars | undefined): string | null {
+  if (!q.personalized || !vars) return null;
+  let missing = false;
+  const text = q.personalized.replace(/\{(\w+)\}/g, (_, key: string) => {
+    const v = vars[key as keyof PressQuestionVars];
+    if (v === undefined || v === null || v === '') { missing = true; return ''; }
+    return String(v);
+  });
+  return missing ? null : text;
+}
+
+/** Pick a press conference appropriate to the context. `vars` lets the
+ *  question name the actual opponent / player / table position. */
+export function generatePressConference(context: PressConference['context'], proUser = false, vars?: PressQuestionVars): PressConference {
   const pool = questionBank?.[context];
-  const chosen = pool && pool.length > 0 ? pickFreshQuestion(context, pool) : FALLBACK_QUESTION;
+  const picked = pool && pool.length > 0 ? pickFreshQuestion(context, pool) : FALLBACK_QUESTION;
+  const personal = personalizeQuestion(picked, vars);
+  const chosen: QuestionDef = personal ? { ...picked, question: personal } : picked;
   const baseOptions: [PressOption, PressOption, PressOption] = [
     { tone: 'confident', text: chosen.options.confident.text, effects: chosen.options.confident.effects },
     { tone: 'humble', text: chosen.options.humble.text, effects: chosen.options.humble.effects },
