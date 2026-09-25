@@ -1143,7 +1143,14 @@ export function readSaveSlot(slot: number): string | null {
   if (cached) return cached;
   try {
     const ls = localStorage.getItem(STORAGE_KEYS.saveSlot(slot));
-    if (ls) memSlots[slot] = ls;
+    // Never cache the mirror while this slot's IDB read is in flight. The
+    // title screen reads every slot on its first render, before hydration
+    // lands; caching here made `hydrateOneSlot` see a filled cache, take it
+    // for an in-session write, and keep it over IndexedDB. The browser writes
+    // the mirror to disk lazily, so after an app kill it can be OLDER than the
+    // save IDB committed — the career silently rolled back to it (reproduced
+    // in Chromium: a played match vanished after a restart).
+    if (ls && !slotReadPending(slot)) memSlots[slot] = ls;
     return ls;
   } catch { return null; }
 }
@@ -1353,7 +1360,9 @@ export function readSaveSlotBackup(slot: number): string | null {
   if (cached) return cached;
   try {
     const ls = localStorage.getItem(STORAGE_KEYS.saveSlotBackup(slot));
-    if (ls) memSlotBackups[slot] = ls;
+    // Same rule as readSaveSlot: a read before hydration must not pin a
+    // possibly stale mirror over the IDB backup that is about to land.
+    if (ls && !slotReadPending(slot)) memSlotBackups[slot] = ls;
     return ls;
   } catch { return null; }
 }

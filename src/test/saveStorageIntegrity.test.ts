@@ -233,6 +233,33 @@ describe('a slow IndexedDB at launch cannot wipe a career', () => {
     expect(writeSaveSlot(SLOT, payload(10)).refused).toBeUndefined();
   });
 
+  // Playthrough 2026-09 (docs/playthrough-2026-09.md): a match played, saved
+  // to IDB, then the browser closed — the relaunch loaded the kickoff save.
+  // The localStorage mirror on disk was the older save (the browser flushes
+  // it lazily), and the title screen's first render read it into the cache
+  // before IDB answered, so hydration kept it over the newer IDB main.
+  it('a stale localStorage mirror read before hydration does not beat the newer IDB save', async () => {
+    const { store, land } = await seedUnreadCareer();
+    const { hydrateSaveStorage } = await import('@/store/helpers/persistence');
+    // Older save left on disk by the mirror; no pending marker (IDB committed
+    // the newer save and the marker was cleared).
+    localStorage.setItem(MAIN, payload(5));
+    localStorage.setItem(BACKUP, payload(4));
+    const ready = hydrateSaveStorage();
+
+    // TitleScreen's first render, before the IDB read lands.
+    getSlotSummaries();
+    readSaveSlotBackup(SLOT);
+
+    land();
+    await ready;
+    expect(isSlotHydrated(SLOT)).toBe(true);
+    expect(store.get(MAIN)).toBe(payload(9));
+    expect(readSaveSlot(SLOT)).toBe(payload(9));
+    expect(readSaveSlotBackup(SLOT)).toBe(payload(8));
+    expect(getSlotSummaries().find(s => s.slot === SLOT)!.season).toBe(9);
+  });
+
   it('a read IDB could not answer leaves the slot unread until a retry succeeds', async () => {
     const idb = await import('@/store/helpers/idbStorage');
     const store = (idb as unknown as { __store: Map<string, string> }).__store;
