@@ -7,13 +7,18 @@
  *    38-week leagues never reach 46, and 18/22-week leagues never reach 24 —
  *    so a manager out of work in those leagues saw the market refresh once or
  *    never. Refreshes are now fractions of the league's own season.
+ *
+ * 2. **Emergency vacancies only fired when the list was EMPTY.** Listings go
+ *    down to half a club's minimum reputation, but applying needs the full
+ *    minimum — so a list of out-of-reach jobs kept the desperation safety net
+ *    off indefinitely. Only applicable listings count now.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { createDefaultManager, getJobMarketRefreshWeeks } from '@/utils/managerCareer';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
-import type { CareerManager } from '@/types/game';
+import type { CareerManager, JobVacancy } from '@/types/game';
 
 const CLUB_ID = 'manchester-city'; // Premier League: 38 weeks
 
@@ -66,5 +71,30 @@ describe('unemployed job market', () => {
     expect(s.week).toBe(total);
     expect(s.jobVacancies.length, 'no refresh on the last week of a 38-week season').toBeGreaterThan(0);
     expect(s.jobVacancies.every(v => v.id.endsWith(`-${total}`))).toBe(true);
+  });
+
+  it('offers desperation jobs when every listing is out of reach', async () => {
+    const s0 = useGameStore.getState();
+    const unreachable = {
+      id: 'vacancy-far', clubId: 'arsenal', clubName: 'Arsenal', divisionId: 'eng',
+      minReputation: 500, salary: 50000, contractLength: 2, boardExpectations: 'Win the league',
+      expiresWeek: 40, expiresSeason: s0.season, applied: false,
+    } as JobVacancy;
+    useGameStore.setState({
+      gameMode: 'career',
+      // 11 -> 12 on this tick: the desperation threshold.
+      careerManager: unemployedManager({ reputationScore: 10, unemployedWeeks: 11 }),
+      jobVacancies: [unreachable],
+      week: 5, // not a refresh week in a 38-week season
+    });
+
+    await useGameStore.getState().advanceWeek();
+
+    const s = useGameStore.getState();
+    const cm = s.careerManager!;
+    const applicable = s.jobVacancies.filter(v => v.minReputation <= cm.reputationScore);
+    expect(applicable.length, 'no job the manager can apply for after 12 weeks out').toBeGreaterThan(0);
+    // The out-of-reach listing is still shown.
+    expect(s.jobVacancies.some(v => v.id === 'vacancy-far')).toBe(true);
   });
 });

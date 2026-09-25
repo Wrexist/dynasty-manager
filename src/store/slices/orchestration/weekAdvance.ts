@@ -753,8 +753,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // Expire old vacancies
     vacancies = vacancies.filter(v => v.expiresSeason > state.season || (v.expiresSeason === state.season && v.expiresWeek > newWeek));
 
-    // Desperation vacancies (weak or no competitors)
-    if (cm.unemployedWeeks >= 12 && vacancies.length === 0) {
+    // Desperation vacancies (weak or no competitors). Count only listings the
+    // manager can actually apply for: `generateJobVacancies` shows clubs down
+    // to half their minimum reputation ("slightly above reach"), but
+    // `startInterview` requires the full minimum — so a list made entirely of
+    // unreachable jobs used to suppress the safety net forever.
+    const applicableVacancies = vacancies.filter(v => v.minReputation <= cm.reputationScore);
+    if (cm.unemployedWeeks >= 12 && applicableVacancies.length === 0) {
       // Weakest clubs first. `.slice(0, 2)` on insertion order handed out the
       // first two clubs in the record, which can be a top-flight giant — offered
       // at a GBP 1,500 salary with "Survive and stabilize the club" expectations.
@@ -762,7 +767,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         .filter(c => c.id !== state.playerClubId)
         .sort((a, b) => (a.reputation || 0) - (b.reputation || 0))
         .slice(0, 2);
-      vacancies = desperate.map(club => {
+      const desperateIds = new Set(desperate.map(c => c.id));
+      const desperation: JobVacancy[] = desperate.map(club => {
         const league = LEAGUES.find(l => l.id === club.divisionId);
         const clubData = ALL_CLUBS.find(c => c.id === club.id);
         return {
@@ -780,6 +786,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           expectedPosition: 'Bottom quarter',
         };
       });
+      // Keep the out-of-reach listings visible; replace one only when the
+      // same club now comes with a reachable desperation offer.
+      vacancies = [...vacancies.filter(v => !desperateIds.has(v.clubId)), ...desperation];
     }
 
     // Expire old offers
