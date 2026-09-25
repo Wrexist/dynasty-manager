@@ -114,10 +114,21 @@ export function generateFixtures(clubIds: string[]): Match[] {
   if (hasBye) teams.push('__bye__');
   const total = teams.length;
 
+  // Circle method. Every pairing flips venue on odd rounds. Without the flip
+  // the side a club lands on is fixed by its position in the rotation, and a
+  // position moves one step per round, so every club played about half a
+  // season at home and then half away (the pivot team played 19 home games in
+  // a row). That turned the home-week gate into ten weeks of nothing followed
+  // by nine weeks of double gate: Liverpool opened with eight straight away
+  // games and the Weekly Digest showed a −£3M loss every week (R1). With the
+  // flip no club has more than two in a row at the same venue (three in odd
+  // leagues, counted across a bye). Only venues change; the random draws are
+  // the same.
   for (let round = 0; round < total - 1; round++) {
+    const flipVenue = round % 2 === 1;
     for (let i = 0; i < total / 2; i++) {
-      const home = teams[i];
-      const away = teams[total - 1 - i];
+      const home = flipVenue ? teams[total - 1 - i] : teams[i];
+      const away = flipVenue ? teams[i] : teams[total - 1 - i];
       if (home === '__bye__' || away === '__bye__') continue;
       matches.push({
         id: safeRandomUUID(),
