@@ -1425,8 +1425,13 @@ function finalizeSeason(
   const youthSquad = (pcForYouth?.playerIds || []).map(id => newPlayers[id]).filter(Boolean);
   const youthSquadQuality = youthSquad.length > 0 ? youthSquad.reduce((s, p) => s + p.overall, 0) / youthSquad.length : undefined;
   const youthRatingForIntake = pcForYouth?.youthRating ?? 50;
+  // The intake IS last season's preview: one prospect per previewed entry, at
+  // that position and potential (see generateIntakePreview). The preview used
+  // to be an unrelated roll. An empty preview (fresh state / old saves that
+  // never had one) falls back to a normal need-weighted roll.
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
-    playerClubId, youthRatingForIntake, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
+    playerClubId, youthRatingForIntake, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality,
+    { preview: state.youthAcademy?.nextIntakePreview || [], squad: youthSquad },
   );
   // Wonder Coach perk: +5 potential on all youth intake
   if (hasPerk(state.managerProgression, 'wonder_coach') && youthPlayers.length > 0) {
@@ -1451,14 +1456,22 @@ function finalizeSeason(
   // that silently corrupted the academy count.
   if (hasPerk(state.managerProgression, 'prodigy_factory')) {
     const { prospects: bonusProspects, players: bonusPlayers } = generateYouthProspects(
-      playerClubId, youthRatingForIntake, youthCoachQ, newSeason, 2, youthSquadQuality
+      playerClubId, youthRatingForIntake, youthCoachQ, newSeason, 2, youthSquadQuality,
+      { squad: [...youthSquad, ...youthPlayers] },
     );
     newYouthProspects.push(...bonusProspects);
     youthPlayers.push(...bonusPlayers);
   }
   youthPlayers.forEach(p => { newPlayers[p.id] = p; });
 
-  const newIntakePreview = generateIntakePreview(youthRatingForIntake);
+  // Next season's intake, decided now so the Youth Academy preview is a
+  // promise: positions lean toward gaps in the first team plus this intake
+  // (unpromoted prospects are cleared at the next rollover, see below).
+  const newIntakePreview = generateIntakePreview(youthRatingForIntake, {
+    youthCoachQuality: youthCoachQ,
+    clubSquadQuality: youthSquadQuality,
+    squad: [...youthSquad, ...youthPlayers],
+  });
 
   newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'general',

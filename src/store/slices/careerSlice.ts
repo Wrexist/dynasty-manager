@@ -542,10 +542,12 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       // rebuilding `players` — without it they'd remain promotable orphans).
       const playersAfterMove = { ...state.players };
       for (const pr of state.youthAcademy.prospects) delete playersAfterMove[pr.playerId];
+      const newClubSquad = (targetClub.playerIds || []).map(id => state.players[id]).filter(Boolean);
       const { prospects: newProspects, players: newYouthPlayers } = generateYouthProspects(
         clubId, targetClub.youthRating, getStaffBonus(newInitialStaff, 'youth-coach'),
         state.season, 3 + Math.floor(Math.random() * 2),
         CLUBS_DATA.find(c => c.id === clubId)?.squadQuality,
+        { squad: newClubSquad },
       );
       newYouthPlayers.forEach(p => { playersAfterMove[p.id] = p; });
 
@@ -605,7 +607,15 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           recoveryLevel: clubRecoveryLevel(targetClub.facilities),
           upgradeInProgress: null,
         },
-        youthAcademy: { prospects: newProspects, nextIntakePreview: generateIntakePreview(targetClub.youthRating), youthPreviewEnhanced: false },
+        youthAcademy: {
+          prospects: newProspects,
+          nextIntakePreview: generateIntakePreview(targetClub.youthRating, {
+            youthCoachQuality: getStaffBonus(newInitialStaff, 'youth-coach'),
+            clubSquadQuality: CLUBS_DATA.find(c => c.id === clubId)?.squadQuality,
+            squad: [...newClubSquad, ...newYouthPlayers],
+          }),
+          youthPreviewEnhanced: false,
+        },
         financeHistory: [],
         tacticalPresets: [],
         // Club records belong to the CLUB, not the manager. Omitting these from
