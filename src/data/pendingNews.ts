@@ -49,6 +49,8 @@ export const PENDING_NEWS: PendingRelease = {
     'Fix/limited deal covers.',
     'Document pack tier restructure: Bronze/Silver restored.',
     'Add pack best-pull share card (growth playbook P1).',
+    'New managers are guided to open their free pack in the first session.',
+    'Shared best-pull cards now show the player\'s portrait.',
   ],
   fixed: [],
   headline: null,
