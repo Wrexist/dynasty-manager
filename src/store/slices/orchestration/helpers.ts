@@ -52,6 +52,10 @@ import {
   REPLACEMENT_QUALITY_VARIANCE,
   REGEN_DESIGN_WEIGHT,
   REGEN_PLAYER_CLUB_MARGIN,
+  REGEN_DEPTH_RANK,
+  REGEN_DEPTH_MARGIN,
+  REGEN_YOUTH_QUALITY_GAP,
+  REGEN_FILL_QUALITY_CAP,
 } from '@/config/gameBalance';
 import { GOAL_EVENT_TYPES, HOME_ADVANTAGE } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
@@ -758,21 +762,42 @@ export function designedClubQuality(club: Pick<Club, 'id' | 'divisionId' | 'repu
  * So the player's club fills at REPLACEMENT level relative to the squad it
  * already has: cover, never an upgrade. Their squad quality then moves only
  * through transfers, youth and development — things they pay for and choose.
+ *
+ * Every club is also held to its squad DEPTH (`depthOvr`, the Nth-best player —
+ * see `REGEN_DEPTH_RANK`): a fill never lands above first-team level minus
+ * `REGEN_DEPTH_MARGIN`, academy intake (`youthIntake`) sits
+ * `REGEN_YOUTH_QUALITY_GAP` below that, and nothing exceeds
+ * `REGEN_FILL_QUALITY_CAP`. Without these the elite clubs' top-up minted 85-95
+ * teenagers every summer.
  */
 export function regenFillQuality(
   club: Pick<Club, 'id' | 'divisionId' | 'reputation'>,
   currentSquadAvgOvr: number | null,
   isPlayerClub = false,
+  depthOvr: number | null = null,
+  youthIntake = false,
 ): number {
   const designed = designedClubQuality(club);
   const avg = currentSquadAvgOvr != null && Number.isFinite(currentSquadAvgOvr)
     ? currentSquadAvgOvr
     : designed;
   const variance = Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE) - Math.floor(REPLACEMENT_QUALITY_VARIANCE / 2);
-  const anchor = isPlayerClub
+  let anchor = isPlayerClub
     ? Math.min(designed, avg) - REGEN_PLAYER_CLUB_MARGIN
     : designed * REGEN_DESIGN_WEIGHT + avg * (1 - REGEN_DESIGN_WEIGHT);
-  return Math.max(35, Math.min(95, Math.round(anchor + variance)));
+  if (depthOvr != null && Number.isFinite(depthOvr)) {
+    anchor = Math.min(anchor, depthOvr - REGEN_DEPTH_MARGIN);
+  }
+  if (youthIntake) anchor -= REGEN_YOUTH_QUALITY_GAP;
+  return Math.max(35, Math.min(REGEN_FILL_QUALITY_CAP, Math.round(anchor + variance)));
+}
+
+/** The squad's `REGEN_DEPTH_RANK`-th best overall, or null for a squad too
+ *  thin to have one (the design/average anchors then stand alone). */
+export function squadDepthOverall(squad: Pick<Player, 'overall'>[]): number | null {
+  if (squad.length < REGEN_DEPTH_RANK) return null;
+  const sorted = squad.map(p => p.overall).sort((a, b) => b - a);
+  return sorted[REGEN_DEPTH_RANK - 1];
 }
 
 /** Small-lambda Poisson sampler. Bounded so a pathological lambda can't spin. */

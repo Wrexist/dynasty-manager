@@ -71,6 +71,7 @@ import {
   pickAiMatchSquad,
   catchUpUnplayedFixtures,
   regenFillQuality,
+  squadDepthOverall,
 } from '@/store/slices/orchestration/helpers';
 import {
   generateLeagueCupDraw,
@@ -976,12 +977,14 @@ function finalizeSeason(
       // Anchored on the club's DESIGNED quality, not its reputation — see
       // `regenFillQuality` and audit 6.2. Reputation could not tell the second
       // tier from the fourth.
-      const quality = regenFillQuality(club, avgOvr, club.id === playerClubId);
+      // Held to squad depth too, and academy intake sits well below it.
+      const isIntake = fillIdx >= gapCount;
+      const quality = regenFillQuality(club, avgOvr, club.id === playerClubId, squadDepthOverall(clubSquad), isIntake);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       // Intake beyond the position gaps comes through the academy: young, with
       // room to grow. This is what restores the youth the world stopped making,
       // and it does so without retiring anyone earlier.
-      if (fillIdx >= gapCount) {
+      if (isIntake) {
         newP.age = REGEN_YOUTH_AGE_MIN + Math.floor(Math.random() * (REGEN_YOUTH_AGE_MAX - REGEN_YOUTH_AGE_MIN + 1));
         newP.potential = Math.max(newP.potential, Math.min(99, newP.overall + YOUNG_POTENTIAL_BOOST_BASE));
       }
@@ -1014,7 +1017,7 @@ function finalizeSeason(
         const emergencyAvgOvr = emergencySquad.length > 0 ? emergencySquad.reduce((s, p) => s + p.overall, 0) / emergencySquad.length : null;
         // Same anchor as the normal gap-fill: the emergency net used a hardcoded
         // copy of the reputation formula, so it drifted from the real one.
-        const emergencyQuality = regenFillQuality(club, emergencyAvgOvr, club.id === playerClubId);
+        const emergencyQuality = regenFillQuality(club, emergencyAvgOvr, club.id === playerClubId, squadDepthOverall(emergencySquad));
         const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), emergencyQuality, club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);

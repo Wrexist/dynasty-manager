@@ -464,6 +464,28 @@ export const REGEN_DESIGN_WEIGHT = 0.55;
  */
 export const REGEN_PLAYER_CLUB_MARGIN = 6;
 
+/**
+ * Regen fills are anchored to squad DEPTH as well as stature.
+ *
+ * The design blend above has no ceiling of its own, so at the elite clubs
+ * (designed ~90) a season-end top-up generated players at 85-95 — including
+ * academy teenagers. Measured on one rollover from a fresh save: 137 generated
+ * players rated 85+, 63 of them 21 or under, the best 97 against a best real
+ * player of 94; world U21s at 85+ went 3 -> 52. A top-up is squad cover and
+ * academy intake, not a signing.
+ *
+ * - `REGEN_DEPTH_RANK`: the squad's Nth-best player is "first-team level".
+ * - `REGEN_DEPTH_MARGIN`: position-gap fills land this far below it (rotation).
+ * - `REGEN_YOUTH_QUALITY_GAP`: academy intake lands this far below THAT, with
+ *   room to grow (`YOUNG_POTENTIAL_BOOST_BASE` potential on top).
+ * - `REGEN_FILL_QUALITY_CAP`: no regen is generated above this quality, well
+ *   under the best real players, whatever the anchors say.
+ */
+export const REGEN_DEPTH_RANK = 11;
+export const REGEN_DEPTH_MARGIN = 3;
+export const REGEN_YOUTH_QUALITY_GAP = 12;
+export const REGEN_FILL_QUALITY_CAP = 84;
+
 // ── Transfer Market Listing ──
 export const LISTING_PRICE_MIN_MULTIPLIER = 1.1;
 export const LISTING_PRICE_RANDOM_RANGE = 0.4;
