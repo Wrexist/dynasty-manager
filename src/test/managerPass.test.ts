@@ -423,6 +423,32 @@ describe('Manager Pass — store slice', () => {
     expect(getActiveCosmetic(m, 'title_badge')).toBe('badge-the-grafter');
   });
 
+  it('earns Pass XP from play through the observer GameShell mounts', () => {
+    const base = useGameStore.getState();
+    useGameStore.setState({
+      gameStarted: true, careerId: 'career-int',
+      managerStats: { ...base.managerStats, totalWins: 5, totalDraws: 2, totalLosses: 3 },
+      sessionStats: { ...base.sessionStats, objectivesCompleted: 4 },
+    });
+    const detach = attachManagerPassObserver(useGameStore, events => {
+      useGameStore.getState().recordManagerPassEvents(events);
+    });
+    try {
+      const s = () => useGameStore.getState();
+      useGameStore.setState({ managerStats: { ...s().managerStats, totalWins: 6 } });
+      useGameStore.setState({ sessionStats: { ...s().sessionStats, objectivesCompleted: 5 } });
+      expect(s().managerPass.xp).toBe(matchPassXp('win') + MANAGER_PASS_XP.objectiveCompleted);
+      expect(s().managerPass.awardedKeys).toEqual(['m:career-int:11', 'o:career-int:5']);
+
+      // Loading another career is a re-baseline, not a win.
+      useGameStore.setState({ careerId: 'career-other', managerStats: { ...s().managerStats, totalWins: 7 } });
+      expect(s().managerPass.xp).toBe(matchPassXp('win') + MANAGER_PASS_XP.objectiveCompleted);
+    } finally {
+      detach();
+      useGameStore.setState({ gameStarted: false, careerId: null });
+    }
+  });
+
   it('never touches the simulation or manager XP', () => {
     const before = useGameStore.getState();
     const snapshot = JSON.stringify({ p: before.managerProgression, c: before.clubs, pl: before.players, b: before.boardConfidence });
