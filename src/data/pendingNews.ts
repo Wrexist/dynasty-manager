@@ -42,12 +42,33 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
-  new: [],
+  highlights: [
+    'Manager Pass: a season-long reward track with a free row and a Pro row of cosmetic rewards.',
+    'A cleaner Home screen: one Continue button, then only what needs your attention.',
+    'Skip to full time from half-time, free for everyone.',
+  ],
+  new: [
+    'Quick Start suggests a strong club and picks your nationality from your device.',
+    'Derby Days: derby wins count double on the event reward track.',
+    '11 new storylines, new random events, and press questions that name your opponents and players.',
+    'The Hall of Managers now keeps every career you have played.',
+  ],
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
+    'More realistic results across every league: more goals and fewer draws.',
+    'Veterans at your club now age at the same pace as everywhere else.',
+    'Back always returns to where you came from, and Android\'s back button works.',
+    'Free trials are shown on every plan that offers one.',
+    'Youth intake previews now show exactly who joins.',
   ],
-  fixed: [],
+  fixed: [
+    'Fixed an interrupted pack purchase that could block later pack purchases.',
+    'Fixed Ballon d\'Or top-10 finishes lowering a star\'s rating.',
+    'Fixed players you loan in never getting picked.',
+    'Fixed a slow launch that could make a saved career look empty.',
+    'Fixed the season stalling for an out-of-work manager who still runs a national team.',
+    'Fixed storylines repeating the very next season.',
+  ],
   headline: null,
   summary: null,
 };
