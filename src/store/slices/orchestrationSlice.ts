@@ -78,6 +78,15 @@ type IdleHandle = number;
 let pendingIdleHandle: IdleHandle | null = null;
 let pendingSlot: number | undefined;
 let runSchedulerWork: (() => void) | null = null;
+/** Trailing autosave for a call that landed inside the debounce window after
+ *  the previous save had already run. Without it that call was dropped, and
+ *  whatever changed since the last save waited for the next unrelated one. */
+let trailingSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelTrailingSave(): void {
+  if (trailingSaveTimer !== null) clearTimeout(trailingSaveTimer);
+  trailingSaveTimer = null;
+}
 
 /** Reset the change-detection hash. Call on loadGame / resetGame so the next
  *  save isn't short-circuited against a stale hash from a prior session. */
@@ -97,6 +106,7 @@ function cancelPendingSave(): void {
   }
   runSchedulerWork = null;
   pendingSlot = undefined;
+  cancelTrailingSave();
 }
 
 /** Test-only: zero every piece of module-level save scheduler state so each
@@ -852,10 +862,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   saveGame: (slot?: number) => {
-    // Debounce: skip if saved very recently (unless explicit slot = manual save)
+    // Debounce auto-saves (explicit slot = manual save, never debounced). A
+    // call inside the window defers to the window's end instead of being
+    // dropped: an idle save that is still queued reads state when it runs, so
+    // it already covers this call; otherwise schedule one trailing save.
     const now = Date.now();
-    if (slot === undefined && now - lastSaveAt < SAVE_DEBOUNCE_MS) return;
+    if (slot === undefined && now - lastSaveAt < SAVE_DEBOUNCE_MS) {
+      if (pendingIdleHandle !== null || trailingSaveTimer !== null) return;
+      trailingSaveTimer = setTimeout(() => {
+        trailingSaveTimer = null;
+        get().saveGame();
+      }, SAVE_DEBOUNCE_MS - (now - lastSaveAt));
+      return;
+    }
     lastSaveAt = now;
+    // This save reads the current state, so it supersedes a trailing one.
+    if (slot === undefined || slot === get().activeSlot) cancelTrailingSave();
 
     // Flash "saving" for the UI indicator — applies to both sync manual saves
     // and async auto-saves so the user always gets feedback.
@@ -884,6 +906,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (pendingIdleHandle !== null) cancelIdle(pendingIdleHandle);
     pendingIdleHandle = null;
     runSchedulerWork = null;
+    cancelTrailingSave();
     lastSaveAt = Date.now();
     set({ saveStatus: 'saving' });
     return performSave(set, get, undefined);
@@ -913,10 +936,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingIdleHandle = null;
       const work = runSchedulerWork;
       runSchedulerWork = null;
+      cancelTrailingSave();
       work();
       return;
     }
-    if (!get().settings.autoSave) return;
+    // A deferred trailing save is requested work too — the app may be
+    // suspended before its timer fires, so run it now regardless of autoSave.
+    const trailingPending = trailingSaveTimer !== null;
+    cancelTrailingSave();
+    if (!trailingPending && !get().settings.autoSave) return;
     lastSaveAt = Date.now();
     set({ saveStatus: 'saving' });
     performSave(set, get, undefined);

@@ -107,6 +107,59 @@ describe('autosave: async scheduled path', () => {
   });
 });
 
+describe('autosave: debounce keeps the trailing save', () => {
+  beforeEach(() => initFresh());
+  afterEach(() => vi.useRealTimers());
+
+  const slotKey = () => `dynasty-save-${useGameStore.getState().activeSlot}`;
+  const primaryWrites = (setItem: ReturnType<typeof vi.spyOn>) =>
+    setItem.mock.calls.filter(([k]) => k === slotKey()).length;
+
+  // Regression: a save requested inside the 2 s window after the previous
+  // save had already RUN used to be dropped outright, so the change it was
+  // meant to persist waited for the next unrelated save (or was lost on quit).
+  it('persists a change requested inside the debounce window once the window ends', () => {
+    useGameStore.getState().saveGame();
+    vi.advanceTimersByTime(1); // the idle save runs
+    const before = useGameStore.getState().season;
+    expect(JSON.parse(localStorage.getItem(slotKey())!).season).toBe(before);
+
+    useGameStore.setState({ season: before + 1 });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().saveGame(); // 1 ms later — inside the window
+    vi.advanceTimersByTime(1000);
+    expect(primaryWrites(setItem)).toBe(0); // still debounced
+    vi.runAllTimers();
+    expect(primaryWrites(setItem)).toBe(1);
+    expect(JSON.parse(localStorage.getItem(slotKey())!).season).toBe(before + 1);
+  });
+
+  it('coalesces every call in the window into a single trailing save', () => {
+    useGameStore.getState().saveGame();
+    vi.advanceTimersByTime(1);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    for (let i = 0; i < 5; i++) {
+      useGameStore.setState(s => ({ week: s.week + 1 }));
+      useGameStore.getState().saveGame();
+      vi.advanceTimersByTime(100);
+    }
+    vi.runAllTimers();
+    expect(primaryWrites(setItem)).toBe(1);
+    expect(JSON.parse(localStorage.getItem(slotKey())!).week).toBe(useGameStore.getState().week);
+  });
+
+  it('a flush supersedes the trailing save instead of writing twice', () => {
+    useGameStore.getState().saveGame();
+    vi.advanceTimersByTime(1);
+    useGameStore.setState(s => ({ week: s.week + 1 }));
+    useGameStore.getState().saveGame();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().flushForLifecycle();
+    vi.runAllTimers();
+    expect(primaryWrites(setItem)).toBe(1);
+  });
+});
+
 describe('autosave: flushSave', () => {
   beforeEach(() => initFresh());
   afterEach(() => vi.useRealTimers());
