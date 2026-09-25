@@ -809,7 +809,11 @@ const PacksPage = () => {
 
         {/* Guarantee Tracker — premium "what's coming next" reward meter.
             Three visual states keyed off pityRemaining:
-              ready   (0): glowing gold panel, "Guaranteed 80+ Next Pack"
+              ready   (0): glowing gold panel, "80+ on next paid pack" — PAID,
+                           because pity caps at a tier's own ceiling + 3 and
+                           the free Daily tops out below 80 even on pity
+                           (a free pity open that misses keeps the counter
+                           armed, so the next paid pack still gets it)
               close (1–2): amber-tinted, "Almost there"
               normal (3+): muted gold accent, just the progress
             All three share the same panel chrome so the transition
@@ -868,7 +872,7 @@ const PacksPage = () => {
                   )}
                 >
                   {ready
-                    ? 'Guaranteed 80+ Next Pack'
+                    ? '80+ on next paid pack'
                     : pityRemaining === 1
                       ? '1 pack to guaranteed gold'
                       : `${pityRemaining} packs to guaranteed gold`}
