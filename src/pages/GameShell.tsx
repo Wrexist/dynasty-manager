@@ -23,6 +23,8 @@ import { AdOfferHost } from '@/components/game/AdOfferHost';
 import { REWARDED_ADS_USABLE } from '@/utils/ads';
 import { getEntitlementsDefinitive, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 import { reconcilePendingPackCreditAtLaunch } from '@/utils/packCreditRecovery';
+// ── legacy: Manager Pass ──
+import { attachManagerPassObserver } from '@/utils/managerPass';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -279,6 +281,13 @@ const GameShell = () => {
   useEffect(() => {
     reconcilePendingPackCreditAtLaunch();
   }, []);
+
+  // legacy: Manager Pass XP from play — matches, monthly objectives and
+  // completed seasons, read as career counters (see attachManagerPassObserver).
+  // Baselines on mount, so opening a save never pays for what it already holds.
+  useEffect(() => attachManagerPassObserver(useGameStore, events => {
+    useGameStore.getState().recordManagerPassEvents(events);
+  }), []);
 
   // Sync monetization state on game load
   useEffect(() => {

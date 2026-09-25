@@ -656,6 +656,19 @@ export const en = {
   'sponsorOfferSheet.performanceBonus': "Performance Bonus",
   'sponsorOfferSheet.duration': "Duration",
   'sponsorOfferSheet.weeklyPay': "Weekly Pay",
+  // ── legacy: Manager Pass seasons ──
+  'managerPass.theme.0.name': "Winter Window",
+  'managerPass.theme.0.tagline': "Deals, depth and a cold January run.",
+  'managerPass.theme.1.name': "Spring Run-In",
+  'managerPass.theme.1.tagline': "Every point counts from here.",
+  'managerPass.theme.2.name': "Silverware Season",
+  'managerPass.theme.2.tagline': "Finals, trophies and parades.",
+  'managerPass.theme.3.name': "Pre-Season Tour",
+  'managerPass.theme.3.tagline': "New signings, new ideas, fresh legs.",
+  'managerPass.theme.4.name': "Kickoff Campaign",
+  'managerPass.theme.4.tagline': "A new season starts on the first whistle.",
+  'managerPass.theme.5.name': "Festive Fixtures",
+  'managerPass.theme.5.tagline': "The busiest weeks of the year.",
 } as const;
 
 export default en;
