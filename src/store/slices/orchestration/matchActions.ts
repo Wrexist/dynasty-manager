@@ -539,6 +539,31 @@ export function buildPlayerMatchXI(
   return xi;
 }
 
+/**
+ * The XI and bench each side takes into the USER's match.
+ *
+ * The user's club plays the manager's selection (`buildPlayerMatchXI` + the
+ * named bench). An AI club picks exactly as it does against anyone else —
+ * `pickAiMatchSquad`, position-aware, fit and eligible players only. Reading an
+ * AI club's `club.lineup` instead fielded a stale XI: that field is written only
+ * at game start and season end, so every opponent the user faced played his
+ * August team with holes filled in squad-list order, ignoring position, while
+ * the same club fielded its real best XI in every AI-vs-AI fixture.
+ */
+export function buildMatchSquad(
+  club: Club,
+  players: Record<string, Player>,
+  week: number,
+  playerClubId: string,
+): { xi: Player[]; bench: Player[] } {
+  if (club.id !== playerClubId) return pickAiMatchSquad(club, players, week);
+  const xi = buildPlayerMatchXI(club, players, week);
+  const inXi = new Set(xi.map(p => p.id));
+  const bench = (club.subs || []).map(id => players[id]).filter(Boolean)
+    .filter(p => !inXi.has(p.id) && !p.injured && !(p.suspendedUntilWeek != null && p.suspendedUntilWeek > week));
+  return { xi, bench };
+}
+
 export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const state = get();
   // Career mode: block match play when unemployed
@@ -650,13 +675,14 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const hc = effectiveClubs[match.homeClubId];
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
-  const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  // Saved XI -> bench -> rest of the squad -> emergency cover. See
+  // User: saved XI -> bench -> rest of the squad -> emergency cover (see
   // `buildPlayerMatchXI`: this used to be a bench-only backfill, which is how a
   // club with a full squad but a long injury list could take the guard below
-  // and make this function return null.
-  let hp = buildPlayerMatchXI(hc, effectivePlayers, week);
-  let ap = buildPlayerMatchXI(ac, effectivePlayers, week);
+  // and make this function return null). AI: `pickAiMatchSquad`.
+  const hSquad = buildMatchSquad(hc, effectivePlayers, week, playerClubId);
+  const aSquad = buildMatchSquad(ac, effectivePlayers, week, playerClubId);
+  let hp = hSquad.xi;
+  let ap = aSquad.xi;
 
   // Only reachable now when a club has fewer than seven registered players who
   // are not out on loan. The callers report it — never fail silently here.
@@ -694,8 +720,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Build bench for both teams
   const hpIdSet = new Set(hp.map(p => p.id));
   const apIdSet = new Set(ap.map(p => p.id));
-  const hBenchCM = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
-  const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
+  const hBenchCM = hSquad.bench.filter(p => !hpIdSet.has(p.id));
+  const aBenchCM = aSquad.bench.filter(p => !apIdSet.has(p.id));
   // Capture pre-match snapshot for Invincible perk (match rewind on loss).
   // Must include EVERYTHING the post-match processing writes — a partial
   // snapshot lets the replay double-count manager stats, XP, rivalries,
@@ -1187,13 +1213,14 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const hc = effectiveClubs[match.homeClubId];
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
-  const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  // Saved XI -> bench -> rest of the squad -> emergency cover. See
+  // User: saved XI -> bench -> rest of the squad -> emergency cover (see
   // `buildPlayerMatchXI`: this used to be a bench-only backfill, which is how a
   // club with a full squad but a long injury list could take the guard below
-  // and make this function return null.
-  let hp = buildPlayerMatchXI(hc, effectivePlayers, week);
-  let ap = buildPlayerMatchXI(ac, effectivePlayers, week);
+  // and make this function return null). AI: `pickAiMatchSquad`.
+  const hSquad = buildMatchSquad(hc, effectivePlayers, week, playerClubId);
+  const aSquad = buildMatchSquad(ac, effectivePlayers, week, playerClubId);
+  let hp = hSquad.xi;
+  let ap = aSquad.xi;
 
   // Only reachable now when a club has fewer than seven registered players who
   // are not out on loan. The callers report it — never fail silently here.
@@ -1228,8 +1255,8 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // Build bench arrays for AI substitution logic
   const hpIds = new Set(hp.map(p => p.id));
   const apIds = new Set(ap.map(p => p.id));
-  const hBench = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIds.has(p.id) && !p.injured && !isSuspended(p));
-  const aBench = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIds.has(p.id) && !p.injured && !isSuspended(p));
+  const hBench = hSquad.bench.filter(p => !hpIds.has(p.id));
+  const aBench = aSquad.bench.filter(p => !apIds.has(p.id));
 
   const halfDerbyIntensity = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId);
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
