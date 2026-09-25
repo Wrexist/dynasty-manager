@@ -69,11 +69,27 @@ jobs:
       - name: Validate release candidate
         run: npm run preflight:full
 
+      # Same as the iOS workflow: fold src/data/pendingNews.ts into a fresh top
+      # entry of src/data/whatsNew.ts (a no-op when this version is already
+      # sealed), so the AAB's in-app What's New shows this release rather than
+      # the previous one. Runner-only — never committed back to main.
+      - name: Seal pending What's New into whatsNew.ts
+        run: npm run whats-new:seal
+
+      # Validate the now-top entry and stamp it with this build's versionCode
+      # (the Android counterpart of the iOS CFBundleVersion stamp).
+      - name: Validate + stamp What's New build number
+        run: node scripts/check-whats-new.mjs --inject-build ${{ inputs.version_code }}
+
       - name: Build web bundle with production keys
         env:
           VITE_REVENUECAT_API_KEY_ANDROID: ${{ secrets.VITE_REVENUECAT_API_KEY_ANDROID }}
           # Observability: only Sentry now (analytics travels via RC/ASC).
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          # Optional. Unset or shorter than MIN_REDEEM_SECRET_LENGTH leaves
+          # redeem codes disabled and the Settings entry hidden
+          # (utils/redeemCodes.ts getRedeemSecret).
+          VITE_REDEEM_SECRET: ${{ secrets.VITE_REDEEM_SECRET }}
         run: npm run build
       # `sourcemap: 'hidden'` still WRITES .map files, and Capacitor's webDir is
       # `dist`, so `cap sync` would copy ~35 MB of readable source maps into the
