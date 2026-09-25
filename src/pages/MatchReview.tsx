@@ -105,10 +105,16 @@ const MatchReview = () => {
   );
   // Free tactical debrief (G3): the engine's tactical matchup insight + first
   // opposition reaction + a hint — distinct from the Pro stat insights below.
-  const debrief = useMemo(
-    () => currentMatchResult ? extractMatchDebrief(currentMatchResult.events, playerClubId) : null,
-    [currentMatchResult, playerClubId]
-  );
+  // Given the final score, like PostMatchPopup, so both full-time surfaces
+  // phrase a half-time line the same way and keep its lesson (R6).
+  const debrief = useMemo(() => {
+    if (!currentMatchResult) return null;
+    const home = currentMatchResult.homeClubId === playerClubId;
+    return extractMatchDebrief(currentMatchResult.events, playerClubId, {
+      goalsFor: home ? currentMatchResult.homeGoals : currentMatchResult.awayGoals,
+      goalsAgainst: home ? currentMatchResult.awayGoals : currentMatchResult.homeGoals,
+    });
+  }, [currentMatchResult, playerClubId]);
 
   const matchEvents = currentMatchResult?.events;
   const allHighlights = useMemo(
