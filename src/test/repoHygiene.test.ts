@@ -39,4 +39,15 @@ describe('repository hygiene', () => {
   it.skipIf(!hasGit)('does not track the ignored FC25 CSV', () => {
     expect(gitLsFiles('fc25_players.csv')).toEqual([]);
   });
+
+  it.skipIf(!hasGit)('tracks no file that .gitignore excludes', () => {
+    // The general form of the FC25 case: a file committed before (or around)
+    // its ignore rule stays tracked for good. scripts/.icons-debug.html, a raw
+    // scraper page dump, was the other one.
+    const out = execFileSync('git', ['ls-files', '--cached', '--ignored', '--exclude-standard'], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    });
+    expect(out.split('\n').filter(Boolean)).toEqual([]);
+  });
 });
