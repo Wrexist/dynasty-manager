@@ -51,7 +51,7 @@ import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import { simulateMatch } from '@/engine/match';
 import { applyPlayerDevelopment, seasonGrowthTracker } from '@/store/helpers/development';
 import { crossedBreakthrough, describeGrowthArc } from '@/utils/playerStanding';
-import { aiDevelopmentSlices } from '@/config/aiSimulation';
+import { aiDevelopmentSlices, playerClubDeclineRate } from '@/config/aiSimulation';
 import { applyAIMatchEvents, generateAIInjuryDetails } from '@/store/slices/orchestration/helpers';
 import { endSeasonImpl, runPostSeasonTail } from '@/store/slices/orchestration/seasonEnd';
 import { advanceLeagueCupRound } from '@/store/slices/orchestration/tournaments';
@@ -1070,7 +1070,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // Crossing the mark IS the event, so nothing has to remember it fired —
     // no "already announced" flag, no new persisted state.
     const growthBefore = seasonGrowthTracker[p.id] || 0;
-    p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost);
+    // Weekly passes: scale decline to the AI's per-season pass budget so the
+    // user's veterans don't age ~3.8x faster than identical rivals.
+    p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost, playerClubDeclineRate(state.totalWeeks || TOTAL_WEEKS));
     const growthAfter = seasonGrowthTracker[p.id] || 0;
     if (crossedBreakthrough(growthBefore, growthAfter)) {
       digestBreakthroughs.push({
