@@ -33,6 +33,12 @@ import {
   isSlotHydrated, __resetSaveStorageForTests, STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 
+// Pass-through spy so tests can count how often a save payload is hashed.
+vi.mock('@/utils/hashString', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/hashString')>();
+  return { fnv1a: vi.fn(actual.fnv1a) };
+});
+
 vi.mock('@/store/helpers/idbStorage', () => {
   const store = new Map<string, string>();
   return {
@@ -253,5 +259,43 @@ describe('a slow IndexedDB at launch cannot wipe a career', () => {
     promoteSaveBackup(SLOT, payload(8));
     expect(localStorage.getItem(BACKUP)).toBe(payload(8));
     expect(readSaveSlotBackup(SLOT)).toBe(payload(8));
+  });
+});
+
+describe('a save payload is hashed once, not per layer', () => {
+  beforeEach(() => { __resetSaveStorageForTests(); localStorage.clear(); });
+
+  it('reuses the caller-supplied hash for the pending marker and its clearing', async () => {
+    const { fnv1a } = await import('@/utils/hashString');
+    const { idbPut } = await import('@/store/helpers/idbStorage');
+    vi.mocked(idbPut).mockResolvedValueOnce(true);
+    const json = payload(3);
+    const hash = fnv1a(json);
+    vi.mocked(fnv1a).mockClear();
+    const result = writeSaveSlot(SLOT, json, { payloadHash: hash });
+    expect(result.lsOk).toBe(true);
+    expect(localStorage.getItem(STORAGE_KEYS.saveSlotPendingIdb(SLOT))).toBe(`${json.length}:${hash}`);
+    expect(await result.idbPromise).toBe(true);
+    expect(localStorage.getItem(STORAGE_KEYS.saveSlotPendingIdb(SLOT))).toBeNull();
+    expect(fnv1a).not.toHaveBeenCalled();
+  });
+
+  it('does not hash at all to clear a marker that is not there', async () => {
+    const { fnv1a } = await import('@/utils/hashString');
+    const { idbPut } = await import('@/store/helpers/idbStorage');
+    vi.mocked(idbPut).mockResolvedValueOnce(true);
+    const realSet = Storage.prototype.setItem;
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, k: string, v: string) {
+      if (k === MAIN) throw new DOMException('QuotaExceededError'); // a 7 MB save
+      return realSet.call(this, k, v);
+    });
+    try {
+      vi.mocked(fnv1a).mockClear();
+      const result = writeSaveSlot(SLOT, payload(4));
+      expect(await result.idbPromise).toBe(true);
+      expect(fnv1a).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

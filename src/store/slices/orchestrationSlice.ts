@@ -64,6 +64,13 @@ let lastSaveErrorLogAt = 0;
 let lastSaveAt = 0;
 let saveAttempt = 0;
 let lastSavedHash: number | null = null; // FNV-1a of the last successfully written payload
+/** The payload this module last handed to writeSaveSlot, and whether the state
+ *  it was serialized from passed validateSaveShape. The next save's outgoing
+ *  main is normally this exact string, so the backup-rotation guard can reuse
+ *  the verdict instead of re-parsing ~7 MB. A string we did not produce (read
+ *  from disk at launch, or written by another path) never matches and is
+ *  still parsed and validated. */
+let lastWrittenPayload: { raw: string; valid: boolean } | null = null;
 const SAVE_DEBOUNCE_MS = 2000; // Minimum 2s between auto-saves
 const AGGRESSIVE_TRIM_THRESHOLD = 3_000_000; // >3MB → strip ALL match events
 // Pre-flight threshold: roughly 30k event records translates to ~3MB of JSON,
@@ -93,6 +100,7 @@ function cancelTrailingSave(): void {
 export function resetSaveHash(): void {
   saveAttempt++;
   lastSavedHash = null;
+  lastWrittenPayload = null;
 }
 
 /** Cancel any scheduled but not-yet-fired autosave. Call before destructive
@@ -117,6 +125,7 @@ export function __resetAutosaveSchedulerForTests(): void {
   lastSaveAt = 0;
   lastSaveErrorLogAt = 0;
   lastSavedHash = null;
+  lastWrittenPayload = null;
 }
 
 function cancelIdle(handle: IdleHandle): void {
@@ -436,9 +445,11 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
       // The outgoing main was written at CURRENT_VERSION, so validate its
       // shape directly (no migration needed).
       validateOutgoing: (raw) => {
+        if (lastWrittenPayload && raw === lastWrittenPayload.raw) return lastWrittenPayload.valid;
         try { return validateSaveShape(JSON.parse(raw)).ok === true; }
         catch { return false; }
       },
+      payloadHash,
     });
     // The slot's IndexedDB read has not completed (slow launch): nothing was
     // written, deliberately — see writeSaveSlot. Not a storage-full event, so
@@ -448,6 +459,11 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
       addGameBreadcrumb('save', 'Save refused', { week: state.week, season: state.season, slot: s, reason: saveResult.refused });
       return Promise.resolve(false);
     }
+    // `json` is JSON.stringify(saveData) and cannot be truncated or corrupted
+    // in memory, so validating the object is the same verdict as parsing the
+    // string back: every field the validator reads (playerClubId, clubs,
+    // season, week) round-trips unchanged, and a non-finite number fails both.
+    lastWrittenPayload = { raw: json, valid: validateSaveShape(saveData).ok === true };
     // Only record the change-detection hash once a disk path confirms the
     // write. Recording it unconditionally meant a save where BOTH disk
     // paths failed would short-circuit the next identical "Save Now" to

@@ -158,7 +158,7 @@ async function hydrateOneSlot(slot: number): Promise<void> {
       memSlots[slot] = newerMirror ? ls : idbMain || ls;
       if (ls && (newerMirror || !idbMain)) {
         void idbPut(mainKey, ls).then(ok => {
-          if (ok) clearPendingIdb(slot, ls);
+          if (ok) clearPendingIdb(slot, () => saveFingerprint(ls));
         });
       }
     }
@@ -1142,18 +1142,25 @@ export interface WriteSaveSlotOptions {
    *  and risk an import cycle. Omit for raw writes (tests, legacy callers),
    *  which keeps the always-rotate behaviour. */
   validateOutgoing?: (raw: string) => boolean;
+  /** `fnv1a(json)` when the caller already computed it (performSave does, for
+   *  change detection), so the pending-IDB marker does not re-hash a
+   *  multi-MB payload. Must be the hash of exactly `json`. */
+  payloadHash?: number;
 }
 
 // A small marker distinguishes a newer fallback mirror from a stale mirror.
 // It is a consistency fingerprint, not an authenticity/security check.
-function saveFingerprint(raw: string): string {
-  return `${raw.length}:${fnv1a(raw)}`;
+function saveFingerprint(raw: string, hash: number = fnv1a(raw)): string {
+  return `${raw.length}:${hash}`;
 }
 
-function clearPendingIdb(slot: number, raw: string): void {
+function clearPendingIdb(slot: number, fingerprint: () => string): void {
   try {
     const key = STORAGE_KEYS.saveSlotPendingIdb(slot);
-    if (localStorage.getItem(key) === saveFingerprint(raw)) localStorage.removeItem(key);
+    // No marker is the common case for saves too big for the mirror — don't
+    // hash the payload just to compare it against nothing.
+    const marker = localStorage.getItem(key);
+    if (marker !== null && marker === fingerprint()) localStorage.removeItem(key);
   } catch { /* retaining the marker is safe: hydration retries synchronization */ }
 }
 
@@ -1192,12 +1199,17 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // doesn't get salvaged later as a phantom older save.
   try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
 
+  // Computed at most once per write, and not at all when the caller passed
+  // the hash it already had.
+  let fingerprint: string | null = null;
+  const fingerprintOf = () => (fingerprint ??= saveFingerprint(json, opts?.payloadHash ?? fnv1a(json)));
+
   // Step 3: fire IDB writes. We capture the main-write Promise (and ignore
   // the backup-write outcome — the main write is what determines whether
   // the slot survives a reload). The caller can use this to detect the
   // "both disk paths failed" case and surface a Save Failed warning.
   const idbPromise = idbPut(mainKey, json).then(ok => {
-    if (ok) clearPendingIdb(slot, json);
+    if (ok) clearPendingIdb(slot, fingerprintOf);
     return ok;
   });
   if (rotate) void idbPut(backupKey, oldMain as string);
@@ -1237,7 +1249,7 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // else: preserve the existing backup mirror for the invalid-main case.
   try {
     localStorage.setItem(mainKey, json);
-    localStorage.setItem(STORAGE_KEYS.saveSlotPendingIdb(slot), saveFingerprint(json));
+    localStorage.setItem(STORAGE_KEYS.saveSlotPendingIdb(slot), fingerprintOf());
   } catch {
     // Quota exceeded — drop the main mirror only. The caller sees `lsOk: false`
     // and can await `idbPromise` to decide whether to warn the user. Whatever

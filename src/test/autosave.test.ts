@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { fnv1a } from '@/utils/hashString';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
-import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
+import { __resetSaveStorageForTests, readSaveSlot, readSaveSlotBackup, writeSaveSlot } from '@/store/helpers/persistence';
 
 const CLUB_ID = 'manchester-city';
 
@@ -157,6 +157,37 @@ describe('autosave: debounce keeps the trailing save', () => {
     useGameStore.getState().flushForLifecycle();
     vi.runAllTimers();
     expect(primaryWrites(setItem)).toBe(1);
+  });
+});
+
+describe('autosave: backup-rotation guard cost', () => {
+  beforeEach(() => initFresh());
+  afterEach(() => vi.useRealTimers());
+
+  // Every save used to JSON.parse the previous ~7 MB save just to confirm it
+  // was safe to rotate into the backup — even though it was the string this
+  // module had serialized one save earlier.
+  it('does not re-parse its own previous save', () => {
+    useGameStore.getState().saveGame(1);
+    const previous = readSaveSlot(1);
+    expect(previous).not.toBeNull();
+    useGameStore.setState(s => ({ week: s.week + 1 }));
+    const parse = vi.spyOn(JSON, 'parse');
+    useGameStore.getState().saveGame(1);
+    expect(parse.mock.calls.some(([arg]) => arg === previous)).toBe(false);
+    expect(readSaveSlotBackup(1)).toBe(previous);
+  });
+
+  it('still refuses to rotate an outgoing main it did not write', () => {
+    useGameStore.getState().saveGame(1);
+    const good = readSaveSlot(1);
+    // A truncated main lands in the slot by some other path.
+    writeSaveSlot(1, '{"version":92,"clubs":');
+    expect(readSaveSlotBackup(1)).toBe(good);
+    useGameStore.setState(s => ({ week: s.week + 1 }));
+    useGameStore.getState().saveGame(1);
+    // The corrupt main was overwritten in place; the last good copy survives.
+    expect(readSaveSlotBackup(1)).toBe(good);
   });
 });
 
