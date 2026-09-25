@@ -26,13 +26,15 @@ import {
   isEarnedCosmeticOwned,
   savePassRecord,
   loadPassRecord,
+  MAX_PASS_XP,
+} from '@/utils/managerPass';
+import {
   diffPassEvents,
   observePassState,
   attachManagerPassObserver,
   seasonTrophyCount,
-  MAX_PASS_XP,
   type PassObservedState,
-} from '@/utils/managerPass';
+} from '@/utils/managerPassObserver';
 import {
   MANAGER_PASS_TRACK,
   MANAGER_PASS_TIER_COUNT,
@@ -41,8 +43,8 @@ import {
   MANAGER_PASS_MATCH_XP_DAILY_CAP,
   MANAGER_PASS_LEDGER_MAX,
   MANAGER_PASS_COSMETICS,
-  PROFILE_BANNER_STYLES,
 } from '@/config/managerPass';
+import { PROFILE_BANNER_STYLES } from '@/config/profileBanners';
 import { COSMETIC_ITEMS, PRODUCTS } from '@/config/monetization';
 import { hasCosmetic, getActiveCosmetic } from '@/utils/monetization';
 import { STORAGE_KEYS } from '@/store/helpers/persistence';

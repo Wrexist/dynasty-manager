@@ -24,7 +24,7 @@ import { REWARDED_ADS_USABLE } from '@/utils/ads';
 import { getEntitlementsDefinitive, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 import { reconcilePendingPackCreditAtLaunch } from '@/utils/packCreditRecovery';
 // ── legacy: Manager Pass ──
-import { attachManagerPassObserver } from '@/utils/managerPass';
+import { attachManagerPassObserver } from '@/utils/managerPassObserver';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));

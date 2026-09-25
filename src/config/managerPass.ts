@@ -23,7 +23,7 @@
  * never carry anything the simulation reads (CLAUDE.md, monetization
  * invariant 4). `managerPass.test.ts` pins both.
  */
-import type { CosmeticItem, LegacyTier, ManagerPassTierDef } from '@/types/game';
+import type { CosmeticCategory, CosmeticEarnSource, CosmeticItem, LegacyTier, ManagerPassTierDef } from '@/types/game';
 import type { TranslationKey } from '@/i18n';
 
 // ── Track shape ──
@@ -87,120 +87,110 @@ export const MANAGER_PASS_SEASON_THEMES: { nameKey: TranslationKey; taglineKey: 
 //
 // Title badge ids are `badge-<words>` on purpose: ManagerProfile derives the
 // displayed title from the id ("badge-the-grafter" → "The Grafter").
+//
+// Written as compact rows because this file ships in the main chunk (the
+// catalog is read at startup) and that chunk has a hard size cap. The shared
+// `description` is never drawn for an earned item — the Shop lists only sold
+// cosmetics — and banner colours live in config/profileBanners.ts, which only
+// the (lazy) Pass and Legacy pages load.
 
-const pass = (item: Omit<CosmeticItem, 'earnedBy' | 'pack'>): CosmeticItem => ({ ...item, earnedBy: 'manager_pass' });
+type EarnedRow = [id: string, category: CosmeticCategory, name: string];
+const TITLE: CosmeticCategory = 'title_badge';
+const CELEB: CosmeticCategory = 'celebration_text';
+const BANNER: CosmeticCategory = 'profile_banner';
 
-export const MANAGER_PASS_COSMETICS: CosmeticItem[] = [
+const earned = (earnedBy: CosmeticEarnSource, description: string) =>
+  ([id, category, name]: EarnedRow): CosmeticItem => ({ id, category, name, description, earnedBy });
+
+export const MANAGER_PASS_COSMETICS: CosmeticItem[] = ([
   // Free row
-  pass({ id: 'banner-touchline', category: 'profile_banner', name: 'Touchline', description: 'Cool blue manager banner' }),
-  pass({ id: 'badge-the-grafter', category: 'title_badge', name: 'The Grafter', description: 'Earned on the Manager Pass' }),
-  pass({ id: 'celeb-text-pass-get-in', category: 'celebration_text', name: 'Get In!', description: '"Get In!" after wins' }),
-  pass({ id: 'banner-floodlights', category: 'profile_banner', name: 'Floodlights', description: 'Silver night-match banner' }),
-  pass({ id: 'badge-the-strategist', category: 'title_badge', name: 'The Strategist', description: 'Earned on the Manager Pass' }),
-  pass({ id: 'celeb-text-pass-what-a-night', category: 'celebration_text', name: 'What a Night!', description: '"What a Night!" after wins' }),
-  pass({ id: 'banner-matchday', category: 'profile_banner', name: 'Matchday', description: 'Fresh-cut green banner' }),
-  pass({ id: 'badge-the-motivator', category: 'title_badge', name: 'The Motivator', description: 'Earned on the Manager Pass' }),
-  pass({ id: 'celeb-text-pass-scenes', category: 'celebration_text', name: 'Scenes!', description: '"Scenes!" after wins' }),
-  pass({ id: 'badge-the-closer', category: 'title_badge', name: 'The Closer', description: 'Reached the final tier of a Manager Pass' }),
-
+  ['banner-touchline', BANNER, 'Touchline'],
+  ['badge-the-grafter', TITLE, 'The Grafter'],
+  ['celeb-text-pass-get-in', CELEB, 'Get In!'],
+  ['banner-floodlights', BANNER, 'Floodlights'],
+  ['badge-the-strategist', TITLE, 'The Strategist'],
+  ['celeb-text-pass-what-a-night', CELEB, 'What a Night!'],
+  ['banner-matchday', BANNER, 'Matchday'],
+  ['badge-the-motivator', TITLE, 'The Motivator'],
+  ['celeb-text-pass-scenes', CELEB, 'Scenes!'],
+  ['badge-the-closer', TITLE, 'The Closer'],
   // Pro row — titles
-  pass({ id: 'badge-the-tinkerman', category: 'title_badge', name: 'The Tinkerman', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-visionary', category: 'title_badge', name: 'The Visionary', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-mastermind', category: 'title_badge', name: 'The Mastermind', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-alchemist', category: 'title_badge', name: 'The Alchemist', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-conductor', category: 'title_badge', name: 'The Conductor', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-pragmatist', category: 'title_badge', name: 'The Pragmatist', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-innovator', category: 'title_badge', name: 'The Innovator', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-kingmaker', category: 'title_badge', name: 'The Kingmaker', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-headmaster', category: 'title_badge', name: 'The Headmaster', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-maestro', category: 'title_badge', name: 'The Maestro', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-mentor', category: 'title_badge', name: 'The Mentor', description: 'Manager Pass Pro reward' }),
-  pass({ id: 'badge-the-guv', category: 'title_badge', name: 'The Guv', description: 'Manager Pass Pro reward' }),
+  ['badge-the-tinkerman', TITLE, 'The Tinkerman'],
+  ['badge-the-visionary', TITLE, 'The Visionary'],
+  ['badge-the-mastermind', TITLE, 'The Mastermind'],
+  ['badge-the-alchemist', TITLE, 'The Alchemist'],
+  ['badge-the-conductor', TITLE, 'The Conductor'],
+  ['badge-the-pragmatist', TITLE, 'The Pragmatist'],
+  ['badge-the-innovator', TITLE, 'The Innovator'],
+  ['badge-the-kingmaker', TITLE, 'The Kingmaker'],
+  ['badge-the-headmaster', TITLE, 'The Headmaster'],
+  ['badge-the-maestro', TITLE, 'The Maestro'],
+  ['badge-the-mentor', TITLE, 'The Mentor'],
+  ['badge-the-guv', TITLE, 'The Guv'],
   // Pro row — celebration lines
-  pass({ id: 'celeb-text-pass-get-in-there', category: 'celebration_text', name: 'Get In There!', description: '"Get In There!" after wins' }),
-  pass({ id: 'celeb-text-pass-masterclass', category: 'celebration_text', name: 'Masterclass!', description: '"Masterclass!" after wins' }),
-  pass({ id: 'celeb-text-pass-pure-football', category: 'celebration_text', name: 'Pure Football!', description: '"Pure Football!" after wins' }),
-  pass({ id: 'celeb-text-pass-limbs', category: 'celebration_text', name: 'Limbs!', description: '"Limbs!" after wins' }),
-  pass({ id: 'celeb-text-pass-clinical', category: 'celebration_text', name: 'Clinical!', description: '"Clinical!" after wins' }),
-  pass({ id: 'celeb-text-pass-written', category: 'celebration_text', name: 'Written in the Stars!', description: '"Written in the Stars!" after wins' }),
-  pass({ id: 'celeb-text-pass-box-office', category: 'celebration_text', name: 'Box Office!', description: '"Box Office!" after wins' }),
-  pass({ id: 'celeb-text-pass-total-control', category: 'celebration_text', name: 'Total Control!', description: '"Total Control!" after wins' }),
-  pass({ id: 'celeb-text-pass-history-made', category: 'celebration_text', name: 'History Made!', description: '"History Made!" after wins' }),
+  ['celeb-text-pass-get-in-there', CELEB, 'Get In There!'],
+  ['celeb-text-pass-masterclass', CELEB, 'Masterclass!'],
+  ['celeb-text-pass-pure-football', CELEB, 'Pure Football!'],
+  ['celeb-text-pass-limbs', CELEB, 'Limbs!'],
+  ['celeb-text-pass-clinical', CELEB, 'Clinical!'],
+  ['celeb-text-pass-written', CELEB, 'Written in the Stars!'],
+  ['celeb-text-pass-box-office', CELEB, 'Box Office!'],
+  ['celeb-text-pass-total-control', CELEB, 'Total Control!'],
+  ['celeb-text-pass-history-made', CELEB, 'History Made!'],
   // Pro row — banners
-  pass({ id: 'banner-pro-gold-rush', category: 'profile_banner', name: 'Gold Rush', description: 'Molten gold banner' }),
-  pass({ id: 'banner-pro-emerald-night', category: 'profile_banner', name: 'Emerald Night', description: 'Deep emerald banner' }),
-  pass({ id: 'banner-pro-midnight-blue', category: 'profile_banner', name: 'Midnight Blue', description: 'Late-kickoff navy banner' }),
-  pass({ id: 'banner-pro-crimson-derby', category: 'profile_banner', name: 'Crimson Derby', description: 'Derby-day red banner' }),
-  pass({ id: 'banner-pro-royal-violet', category: 'profile_banner', name: 'Royal Violet', description: 'Regal violet banner' }),
-  pass({ id: 'banner-pro-sunset', category: 'profile_banner', name: 'Sunset Kickoff', description: 'Orange-to-pink evening banner' }),
-  pass({ id: 'banner-pro-arctic', category: 'profile_banner', name: 'Arctic', description: 'Ice-blue winter banner' }),
-  pass({ id: 'banner-pro-obsidian', category: 'profile_banner', name: 'Obsidian', description: 'Black-glass banner' }),
-  pass({ id: 'banner-pro-champions', category: 'profile_banner', name: 'Champions', description: 'Final-tier Pro banner' }),
-];
+  ['banner-pro-gold-rush', BANNER, 'Gold Rush'],
+  ['banner-pro-emerald-night', BANNER, 'Emerald Night'],
+  ['banner-pro-midnight-blue', BANNER, 'Midnight Blue'],
+  ['banner-pro-crimson-derby', BANNER, 'Crimson Derby'],
+  ['banner-pro-royal-violet', BANNER, 'Royal Violet'],
+  ['banner-pro-sunset', BANNER, 'Sunset Kickoff'],
+  ['banner-pro-arctic', BANNER, 'Arctic'],
+  ['banner-pro-obsidian', BANNER, 'Obsidian'],
+  ['banner-pro-champions', BANNER, 'Champions'],
+] as EarnedRow[]).map(earned('manager_pass', 'Manager Pass reward'));
 
 /**
  * The track: 30 tiers, a Pro reward on every tier and a free reward on every
- * third. The same track runs each season (progress and claims reset; rewards
- * already owned stay owned and show as such). A themed per-season track is a
- * content drop: give a season its own entry here — nothing else changes.
+ * third — row N is tier N as [pro, free?]. The same track runs each season
+ * (progress and claims reset; rewards already owned stay owned). A themed
+ * per-season track is a content drop: give a season its own rows here —
+ * nothing else changes.
  */
-export const MANAGER_PASS_TRACK: ManagerPassTierDef[] = [
-  { tier: 1, pro: 'badge-the-tinkerman' },
-  { tier: 2, pro: 'celeb-text-pass-get-in-there' },
-  { tier: 3, free: 'banner-touchline', pro: 'banner-pro-midnight-blue' },
-  { tier: 4, pro: 'badge-the-pragmatist' },
-  { tier: 5, pro: 'celeb-text-pass-clinical' },
-  { tier: 6, free: 'badge-the-grafter', pro: 'banner-pro-emerald-night' },
-  { tier: 7, pro: 'badge-the-mentor' },
-  { tier: 8, pro: 'celeb-text-pass-limbs' },
-  { tier: 9, free: 'celeb-text-pass-get-in', pro: 'banner-pro-arctic' },
-  { tier: 10, pro: 'badge-the-innovator' },
-  { tier: 11, pro: 'celeb-text-pass-pure-football' },
-  { tier: 12, free: 'banner-floodlights', pro: 'banner-pro-crimson-derby' },
-  { tier: 13, pro: 'badge-the-conductor' },
-  { tier: 14, pro: 'celeb-text-pass-box-office' },
-  { tier: 15, free: 'badge-the-strategist', pro: 'banner-pro-sunset' },
-  { tier: 16, pro: 'badge-the-headmaster' },
-  { tier: 17, pro: 'celeb-text-pass-masterclass' },
-  { tier: 18, free: 'celeb-text-pass-what-a-night', pro: 'banner-pro-royal-violet' },
-  { tier: 19, pro: 'badge-the-alchemist' },
-  { tier: 20, pro: 'celeb-text-pass-total-control' },
-  { tier: 21, free: 'banner-matchday', pro: 'banner-pro-obsidian' },
-  { tier: 22, pro: 'badge-the-kingmaker' },
-  { tier: 23, pro: 'celeb-text-pass-written' },
-  { tier: 24, free: 'badge-the-motivator', pro: 'banner-pro-gold-rush' },
-  { tier: 25, pro: 'badge-the-visionary' },
-  { tier: 26, pro: 'celeb-text-pass-history-made' },
-  { tier: 27, free: 'celeb-text-pass-scenes', pro: 'badge-the-maestro' },
-  { tier: 28, pro: 'badge-the-guv' },
-  { tier: 29, pro: 'badge-the-mastermind' },
-  { tier: 30, free: 'badge-the-closer', pro: 'banner-pro-champions' },
+const TRACK_ROWS: [pro: string, free?: string][] = [
+  ['badge-the-tinkerman'],
+  ['celeb-text-pass-get-in-there'],
+  ['banner-pro-midnight-blue', 'banner-touchline'],
+  ['badge-the-pragmatist'],
+  ['celeb-text-pass-clinical'],
+  ['banner-pro-emerald-night', 'badge-the-grafter'],
+  ['badge-the-mentor'],
+  ['celeb-text-pass-limbs'],
+  ['banner-pro-arctic', 'celeb-text-pass-get-in'],
+  ['badge-the-innovator'],
+  ['celeb-text-pass-pure-football'],
+  ['banner-pro-crimson-derby', 'banner-floodlights'],
+  ['badge-the-conductor'],
+  ['celeb-text-pass-box-office'],
+  ['banner-pro-sunset', 'badge-the-strategist'],
+  ['badge-the-headmaster'],
+  ['celeb-text-pass-masterclass'],
+  ['banner-pro-royal-violet', 'celeb-text-pass-what-a-night'],
+  ['badge-the-alchemist'],
+  ['celeb-text-pass-total-control'],
+  ['banner-pro-obsidian', 'banner-matchday'],
+  ['badge-the-kingmaker'],
+  ['celeb-text-pass-written'],
+  ['banner-pro-gold-rush', 'badge-the-motivator'],
+  ['badge-the-visionary'],
+  ['celeb-text-pass-history-made'],
+  ['badge-the-maestro', 'celeb-text-pass-scenes'],
+  ['badge-the-guv'],
+  ['badge-the-mastermind'],
+  ['banner-pro-champions', 'badge-the-closer'],
 ];
 
-/**
- * How each banner is drawn: Tailwind gradient stops layered over the hero of
- * the Manager Pass and Legacy pages. Written out in full so the JIT sees every
- * class. Purely presentational.
- */
-export const PROFILE_BANNER_STYLES: Record<string, string> = {
-  'banner-touchline': 'from-sky-500/25 via-sky-500/5 to-transparent',
-  'banner-floodlights': 'from-slate-200/20 via-slate-300/5 to-transparent',
-  'banner-matchday': 'from-emerald-500/25 via-emerald-500/5 to-transparent',
-  'banner-pro-gold-rush': 'from-amber-400/35 via-amber-500/10 to-transparent',
-  'banner-pro-emerald-night': 'from-emerald-400/30 via-teal-900/20 to-transparent',
-  'banner-pro-midnight-blue': 'from-blue-600/35 via-indigo-900/20 to-transparent',
-  'banner-pro-crimson-derby': 'from-rose-600/35 via-red-900/15 to-transparent',
-  'banner-pro-royal-violet': 'from-violet-500/35 via-purple-900/15 to-transparent',
-  'banner-pro-sunset': 'from-orange-500/35 via-pink-600/15 to-transparent',
-  'banner-pro-arctic': 'from-cyan-300/30 via-sky-800/15 to-transparent',
-  'banner-pro-obsidian': 'from-zinc-300/15 via-zinc-900/40 to-transparent',
-  'banner-pro-champions': 'from-amber-300/40 via-primary/15 to-sky-500/10',
-  // Legacy tier banners
-  'banner-legacy-bronze': 'from-orange-700/35 via-amber-900/15 to-transparent',
-  'banner-legacy-silver': 'from-slate-300/30 via-slate-500/10 to-transparent',
-  'banner-legacy-gold': 'from-yellow-400/40 via-amber-600/15 to-transparent',
-  'banner-legacy-immortal': 'from-fuchsia-500/30 via-amber-400/15 to-cyan-400/15',
-};
+export const MANAGER_PASS_TRACK: ManagerPassTierDef[] = TRACK_ROWS.map(([pro, free], i) =>
+  (free ? { tier: i + 1, free, pro } : { tier: i + 1, pro }));
 
 // ── Legacy tier unlocks ──
 //
@@ -214,19 +204,17 @@ export const PROFILE_BANNER_STYLES: Record<string, string> = {
 // earned by winning trophies, never bought, so the monetization invariant does
 // not apply, but the "never match results" line is the same.
 
-const legacy = (item: Omit<CosmeticItem, 'earnedBy' | 'pack'>): CosmeticItem => ({ ...item, earnedBy: 'legacy' });
-
-export const LEGACY_COSMETICS: CosmeticItem[] = [
-  legacy({ id: 'badge-the-journeyman', category: 'title_badge', name: 'The Journeyman', description: 'Legacy tier: Journeyman' }),
-  legacy({ id: 'banner-legacy-bronze', category: 'profile_banner', name: 'Bronze Legacy', description: 'Legacy tier: Journeyman' }),
-  legacy({ id: 'celeb-text-legacy-pedigree', category: 'celebration_text', name: 'Pedigree!', description: 'Legacy tier: Established' }),
-  legacy({ id: 'badge-elite-manager', category: 'title_badge', name: 'Elite Manager', description: 'Legacy tier: Elite' }),
-  legacy({ id: 'banner-legacy-silver', category: 'profile_banner', name: 'Silver Legacy', description: 'Legacy tier: Elite' }),
-  legacy({ id: 'celeb-text-legacy-legendary', category: 'celebration_text', name: 'Legendary!', description: 'Legacy tier: Legendary' }),
-  legacy({ id: 'banner-legacy-gold', category: 'profile_banner', name: 'Gold Legacy', description: 'Legacy tier: Legendary' }),
-  legacy({ id: 'badge-the-immortal', category: 'title_badge', name: 'The Immortal', description: 'Legacy tier: Immortal' }),
-  legacy({ id: 'banner-legacy-immortal', category: 'profile_banner', name: 'Immortal Legacy', description: 'Legacy tier: Immortal' }),
-];
+export const LEGACY_COSMETICS: CosmeticItem[] = ([
+  ['badge-the-journeyman', TITLE, 'The Journeyman'],
+  ['banner-legacy-bronze', BANNER, 'Bronze Legacy'],
+  ['celeb-text-legacy-pedigree', CELEB, 'Pedigree!'],
+  ['badge-elite-manager', TITLE, 'Elite Manager'],
+  ['banner-legacy-silver', BANNER, 'Silver Legacy'],
+  ['celeb-text-legacy-legendary', CELEB, 'Legendary!'],
+  ['banner-legacy-gold', BANNER, 'Gold Legacy'],
+  ['badge-the-immortal', TITLE, 'The Immortal'],
+  ['banner-legacy-immortal', BANNER, 'Immortal Legacy'],
+] as EarnedRow[]).map(earned('legacy', 'Legacy tier reward'));
 
 /** What each Legacy tier adds. Rewards are cumulative (reaching Elite also
  *  unlocks Journeyman's and Established's); `jobReputationBonus` is the bonus

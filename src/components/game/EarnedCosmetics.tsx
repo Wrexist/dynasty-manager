@@ -6,7 +6,7 @@
  */
 import { Award, PartyPopper, Palette, Check } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { PROFILE_BANNER_STYLES } from '@/config/managerPass';
+import { PROFILE_BANNER_STYLES } from '@/config/profileBanners';
 import type { CosmeticCategory, CosmeticItem } from '@/types/game';
 import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';

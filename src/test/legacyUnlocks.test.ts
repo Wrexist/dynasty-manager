@@ -17,7 +17,8 @@ import {
   readLegacyTier,
   getLegacyJobReputationBonus,
 } from '@/utils/managerLegacy';
-import { LEGACY_TIER_UNLOCKS, LEGACY_COSMETICS, LEGACY_START_OFFER_UPGRADE_BONUS, PROFILE_BANNER_STYLES } from '@/config/managerPass';
+import { LEGACY_TIER_UNLOCKS, LEGACY_COSMETICS, LEGACY_START_OFFER_UPGRADE_BONUS } from '@/config/managerPass';
+import { PROFILE_BANNER_STYLES } from '@/config/profileBanners';
 import { COSMETIC_ITEMS } from '@/config/monetization';
 import { CAREER_START_QUALITY_TIERS } from '@/config/managerCareer';
 import { hasCosmetic } from '@/utils/monetization';
@@ -83,6 +84,11 @@ describe('Legacy unlocks — config', () => {
       expect(item!.pack).toBeUndefined();
       if (item!.category === 'profile_banner') expect(PROFILE_BANNER_STYLES[id], id).toBeTruthy();
     }
+  });
+
+  it('title ids derive the displayed title (ManagerProfile renders the id)', () => {
+    const derive = (id: string) => id.replace('badge-', '').replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+    for (const c of LEGACY_COSMETICS.filter(c => c.category === 'title_badge')) expect(derive(c.id)).toBe(c.name);
   });
 
   it('raises the job-market bonus with every tier, from nothing at Rookie', () => {
