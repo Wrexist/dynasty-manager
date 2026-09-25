@@ -26,12 +26,14 @@ const mockPurchases = {
 
 /** Simulated device platform — iOS unless a test says otherwise. */
 const platform = { value: 'ios' as 'ios' | 'android' };
+/** Native device unless a test simulates web/dev, where purchases are mocked. */
+const native = { value: true };
 
 vi.mock('@capacitor/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@capacitor/core')>();
   return {
     ...actual,
-    Capacitor: { ...actual.Capacitor, isNativePlatform: () => true, getPlatform: () => platform.value },
+    Capacitor: { ...actual.Capacitor, isNativePlatform: () => native.value, getPlatform: () => platform.value },
   };
 });
 
@@ -95,6 +97,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
   platform.value = 'ios';
+  native.value = true;
   localStorage.clear();
   __resetClockHighWaterCache();
   mockPurchases.setLogLevel.mockResolvedValue(undefined);
@@ -196,6 +199,16 @@ describe('one purchase path for every surface (purchaseAndSync)', () => {
 
     expect(outcome).toMatchObject({ status: 'completed', recovered: true });
     expect(isPro(monetization())).toBe(true);
+  });
+
+  it('off-device (web/dev) a mocked subscription purchase unlocks Pro without paging Sentry', async () => {
+    native.value = false;
+
+    const outcome = await purchaseAndSync(MONTHLY);
+
+    expect(outcome.status).toBe('completed');
+    expect(isPro(monetization())).toBe(true);
+    expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 
   it('a throw that the re-sync cannot explain is a failure and grants nothing', async () => {

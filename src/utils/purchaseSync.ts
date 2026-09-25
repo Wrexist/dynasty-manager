@@ -17,6 +17,7 @@
  * `monetization.entitlements` and `monetization.subscription`.
  */
 import * as Sentry from '@sentry/react';
+import { Capacitor } from '@capacitor/core';
 import { useGameStore } from '@/store/gameStore';
 import { PRODUCTS } from '@/config/monetization';
 import {
@@ -162,11 +163,16 @@ export async function purchaseAndSync(
         isTrial: onTrial,
       });
       addGameBreadcrumb('purchase', 'subscription completed but not yet on the customer record', { productId });
-      Sentry.captureMessage('purchase completed but the store showed no active pro entitlement', {
-        level: 'warning',
-        tags: { context: 'purchaseSync.localRecord' },
-        extra: { productId },
-      });
+      // On device this means lag or a dashboard misconfiguration (the product
+      // not attached to `pro`) — worth seeing. Off-device it is every mocked
+      // purchase, so stay quiet there.
+      if (Capacitor.isNativePlatform()) {
+        Sentry.captureMessage('purchase completed but the store showed no active pro entitlement', {
+          level: 'warning',
+          tags: { context: 'purchaseSync.localRecord' },
+          extra: { productId },
+        });
+      }
     }
 
     // The intro offer is spent: forget the cached "trial available" answer so
