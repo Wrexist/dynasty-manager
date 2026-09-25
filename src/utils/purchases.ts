@@ -184,11 +184,20 @@ export function isPaymentPendingError(err: unknown): boolean {
  * Pro subscription read as "not sold" on Android and its purchase could never
  * be matched to a plan. iOS product IDs never contain a colon, so this is the
  * identity there.
+ *
+ * Only a subscription carries a base-plan suffix, so the prefix is accepted
+ * only when it names one of OUR subscriptions. Otherwise the raw identifier is
+ * returned and matches nothing: a Play subscription whose ID happened to equal
+ * a one-time SKU (e.g. `com.dynastymanager.pro:monthly`) must never read as
+ * that permanent purchase — `mapEntitlements` would persist it and a lapsed
+ * subscriber would keep Pro forever.
  */
 export function normalizeStoreProductId(identifier: string | null | undefined): string {
   if (typeof identifier !== 'string') return '';
   const colon = identifier.indexOf(':');
-  return colon === -1 ? identifier : identifier.slice(0, colon);
+  if (colon === -1) return identifier;
+  const base = identifier.slice(0, colon);
+  return PRODUCTS[base as ProductId]?.type === 'subscription' ? base : identifier;
 }
 
 interface StoreProductLike {

@@ -484,6 +484,19 @@ describe('Android (Google Play) identifiers and management', () => {
     await expect(restorePurchases()).resolves.toEqual([MANAGER_PACK]);
   });
 
+  it('a base-plan identifier never resolves to a one-time product (no permanent Pro from a subscription)', async () => {
+    // A Play subscription whose ID equals the retired one-time Pro SKU: the
+    // suffix marks it as a subscription, so it must not read as that purchase.
+    const RETIRED_PRO: ProductId = 'com.dynastymanager.pro';
+    mockPurchases.restorePurchases.mockResolvedValue({
+      customerInfo: customer({ purchased: [`${RETIRED_PRO}:monthly`, `${LIFETIME}:base`] }),
+    });
+    await expect(restorePurchases()).resolves.toEqual([]);
+    expect(extractSubscriptionInfo(customer({
+      active: { pro: proEntitlement(`${RETIRED_PRO}:monthly`) },
+    }) as never)).toBeNull();
+  });
+
   it('with no management URL from the store, an Android player is sent to Google Play, not Apple', async () => {
     storeRecord(customer());
     await openSubscriptionManagement();
