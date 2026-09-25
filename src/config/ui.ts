@@ -504,3 +504,11 @@ export const TEAM_TALK_OPTIONS = [
     ],
   },
 ] as const;
+
+// ── Mode Select ──
+/** Render `comingSoon` tiles on the mode picker. Off for release: a tile that
+ *  only toasts "coming soon" is App Review 2.1 (completeness) risk and
+ *  first-session noise. The Online definition stays in ModeSelect's `modes`
+ *  so flipping this back on (or dropping `comingSoon` when it ships) is the
+ *  whole re-enable. */
+export const SHOW_COMING_SOON_MODES = false;

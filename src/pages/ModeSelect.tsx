@@ -8,6 +8,7 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { SHOW_COMING_SOON_MODES } from '@/config/ui';
 
 type Mode = {
   id: string;
@@ -103,6 +104,10 @@ const modes: readonly Mode[] = [
   },
 ] as const;
 
+/** What the picker actually renders — `comingSoon` tiles are hidden unless the
+ *  config flag turns them back on. */
+const VISIBLE_MODES: readonly Mode[] = modes.filter(m => SHOW_COMING_SOON_MODES || !m.comingSoon);
+
 const ModeSelect = () => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotionPref();
@@ -147,7 +152,7 @@ const ModeSelect = () => {
 
       {/* Mode Cards */}
       <div className="w-full max-w-xs space-y-3.5">
-        {modes.map((mode, idx) => {
+        {VISIBLE_MODES.map((mode, idx) => {
           const disabled = mode.comingSoon;
           const handleClick = () => {
             if (disabled) {
