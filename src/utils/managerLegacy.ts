@@ -7,7 +7,9 @@
  * works retroactively for every dynasty a player has ever run.
  */
 import type { ManagerLegacy, LegacyTier } from '@/types/game';
-import type { HallEntry } from '@/utils/hallOfManagers';
+import { loadHall, type HallEntry } from '@/utils/hallOfManagers';
+import { readHallData } from '@/store/helpers/persistence';
+import { LEGACY_TIER_UNLOCKS } from '@/config/managerPass';
 
 /** Trophy thresholds for each tier above Rookie, ascending. Single source of
  *  truth for both the current tier and the next-tier progress hint. */
@@ -72,4 +74,41 @@ export function computeManagerLegacy(entries: HallEntry[]): ManagerLegacy {
     highestPrestige: entries.length ? Math.max(...entries.map(e => e.prestigeLevel || 0)) : 0,
     tier: legacyTier(totalTrophies),
   };
+}
+
+// ── Legacy unlocks (cosmetics + job-market reputation) ──
+
+/** Every tier, lowest first. */
+export const LEGACY_TIER_ORDER: LegacyTier[] = ['Rookie', ...TIER_THRESHOLDS.map(t => t.tier)];
+
+/** Earned cosmetics unlocked at `tier` — cumulative over every tier up to it. */
+export function legacyUnlockedRewardIds(tier: LegacyTier): string[] {
+  const upTo = LEGACY_TIER_ORDER.indexOf(tier);
+  return LEGACY_TIER_ORDER.slice(0, upTo + 1).flatMap(t => LEGACY_TIER_UNLOCKS[t].rewardIds);
+}
+
+/** Manager Career job-market reputation bonus at `tier`. */
+export function legacyJobReputationBonus(tier: LegacyTier): number {
+  return LEGACY_TIER_UNLOCKS[tier]?.jobReputationBonus ?? 0;
+}
+
+let memoHallRaw: string | null | undefined;
+let memoTier: LegacyTier = 'Rookie';
+
+/** The player's current Legacy tier, from the device-global Hall of Managers.
+ *  Parsed once per distinct stored hall — it is read by every render of a
+ *  cosmetic surface (through `hasCosmetic`) and by each job-market roll. */
+export function readLegacyTier(): LegacyTier {
+  const raw = readHallData();
+  if (raw !== memoHallRaw) {
+    memoHallRaw = raw;
+    memoTier = computeManagerLegacy(loadHall()).tier;
+  }
+  return memoTier;
+}
+
+/** The job-market reputation bonus the player's Legacy earns right now. The
+ *  default argument of every job-market helper in utils/managerCareer.ts. */
+export function getLegacyJobReputationBonus(): number {
+  return legacyJobReputationBonus(readLegacyTier());
 }

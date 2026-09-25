@@ -23,7 +23,7 @@
  * never carry anything the simulation reads (CLAUDE.md, monetization
  * invariant 4). `managerPass.test.ts` pins both.
  */
-import type { CosmeticItem, ManagerPassTierDef } from '@/types/game';
+import type { CosmeticItem, LegacyTier, ManagerPassTierDef } from '@/types/game';
 import type { TranslationKey } from '@/i18n';
 
 // ── Track shape ──
@@ -195,4 +195,56 @@ export const PROFILE_BANNER_STYLES: Record<string, string> = {
   'banner-pro-arctic': 'from-cyan-300/30 via-sky-800/15 to-transparent',
   'banner-pro-obsidian': 'from-zinc-300/15 via-zinc-900/40 to-transparent',
   'banner-pro-champions': 'from-amber-300/40 via-primary/15 to-sky-500/10',
+  // Legacy tier banners
+  'banner-legacy-bronze': 'from-orange-700/35 via-amber-900/15 to-transparent',
+  'banner-legacy-silver': 'from-slate-300/30 via-slate-500/10 to-transparent',
+  'banner-legacy-gold': 'from-yellow-400/40 via-amber-600/15 to-transparent',
+  'banner-legacy-immortal': 'from-fuchsia-500/30 via-amber-400/15 to-cyan-400/15',
 };
+
+// ── Legacy tier unlocks ──
+//
+// The lifetime Legacy tier (utils/managerLegacy.ts — total trophies across
+// every recorded dynasty) used to be a label and nothing else. Each tier now
+// unlocks cosmetics and a Manager Career JOB-MARKET reputation bonus: a
+// decorated manager is considered for bigger jobs. The bonus is read ONLY by
+// the job-market helpers in utils/managerCareer.ts (which vacancies are listed
+// and how high their bar is, which clubs approach you, the starting offers of
+// a new career) — never by a match, training, a transfer or the board. It is
+// earned by winning trophies, never bought, so the monetization invariant does
+// not apply, but the "never match results" line is the same.
+
+const legacy = (item: Omit<CosmeticItem, 'earnedBy' | 'pack'>): CosmeticItem => ({ ...item, earnedBy: 'legacy' });
+
+export const LEGACY_COSMETICS: CosmeticItem[] = [
+  legacy({ id: 'badge-the-journeyman', category: 'title_badge', name: 'The Journeyman', description: 'Legacy tier: Journeyman' }),
+  legacy({ id: 'banner-legacy-bronze', category: 'profile_banner', name: 'Bronze Legacy', description: 'Legacy tier: Journeyman' }),
+  legacy({ id: 'celeb-text-legacy-pedigree', category: 'celebration_text', name: 'Pedigree!', description: 'Legacy tier: Established' }),
+  legacy({ id: 'badge-elite-manager', category: 'title_badge', name: 'Elite Manager', description: 'Legacy tier: Elite' }),
+  legacy({ id: 'banner-legacy-silver', category: 'profile_banner', name: 'Silver Legacy', description: 'Legacy tier: Elite' }),
+  legacy({ id: 'celeb-text-legacy-legendary', category: 'celebration_text', name: 'Legendary!', description: 'Legacy tier: Legendary' }),
+  legacy({ id: 'banner-legacy-gold', category: 'profile_banner', name: 'Gold Legacy', description: 'Legacy tier: Legendary' }),
+  legacy({ id: 'badge-the-immortal', category: 'title_badge', name: 'The Immortal', description: 'Legacy tier: Immortal' }),
+  legacy({ id: 'banner-legacy-immortal', category: 'profile_banner', name: 'Immortal Legacy', description: 'Legacy tier: Immortal' }),
+];
+
+/** What each Legacy tier adds. Rewards are cumulative (reaching Elite also
+ *  unlocks Journeyman's and Established's); `jobReputationBonus` is the bonus
+ *  AT that tier, not an increment. On the manager reputation scale a new
+ *  career starts at 30 and a top-flight job needs 500, so even Immortal (+125)
+ *  opens the second tier's listings to a new career, not the first's. */
+export const LEGACY_TIER_UNLOCKS: Record<LegacyTier, { rewardIds: string[]; jobReputationBonus: number }> = {
+  Rookie: { rewardIds: [], jobReputationBonus: 0 },
+  Journeyman: { rewardIds: ['badge-the-journeyman', 'banner-legacy-bronze'], jobReputationBonus: 15 },
+  Established: { rewardIds: ['celeb-text-legacy-pedigree'], jobReputationBonus: 35 },
+  Elite: { rewardIds: ['badge-elite-manager', 'banner-legacy-silver'], jobReputationBonus: 60 },
+  Legendary: { rewardIds: ['celeb-text-legacy-legendary', 'banner-legacy-gold'], jobReputationBonus: 90 },
+  Immortal: { rewardIds: ['badge-the-immortal', 'banner-legacy-immortal'], jobReputationBonus: 125 },
+};
+
+/** From this bonus up (Elite), one of a new career's starting offers comes
+ *  from the league tier above the usual starting tiers. */
+export const LEGACY_START_OFFER_UPGRADE_BONUS = 60;
+
+/** Every earned cosmetic, spread onto the end of COSMETIC_ITEMS. */
+export const EARNED_COSMETICS: CosmeticItem[] = [...MANAGER_PASS_COSMETICS, ...LEGACY_COSMETICS];

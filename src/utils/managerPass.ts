@@ -22,6 +22,7 @@ import {
 import { COSMETIC_ITEMS } from '@/config/monetization';
 import { localDateKey, daysBetween } from '@/utils/dailyStreak';
 import { hallEntryId } from '@/utils/hallOfManagers';
+import { legacyUnlockedRewardIds, readLegacyTier } from '@/utils/managerLegacy';
 import { readManagerPassData, writeManagerPassData } from '@/store/helpers/persistence';
 import type {
   CosmeticItem,
@@ -308,10 +309,13 @@ export function savePassRecord(record: ManagerPassRecord): void {
 /**
  * Does the player own this earned cosmetic? The ownership check behind
  * `hasCosmetic` for items with `earnedBy` — they are never in `entitlements`.
- * A pass reward is owned once collected, in any season, on this device.
+ * A pass reward is owned once collected, in any season, on this device; a
+ * Legacy reward while the Legacy tier that unlocks it is held.
  */
 export function isEarnedCosmeticOwned(item: Pick<CosmeticItem, 'id' | 'earnedBy'>): boolean {
   if (item.earnedBy === 'manager_pass') return storedPassRecord()?.ownedRewardIds.includes(item.id) ?? false;
+  // A Legacy item is owned while the lifetime tier that unlocks it is held.
+  if (item.earnedBy === 'legacy') return legacyUnlockedRewardIds(readLegacyTier()).includes(item.id);
   return false;
 }
 

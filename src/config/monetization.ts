@@ -12,7 +12,7 @@ import type { ProductId, ProFeature, CosmeticItem, AdRewardType, AdEngagementSta
 import { NATIVE_ADS_READY } from '@/utils/ads';
 // legacy: earned cosmetics are catalogued with the sold ones (see the spread at
 // the end of COSMETIC_ITEMS). Type-and-data only, no cycle.
-import { MANAGER_PASS_COSMETICS } from '@/config/managerPass';
+import { EARNED_COSMETICS } from '@/config/managerPass';
 
 // ── Product Definitions ──
 
@@ -410,7 +410,7 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
   { id: 'hom-frame-holographic', category: 'hom_frame', name: 'Holographic', description: 'Shimmering holographic border', pack: 'com.dynastymanager.pack.legends' },
 
   // ── legacy: earned cosmetics (no `pack` — unlocked by play, never sold) ──
-  ...MANAGER_PASS_COSMETICS,
+  ...EARNED_COSMETICS,
 ];
 
 // ── Free Trial (introductory offer for subscriptions) ──
