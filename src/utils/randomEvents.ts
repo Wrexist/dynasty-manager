@@ -31,6 +31,7 @@ import {
   RECOVERY_DAY_FITNESS_GAIN, RECOVERY_DAY_FITNESS_THRESHOLD,
   PLAYERS_MEETING_MORALE_BOOST,
   YOUTH_CALLUP_MORALE_BOOST,
+  CONFIDENCE_MAX,
 } from '@/config/gameBalance';
 
 interface RandomEventResult {
@@ -344,5 +345,12 @@ export function generateRandomEvents(
   }
 
   RANDOM_EVENT_TEMPLATES.find(t => t.id === selected)?.apply(ctx, result);
+  // The original six only ever LOWERED confidence (the caller floors it at
+  // CONFIDENCE_MIN). `boardroom_praise` raises it, and it is likeliest after a
+  // winning run — exactly when the board is already near the top — so a raise
+  // is limited to the headroom that is left.
+  if (result.confidenceDelta > 0) {
+    result.confidenceDelta = Math.min(result.confidenceDelta, Math.max(0, CONFIDENCE_MAX - boardConfidence));
+  }
   return result;
 }

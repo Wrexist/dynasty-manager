@@ -7,6 +7,8 @@ import {
   INTL_FATIGUE_FITNESS_LOSS,
   FAN_RALLY_MORALE_BOOST,
   MEDIA_SCRUTINY_CONFIDENCE_HIT,
+  BOARDROOM_PRAISE_CONFIDENCE_BOOST,
+  CONFIDENCE_MAX,
 } from '@/config/gameBalance';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -228,5 +230,23 @@ describe('random event templates', () => {
     expect(w(20, []).sickness_bug).toBeGreaterThan(w(5, []).sickness_bug);
     expect(w(10, ['W', 'W', 'W']).boardroom_praise).toBeGreaterThan(w(10, []).boardroom_praise);
     expect(w(10, ['L', 'L']).players_meeting).toBeGreaterThan(w(10, []).players_meeting);
+  });
+
+  it('boardroom praise never pushes board confidence past the maximum', () => {
+    // The first event that RAISES confidence, and it is likeliest after a
+    // winning run — when the board is already near the top. weekAdvance only
+    // floored the delta, so 99 + 3 used to persist as 102.
+    const { players, ids } = buildSquad(6);
+    const club = makeClub({ playerIds: ids });
+    const wins: ('W' | 'D' | 'L')[] = ['W', 'W', 'W'];
+    for (const conf of [CONFIDENCE_MAX - 1, CONFIDENCE_MAX]) {
+      mockRandomSequence([0, rollFor('boardroom_praise', club, players, 10, 2, wins, conf)]);
+      const out = generateRandomEvents(club, players, [], 10, 2, wins, conf);
+      expect(out.messages.some(m => m.title === 'Chairman\'s Backing')).toBe(true);
+      expect(conf + out.confidenceDelta).toBeLessThanOrEqual(CONFIDENCE_MAX);
+      vi.restoreAllMocks();
+    }
+    mockRandomSequence([0, rollFor('boardroom_praise', club, players, 10, 2, wins, 50)]);
+    expect(generateRandomEvents(club, players, [], 10, 2, wins, 50).confidenceDelta).toBe(BOARDROOM_PRAISE_CONFIDENCE_BOOST);
   });
 });

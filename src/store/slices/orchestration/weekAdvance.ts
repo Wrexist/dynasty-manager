@@ -20,7 +20,7 @@ import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK } from '@/config/co
 import { CHALLENGES } from '@/data/challenges';
 
 import {
-  TOTAL_WEEKS, CONFIDENCE_MIN, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, getExpectedPosition, FREE_AGENT_POOL_MAX,
+  TOTAL_WEEKS, CONFIDENCE_MIN, CONFIDENCE_MAX, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, getExpectedPosition, FREE_AGENT_POOL_MAX,
 } from '@/config/gameBalance';
 
 import { NATIONAL_CALLUP_MORALE_BOOST, NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
@@ -3059,7 +3059,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       newClubs[playerClubId], newPlayers, newMessages, newWeek, season, recentForm, newBoardConfidence,
     );
     newMessages = randomEvent.messages;
-    newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence + randomEvent.confidenceDelta);
+    newBoardConfidence = Math.min(CONFIDENCE_MAX, Math.max(CONFIDENCE_MIN, newBoardConfidence + randomEvent.confidenceDelta));
     for (const [pid, updates] of Object.entries(randomEvent.playerUpdates)) {
       if (newPlayers[pid]) newPlayers[pid] = { ...newPlayers[pid], ...updates };
     }
