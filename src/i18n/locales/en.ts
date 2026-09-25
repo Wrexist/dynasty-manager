@@ -561,6 +561,7 @@ export const en = {
   'packOpeningOverlay.sell': 'Sell',
   'packOpeningOverlay.selling': 'Selling',
   'packOpeningOverlay.keepAll': 'Keep All',
+  'packOpeningOverlay.shareBestPull': 'Share best pull',
   'packOpeningOverlay.selectToSell': 'Tap cards to sell',
   'packOpeningOverlay.sellCount': 'Sell {count}',
   'packOpeningOverlay.sellPricingHint': 'How is this priced?',

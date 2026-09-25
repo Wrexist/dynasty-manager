@@ -16,6 +16,10 @@ import { PackStadium } from './PackStadium';
 import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
+import { ShareMomentButton } from '@/components/game/ShareMomentButton';
+import { buildPackPullMoment } from '@/utils/shareCard';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
+import { getPlayerPortrait } from '@/utils/playerPortrait';
 
 // Quick-sell pricing comes from config so the button can never promise a
 // different number than the slice pays out — the cap especially: an uncapped
@@ -208,6 +212,25 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // (the OVR tier every 90+ pull shares) throws away the one thing that made
   // this open different, on the screen the player lingers on.
   const hasLegendPull = useMemo(() => players.some(p => p.legendId), [players]);
+  // The card the share button posts: the Hall of Legends card when there is
+  // one (that is the headline of the open), otherwise the highest OVR. Drawn
+  // from the same art + portrait sources the cards on screen use, so the
+  // shared image is exactly what the player saw.
+  const shareMoment = useMemo(() => {
+    if (players.length === 0) return null;
+    const best = players.find(p => p.legendId)
+      ?? players.reduce((a, b) => (b.overall > a.overall ? b : a));
+    const art = getPlayerCardArt(best.overall, { packFrame: best.packFrame });
+    const portrait = getPlayerPortrait(best);
+    return buildPackPullMoment({
+      name: `${best.firstName} ${best.lastName}`.trim(),
+      overall: best.overall,
+      position: best.position,
+      packLabel: tierDef.label,
+      legend: !!best.legendId,
+      card: { artSrc: art.src, artFilter: art.filter, portraitSrc: portrait?.src },
+    });
+  }, [players, tierDef.label]);
   const confettiCount = topOvr >= 90
     ? PACK_ANIM.confetti.icon
     : topOvr >= 84 ? PACK_ANIM.confetti.legendary
@@ -1557,6 +1580,15 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>{hasLegendPull ? '♛' : '★'}</span>
                   <span>Best pull · {hasLegendPull ? 'Hall of Legends' : topTier.label}</span>
                 </motion.div>
+              )}
+              {shareMoment && (
+                <div className="mt-2 flex justify-center">
+                  <ShareMomentButton
+                    data={shareMoment}
+                    label={t('packOpeningOverlay.shareBestPull')}
+                    className="w-auto h-11 px-5 rounded-full text-[11px] font-display uppercase tracking-[0.18em] text-white bg-white/[0.08] border-white/20"
+                  />
+                </div>
               )}
               {/* Soft gradient rule — visually separates the header from the
                   scrolling grid below. Fades to transparent at the edges so

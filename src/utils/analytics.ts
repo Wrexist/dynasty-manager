@@ -74,7 +74,7 @@ export type AnalyticsEvent =
   | { name: 'challenge_completed'; data: { challengeId: string; xp: number; featured: boolean } }
   | { name: 'resume_card_tap'; data: { screen: string; reason: string } }
   | { name: 'notif_permission_prompt'; data: { action: 'enable' | 'dismiss'; granted: boolean } }
-  | { name: 'moment_shared'; data: { type: 'world_cup' | 'shootout' } }
+  | { name: 'moment_shared'; data: { type: 'world_cup' | 'shootout' | 'pack' } }
   // Rewarded-ad funnel. `pro` distinguishes the two cohorts because Pro users
   // claim without watching — without it the watch-through rate is meaningless.
   | { name: 'ad_prompt_shown'; data: { placementId: string; pro: boolean } }
