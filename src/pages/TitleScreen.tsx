@@ -28,7 +28,6 @@ import {
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { isPro } from '@/utils/monetization';
-import { hasUnseenWhatsNew } from '@/data/whatsNew';
 import type { TitleFloatingCircle } from '@/types/game';
 
 
@@ -47,8 +46,16 @@ const TitleScreen = () => {
   // Re-read "What's New" seen state on every mount so the NEW badge
   // clears once the user returns from /whats-new. `refreshKey` already
   // bumps on focus-related flows; this mirrors that cadence.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const whatsNewUnseen = useMemo(() => hasUnseenWhatsNew(), [refreshKey]);
+  // The release-notes history is ~37 kB and only this badge needs it here, so
+  // it is loaded on demand rather than riding in the main chunk.
+  const [whatsNewUnseen, setWhatsNewUnseen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    import('@/data/whatsNew')
+      .then(m => { if (!cancelled) setWhatsNewUnseen(m.hasUnseenWhatsNew()); })
+      .catch(() => { /* badge is decorative — no badge on failure */ });
+    return () => { cancelled = true; };
+  }, [refreshKey]);
 
   // Prefetch the Dashboard chunk while the user reads the title screen.
   // Also kick off the ~2.5MB national player pool fetch in the background —
