@@ -6,7 +6,7 @@ import { PurchaseModal } from '@/components/game/PurchaseModal';
 import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
-import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
+import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive, formatPerPeriodPrice } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
@@ -113,6 +113,7 @@ const ShopPage = () => {
   // When the store hasn't answered, the claims are suppressed rather than
   // guessed.
   const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
+  const [storeCurrency, setStoreCurrency] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,10 +122,11 @@ const ShopPage = () => {
     // RevenueCat offering) drags down the batch and can blank the one-time
     // catalog that IS configured.
     getStoreAvailability(SHOP_PROBE_IDS)
-      .then(({ supported, available, prices, amounts }) => {
+      .then(({ supported, available, prices, amounts, currencyCode }) => {
         if (cancelled) return;
         setStorePrices(prices);
         setStoreAmounts(amounts || {});
+        setStoreCurrency(currencyCode);
         // `supported` false means off-device / plugin absent — not a store
         // verdict, so keep the full catalog visible for web + dev testing.
         // When the store IS supported we trust its answer even if it is empty:
@@ -175,21 +177,12 @@ const ShopPage = () => {
   const annualAmount = amountFor('com.dynastymanager.pro.yearly');
   const annualSavingsPct = savingsPct(monthlyAmount != null ? monthlyAmount * 12 : null, annualAmount);
 
-  /** Format a derived per-period amount in the storefront's own formatting by
-   *  reusing the store's price string shape. Falls back to null (caller omits
-   *  the line) when we have no localized string to model. */
-  const perPeriod = (id: ProductId, divisor: number): string | null => {
-    const amount = amountFor(id);
-    if (amount == null) return null;
-    const localized = storePrices[id];
-    const value = amount / divisor;
-    if (!localized) return `$${value.toFixed(2)}`;
-    // Swap the numeric portion of the store's own localized string so the
-    // currency symbol, placement and separators stay correct for the storefront.
-    const numeric = localized.match(/[\d.,]+/);
-    if (!numeric) return null;
-    return localized.replace(numeric[0], value.toFixed(2));
-  };
+  /** A derived per-period amount in the storefront's currency, via Intl.
+   *  Splicing `toFixed(2)` into the store's price string rendered "2.08 €" and
+   *  "¥250.00". USD only when the store has not answered at all (web/dev), the
+   *  same rule as `amountFor`; on device, no currency code omits the line. */
+  const perPeriod = (id: ProductId, divisor: number): string | null =>
+    formatPerPeriodPrice(amountFor(id), divisor, storeCurrency ?? (storeAnswered ? undefined : 'USD'));
 
   /** Display price — store-localised when available, USD config price otherwise. */
   const priceFor = (productId: ProductId) =>
