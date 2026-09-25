@@ -1,6 +1,7 @@
 import type { PressConference, PressOption } from '@/types/game';
 import type { PressQuestionDef } from '@/data/pressQuestionBank';
 import { pick, safeRandomUUID } from '@/utils/helpers';
+import { readPressRecentQuestions, writePressRecentQuestions, clearPressRecentQuestions } from '@/store/helpers/persistence';
 import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE, PRESS_SITUATIONAL_POST_MATCH_CHANCE } from '@/config/gameBalance';
 
 type QuestionDef = PressQuestionDef;
@@ -57,34 +58,56 @@ const FALLBACK_QUESTION: QuestionDef = {
 // already used for match commentary: remember the last few questions asked per
 // context and exclude them from the draw.
 //
-// Deliberately module-level rather than store state: `generatePressConference`
-// is called from 11 sites inside `matchActions.ts`, none of which thread extra
-// arguments, and adding a persisted field would mean a save-schema bump for a
-// cosmetic variety fix. The buffer therefore survives navigation and the whole
-// app session but not a cold launch — which is exactly the window where
-// repetition is noticeable. See the handoff note for the persisted version.
+// The ring buffer is mirrored to device storage (`STORAGE_KEYS.
+// PRESS_RECENT_QUESTIONS`) so it survives a cold launch — the window where
+// repetition was most noticeable, because the buffer used to live only in
+// module memory. It stores short hashes of the question text, a few per
+// context, so the record stays a few hundred bytes. Device-level rather than a
+// GameState field: it is a variety aid, not game state, and needs no schema bump.
 
 /** How many recently-asked questions to exclude per context. Kept below the
  *  smallest pool size so the exclusion set can never swallow a whole pool. */
 export const PRESS_RECENT_MEMORY = 4;
 
-const recentQuestions = new Map<PressConference['context'], string[]>();
+const recentQuestions = new Map<string, string[]>();
+let recentHydrated = false;
 
-/** Test/So-a-new-save-starts-fresh hook. */
+/** Short, stable id for a question (djb2, base 36). Questions have no ids, and
+ *  persisting the prose itself would bloat the record for no benefit. */
+export function pressQuestionKey(question: string): string {
+  let h = 5381;
+  for (let i = 0; i < question.length; i++) h = ((h * 33) ^ question.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+function hydrateRecentQuestions(): void {
+  if (recentHydrated) return;
+  recentHydrated = true;
+  for (const [context, keys] of Object.entries(readPressRecentQuestions())) {
+    recentQuestions.set(context, keys.slice(-PRESS_RECENT_MEMORY));
+  }
+}
+
+/** Test hook, and "forget everything": clears memory and the stored record. */
 export function resetPressConferenceMemory(): void {
   recentQuestions.clear();
+  recentHydrated = true;
+  clearPressRecentQuestions();
 }
 
 /** Pick a question from `pool`, preferring ones not asked recently in this
  *  context, then record the choice in that context's ring buffer. */
 function pickFreshQuestion(context: PressConference['context'], pool: QuestionDef[]): QuestionDef {
+  hydrateRecentQuestions();
   const recent = recentQuestions.get(context) ?? [];
-  const fresh = pool.filter(q => !recent.includes(q.question));
+  const fresh = pool.filter(q => !recent.includes(pressQuestionKey(q.question)));
   const chosen = fresh.length > 0 ? pick(fresh) : pick(pool);
+  const chosenKey = pressQuestionKey(chosen.question);
   // Cap at PRESS_RECENT_MEMORY, and never at or above the pool size — a pool
   // of 4 with a memory of 4 would exclude everything and defeat the point.
   const limit = Math.min(PRESS_RECENT_MEMORY, Math.max(0, pool.length - 1));
-  recentQuestions.set(context, [...recent.filter(q => q !== chosen.question), chosen.question].slice(-limit));
+  recentQuestions.set(context, [...recent.filter(k => k !== chosenKey), chosenKey].slice(-limit));
+  writePressRecentQuestions(Object.fromEntries(recentQuestions));
   return chosen;
 }
 

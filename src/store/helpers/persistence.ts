@@ -469,6 +469,14 @@ export const STORAGE_KEYS = {
    *  any career save — deliberately NOT save-scoped, so it persists across new
    *  careers and slot deletion. Badges are cosmetic labels, never entitlements. */
   COMPLETED_CHALLENGES: 'dynasty-completed-challenges',
+  // ── content: press conference recency ──
+  /** localStorage: device-global memory of the press questions asked most
+   *  recently, per context (JSON `Record<context, string[]>` of short question
+   *  hashes, a few per context). Lived in module memory, so it reset on every
+   *  cold launch — exactly when a repeated question is most noticeable. Device-
+   *  level rather than save-level: it is a variety aid, not game state, and a
+   *  persisted GameState field would need a schema bump. */
+  PRESS_RECENT_QUESTIONS: 'dynasty-press-recent',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -1453,4 +1461,51 @@ export function recordPackUpsell(now: number, maxPerDay: number): boolean {
     }));
     return true;
   } catch { return false; }
+}
+
+// ── content: press conference recency (device-global) ──
+
+/** Hard caps on what the press-recency record may hold, whatever is on disk:
+ *  it is keyed by press context (12 today) and each list is a handful of hashes. */
+const PRESS_RECENT_MAX_KEYS = 32;
+const PRESS_RECENT_MAX_PER_KEY = 8;
+const PRESS_RECENT_MAX_ID_LENGTH = 16;
+
+/** The persisted recently-asked press questions, sanitised and bounded. An
+ *  unreadable or malformed record reads as empty (and is breadcrumbed). */
+export function readPressRecentQuestions(): Record<string, string[]> {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.PRESS_RECENT_QUESTIONS);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: Record<string, string[]> = {};
+    for (const [key, list] of Object.entries(parsed).slice(0, PRESS_RECENT_MAX_KEYS)) {
+      if (!Array.isArray(list)) continue;
+      out[key] = list
+        .filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= PRESS_RECENT_MAX_ID_LENGTH)
+        .slice(-PRESS_RECENT_MAX_PER_KEY);
+    }
+    return out;
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readPressRecentQuestions', raw, err);
+    return {};
+  }
+}
+
+/** Persist the recently-asked press questions (bounded the same way as reads). */
+export function writePressRecentQuestions(record: Record<string, string[]>): void {
+  try {
+    const bounded: Record<string, string[]> = {};
+    for (const [key, list] of Object.entries(record).slice(0, PRESS_RECENT_MAX_KEYS)) {
+      bounded[key] = list.filter(x => x.length <= PRESS_RECENT_MAX_ID_LENGTH).slice(-PRESS_RECENT_MAX_PER_KEY);
+    }
+    localStorage.setItem(STORAGE_KEYS.PRESS_RECENT_QUESTIONS, JSON.stringify(bounded));
+  } catch { /* storage unavailable — variety falls back to this session only */ }
+}
+
+export function clearPressRecentQuestions(): void {
+  try { localStorage.removeItem(STORAGE_KEYS.PRESS_RECENT_QUESTIONS); }
+  catch { /* storage unavailable */ }
 }
