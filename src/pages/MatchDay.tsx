@@ -34,7 +34,7 @@ import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { enrichDescription } from '@/utils/matchCommentary';
 import { CommentaryRow } from '@/components/game/CommentaryRow';
-import { isStructuredEvent } from '@/utils/matchEventDisplay';
+import { isStructuredEvent, liveLogRows } from '@/utils/matchEventDisplay';
 import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED, GOAL_PAUSE_MS } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
@@ -214,7 +214,6 @@ const MatchDayInner = () => {
   // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const eventsEndRef = useRef<HTMLDivElement>(null);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
@@ -2051,8 +2050,10 @@ const MatchDayInner = () => {
               short landscape screens (30vh ≈ 112px there). */}
           {matchView !== 'pitch' && (
           <GlassPanel className="p-4 max-h-[min(40vh,300px)] overflow-y-auto">
+            {/* Newest first (liveLogRows): the latest event is always the top
+                row, with no auto-scroll to animate. */}
             <div className="space-y-2" aria-live="polite" aria-label="Match events">
-              {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
+              {liveLogRows(visibleEvents).map(({ event: ev, index }) => {
                 // Structured events (goals, cards, shots, subs...) render as
                 // clear label-pill + player-chip rows. Ambient commentary and
                 // tactical prompts keep their prose styling via CommentaryRow's
@@ -2062,7 +2063,7 @@ const MatchDayInner = () => {
                   : getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId);
                 return (
                   <CommentaryRow
-                    key={i}
+                    key={index}
                     event={ev}
                     players={players}
                     clubs={clubs}
@@ -2071,7 +2072,6 @@ const MatchDayInner = () => {
                   />
                 );
               })}
-              <div ref={eventsEndRef} />
             </div>
           </GlassPanel>
           )}
