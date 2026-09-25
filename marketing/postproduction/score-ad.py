@@ -244,6 +244,9 @@ def score(style, cues, dur):
     beat = 60 / bpm
     bar = beat * 4
     drop = cues['drop']
+    if dur < drop + 1.0:
+        raise SystemExit(f'duration {dur}s ends before this cue sheet\'s drop at {drop}s; '
+                         'pass the length of the video you are scoring')
     music = np.zeros(int(dur * SR) + SR)
     sfx = np.zeros_like(music)
 
