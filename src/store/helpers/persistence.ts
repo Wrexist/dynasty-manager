@@ -684,6 +684,11 @@ export interface LiveEventProgress {
   signingDate?: string;
   /** Number of signing awards taken on `signingDate`. */
   signingCount?: number;
+  /** Local day key of the last match-bonus award (draw, clean sheet, goals,
+   *  academy — see `MATCH_BONUS_POINTS_DAILY_CAP`), capped apart from wins. */
+  matchBonusDate?: string;
+  /** Number of match-bonus awards taken on `matchBonusDate`. */
+  matchBonusCount?: number;
 }
 
 export function readLiveEventProgress(): LiveEventProgress | null {
@@ -702,6 +707,8 @@ export function readLiveEventProgress(): LiveEventProgress | null {
       matchWinCount: typeof parsed.matchWinCount === 'number' ? parsed.matchWinCount : undefined,
       signingDate: typeof parsed.signingDate === 'string' ? parsed.signingDate : undefined,
       signingCount: typeof parsed.signingCount === 'number' ? parsed.signingCount : undefined,
+      matchBonusDate: typeof parsed.matchBonusDate === 'string' ? parsed.matchBonusDate : undefined,
+      matchBonusCount: typeof parsed.matchBonusCount === 'number' ? parsed.matchBonusCount : undefined,
     };
   } catch (err) {
     if (raw !== null) breadcrumbCorruption('readLiveEventProgress', raw, err);

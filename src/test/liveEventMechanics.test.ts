@@ -11,12 +11,12 @@
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import {
-  matchPointsFor, applyMatchResult, applySigning, awardFestivalMatchResult, getEventBonuses,
+  matchPointsFor, applyMatchResult, applyMatchWin, applySigning, awardFestivalMatchResult, getEventBonuses,
   freshProgress, getActiveLiveEvent, readActiveFestivalProgress,
 } from '@/utils/liveEvents';
 import {
   SPECIAL_EVENTS, generateMonthlyEvent, MATCH_WIN_POINTS_DAILY_CAP, GOAL_POINTS_MAX_PER_MATCH,
-  ACADEMY_APPEARANCES_MAX_PER_MATCH, SIGNING_POINTS_DAILY_CAP, type LiveEvent,
+  ACADEMY_APPEARANCES_MAX_PER_MATCH, SIGNING_POINTS_DAILY_CAP, MATCH_BONUS_POINTS_DAILY_CAP, type LiveEvent,
 } from '@/config/liveEvents';
 import { useGameStore } from '@/store/gameStore';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
@@ -60,10 +60,46 @@ describe('match mechanics', () => {
     let p = freshProgress(ev);
     p = applyMatchResult(p, ev, loss, at(2030, 1, 1));
     expect(p.matchWinCount ?? 0).toBe(0);
-    for (let i = 0; i < MATCH_WIN_POINTS_DAILY_CAP + 2; i++) {
+    expect(p.matchBonusCount ?? 0).toBe(0);
+    for (let i = 0; i < MATCH_BONUS_POINTS_DAILY_CAP + 2; i++) {
       p = applyMatchResult(p, ev, { won: false, drawn: true, goalsFor: 0, goalsAgainst: 0 }, at(2030, 1, 1));
     }
-    expect(p.points).toBe(2 * MATCH_WIN_POINTS_DAILY_CAP);
+    expect(p.points).toBe(2 * MATCH_BONUS_POINTS_DAILY_CAP);
+    expect(p.matchWinCount ?? 0).toBe(0);
+  });
+
+  it('a bonus never costs a win: bonus and win awards are capped apart', () => {
+    // Golden Boot shape. With one shared counter, three goal-scoring defeats
+    // used the whole day's cap and the win after them paid nothing — the
+    // "bonus" event paid less than a plain one (5).
+    const ev = { ...base, goalPoints: 1 };
+    const day = at(2030, 1, 1);
+    let p = freshProgress(ev);
+    for (let i = 0; i < 3; i++) p = applyMatchResult(p, ev, { won: false, drawn: false, goalsFor: 1, goalsAgainst: 2 }, day);
+    p = applyMatchResult(p, ev, { won: true, drawn: false, goalsFor: 2, goalsAgainst: 0 }, day);
+    // 3 bonus awards (1 each), then the win pays in full; its goals are past the bonus cap.
+    expect(p.points).toBe(3 * 1 + base.matchWinPoints);
+
+    // …and wins stay capped exactly as before, whatever the bonuses do.
+    let q = freshProgress(ev);
+    for (let i = 0; i < MATCH_WIN_POINTS_DAILY_CAP + 2; i++) {
+      q = applyMatchResult(q, ev, { won: true, drawn: false, goalsFor: 1, goalsAgainst: 0 }, day);
+    }
+    expect(q.matchWinCount).toBe(MATCH_WIN_POINTS_DAILY_CAP);
+    expect(q.points).toBe(MATCH_WIN_POINTS_DAILY_CAP * base.matchWinPoints + MATCH_BONUS_POINTS_DAILY_CAP * 1);
+  });
+
+  it('a plain event pays through applyMatchResult exactly what applyMatchWin paid', () => {
+    const day = at(2030, 1, 1);
+    let viaResult = freshProgress(base);
+    let viaWin = freshProgress(base);
+    const results = [loss, { won: true, drawn: false, goalsFor: 2, goalsAgainst: 1 }, { won: false, drawn: true, goalsFor: 0, goalsAgainst: 0 }];
+    for (let i = 0; i < 6; i++) {
+      const o = results[i % results.length];
+      viaResult = applyMatchResult(viaResult, base, o, day);
+      if (o.won) viaWin = applyMatchWin(viaWin, base, day);
+    }
+    expect(viaResult.points).toBe(viaWin.points);
   });
 });
 

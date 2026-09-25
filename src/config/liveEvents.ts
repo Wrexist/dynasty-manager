@@ -50,9 +50,10 @@ export interface LiveEvent {
   derbyWinMultiplier?: number;
   /** Reward track, ascending by `points`. */
   tiers: LiveEventTier[];
-  // ── content: event mechanics (all optional; omitted = off). Every match
-  // mechanic rides on the same per-day match award as a win, so the daily cap
-  // still bounds the event: a match that earns nothing uses no award. ──
+  // ── content: event mechanics (all optional; omitted = off). Match
+  // mechanics pay through their own per-day award (MATCH_BONUS_POINTS_DAILY_CAP),
+  // separate from the win award, so a bonus never costs a win. A match that
+  // earns nothing uses neither. ──
   /** Festival Points for a drawn match (an "unbeaten" event). */
   drawPoints?: number;
   /** Bonus when the player's side keeps a clean sheet, whatever the result. */
@@ -78,6 +79,12 @@ export const ACADEMY_APPEARANCES_MAX_PER_MATCH = 3;
 /** Signings that earn `signingPoints` per local day — sign-and-release farming
  *  of free agents is bounded here. */
 export const SIGNING_POINTS_DAILY_CAP = 2;
+/** Matches per local day whose event BONUS (draw, clean sheet, goals, academy
+ *  graduates) pays. Counted apart from MATCH_WIN_POINTS_DAILY_CAP so a bonus
+ *  can never use up a win award: sharing the one counter let a 1-2 loss in a
+ *  goals event spend one of the day's three match awards, leaving a later win
+ *  worth nothing — the "bonus" event then paid less than a plain one. */
+export const MATCH_BONUS_POINTS_DAILY_CAP = 3;
 
 /** The 2026 FIFA World Cup runs June 11 – July 19, 2026 (USA/Canada/Mexico).
  *  The Festival window tracks the real tournament so the in-app event lines up
