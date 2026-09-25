@@ -16,6 +16,14 @@ export const LINEUP_SIZE = 11;
  *  engine's real-football target band; see `resolveCatchUpFixture`. */
 export const CATCH_UP_EXPECTED_GOALS = 2.7;
 export const LOW_FITNESS_THRESHOLD = 65;
+// ── econ: pre-season boundary (R2) ──
+/** Pre-season is the weeks before the club's first league fixture. When the
+ *  caller does not pass that week, this is the assumed start. Round 1 falls in
+ *  week 1 in almost every league (week 2 where the calendar is longer than the
+ *  round count), so with a default of 1 no league week reads "Pre-Season".
+ *  It used to be every week up to the summer window's close, so weeks 1-7 of
+ *  a 46-week season said "Pre-Season" while league matches were played. */
+export const PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK = 1;
 
 // ── First Match Confidence Boost (Season 1 only) ──
 export const FIRST_MATCH_ATTACK_BOOST = 0.08;
@@ -539,6 +547,28 @@ export const STARTING_TACTICAL_FAMILIARITY = 45;
 
 // ── Max Messages ──
 export const MAX_MESSAGES = 200;
+// ── econ: inbox noise (R18) ──
+/**
+ * Information-only inbox messages that arrive already read. The playthrough
+ * had 67 unread after seven weeks, most of them routine: other clubs'
+ * transfers, rumours, expired bids and sponsor offers, and the result of the
+ * match the manager had just watched. They stay in the inbox; they just do
+ * not ask for attention. Anything that needs a decision (a bid for one of your
+ * players, a sponsor offer, a contract, the board) still arrives unread.
+ */
+export const INBOX_ARRIVES_READ = {
+  aiTransferRoundup: true,
+  transferRumours: true,
+  bidExpired: true,
+  sponsorOfferExpired: true,
+  /** The result of a match the manager played (not one simulated for them). */
+  matchResult: true,
+} as const;
+/** Fold a week's AI-to-AI transfers and loans into one round-up message
+ *  instead of one message per move (the moves stay listed under Transfers). */
+export const INBOX_AI_TRANSFER_ROUNDUP = true;
+/** Moves the round-up lists by name before "and N more". */
+export const INBOX_ROUNDUP_MAX_LINES = 8;
 
 // ── State Growth Caps ──
 export const MAX_FINANCE_HISTORY = 200;
@@ -1150,6 +1180,21 @@ export const REP_INTL_FINAL = 40;
 export const REP_INTL_SEMI = 20;
 /** Reputation bonus for reaching knockouts */
 export const REP_INTL_KNOCKOUT = 10;
+// ── econ: national-team offers scale with the nation (R7) ──
+/**
+ * Reputation a career manager needs before a nation's FA approaches them, by
+ * the nation's base ranking (first band whose `maxRanking` covers it wins).
+ * A rookie starts at 30, so day one only the smaller nations call. Before this,
+ * every career opened with an offer from the manager's own nation, which made
+ * a rookie at Keflavík the England manager on day one. The 11-25 band keeps
+ * the old single threshold, `NT_JOB_MIN_REPUTATION`.
+ */
+export const NT_OFFER_REPUTATION_BY_RANKING: ReadonlyArray<{ maxRanking: number; minReputation: number }> = [
+  { maxRanking: 10, minReputation: 600 },
+  { maxRanking: 25, minReputation: NT_JOB_MIN_REPUTATION },
+  { maxRanking: 40, minReputation: 150 },
+  { maxRanking: Infinity, minReputation: 0 },
+];
 /** Reputation penalty for group stage exit */
 export const REP_INTL_GROUP_EXIT = -15;
 /** Consecutive group-stage exits before sacking */

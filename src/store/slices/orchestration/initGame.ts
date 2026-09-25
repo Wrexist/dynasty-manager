@@ -568,6 +568,19 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     );
   }
 
+  // The manager's own starting XI, picked once the squad is final (the
+  // Ballon d'Or seeding above changes real stars' ratings), preferring each
+  // player's own position, so a new game — Quick Start included — does not
+  // open with a right winger at striker and the strikers on the wings (R5).
+  // This is the free position-aware pick, not the Pro Smart Optimizer.
+  {
+    const pc = clubs[clubId];
+    const squad = pc.playerIds.map(id => allPlayers[id]).filter(Boolean);
+    const { lineup, subs } = selectBestLineup(squad, pc.formation, undefined, { preferNaturalPositions: true });
+    pc.lineup = lineup.map(p => p.id);
+    pc.subs = subs.map(p => p.id);
+  }
+
   // Surface the sponsorship system on day 1 — kit_main + digital are
   // auto-signed by generateStarterDeals, but the Finance page's Pending
   // Offers section would otherwise sit empty until the periodic offer

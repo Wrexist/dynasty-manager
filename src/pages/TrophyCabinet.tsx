@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { PageHint } from '@/components/game/PageHint';
 import { SectionHeader } from '@/components/game/SectionHeader';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 
 const TrophyCabinet = () => {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ const TrophyCabinet = () => {
   const cabinetStyle = getActiveCosmetic(monetization, 'cabinet_style');
 
   const { leagueTitles, cupWins, leagueCupWins, championsCupWins, shieldCupWins, conferenceCupWins, promotions, totalTrophies } = useMemo(() => {
-    const lt = seasonHistory.filter(h => h.position === 1);
+    const lt = seasonHistory.filter(isManagersLeagueTitle);
     const cw = clubRecords.cupWins;
     const lcw = seasonHistory.filter(h => h.leagueCupResult === 'Winner').length;
     const ccw = seasonHistory.filter(h => h.championsCupResult === 'Winner').length;

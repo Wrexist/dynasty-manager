@@ -3,7 +3,7 @@
  * Performance multipliers, contract factors, and bid calculations for AI offer generation.
  */
 
-import { LoanDeal, Player, Position } from '@/types/game';
+import { LoanDeal, Player, Position, TransferListing } from '@/types/game';
 import { LEAGUES } from '@/data/league';
 import {
   PERFORMANCE_GOAL_PREMIUM, PERFORMANCE_ASSIST_PREMIUM, PERFORMANCE_FORM_PREMIUM,
@@ -88,4 +88,15 @@ export function getContractLengthFactor(contractEnd: number, currentSeason: numb
   if (yearsRemaining <= 1) return CONTRACT_1YR_BID_FACTOR;
   if (yearsRemaining === 2) return CONTRACT_2YR_BID_FACTOR;
   return 1.0;
+}
+
+/** An unattached (external) listing: no club owns the player, so he signs as a
+ *  free agent — the price is his signing-on fee, there is no sell-on and no
+ *  current contract (R9). Also true for a listing whose seller no longer
+ *  exists, which executeTransfer has always treated the same way. */
+export function isUnattachedListing(
+  state: { clubs: Record<string, unknown> },
+  listing: Pick<TransferListing, 'externalPlayer' | 'sellerClubId'>,
+): boolean {
+  return !!listing.externalPlayer || !listing.sellerClubId || !state.clubs[listing.sellerClubId];
 }

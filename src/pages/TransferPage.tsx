@@ -590,7 +590,7 @@ const TransferPage = () => {
                     const leagueInfo = listing.divisionId ? LEAGUES.find(l => l.id === listing.divisionId) : undefined;
                     return listing.externalPlayer ? (
                       <>
-                        <span className="text-amber-400">Unattached</span>
+                        <span className="text-amber-400">{t('econ.market.freeAgentFee')}</span>
                         {listing.divisionId && (
                           <span className="ml-1 text-[10px] text-muted-foreground/60">
                             ({leagueInfo?.shortName || 'External'} tier)

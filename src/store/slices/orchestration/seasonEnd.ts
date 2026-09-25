@@ -54,7 +54,7 @@ import { simulateMatch } from '@/engine/match';
 import { neutralVenue } from '@/engine/match/helpers';
 import { getDerbyIntensity } from '@/data/league';
 
-import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
+import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool, nationalTeamOfferReputation } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
@@ -67,6 +67,7 @@ import { buildHallEntry, saveToHall, hallEntryId } from '@/utils/hallOfManagers'
 import { carryStorylineCooldowns } from '@/utils/storylines';
 
 import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 import {
   generateObjectives,
   pickAiMatchSquad,
@@ -147,6 +148,13 @@ function competitionsCreditedToManager(state: GameState) {
  */
 export function leagueTitleCreditedToManager(state: Pick<GameState, 'gameMode' | 'careerManager'>, position: number): boolean {
   if (position !== 1) return false;
+  return managerInChargeAtSeasonEnd(state);
+}
+
+/** False only for a career manager with no contract: they are out of work,
+ *  and the season being closed is the ex-club's. Stored on the season-history
+ *  row as `managed`. */
+export function managerInChargeAtSeasonEnd(state: Pick<GameState, 'gameMode' | 'careerManager'>): boolean {
   const cm = state.careerManager;
   return !(state.gameMode === 'career' && cm && !cm.contract);
 }
@@ -277,6 +285,9 @@ export function endSeasonImpl(set: Set, get: Get) {
     shieldCupResult: getContinentalResultForClub(credited.shieldCup, playerClubId),
     conferenceCupResult: getContinentalResultForClub(credited.conferenceCup, playerClubId),
     divisionId: playerDiv,
+    // In charge at season end? A career manager out of work keeps a row for
+    // the ex-club, but its title is not theirs (item 9).
+    managed: managerInChargeAtSeasonEnd(state),
     awards: seasonAwards,
     ballonDOrRanking,
     financialSummary: {
@@ -1766,7 +1777,7 @@ function finalizeSeason(
     careerTimeline: (() => {
       const milestones = [...state.careerTimeline];
       if (titleCredited) {
-        const isFirst = !state.seasonHistory.some(h => h.position === 1);
+        const isFirst = !state.seasonHistory.some(isManagersLeagueTitle);
         milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${history.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
       }
       if (credited.cup.winner === playerClubId) {
@@ -1861,13 +1872,17 @@ function finalizeSeason(
     saveToHall(hallEntry);
   }
 
-  // Career mode: check if the FA should re-offer the national team job (after sacking)
+  // Career mode: the FA offers the national team job once the manager's
+  // reputation is enough for a nation of that standing — the first approach
+  // (R7: no longer automatic on day one) or a re-offer after a sacking.
   {
     const cs = get();
     if (cs.gameMode === 'career' && cs.careerManager && cs.managerNationality
-      && !cs.nationalTeam && !cs.nationalTeamOffer
-      && cs.careerManager.nationalTeamSacked) {
-      const threshold = NT_JOB_REHIRE_REPUTATION;
+      && !cs.nationalTeam && !cs.nationalTeamOffer) {
+      const nationThreshold = nationalTeamOfferReputation(cs.managerNationality);
+      const threshold = cs.careerManager.nationalTeamSacked
+        ? Math.max(NT_JOB_REHIRE_REPUTATION, nationThreshold)
+        : nationThreshold;
       const upcomingTournament = getTournamentForSeason(season + 1) || getTournamentForSeason(season + 2);
       if (cs.careerManager.reputationScore >= threshold && upcomingTournament) {
         const expWeek = cs.week + NT_JOB_OFFER_DURATION_WEEKS;

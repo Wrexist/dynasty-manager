@@ -22,6 +22,7 @@ import {
   RATING_MORALE_BASELINE, MORALE_PER_RATING_POINT, MORALE_RATING_ADJ_CAP,
   MATCH_FITNESS_CARRY_ENABLED, MATCH_FITNESS_CARRY_SCALE,
 } from '@/config/gameBalance';
+import { INBOX_ARRIVES_READ } from '@/config/gameBalance';
 import {
   computeMinutesPlayed,
   extractFinalMatchFitness,
@@ -176,7 +177,12 @@ export function processMatchResult(
   }
 
   // Player club fitness/morale/form
+  // `isHome` is the SIDE of the fixture (whose goals are ours). `atHomeVenue`
+  // is where it was played: a neutral ground (finals, Super Cups, the playoff
+  // final, tournaments — `Match.neutral`) is nobody's home, so no effect that
+  // rewards playing at home may fire there.
   const isHome = match.homeClubId === playerClubId;
+  const atHomeVenue = isHome && !(match.neutral || result.neutral);
   const drawnOnGoals = result.homeGoals === result.awayGoals;
   const won = shootoutWinnerId && drawnOnGoals
     ? shootoutWinnerId === playerClubId
@@ -246,8 +252,9 @@ export function processMatchResult(
       // Iron Will perk: no morale penalty from defeats. Clamped rather than
       // zeroed so a good individual game still earns its boost.
       if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = Math.max(0, moraleDelta);
-      // Fortress Mentality perk: home wins give extra morale
-      if (won && isHome && hasPerk(state.managerProgression, 'fortress_mentality')) moraleDelta += 3;
+      // Fortress Mentality perk: home wins give extra morale — at the club's
+      // own ground, not as the nominal home side of a neutral final.
+      if (won && atHomeVenue && hasPerk(state.managerProgression, 'fortress_mentality')) moraleDelta += 3;
       // Team talk morale effects: "demand" is high risk/reward
       if (state.matchTeamTalk === 'demand') {
         moraleDelta += won ? DEMAND_MORALE_WIN_BONUS : lost ? -DEMAND_MORALE_LOSS_PENALTY : 0;
@@ -293,6 +300,8 @@ export function processMatchResult(
     body: won ? `A great result against ${oppName}! The fans are delighted.`
       : lost ? `A disappointing result against ${oppName}. The board will want to see improvement.`
       : `A hard-fought draw against ${oppName}. Onwards.`,
+    // The manager has just watched it — information, not a to-do (R18).
+    read: INBOX_ARRIVES_READ.matchResult,
   });
 
   // Board reaction messages fire only when confidence CROSSES a threshold,

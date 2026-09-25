@@ -23,6 +23,7 @@ import {
 } from '@/config/gameBalance';
 
 import { NATIONAL_CALLUP_MORALE_BOOST, NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
+import { INBOX_ARRIVES_READ } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
 
@@ -1491,6 +1492,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         week: newWeek, season, type: 'transfer',
         title: `Transfer Rumor${rumorNames.length > 1 ? 's' : ''}: ${rumorNames.length} Player${rumorNames.length > 1 ? 's' : ''}`,
         body: `Clubs are monitoring: ${rumorNames.join(', ')}. No official approaches yet.`,
+        read: INBOX_ARRIVES_READ.transferRumours,
       });
     }
   }
@@ -1508,6 +1510,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           week: newWeek, season, type: 'transfer',
           title: `Bid Expired: ${ep.lastName}`,
           body: `${ec.name}'s ${formatMoney(eo.fee)} offer for ${ep.firstName} ${ep.lastName} has expired.`,
+          read: INBOX_ARRIVES_READ.bidExpired,
         });
       }
     }
@@ -2224,6 +2227,21 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts + managerSalary;
   const updatedWealth = (state.careerManager?.personalWealth ?? 0) + managerSalary;
   newClubs[playerClubId] = { ...playerClub, budget: playerClub.budget + weeklyIncome - totalExpenses };
+  // The budget after the week's operating money. Anything that moves the
+  // budget later in this tick (a random event's cash, an ultimatum cut) is
+  // measured against it and reported with the week (R1).
+  const operatingBudget = newClubs[playerClubId].budget;
+  // Merch is credited NET above. Everything the player reads (the Weekly
+  // Digest, the finance history, the Finance page) states it gross, with the
+  // operating cost as an expense, so the lines add up the same everywhere.
+  const merchOperatingCost = getMerchOperatingCost(state.merchandise.activeProductLines);
+  // The gate is paid 2x on home weeks and 0 otherwise, so this week's income
+  // swings by the whole gate between home and away weeks. Board judgements
+  // (FFP, the manager's salary) read the weekly AVERAGE instead — the same
+  // projection the Finance page shows. On the realised figure, a top club was
+  // "FFP critical" (costs 300% of revenue) on every away week (R1).
+  const projectedIncome = weeklyIncome - matchdayIncome
+    + getMatchdayIncome(playerClub, playerDiv, { fanMood: fanMoodMult });
 
   // Accumulate season-level income/expense totals for SeasonHistory enrichment
   const prevSeasonIncome = state.seasonTotalIncome || 0;
@@ -2243,8 +2261,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // same ratio for any non-zero cost, and the cost reaches ~£95k/wk with all
   // five product lines. Same bottom line either way, so restate this side on
   // the page's basis rather than changing the money actually applied.
-  const merchOperatingCost = getMerchOperatingCost(state.merchandise.activeProductLines);
-  const wageToRevenueRatio = assessFfp(totalExpenses + merchOperatingCost, weeklyIncome + merchOperatingCost).ratio;
+  const wageToRevenueRatio = assessFfp(totalExpenses + merchOperatingCost, projectedIncome + merchOperatingCost).ratio;
   if (wageToRevenueRatio >= FFP_WAGE_RATIO_CRITICAL) {
     newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CRITICAL_CONFIDENCE_PENALTY);
     if (newWeek % 4 === 0) {
@@ -2258,8 +2275,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   }
 
   // Manager salary-to-income ratio check: board concern when manager is overpaid relative to club revenue
-  if (managerSalary > 0 && weeklyIncome > 0) {
-    const salaryToIncomeRatio = managerSalary / weeklyIncome;
+  if (managerSalary > 0 && projectedIncome > 0) {
+    const salaryToIncomeRatio = managerSalary / projectedIncome;
     if (salaryToIncomeRatio >= MANAGER_SALARY_RATIO_CRITICAL) {
       newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - MANAGER_SALARY_CONFIDENCE_PENALTY);
       if (newWeek % 8 === 0) {
@@ -2273,9 +2290,6 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     }
   }
 
-  const newFinanceHistory = [...state.financeHistory, {
-    week: newWeek, season, income: weeklyIncome, expenses: totalExpenses, transfers: 0, balance: newClubs[playerClubId].budget,
-  }].slice(-MAX_FINANCE_HISTORY);
 
   // ── Merchandise weekly tick ──
   const newMerch = { ...state.merchandise };
@@ -2727,6 +2741,17 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     }
   }
 
+  // What the week actually did to the budget, on the Finance page's basis.
+  // One-off cash (a sponsor bonus, an ultimatum cut) lands on the income or
+  // expense side, so the Digest's net equals the change in the budget (R1).
+  const oneOffCash = (newClubs[playerClubId]?.budget ?? operatingBudget) - operatingBudget;
+  const realisedIncome = weeklyIncome + merchOperatingCost + Math.max(0, oneOffCash);
+  const realisedExpenses = totalExpenses + merchOperatingCost + Math.max(0, -oneOffCash);
+  const newFinanceHistory = [...state.financeHistory, {
+    week: newWeek, season, income: realisedIncome, expenses: realisedExpenses, transfers: 0,
+    balance: newClubs[playerClubId]?.budget ?? operatingBudget,
+  }].slice(-MAX_FINANCE_HISTORY);
+
   // Collect new digest fields from data already computed above
   const digestPlayerDevelopment: { playerName: string; attribute: string; newValue: number }[] = [];
   for (const pid of playerClub.playerIds) {
@@ -2804,11 +2829,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     seasonGrowthTracker: { ...seasonGrowthTracker },
     clubPowerRankings: eloRankings,
     ...(state.careerManager && managerSalary > 0 ? { careerManager: { ...state.careerManager, personalWealth: updatedWealth } } : {}),
-    seasonTotalIncome: prevSeasonIncome + weeklyIncome,
-    seasonTotalExpenses: prevSeasonExpenses + totalExpenses,
+    seasonTotalIncome: prevSeasonIncome + realisedIncome,
+    seasonTotalExpenses: prevSeasonExpenses + realisedExpenses,
     weeklyDigest: {
-      incomeEarned: weeklyIncome,
-      expensesPaid: totalExpenses,
+      incomeEarned: realisedIncome,
+      expensesPaid: realisedExpenses,
+      matchdayIncome,
       injuriesThisWeek: digestInjuries,
       recoveriesThisWeek: digestRecoveries,
       offersReceived: Math.max(0, digestOffersReceived),

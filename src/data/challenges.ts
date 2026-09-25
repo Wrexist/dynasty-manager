@@ -1,5 +1,6 @@
 import type { ChallengeScenario, LeagueInfo } from '@/types/game';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 
 /** Manager XP paid on completion, scaled by difficulty. Consistent with the
  *  season-end / trophy XP scale in `managerPerks.XP_REWARDS` (title = 100). */
@@ -249,7 +250,7 @@ export function checkChallengeComplete(
     case 'penny-pincher':
       return leaguePosition === 1;
     case 'giant-killer':
-      return seasonHistory.some(h => h.position === 1);
+      return seasonHistory.some(isManagersLeagueTitle);
     case 'cup-specialist':
       return cupWinner;
     case 'fortress':

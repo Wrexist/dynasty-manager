@@ -15,8 +15,8 @@ import type {
   Player,
   Position,
 } from '@/types/game';
-import { NATIONS, getNation, CONTINENTAL_TOURNAMENT_NAMES } from '@/data/nations';
-import { TOTAL_WEEKS, INTL_PENALTY_GK_BASE, INTL_PENALTY_GK_SCALE } from '@/config/gameBalance';
+import { NATIONS, getNation, getNationRanking, CONTINENTAL_TOURNAMENT_NAMES } from '@/data/nations';
+import { TOTAL_WEEKS, INTL_PENALTY_GK_BASE, INTL_PENALTY_GK_SCALE, NT_OFFER_REPUTATION_BY_RANKING } from '@/config/gameBalance';
 import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { INTERNATIONAL_HOME_BONUS } from '@/config/matchEngine';
 import {
@@ -927,4 +927,15 @@ export function generateNationalTeamPool(
   }
 
   return newPlayers;
+}
+
+/**
+ * Reputation a career manager needs before `nationality`'s FA offers them the
+ * job, from the nation's ranking (`NT_OFFER_REPUTATION_BY_RANKING`). Unknown
+ * nations use `getNationRanking`'s default.
+ */
+export function nationalTeamOfferReputation(nationality: string): number {
+  const ranking = getNationRanking(nationality);
+  const band = NT_OFFER_REPUTATION_BY_RANKING.find(b => ranking <= b.maxRanking);
+  return band ? band.minReputation : 0;
 }

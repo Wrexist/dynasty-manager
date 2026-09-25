@@ -9,12 +9,13 @@
 import { describe, it, expect } from 'vitest';
 import type { LeagueTableEntry, Match, CupState, Club, Player } from '@/types/game';
 import {
-  isSeasonOver, getRaceMode, getSeasonStage, selectObjectivesWithProgress,
+  isSeasonOver, getRaceMode, getSeasonStage, getFirstLeagueWeek, selectObjectivesWithProgress,
   selectPrimaryAction, selectNextFixture, selectAttentionItems, countClaimableObjectives, type AttentionInput,
 } from '@/utils/dashboardSelectors';
 import { getTransferWindows } from '@/config/transfers';
 import {
   RACE_MODE_WINDOW_WEEKS, TITLE_RACE_MAX_POINTS_GAP, SPRING_PHASE_END_WEEK, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE,
+  PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK,
 } from '@/config/gameBalance';
 import { CONFIDENCE_CRITICAL_THRESHOLD } from '@/config/ui';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
@@ -99,12 +100,30 @@ describe('getRaceMode', () => {
 describe('getSeasonStage', () => {
   const tw = getTransferWindows(46);
   it('walks the season in order', () => {
-    expect(getSeasonStage(1, tw)).toBe('preSeason');
-    expect(getSeasonStage(tw.summerEnd, tw)).toBe('preSeason');
-    expect(getSeasonStage(tw.summerEnd + 1, tw)).toBe('autumn');
+    expect(getSeasonStage(1, tw, 3)).toBe('preSeason');
+    expect(getSeasonStage(2, tw, 3)).toBe('preSeason');
+    expect(getSeasonStage(3, tw, 3)).toBe('autumn');
     expect(getSeasonStage(tw.winterStart, tw)).toBe('winter');
     expect(getSeasonStage(tw.winterEnd + 1, tw)).toBe('spring');
     expect(getSeasonStage(SPRING_PHASE_END_WEEK + 1, tw)).toBe('runIn');
+  });
+
+  // R2: the header read "Pre-Season" in weeks 1-7 while league matches were
+  // being played, because pre-season ran to the summer window's close.
+  it('is not pre-season once the league has started, even with the window open', () => {
+    expect(tw.summerEnd).toBeGreaterThan(2);
+    for (let week = 1; week <= tw.summerEnd; week++) {
+      expect(getSeasonStage(week, tw), `week ${week}`).toBe('autumn');
+      expect(getSeasonStage(week, tw, 1), `week ${week}`).toBe('autumn');
+    }
+  });
+
+  it('takes the first league week from the club\'s fixtures', () => {
+    const fixtures = [fixture(4, false), fixture(2, false), fixture(3, false, 'x', 'y')];
+    expect(getFirstLeagueWeek(fixtures, ME)).toBe(2);
+    expect(getSeasonStage(1, tw, getFirstLeagueWeek(fixtures, ME))).toBe('preSeason');
+    expect(getSeasonStage(2, tw, getFirstLeagueWeek(fixtures, ME))).toBe('autumn');
+    expect(getFirstLeagueWeek([], ME)).toBe(PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK);
   });
 });
 

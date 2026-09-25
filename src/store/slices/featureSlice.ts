@@ -219,6 +219,10 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     // auto-presents on the Dashboard). Once per day either way — the Pass
     // page's own button then reads "checked in". Pass XP is cosmetic-only.
     get().checkInManagerPass();
+    // The streak record above is already on disk (device storage), but the
+    // XP it paid lives in the save. Without a save request an app kill kept
+    // "claimed today" and lost the reward (R15).
+    if (get().gameStarted && get().settings.autoSave) get().saveGame();
     return status;
   },
 
@@ -284,7 +288,14 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   },
 
   // ── Weekly Digest ──
-  dismissWeeklyDigest: () => set({ weeklyDigest: null }),
+  // The dismissal is part of the save. It used to reach disk only with the
+  // next autosave (usually the next week advance), so a digest the player
+  // had closed popped up again after an app kill (R15). Ask for a save now;
+  // the lifecycle flush runs it when the app is backgrounded.
+  dismissWeeklyDigest: () => {
+    set({ weeklyDigest: null });
+    if (get().gameStarted && get().settings.autoSave) get().saveGame();
+  },
 
   dismissPress: () => {
     // Dismissing has a small negative effect — media reports "manager refused to comment"

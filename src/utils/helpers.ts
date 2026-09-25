@@ -54,8 +54,10 @@ export function getSuffix(n: number): string {
   }
 }
 
-export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'>): Message[] {
-  const newMsg: Message = { ...msg, id: safeRandomUUID(), read: false };
+/** Prepend a message (newest first), capped at MAX_MESSAGES. Unread unless the
+ *  caller marks an information-only message `read` (see INBOX_ARRIVES_READ). */
+export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'> & { read?: boolean }): Message[] {
+  const newMsg: Message = { ...msg, id: safeRandomUUID(), read: msg.read ?? false };
   const updated = [newMsg, ...messages];
   return updated.slice(0, MAX_MESSAGES);
 }

@@ -15,6 +15,7 @@ import type {
   ManagerBonus,
   Club,
   Match,
+  LeagueInfo,
   LeagueTableEntry,
   CompetingCandidate,
   PitchQuestion,
@@ -69,6 +70,7 @@ import {
   UNEMPLOYED_OFFER_REP_BONUS,
   JOB_MARKET_REFRESH_SEASON_FRACTIONS,
   FIRST_TICKED_WEEK,
+  MANAGER_BONUS_AMOUNTS,
 } from '@/config/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
@@ -449,7 +451,7 @@ export function generateStartingOffers(
       divisionId: club.divisionId || '',
       salary,
       contractLength: 2,
-      bonuses: generateDefaultBonuses(qualityTier),
+      bonuses: generateDefaultBonuses(qualityTier, league),
       boardExpectations: generateBoardExpectation(qualityTier, club.reputation),
       expiresWeek: 99,
       expiresSeason: 1,
@@ -595,7 +597,7 @@ export function generateProactiveOffer(
     divisionId: cd.divisionId || '',
     salary,
     contractLength,
-    bonuses: generateDefaultBonuses(qualityTier),
+    bonuses: generateDefaultBonuses(qualityTier, league),
     boardExpectations: generateBoardExpectation(qualityTier, cd.reputation),
     expiresWeek,
     expiresSeason,
@@ -691,7 +693,7 @@ export function generateUnemployedOffer(
     divisionId: cd.divisionId || '',
     salary,
     contractLength,
-    bonuses: generateDefaultBonuses(qualityTier),
+    bonuses: generateDefaultBonuses(qualityTier, league),
     boardExpectations: generateBoardExpectation(qualityTier, cd.reputation),
     expiresWeek,
     expiresSeason,
@@ -748,33 +750,41 @@ function generateBoardExpectation(qualityTier: 1 | 2 | 3 | 4, clubRep: number): 
   return 'Survive and stabilize the club';
 }
 
-export function generateDefaultBonuses(qualityTier: 1 | 2 | 3 | 4): ManagerBonus[] {
+/** The parts of a league that decide which bonuses can be earned in it. */
+export type BonusLeagueShape = Pick<LeagueInfo, 'promotionSpots' | 'playoffSpots' | 'relegationSpots' | 'replacedSlots'>;
+
+/**
+ * The performance bonuses a job offer lists — only ones the club can earn
+ * (R8). Promotion where the league promotes (automatic or playoff); the title
+ * and a top-half finish where there is nothing to be promoted to; avoiding
+ * relegation where the bottom actually goes down (a relegation division or a
+ * bottom tier that replaces its worst clubs, the same test season end pays
+ * on). Every league has a domestic cup. Amounts: `MANAGER_BONUS_AMOUNTS`.
+ *
+ * Without `league` it falls back to the quality tier (tier 1 = top flight),
+ * which is what it used for everything before, and is wrong for the 32
+ * single-tier leagues.
+ */
+export function generateDefaultBonuses(qualityTier: 1 | 2 | 3 | 4, league?: BonusLeagueShape): ManagerBonus[] {
+  const amounts = MANAGER_BONUS_AMOUNTS[qualityTier] ?? MANAGER_BONUS_AMOUNTS[4];
+  const canPromote = league ? league.promotionSpots > 0 || league.playoffSpots > 0 : qualityTier > 1;
+  const canBeRelegated = league ? league.relegationSpots > 0 || (league.replacedSlots ?? 0) > 0 : true;
   const bonuses: ManagerBonus[] = [];
 
-  if (qualityTier === 1) {
-    // Top flight: title and top-half bonuses (no promotion possible)
-    bonuses.push({ condition: 'title', amount: 200000, met: false });
-    bonuses.push({ condition: 'top_half', amount: 50000, met: false });
+  if (canPromote) {
+    bonuses.push({ condition: 'promotion', amount: amounts.promotion, met: false });
   } else {
-    // Lower divisions: promotion bonus
-    bonuses.push({
-      condition: 'promotion',
-      amount: qualityTier === 4 ? 25000 : qualityTier === 3 ? 50000 : 100000,
-      met: false,
-    });
+    // Top of its pyramid (a top flight or a single-tier league): the title
+    // and a top-half finish are the achievements on offer.
+    bonuses.push({ condition: 'title', amount: amounts.title, met: false });
+    bonuses.push({ condition: 'top_half', amount: amounts.topHalf, met: false });
   }
 
-  bonuses.push({
-    condition: 'avoid_relegation',
-    amount: qualityTier === 4 ? 10000 : 25000,
-    met: false,
-  });
+  if (canBeRelegated) {
+    bonuses.push({ condition: 'avoid_relegation', amount: amounts.avoidRelegation, met: false });
+  }
 
-  bonuses.push({
-    condition: 'cup_win',
-    amount: qualityTier === 1 ? 100000 : qualityTier === 2 ? 50000 : 25000,
-    met: false,
-  });
+  bonuses.push({ condition: 'cup_win', amount: amounts.cupWin, met: false });
 
   return bonuses;
 }

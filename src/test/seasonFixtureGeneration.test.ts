@@ -297,3 +297,58 @@ describe('generateFriendlies with occupiedWeeks', () => {
     }
   });
 });
+
+// ── Venue alternation (R1) ────────────────────────────────────────────
+//
+// The circle method without a venue flip put each club on one side of the
+// pairing for about half a season: 9-10 home games in a row, then 9-10 away,
+// and the pivot club 19 home games in a row. Matchday money is paid only on
+// home weeks, so the Weekly Digest showed a steady loss for ten weeks and the
+// Finance page's weekly average looked like fiction.
+
+function longestVenueRun(fixtures: ReturnType<typeof generateFixtures>, clubId: string): number {
+  const venues = fixtures
+    .filter(f => f.homeClubId === clubId || f.awayClubId === clubId)
+    .sort((a, b) => a.week - b.week)
+    .map(f => (f.homeClubId === clubId ? 'H' : 'A'));
+  let longest = 0;
+  let run = 0;
+  for (let i = 0; i < venues.length; i++) {
+    run = i > 0 && venues[i] === venues[i - 1] ? run + 1 : 1;
+    longest = Math.max(longest, run);
+  }
+  return longest;
+}
+
+describe('generateFixtures — venues alternate', () => {
+  it('no club plays more than two in a row at the same venue (even n)', () => {
+    for (const n of [10, 12, 16, 18, 20, 24]) {
+      const ids = makeClubIds(n);
+      const fixtures = generateFixtures(ids);
+      for (const id of ids) {
+        expect(longestVenueRun(fixtures, id), `${n} clubs, ${id}`).toBeLessThanOrEqual(2);
+      }
+    }
+  });
+
+  it('no club plays more than three in a row at the same venue (odd n, across a bye)', () => {
+    for (const n of [13, 19]) {
+      const ids = makeClubIds(n);
+      const fixtures = generateFixtures(ids);
+      for (const id of ids) {
+        expect(longestVenueRun(fixtures, id), `${n} clubs, ${id}`).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  it('holds after the fixtures are spread over a league calendar', () => {
+    for (const league of LEAGUES) {
+      const ids = makeClubIds(league.teamCount);
+      const fixtures = generateDivisionFixtures(ids, league.totalWeeks);
+      const cap = league.teamCount % 2 === 0 ? 2 : 3;
+      for (const id of ids) {
+        expect(longestVenueRun(fixtures, id), `${league.id}: ${id}`).toBeLessThanOrEqual(cap);
+      }
+    }
+  });
+});

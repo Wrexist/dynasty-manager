@@ -2,7 +2,7 @@ import type { FormationType, NationalTeamState, InternationalTournamentState, In
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
-import { generateNationalTeamPool, autoSelectNationalSquad, generateTournament } from '@/utils/international';
+import { generateNationalTeamPool, autoSelectNationalSquad, generateTournament, nationalTeamOfferReputation } from '@/utils/international';
 import { nationToClub, buildInternationalMatchTeams } from '@/utils/internationalMatch';
 import { selectBestLineup } from '@/utils/playerGen';
 import { getNationRanking } from '@/data/nations';
@@ -230,8 +230,12 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
 
   setManagerNationality: (nationality: string) => {
     const state = _get();
-    // Career mode: immediately offer the national team job (shown as popup)
-    if (state.gameMode === 'career') {
+    // Career mode: the nation's FA approaches straight away only if the
+    // manager's reputation is enough for a nation of that standing (R7).
+    // Otherwise the offer comes at a season end once reputation catches up
+    // (seasonEnd.ts), and the National Team page shows the progress.
+    const reputation = state.careerManager?.reputationScore ?? 0;
+    if (state.gameMode === 'career' && reputation >= nationalTeamOfferReputation(nationality)) {
       const offer: NationalTeamOffer = {
         id: safeRandomUUID(),
         nationality,

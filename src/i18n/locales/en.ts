@@ -912,6 +912,25 @@ export const en = {
   'dashboard.pass.tier': 'Tier {tier}/{max}',
   'dashboard.pass.toCollect': '{n} to collect',
   'managerCreation.suggestedNation': 'From your device',
+
+  // ── econ: realised week vs projection (Finance, Weekly Digest) ──
+  'econ.finance.perWeekProjected': '{amount}/week projected',
+  'econ.finance.avgIncome': 'Avg. weekly income',
+  'econ.finance.avgExpenses': 'Avg. weekly expenses',
+  'econ.finance.projectionNote': 'Season averages. Gate money is paid on home weeks only, so a single week lands above or below this.',
+  'econ.finance.lastWeek': 'Last week',
+  'econ.finance.lastWeekDetail': 'Income {income} · Expenses {expenses} · same as your Weekly Digest',
+  'econ.digest.netThisWeek': 'Net this week',
+  'econ.digest.homeGate': 'Home gate {amount}',
+  'econ.digest.awayWeek': 'Away week: no gate',
+
+  // ── econ: unattached players sign as free agents (TransferNegotiation, TransferPage) ──
+  'econ.negotiation.budgetAfterDeal': 'Budget after deal:',
+  'econ.negotiation.signFreeAgent': 'Sign Free Agent',
+  'econ.negotiation.freeAgentNoClub': 'Free agent · no club',
+  'econ.negotiation.signingOnFee': 'Signing-on fee ',
+  'econ.negotiation.noCurrentContract': 'No current contract',
+  'econ.market.freeAgentFee': 'Free agent · signing-on fee',
 } as const;
 
 export default en;
