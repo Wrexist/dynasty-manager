@@ -18,20 +18,16 @@ import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import {
-  purchaseProduct,
-  restorePurchases,
-  getEntitlements,
-  getCustomerInfo,
-  extractSubscriptionInfo,
   getStoreAvailability,
   checkIntroOfferEligibility,
 } from '@/utils/purchases';
+import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
 import {
   PRODUCTS,
   SUB_TRIAL_PRODUCT_IDS,
 } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
-import { isPro, resolvePaywallTrials, preferredPaywallPlan, formatPerPeriodPrice } from '@/utils/monetization';
+import { resolvePaywallTrials, preferredPaywallPlan, formatPerPeriodPrice, getFreeTrialDaysRemaining } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
@@ -109,10 +105,6 @@ const SubscribeOnboarding = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const reduceMotion = useReducedMotionPref();
-  const grantEntitlement = useGameStore(s => s.grantEntitlement);
-  const startFreeTrial = useGameStore(s => s.startFreeTrial);
-  const restoreEntitlementsAction = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const monetization = useGameStore(s => s.monetization);
   // Trial framing requires BOTH a clean local record and, where the store can
   // tell us, the store's confirmation.
@@ -312,18 +304,6 @@ const SubscribeOnboarding = () => {
     navigate(returnTo, { state: { slot, communityPackEnabled } });
   };
 
-  /** Returns true when the store gave us a real subscription record. */
-  const syncAfterPurchase = async (): Promise<boolean> => {
-    const ids = await getEntitlements();
-    if (ids.length > 0) restoreEntitlementsAction(ids);
-    const info = await getCustomerInfo();
-    // Only write a confirmed, non-null sub — a transient/empty customerInfo
-    // must not clear an active subscription (expiry handled via expiresAt).
-    const sub = extractSubscriptionInfo(info);
-    if (sub) updateSubscription(sub);
-    return !!sub;
-  };
-
   const handleSubscribe = async () => {
     if (purchasing || storeStatus !== 'ready') return;
     hapticMedium();
@@ -331,72 +311,68 @@ const SubscribeOnboarding = () => {
     track('purchase_initiated', { productId: selected, surface: 'onboarding' });
     addGameBreadcrumb('purchase', 'subscribe initiated', { surface: 'onboarding', productId: selected });
     try {
-      const result = await purchaseProduct(selected);
-      if (result.cancelled) {
-        // User cancelled the StoreKit dialog. (Only `cancelled` means no
-        // charge — a completed subscription purchase legitimately returns
-        // an empty `granted` list, since sub status flows through
-        // subscription.expiresAt, not entitlements.)
+      // The trial length this row advertised. The store's own record wins
+      // wherever it answers; this only seeds the local fallback record when
+      // the customer record has not caught up with a completed purchase.
+      const trialDays = trials[selected];
+      const outcome = await purchaseAndSync(selected, { trialDays });
+
+      if (outcome.status === 'cancelled') {
+        // User cancelled the StoreKit dialog — the only outcome that means
+        // "no charge". (A completed subscription legitimately grants no
+        // entitlement ID; its status lives in subscription.expiresAt.)
         track('purchase_cancelled', { productId: selected, surface: 'onboarding' });
         infoToast('Purchase Cancelled', 'No charge was made.');
         return;
       }
 
-      result.granted.forEach(id => grantEntitlement(id));
+      if (outcome.status === 'pending') {
+        // Ask to Buy: not a failure, and nothing is charged yet. Pro arrives
+        // through the customer-info listener if it is approved, so let the
+        // player carry on into the game instead of parking them here.
+        infoToast(t('iap.pendingTitle'), t('iap.pendingBody'));
+        finish();
+        return;
+      }
 
-      // If the user picked a trial-bearing plan, the App Store Connect
-      // introductory offer grants the free trial automatically — mirror it
-      // locally so gated features unlock immediately.
-      //
-      // The store's own answer wins where we can get it: this used to write a
-      // 7-day local record BEFORE the sync, and `syncAfterPurchase` only
-      // overwrites when `extractSubscriptionInfo` returns non-null. A network
-      // blip right after an ANNUAL purchase therefore left a 7-day record on a
-      // 12-month subscription, and Pro vanished at day 7 until the next
-      // successful sync. Sync first, and only mint the local record if the
-      // store gave us nothing.
-      const trialDays = trials[selected];
-      const isTrial = trialDays != null;
-      const syncedSub = await syncAfterPurchase();
-      if (isTrial && !syncedSub) startFreeTrial(selected);
-      // `trial_started` is the authoritative trial signal — the
-      // `trialEligible` flag on paywall_viewed is advisory only.
-      if (isTrial) track('trial_started', { productId: selected, surface: 'onboarding' });
-      track('purchase_completed', { productId: selected, surface: 'onboarding' });
+      if (outcome.status === 'failed') {
+        track('purchase_failed', { productId: selected, surface: 'onboarding' });
+        addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });
+        Sentry.captureException(outcome.error, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
+        errorToast(
+          'Purchase Could Not Complete',
+          'If you were charged, tap Restore Purchases below to unlock Pro. Otherwise you can try again from Settings later.',
+        );
+        // Re-probe: if the store itself is unreachable, the screen switches to
+        // its retry state instead of leaving a CTA that keeps failing.
+        setProbeNonce(n => n + 1);
+        return;
+      }
 
-      const product = PRODUCTS[selected];
-      successToast(
-        isTrial ? `${trialDays}-Day Free Trial Started!` : 'Welcome to Dynasty Pro!',
-        isTrial
-          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}${product.billingPeriod || ''} after the trial unless you cancel.`
-          : `${product.name} is now active.`,
-      );
-      finish();
-    } catch (err) {
-      track('purchase_failed', { productId: selected, surface: 'onboarding' });
-      addGameBreadcrumb('purchase', 'subscribe threw', { surface: 'onboarding', productId: selected });
-      Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
-      // The throw can arrive AFTER the App Store charge — RevenueCat doesn't
-      // distinguish a receipt-validation/network failure from a pre-charge
-      // error, so the user may already be a paying customer. Mirror ShopPage:
-      // attempt a best-effort re-sync that re-reads entitlements + customerInfo,
-      // and if Pro is now active, treat it as the success it actually was
-      // instead of telling a charged user "something went wrong".
-      try { await syncAfterPurchase(); } catch { /* best-effort recovery */ }
-      if (isPro(useGameStore.getState().monetization)) {
-        addGameBreadcrumb('purchase', 'subscribe recovered after throw', { surface: 'onboarding', productId: selected });
+      if (outcome.recovered) {
+        // The SDK threw AFTER the charge; the re-sync proved it landed.
+        track('purchase_completed', { productId: selected, surface: 'onboarding' });
         successToast('Welcome to Dynasty Pro!', 'Your purchase was confirmed.');
         finish();
         return;
       }
-      addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });
-      errorToast(
-        'Purchase Could Not Complete',
-        'If you were charged, tap Restore Purchases below to unlock Pro. Otherwise you can try again from Settings later.',
+
+      // `trial_started` is the authoritative trial signal — the
+      // `trialEligible` flag on paywall_viewed is advisory only. It follows
+      // what the store actually recorded, not what the row advertised.
+      const isTrial = outcome.isTrial === true;
+      if (isTrial) track('trial_started', { productId: selected, surface: 'onboarding' });
+      track('purchase_completed', { productId: selected, surface: 'onboarding' });
+
+      const product = PRODUCTS[selected];
+      const shownTrialDays = trialDays ?? getFreeTrialDaysRemaining(useGameStore.getState().monetization);
+      successToast(
+        isTrial ? t('iap.trialStartedTitle', { days: shownTrialDays }) : 'Welcome to Dynasty Pro!',
+        isTrial
+          ? t('iap.trialStartedBody', { price: `${priceFor(selected)}${product.billingPeriod || ''}` })
+          : `${product.name} is now active.`,
       );
-      // Re-probe: if the store itself is unreachable, the screen switches to
-      // its retry state instead of leaving a CTA that keeps failing.
-      setProbeNonce(n => n + 1);
+      finish();
     } finally {
       setPurchasing(false);
     }
@@ -408,23 +384,16 @@ const SubscribeOnboarding = () => {
     setRestoring(true);
     track('restore_clicked', {});
     try {
-      const granted = await restorePurchases();
-      if (granted.length > 0) restoreEntitlementsAction(granted);
-      // Always re-sync, even when `granted` is empty. A subscription-only
-      // customer's restore returns [] (sub SKUs are deliberately excluded from
-      // mapEntitlements — they'd outlive the sub in entitlements), so their
-      // active subscription is ONLY recoverable through
-      // extractSubscriptionInfo → updateSubscription inside syncAfterPurchase.
-      // Gating this behind `granted.length > 0` made this screen's own Restore
-      // button silently no-op for the default (subscription) plans.
-      await syncAfterPurchase();
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0 || proActive) {
-        const detail = granted.length > 0
-          ? `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`
+      // Always syncs, even when nothing non-consumable came back — a
+      // subscription-only customer's Pro is recoverable only through the
+      // subscription record (see restoreAndSync).
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0 || proActive) {
+        const detail = restored.length > 0
+          ? `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`
           : 'Your Pro subscription is active.';
         successToast('Purchases Restored', detail);
-        track('restore_completed', { restoredCount: granted.length });
+        track('restore_completed', { restoredCount: restored.length });
         finish();
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');

@@ -24,11 +24,13 @@ import {
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
-import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
+import { openSubscriptionManagement } from '@/utils/purchases';
+import { restoreAndSync } from '@/utils/purchaseSync';
+import { isRedeemEnabled } from '@/utils/redeemCodes';
 import { triggerTestError } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
-import { isPro, isSubscriptionActive } from '@/utils/monetization';
+import { isPro, hasRecurringSubscription } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
@@ -127,8 +129,6 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
   const setScreen = useGameStore(s => s.setScreen);
-  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const resetEntitlementsForTesting = useGameStore(s => s.resetEntitlementsForTesting);
   const startCaptureScenario = useGameStore(s => s.startCaptureScenario);
   const gameStarted = useGameStore(s => s.gameStarted);
@@ -195,6 +195,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const redeemCode = useGameStore(s => s.redeemCode);
+  const redeemEnabled = isRedeemEnabled();
   const [redeemInput, setRedeemInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const handleRedeem = async () => {
@@ -226,32 +227,21 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   // (Analytics consent toggle removed — no first-party stats leave the device;
   // see docs/growth-overhaul-plan.md §1.2.)
   const userIsPro = isPro(monetization);
-  const hasActiveSub = isSubscriptionActive(monetization);
+  // Only a store subscription has a renewal date and a Manage button; a
+  // Lifetime record in the subscription slot is shown as the Pro badge alone.
+  const hasActiveSub = hasRecurringSubscription(monetization);
 
   const handleRestorePurchases = async () => {
     setRestoringPurchases(true);
     try {
-      const granted = await restorePurchases();
-      if (granted.length > 0) restoreEntitlements(granted);
-
-      // Sync the subscription BEFORE deciding what to tell the user.
-      // `mapEntitlements` deliberately excludes subscription SKUs (they'd
-      // outlive the sub in `entitlements`), so a monthly/annual customer's
-      // restore legitimately returns `[]` — their Pro is recoverable only
-      // through extractSubscriptionInfo. Toasting off `granted.length` alone
-      // told every subscription-only customer "No Purchases Found" moments
-      // before their sub was actually restored. This is the primary Restore
-      // entry point for existing users, and the one App Review exercises.
-      // SubscribeOnboarding already got this treatment; Settings never did.
-      // Only write a confirmed, non-null sub so a transient/empty customerInfo
-      // can't clear an active subscription.
-      const info = await getCustomerInfo();
-      const sub = extractSubscriptionInfo(info);
-      if (sub) updateSubscription(sub);
-
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0) {
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      // The primary Restore entry point for existing users, and the one App
+      // Review exercises. Shares one implementation with the paywall and the
+      // Shop (utils/purchaseSync): it always syncs the subscription record, so
+      // a subscription-only customer — whose restore returns no entitlement
+      // IDs — is told their Pro is active rather than "No Purchases Found".
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0) {
+        successToast('Purchases Restored', `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`);
       } else if (proActive) {
         successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
@@ -777,28 +767,34 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
-      <SettingsSection title={t('settings.redeemCode')}>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={redeemInput}
-            onChange={(e) => setRedeemInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
-            placeholder={t('settings.enterCode')}
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            aria-label={t('settings.redeemCodeAria')}
-            className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
-          />
-          <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
-            {redeeming ? 'Redeeming…' : 'Redeem'}
-          </LiquidButton>
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-2 px-1">
-          Got a code? Redeem it for in-game rewards. Each code works once per device.
-        </p>
-      </SettingsSection>
+      {/* Redeem codes are verified offline against a build-time secret. A
+          production build without VITE_REDEEM_SECRET redeems nothing, so the
+          entry point is hidden rather than offering a field that can only say
+          "Invalid Code" (see utils/redeemCodes.getRedeemSecret). */}
+      {redeemEnabled && (
+        <SettingsSection title={t('settings.redeemCode')}>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={redeemInput}
+              onChange={(e) => setRedeemInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
+              placeholder={t('settings.enterCode')}
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label={t('settings.redeemCodeAria')}
+              className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
+            />
+            <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
+              {redeeming ? 'Redeeming…' : 'Redeem'}
+            </LiquidButton>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 px-1">
+            Got a code? Redeem it for in-game rewards. Each code works once per device.
+          </p>
+        </SettingsSection>
+      )}
 
       {/* ─── Purchases & Subscription ─── */}
       <SettingsSection>

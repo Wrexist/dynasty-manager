@@ -6,17 +6,20 @@ import { PurchaseModal } from '@/components/game/PurchaseModal';
 import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
-import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive, formatPerPeriodPrice } from '@/utils/monetization';
+import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, hasRecurringSubscription, formatPerPeriodPrice, getFreeTrialDaysRemaining } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
-import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
+import { openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
+import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
+import { probePaywallTrials } from '@/utils/trialOffer';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -79,16 +82,20 @@ const COSMETIC_PACK_IDS: ProductId[] = [
 
 const ShopPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const monetization = useGameStore(s => s.monetization);
-  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const setCosmetic = useGameStore(s => s.setCosmetic);
   const clearCosmetic = useGameStore(s => s.clearCosmetic);
   const [purchaseProduct, setPurchaseProduct] = useState<ProductId | null>(null);
   const [restoring, setRestoring] = useState(false);
   const userIsPro = isPro(monetization);
-  const hasActiveSub = isSubscriptionActive(monetization);
-  const onMonthlyPlan = monetization.subscription?.tier === 'monthly';
+  // A store subscription to show and manage — NOT a Lifetime record sitting in
+  // the subscription slot (that is Pro with nothing to renew or cancel).
+  const hasActiveSub = hasRecurringSubscription(monetization);
+  // "Switch to Annual … vs your current monthly plan" only for a LIVE Monthly
+  // plan: a lapsed Monthly record (the store now reports lapses, so a fresh
+  // install of a former subscriber has one) is no current plan.
+  const onMonthlyPlan = hasActiveSub && monetization.subscription?.tier === 'monthly';
   const starterKitAvailable = isStarterKitAvailable(monetization);
 
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
@@ -114,6 +121,19 @@ const ShopPage = () => {
   // guessed.
   const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
   const [storeCurrency, setStoreCurrency] = useState<string | undefined>(undefined);
+  // Free trial per subscription plan, ONLY where the store confirms both the
+  // intro offer and this Apple ID's eligibility — the paywall's own rule. The
+  // Shop used to sell both plans without ever naming the free week each one
+  // carries, so a player who came here instead of the paywall bought blind.
+  // A subscription record on this install means the offer is spent: no probe.
+  const locallyTrialEligible = monetization.subscription == null;
+  const [trials, setTrials] = useState<Partial<Record<ProductId, number>>>({});
+  useEffect(() => {
+    if (!locallyTrialEligible) { setTrials({}); return; }
+    let cancelled = false;
+    probePaywallTrials().then(found => { if (!cancelled) setTrials(found); });
+    return () => { cancelled = true; };
+  }, [locallyTrialEligible]);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,18 +213,6 @@ const ShopPage = () => {
     setPurchaseProduct(productId);
   };
 
-  /** Sync entitlements + subscription from RevenueCat after a purchase or restore */
-  const syncAfterPurchase = async () => {
-    const ids = await getEntitlements();
-    if (ids.length > 0) restoreEntitlements(ids);
-    const info = await getCustomerInfo();
-    // Only write a confirmed, non-null subscription — a transient/empty
-    // customerInfo must never clear an active sub (isSubscriptionActive handles
-    // real expiry via expiresAt). See purchases.extractSubscriptionInfo.
-    const sub = extractSubscriptionInfo(info);
-    if (sub) updateSubscription(sub);
-  };
-
   const handleConfirmPurchase = async () => {
     if (!purchaseProduct || purchasing) return;
     const productId = purchaseProduct;
@@ -215,36 +223,48 @@ const ShopPage = () => {
     // must not inflate the initiated denominator.
     track('purchase_initiated', { productId, surface: 'shop' });
     try {
-      const result = await purchaseViaSDK(productId);
-      // Only an explicit cancel means no charge. A completed purchase with an
-      // empty granted list (entitlement-mapping lag) still proceeds to the
-      // sync below, which re-reads entitlements from RevenueCat.
-      if (result.cancelled) {
+      // Same path as the paywall (utils/purchaseSync): grant, re-sync, and on
+      // a throw re-read the store before calling it a failure — the SDK can
+      // throw after the charge, and this page used to report exactly that
+      // case as "could not be confirmed" even when the re-sync found it.
+      const trialDays = trials[productId];
+      const outcome = await purchaseAndSync(productId, { trialDays });
+      if (outcome.status === 'cancelled') {
         track('purchase_cancelled', { productId, surface: 'shop' });
         infoToast('Purchase Cancelled', 'No charge was made.');
         setPurchaseProduct(null);
         return;
       }
-      restoreEntitlements(result.granted);
-      await syncAfterPurchase();
+      if (outcome.status === 'pending') {
+        // Ask to Buy — nothing charged yet; the entitlement listener grants it
+        // if approved. Not a failure, so no error banner.
+        infoToast(t('iap.pendingTitle'), t('iap.pendingBody'));
+        setPurchaseProduct(null);
+        return;
+      }
+      if (outcome.status === 'failed') {
+        addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
+        Sentry.captureException(outcome.error, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
+        track('purchase_failed', { productId, surface: 'shop' });
+        setPurchaseError(
+          'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
+        );
+        return;
+      }
       hapticMedium();
       track('purchase_completed', { productId, surface: 'shop' });
-      successToast('Purchase complete!');
+      if (outcome.isTrial) {
+        // What the store recorded, not what the card advertised.
+        track('trial_started', { productId, surface: 'shop' });
+        const product = PRODUCTS[productId];
+        successToast(
+          t('iap.trialStartedTitle', { days: trialDays ?? getFreeTrialDaysRemaining(useGameStore.getState().monetization) }),
+          t('iap.trialStartedBody', { price: `${priceFor(productId)}${product.billingPeriod || ''}` }),
+        );
+      } else {
+        successToast('Purchase complete!');
+      }
       setPurchaseProduct(null);
-    } catch (err) {
-      // The throw could come from before OR after the App Store charge —
-      // RevenueCat's SDK doesn't always distinguish receipt-validation
-      // failures from network errors. Defensive recovery: attempt a
-      // post-failure sync so a successful charge gets picked up on the
-      // next entitlement read (RevenueCat re-fetches receipt). Capture
-      // the actual error to Sentry so we can triage real-money issues.
-      addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
-      Sentry.captureException(err, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
-      try { await syncAfterPurchase(); } catch { /* second-stage sync best-effort */ }
-      track('purchase_failed', { productId, surface: 'shop' });
-      setPurchaseError(
-        'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
-      );
     } finally {
       setPurchasing(false);
     }
@@ -255,28 +275,18 @@ const ShopPage = () => {
     setPurchaseError(null);
     track('restore_clicked', {});
     try {
-      const granted = await restoreViaSDK();
-      if (granted.length > 0) restoreEntitlements(granted);
-
-      // Sync BEFORE deciding what to tell the user. `mapEntitlements`
-      // deliberately excludes subscription SKUs (they would outlive the sub in
-      // `entitlements`), so a monthly/annual customer's restore legitimately
-      // returns [] — their Pro comes back only through extractSubscriptionInfo.
-      // Toasting off `granted.length` alone told every subscription-only
-      // customer "No Purchases Found" moments before their sub was restored.
-      // SettingsPage and SubscribeOnboarding already do this; the Shop never
-      // did.
-      await syncAfterPurchase();
-
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0) {
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      // Syncs BEFORE deciding what to tell the user: a subscription-only
+      // customer's restore returns no entitlement IDs, and their Pro comes
+      // back only through the subscription record (see restoreAndSync).
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0) {
+        successToast('Purchases Restored', `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`);
       } else if (proActive) {
         successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
-      track('restore_completed', { restoredCount: granted.length });
+      track('restore_completed', { restoredCount: restored.length });
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'ShopPage.restore' } });
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
@@ -308,7 +318,7 @@ const ShopPage = () => {
         <button
           onClick={handleRestore}
           disabled={restoring}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          className="min-h-11 px-2 -mr-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
           {restoring ? 'Restoring...' : 'Restore Purchases'}
@@ -401,7 +411,7 @@ const ShopPage = () => {
             {!userIsPro && (
               <button
                 onClick={handlePresentPaywall}
-                className="text-[10px] text-[hsl(var(--gold))] font-semibold hover:text-[hsl(var(--gold)/0.8)] transition-colors flex items-center gap-1 ml-auto"
+                className="min-h-11 px-2 -mr-2 text-[11px] text-[hsl(var(--gold))] font-semibold hover:text-[hsl(var(--gold)/0.8)] transition-colors flex items-center gap-1 ml-auto"
               >
                 <CreditCard className="w-3 h-3" />
                 View Plans
@@ -527,6 +537,14 @@ const ShopPage = () => {
                     )}
                     {isLifetime && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
+                    )}
+                    {trials[productId] != null && (
+                      <p className="text-[11px] font-semibold text-emerald-300 mb-2">
+                        {t('iap.trialTerms', {
+                          days: trials[productId]!,
+                          price: `${priceFor(productId)}${product.billingPeriod || ''}`,
+                        })}
+                      </p>
                     )}
                     <button
                       onClick={() => handlePurchase(productId)}
@@ -779,6 +797,7 @@ const ShopPage = () => {
         <PurchaseModal
           productId={purchaseProduct}
           storePrice={storePrices[purchaseProduct]}
+          trialDays={trials[purchaseProduct]}
           onConfirm={handleConfirmPurchase}
           onCancel={() => {
             // An abandoned confirm modal is a funnel exit — record it or every

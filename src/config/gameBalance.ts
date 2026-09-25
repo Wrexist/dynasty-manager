@@ -1358,3 +1358,19 @@ export const BALLON_DOR_CONTINENTAL_BONUS = {
   shield_cup: { group: 2, R16: 5, QF: 8, SF: 12, F: 15, winner: 20 },
   conference_cup: { group: 1, R16: 3, QF: 5, SF: 8, F: 10, winner: 14 },
 } as const;
+
+// ── iap: redeem-code caps ──
+/**
+ * Largest reward one redeem code may carry. Codes are comp/giveaway rewards
+ * minted offline, and the app verifies them offline — so this cap, not the
+ * signature, is what bounds the damage if a signing secret ever leaks. The
+ * money cap equals the largest budget reward the game grants outside play
+ * (the £1M season-end bonus ceiling); the XP cap is about three festival
+ * top-tier claims. `scripts/gen-redeem-code.mjs` mirrors these values (a test
+ * pins the parity) and refuses to mint above them; the app rejects a code above
+ * them even when its signature is valid.
+ */
+export const REDEEM_CODE_MAX_REWARD = {
+  money: 1_000_000,
+  xp: 500,
+} as const;

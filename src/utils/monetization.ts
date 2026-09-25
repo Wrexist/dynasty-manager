@@ -7,7 +7,7 @@
  */
 
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
-import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS, FREE_TRIAL_DAYS, SUB_TRIAL_PRODUCT_IDS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
+import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS, FREE_TRIAL_DAYS, SUB_TRIAL_PRODUCT_IDS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
 import { observeClock } from '@/store/helpers/persistence';
 
 /**
@@ -85,6 +85,21 @@ export function isSubscriptionActive(state: MonetizationState): boolean {
 }
 
 /**
+ * An active store subscription the player can renew, cancel or manage.
+ *
+ * Narrower than `isSubscriptionActive`: `extractSubscriptionInfo` also writes a
+ * Lifetime owner's record into the subscription slot, and the Shop and Settings
+ * used to present that as an "Active Subscription · lifetime" with a Manage
+ * Subscription button leading to a store page that lists nothing. Pro status
+ * itself is untouched — `isPro()` remains the only authority.
+ */
+export function hasRecurringSubscription(state: MonetizationState): boolean {
+  const sub = state.subscription;
+  if (!sub || PRODUCTS[sub.productId]?.type !== 'subscription') return false;
+  return isSubscriptionActive(state);
+}
+
+/**
  * May this product ID be persisted in `monetization.entitlements`?
  *
  *  - Subscription SKUs are banned: RevenueCat keeps them in
@@ -105,6 +120,31 @@ export function isPersistableEntitlement(productId: ProductId): boolean {
   return true;
 }
 
+/** Milliseconds for an ISO date, NaN when absent or unparseable. */
+const isoMs = (iso: string | null | undefined): number => (iso ? new Date(iso).getTime() : NaN);
+
+/**
+ * Is `candidate` a lapse that ended AFTER `other` was last vouched for?
+ *
+ * `extractSubscriptionInfo` records a refund, revocation or lapse as a record
+ * written after its own expiry (`expiresAt <= grantedAt`). That shape alone is
+ * not proof of an observation: the v73→v74 migration backfilled `grantedAt`
+ * with the migration time on every dated record, so an old save's long-expired
+ * local trial has it too. What makes the lapse the newer verdict is that the
+ * subscription ENDED at or after the other record was written — e.g. a refund
+ * of the very subscription the other record describes. A lapse that ended
+ * before the other record was written (an old trial; a subscription the player
+ * has since restarted) never overrides it. An undated other record (no
+ * `grantedAt`) cannot be compared, and the lapse wins.
+ */
+function isNewerObservedLapse(candidate: SubscriptionInfo, other: SubscriptionInfo): boolean {
+  const expires = isoMs(candidate.expiresAt);
+  const observed = isoMs(candidate.grantedAt);
+  if (!Number.isFinite(expires) || !Number.isFinite(observed) || expires > observed) return false;
+  const otherObserved = isoMs(other.grantedAt);
+  return !Number.isFinite(otherObserved) || expires >= otherObserved;
+}
+
 /**
  * Merge the device-scoped purchase fields of two monetization records, keeping
  * whichever side actually proves a purchase.
@@ -121,9 +161,11 @@ export function isPersistableEntitlement(productId: ProductId): boolean {
  *
  * Neither side can be trusted wholesale, so merge rather than pick: the union
  * of entitlements, the stronger subscription record, and the earliest real
- * first-launch timestamp. A purchase is only ever added by this function, never
- * dropped; the store remains the authority for taking one away (an expired
- * subscription still reads as expired through isSubscriptionExpired).
+ * first-launch timestamp. A purchase is only ever added by this function; the
+ * one thing it lets end a subscription is the store's own lapse verdict when it
+ * postdates the other record (see `isNewerObservedLapse`). Otherwise the store
+ * remains the authority for taking one away (an expired subscription still
+ * reads as expired through isSubscriptionExpired).
  */
 export function mergeDeviceMonetization(
   saved: Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'>,
@@ -138,12 +180,17 @@ export function mergeDeviceMonetization(
   ).filter(isPersistableEntitlement);
 
   // Prefer an unexpired record over an expired one; if both agree, prefer live,
-  // which is the one a RevenueCat sync can have refreshed.
+  // which is the one a RevenueCat sync can have refreshed. The exception is a
+  // lapse the store reported AFTER the other record was written (a refund or
+  // revocation): the newer verdict wins, or loading a save from before the
+  // refund would hand the refunded subscription back.
   const savedSub = saved.subscription ?? null;
   const liveSub = live.subscription ?? null;
   let subscription: SubscriptionInfo | null;
   if (!savedSub) subscription = liveSub;
   else if (!liveSub) subscription = savedSub;
+  else if (isNewerObservedLapse(liveSub, savedSub)) subscription = liveSub;
+  else if (isNewerObservedLapse(savedSub, liveSub)) subscription = savedSub;
   else {
     const liveActive = !isSubscriptionExpired(liveSub);
     const savedActive = !isSubscriptionExpired(savedSub);
@@ -238,6 +285,9 @@ export function isStarterKitAvailable(state: MonetizationState): boolean {
   if (state.starterKitDismissed) return false;
   if (state.firstLaunchTimestamp <= 0) return false;
   if (isPro(state)) return false;
+  // Already owns what the kit contains: recommending it again sold the Manager
+  // Identity Pack to its own owner (StoreKit then answers "already purchased").
+  if (STARTER_KIT.includes.every(id => state.entitlements.includes(id))) return false;
   const elapsed = entitlementNow() - state.firstLaunchTimestamp;
   return elapsed < STARTER_KIT_WINDOW_MS;
 }
