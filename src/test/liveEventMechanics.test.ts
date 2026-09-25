@@ -22,6 +22,7 @@ import { useGameStore } from '@/store/gameStore';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 import { tick } from './helpers/eventLoop';
+import { spawnFreeAgents } from '@/utils/transferMarketGen';
 
 const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12, 0, 0);
 const base: LiveEvent = {
@@ -206,11 +207,21 @@ describe('game hooks', () => {
     vi.setSystemTime(at(2027, 1, 25));
     const ev = getActiveLiveEvent();
     expect(ev.id).toBe('winter-window-2027');
+    // The earlier cases advance real weeks, and the AI can sign every free agent
+    // in that time — so bring one in if the pool has run dry.
+    if (!useGameStore.getState().freeAgents.some(id => useGameStore.getState().players[id])) {
+      const spawned = spawnFreeAgents(useGameStore.getState().season);
+      useGameStore.setState(s => ({
+        players: { ...s.players, ...spawned.players },
+        freeAgents: [...s.freeAgents, ...spawned.freeAgentIds],
+      }));
+    }
     const st = useGameStore.getState();
     const club = st.clubs[st.playerClubId];
     // Make room and money, then sign the cheapest free agent at his asking wage.
     useGameStore.setState({ clubs: { ...st.clubs, [club.id]: { ...club, budget: 1e9, playerIds: club.playerIds.slice(0, 20) } } });
-    const agentId = [...st.freeAgents].sort((a, b) => st.players[a].overall - st.players[b].overall)[0];
+    const agentId = st.freeAgents.filter(id => st.players[id])
+      .sort((a, b) => st.players[a].overall - st.players[b].overall)[0];
     vi.spyOn(Math, 'random').mockReturnValue(0); // accept the terms
     const res = useGameStore.getState().signFreeAgent(agentId, st.players[agentId].wage * 2, 2);
     expect(res.success).toBe(true);
