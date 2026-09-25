@@ -155,3 +155,68 @@ describe('Dashboard — interaction hygiene', () => {
     expect(training.className).toMatch(/min-h-11/);
   });
 });
+
+// Playthrough 2026-09 (R17): an active storyline (e.g. Youth Prodigy, three
+// choices) rendered as a big card ABOVE the Continue card and pushed it to
+// y≈650. The decision is a "Needs your attention" row that opens the choice.
+describe('Dashboard — a storyline decision waits in "Needs your attention"', () => {
+  const STORY = {
+    id: 'test-story',
+    title: 'Big Club Scouts Spotted',
+    body: 'Scouts from rival clubs have been watching your prodigy in training.',
+    icon: 'Eye',
+    options: [
+      { label: 'Shield him from the media', text: 'You protect the youngster.', effects: { morale: 3 } },
+      { label: 'Use the attention', text: 'You let the hype build.', effects: { fanMood: 5 } },
+      { label: 'Tie him to a long contract', text: 'You move quickly.', effects: { boardConfidence: 5 } },
+    ],
+  };
+
+  function continueButton(): HTMLElement {
+    return screen.getAllByRole('button').find(b => /^(Match Prep vs|Advance to Week|View Season Summary)/.test(b.textContent?.trim() ?? ''))!;
+  }
+
+  it('the Continue button comes first; the story is a compact row, not a card of choices', () => {
+    useGameStore.setState({ pendingStoryline: STORY });
+    renderDashboard();
+    const row = screen.getByRole('button', { name: /Decision: Big Club Scouts Spotted/ });
+    expect(row.textContent).toMatch(/3 choices/);
+    // An unanswered story is replaced on the next advance (weekAdvance sets
+    // `pendingStoryline` afresh), so "Decide later" must not read as "any time".
+    expect(row.textContent).toMatch(/decide before you continue/);
+    expect(before(continueButton(), row)).toBe(true);
+    // No choices and no story body on the page until the row is opened.
+    expect(screen.queryByText('Shield him from the media')).toBeNull();
+    expect(screen.queryByText(STORY.body)).toBeNull();
+  });
+
+  it('the row opens the choice; answering it resolves the story and closes the sheet', () => {
+    useGameStore.setState({ pendingStoryline: STORY });
+    renderDashboard();
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /Decision: Big Club Scouts Spotted/ })); });
+    const sheet = screen.getByRole('dialog', { name: 'Storyline Event' });
+    expect(within(sheet).getByText(STORY.body)).toBeTruthy();
+    act(() => { fireEvent.click(within(sheet).getByText('Use the attention')); });
+    expect(useGameStore.getState().pendingStoryline).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Storyline Event' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Decision:/ })).toBeNull();
+  });
+
+  it('"Decide later" closes the sheet and keeps the decision waiting', () => {
+    useGameStore.setState({ pendingStoryline: STORY });
+    renderDashboard();
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /Decision: Big Club Scouts Spotted/ })); });
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'Decide later' })); });
+    expect(screen.queryByRole('dialog', { name: 'Storyline Event' })).toBeNull();
+    expect(useGameStore.getState().pendingStoryline?.id).toBe('test-story');
+    expect(screen.getByRole('button', { name: /Decision: Big Club Scouts Spotted/ })).toBeTruthy();
+  });
+
+  it('"Ignore this story" is the old dismiss', () => {
+    useGameStore.setState({ pendingStoryline: STORY });
+    renderDashboard();
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /Decision: Big Club Scouts Spotted/ })); });
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'Ignore this story' })); });
+    expect(useGameStore.getState().pendingStoryline).toBeNull();
+  });
+});

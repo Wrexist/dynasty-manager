@@ -367,22 +367,72 @@ export function preferredPaywallPlan(
 
 /**
  * A store price divided into periods ("works out at X/month"), formatted for
- * the storefront's currency by `Intl.NumberFormat` — never by splicing
- * `toFixed(2)` into the store's own price string, which printed "2.08 €" in
- * Germany and "¥250.00" in Japan (a yen has no minor unit). Null — the caller
- * omits the line — when the amount or the currency is unknown, or the runtime
- * rejects the currency code.
+ * the storefront's currency — never by splicing `toFixed(2)` into the store's
+ * own price string, which printed "2.08 €" in Germany and "¥250.00" in Japan (a
+ * yen has no minor unit). Null — the caller omits the line — when the amount or
+ * the currency is unknown, or the runtime rejects the currency code.
+ *
+ * It must read like the price it sits next to. The paywall showed "$24.99/year"
+ * beside "Works out at US$2.08/month": the store string is formatted in the
+ * STOREFRONT's locale, the derived line was formatted in the DEVICE's (en-GB
+ * spells a US dollar "US$"). So, in order:
+ *   1. `storePrice` (the price string shown beside it): the per-period amount
+ *      is written in that string's own shape — its symbol, symbol position and
+ *      separators — provided the string round-trips to `total`, so a string we
+ *      cannot read is never trusted.
+ *   2. Otherwise Intl with `currencyDisplay: 'narrowSymbol'` ("$", not "US$"),
+ *      falling back to the default display where a runtime lacks narrowSymbol.
  */
 export function formatPerPeriodPrice(
   total: number | null | undefined,
   periods: number,
   currencyCode: string | undefined,
   locale?: string,
+  storePrice?: string,
 ): string | null {
   if (total == null || !Number.isFinite(total) || total <= 0 || !(periods > 0) || !currencyCode) return null;
+  let fractionDigits: number;
   try {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(total / periods);
+    fractionDigits = new Intl.NumberFormat('en', { style: 'currency', currency: currencyCode })
+      .resolvedOptions().maximumFractionDigits ?? 2;
   } catch {
     return null;
   }
+  const amount = total / periods;
+  const likeStore = storePrice ? formatLikeStorePrice(amount, total, storePrice, fractionDigits) : null;
+  if (likeStore) return likeStore;
+  for (const currencyDisplay of ['narrowSymbol', 'symbol'] as const) {
+    try {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, currencyDisplay }).format(amount);
+    } catch { /* narrowSymbol unsupported → plain symbol */ }
+  }
+  return null;
+}
+
+/** `amount` written in the shape of `storePrice` (which must say `total`), or
+ *  null when the string cannot be read with certainty. */
+function formatLikeStorePrice(amount: number, total: number, storePrice: string, fractionDigits: number): string | null {
+  const match = /\d(?:[\d.,'\u2019\s\u00a0\u202f]*\d)?/.exec(storePrice);
+  if (!match) return null;
+  const run = match[0];
+  const seps = run.replace(/\d/g, '');
+  let decimal = '';
+  if (fractionDigits > 0) {
+    // The decimal separator is the last non-digit, followed by exactly the
+    // currency's minor-unit digits. A price shown without its minor unit is
+    // not a template we can extend.
+    const tail = new RegExp(`([^\\d])(\\d{${fractionDigits}})$`).exec(run);
+    if (!tail) return null;
+    decimal = tail[1];
+  }
+  const groupChars = decimal ? seps.slice(0, -1) : seps;
+  const group = groupChars[0] ?? '';
+  if ([...groupChars].some(c => c !== group) || (group && group === decimal)) return null;
+  // Round-trip: the template must say exactly the total we divide.
+  const parsed = Number((group ? run.split(group).join('') : run).replace(decimal || '\u0000', '.'));
+  if (!Number.isFinite(parsed) || Math.abs(parsed - total) > 0.5 * 10 ** -fractionDigits) return null;
+  const [intPart, fracPart] = amount.toFixed(fractionDigits).split('.');
+  const grouped = group ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, group) : intPart;
+  const number = fracPart ? `${grouped}${decimal}${fracPart}` : grouped;
+  return storePrice.slice(0, match.index) + number + storePrice.slice(match.index + run.length);
 }

@@ -3869,3 +3869,16 @@ export interface ManagerPassRecord {
 export type MatchDayPhase =
   | 'pre' | 'first_half' | 'half_time' | 'second_half'
   | 'extra_time_break' | 'extra_time' | 'penalties' | 'post';
+// ── uipolish: odds rows carry their rarity's own band ──
+// Merged into PackOddsRow above (interface declaration merging), so the shared
+// section only grows at its end.
+export interface PackOddsRow {
+  /** The rarity rung this row is, e.g. 'silver'. */
+  rarity?: keyof PackRarityWeights;
+  /** The rung's name without a band, e.g. `Silver`. */
+  rarityName?: string;
+  /** The rung's own band, the same in every pack (`PACK_RARITY_BANDS`), e.g.
+   *  70–79 — as opposed to `minOvr`/`maxOvr`, the part of it THIS pack deals. */
+  rarityMinOvr?: number;
+  rarityMaxOvr?: number;
+}

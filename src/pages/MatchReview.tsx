@@ -105,10 +105,16 @@ const MatchReview = () => {
   );
   // Free tactical debrief (G3): the engine's tactical matchup insight + first
   // opposition reaction + a hint — distinct from the Pro stat insights below.
-  const debrief = useMemo(
-    () => currentMatchResult ? extractMatchDebrief(currentMatchResult.events, playerClubId) : null,
-    [currentMatchResult, playerClubId]
-  );
+  // Given the final score, like PostMatchPopup, so both full-time surfaces
+  // phrase a half-time line the same way and keep its lesson (R6).
+  const debrief = useMemo(() => {
+    if (!currentMatchResult) return null;
+    const home = currentMatchResult.homeClubId === playerClubId;
+    return extractMatchDebrief(currentMatchResult.events, playerClubId, {
+      goalsFor: home ? currentMatchResult.homeGoals : currentMatchResult.awayGoals,
+      goalsAgainst: home ? currentMatchResult.awayGoals : currentMatchResult.homeGoals,
+    });
+  }, [currentMatchResult, playerClubId]);
 
   const matchEvents = currentMatchResult?.events;
   const allHighlights = useMemo(
@@ -376,26 +382,31 @@ const MatchReview = () => {
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <h3 className="text-sm font-semibold text-foreground">Key Highlights</h3>
-              <div className="flex items-center gap-1 p-0.5 rounded-full bg-muted/30 border border-border/40">
+              {/* Each filter is a 44px-tall button around a compact pill (the
+                  pills measured 18px): the target grows, the look does not. */}
+              <div className="flex items-center -my-2.5">
                 {(['all', 'us', 'goals'] as const).map(f => (
                   <button
                     key={f}
                     type="button"
                     onClick={() => setHighlightFilter(f)}
-                    className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-micro font-semibold uppercase tracking-wider transition-colors',
-                      highlightFilter === f
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
+                    className="min-h-11 px-0.5 flex items-center"
                     aria-label={`${f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'} — ${highlightCounts[f]} event${highlightCounts[f] === 1 ? '' : 's'}`}
+                    aria-pressed={highlightFilter === f}
                   >
-                    <span>{f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}</span>
                     <span className={cn(
-                      'text-micro font-bold tabular-nums',
-                      highlightFilter === f ? 'opacity-80' : 'opacity-50'
+                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-micro font-semibold uppercase tracking-wider transition-colors',
+                      highlightFilter === f
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:text-foreground'
                     )}>
-                      {highlightCounts[f]}
+                      <span>{f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}</span>
+                      <span className={cn(
+                        'text-micro font-bold tabular-nums',
+                        highlightFilter === f ? 'opacity-80' : 'opacity-50'
+                      )}>
+                        {highlightCounts[f]}
+                      </span>
                     </span>
                   </button>
                 ))}

@@ -25,11 +25,14 @@ export function StarterKitBanner() {
   const daysLeft = Math.max(1, Math.ceil(getStarterKitRemainingMs(monetization) / 86_400_000));
 
   return (
-    <GlassPanel className="p-3 border-[hsl(var(--gold)/0.3)] bg-[hsl(var(--gold)/0.04)]">
+    // The dismiss X is a 44px sibling of the Shop link, not an absolutely
+    // positioned 30px glyph over its corner: a hit area that big overlapping the
+    // link's chevron would turn "open the Shop" taps into dismissals.
+    <GlassPanel className="py-1.5 pl-3 pr-0 flex items-center gap-1 border-[hsl(var(--gold)/0.3)] bg-[hsl(var(--gold)/0.04)]">
       <button
         type="button"
         onClick={() => { hapticLight(); setScreen('shop'); }}
-        className="w-full flex items-center gap-3 text-left"
+        className="flex-1 min-w-0 min-h-11 flex items-center gap-3 text-left"
         aria-label={`${STARTER_KIT.name} — view in Shop`}
       >
         <div className="w-9 h-9 rounded-xl bg-[hsl(var(--gold)/0.15)] border border-[hsl(var(--gold)/0.3)] flex items-center justify-center shrink-0">
@@ -52,7 +55,7 @@ export function StarterKitBanner() {
         type="button"
         onClick={() => { hapticLight(); dismissStarterKit(); }}
         aria-label="Dismiss starter kit offer"
-        className="absolute top-1.5 right-1.5 p-2 -m-1 rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
+        className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
       >
         <X className="w-3.5 h-3.5" />
       </button>

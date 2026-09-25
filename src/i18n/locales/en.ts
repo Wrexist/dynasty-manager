@@ -931,6 +931,20 @@ export const en = {
   'econ.negotiation.signingOnFee': 'Signing-on fee ',
   'econ.negotiation.noCurrentContract': 'No current contract',
   'econ.market.freeAgentFee': 'Free agent · signing-on fee',
+  // ── uipolish: one Getting Started checklist (OnboardingChecklist) ──
+  'onboardingChecklist.partFirstWeek': 'Part 1 of 2 · Your first week',
+  'onboardingChecklist.partFirstSeasons': 'Part 2 of 2 · Your first seasons',
+  'onboardingChecklist.partOneDoneTitle': 'Your first week is set up',
+  'onboardingChecklist.claimReadyAria': 'Claim {xp} XP for {n} completed steps',
+  // ── uipolish: storyline decisions in "Needs your attention" (Dashboard) ──
+  'dashboard.attention.storyline': 'Decision: {title}',
+  'dashboard.attention.storylineDetail': '{choices} choices — decide before you continue',
+  'storylineModal.decideLater': 'Decide later',
+  'storylineModal.ignoreStory': 'Ignore this story',
+  // ── uipolish: sheet descriptions for screen readers (Radix Description) ──
+  'moreDrawer.sheetDescription': 'Every screen in the game, grouped by area. Search to jump straight to one.',
+  'substitutionSheet.description': 'Choose a player to take off, then choose his replacement from the bench.',
+  'substitutionSheet.forcedDescription': 'A player cannot continue. Choose his replacement from the bench.',
 } as const;
 
 export default en;

@@ -286,13 +286,17 @@ const SubscribeOnboarding = () => {
     return pct > 0 ? pct : null;
   })();
 
-  /** Yearly expressed per month in the storefront's currency, via Intl. Same
-   *  fallback rule as `amountFor`: USD only when the store has not answered at
-   *  all (web/dev); on device, no currency code means no line. */
+  /** Yearly expressed per month in the storefront's currency. Same fallback
+   *  rule as `amountFor`: USD only when the store has not answered at all
+   *  (web/dev); on device, no currency code means no line. Written in the
+   *  shape of the yearly price it sits beside ("$24.99" → "$2.08", never
+   *  "US$2.08" because the device locale is en-GB). */
   const annualPerMonth = formatPerPeriodPrice(
     annualAmount,
     12,
     storeCurrency ?? (storeAnswered ? undefined : 'USD'),
+    undefined,
+    priceFor('com.dynastymanager.pro.yearly'),
   );
 
   const finish = () => {
@@ -702,13 +706,16 @@ const SubscribeOnboarding = () => {
           </>
         )}
 
-        {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c). */}
-        <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-semibold">
+        {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c).
+            Each link is a full 44px-tall target (they measured 17px) while the
+            type stays small and muted: the height is padding, not visual
+            weight, so the links do not compete with the purchase button. */}
+        <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold">
           <button
             type="button"
             onClick={handleRestore}
             disabled={restoring || purchasing}
-            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            className="min-h-11 px-1 flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
             <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
             {restoring ? 'Restoring…' : 'Restore Purchases'}
@@ -717,7 +724,7 @@ const SubscribeOnboarding = () => {
           <button
             type="button"
             onClick={openLegal(TERMS_URL)}
-            className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+            className="min-h-11 px-1 text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
           >
             Terms of Use
           </button>
@@ -725,13 +732,13 @@ const SubscribeOnboarding = () => {
           <button
             type="button"
             onClick={openLegal(PRIVACY_URL)}
-            className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+            className="min-h-11 px-1 text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
           >
             Privacy Policy
           </button>
         </div>
 
-        <p className="mt-1.5 text-center text-[10px] text-muted-foreground/70 leading-snug px-2">
+        <p className="mt-0.5 text-center text-[10px] text-muted-foreground/70 leading-snug px-2">
           Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
           Manage or cancel anytime in Settings → Apple ID → Subscriptions.
         </p>

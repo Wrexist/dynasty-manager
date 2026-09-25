@@ -34,7 +34,7 @@ import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { enrichDescription } from '@/utils/matchCommentary';
 import { CommentaryRow } from '@/components/game/CommentaryRow';
-import { isStructuredEvent } from '@/utils/matchEventDisplay';
+import { isStructuredEvent, liveLogRows } from '@/utils/matchEventDisplay';
 import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED, GOAL_PAUSE_MS } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
@@ -44,6 +44,7 @@ import { infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { ScoreHeader } from '@/components/matchday/ScoreHeader';
 import { MatchSpeedPicker } from '@/components/matchday/MatchSpeedPicker';
+import { TacticalInsightPill } from '@/components/matchday/TacticalInsightPill';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
@@ -214,7 +215,6 @@ const MatchDayInner = () => {
   // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const eventsEndRef = useRef<HTMLDivElement>(null);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
@@ -1156,10 +1156,7 @@ const MatchDayInner = () => {
               animate={{ opacity: 1, y: 0 }}
               className="text-center"
             >
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-primary/15 text-primary border border-primary/25">
-                <Zap className="w-2.5 h-2.5" />
-                {tacticalInsights[0]}
-              </span>
+              <TacticalInsightPill text={tacticalInsights[0]} />
             </motion.div>
           )}
           {/* Active Shout Indicator */}
@@ -1378,7 +1375,7 @@ const MatchDayInner = () => {
                           }
                         }}
                         className={cn(
-                          "flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-[10px] font-semibold transition-all active:scale-[0.97]",
+                          "flex-1 min-h-11 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-[10px] font-semibold transition-all active:scale-[0.97]",
                           isActive
                             ? 'bg-primary/20 text-primary border border-primary/30'
                             : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-border/30'
@@ -1397,7 +1394,7 @@ const MatchDayInner = () => {
                 {/* Expandable custom tactics */}
                 <button
                   onClick={() => setShowHalftimeCustomTactics(!showHalftimeCustomTactics)}
-                  className="w-full text-[10px] text-muted-foreground/60 hover:text-muted-foreground py-1.5 mt-2 transition-colors flex items-center justify-center gap-1"
+                  className="w-full min-h-11 text-[10px] text-muted-foreground/60 hover:text-muted-foreground mt-1 transition-colors flex items-center justify-center gap-1"
                 >
                   {showHalftimeCustomTactics ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   {showHalftimeCustomTactics ? 'Hide custom tactics' : 'Fine-tune tactics...'}
@@ -1479,7 +1476,7 @@ const MatchDayInner = () => {
           {matchSubsUsed < MAX_SUBSTITUTIONS && (
             <GlassPanel className="p-4">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Substitutions</p>
-              <Button className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
+              <Button className="w-full min-h-11 gap-2" onClick={() => setSubSheetOpen(true)}>
                 <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
               </Button>
             </GlassPanel>
@@ -1606,7 +1603,7 @@ const MatchDayInner = () => {
           {matchSubsUsed < MAX_SUBSTITUTIONS && (
             <GlassPanel className="p-4">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Substitutions</p>
-              <Button className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
+              <Button className="w-full min-h-11 gap-2" onClick={() => setSubSheetOpen(true)}>
                 <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
               </Button>
             </GlassPanel>
@@ -1624,7 +1621,7 @@ const MatchDayInner = () => {
             <FormationPicker />
             <button
               onClick={() => setShowHalftimeCustomTactics(!showHalftimeCustomTactics)}
-              className="w-full text-[10px] text-muted-foreground/60 hover:text-muted-foreground py-1.5 mt-2 transition-colors flex items-center justify-center gap-1"
+              className="w-full min-h-11 text-[10px] text-muted-foreground/60 hover:text-muted-foreground mt-1 transition-colors flex items-center justify-center gap-1"
             >
               {showHalftimeCustomTactics ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               {showHalftimeCustomTactics ? 'Hide custom tactics' : 'Fine-tune tactics...'}
@@ -1709,7 +1706,7 @@ const MatchDayInner = () => {
                 {matchSubsUsed < MAX_SUBSTITUTIONS && (
                   <button
                     onClick={() => setSubSheetOpen(true)}
-                    className="w-full py-2.5 rounded-xl bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.985] transition-all"
+                    className="w-full min-h-11 py-2.5 rounded-xl bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.985] transition-all"
                   >
                     <RefreshCw className="w-4 h-4" /> Make Substitution
                     <span className="text-[10px] font-medium opacity-70">({MAX_SUBSTITUTIONS - matchSubsUsed} left)</span>
@@ -2051,8 +2048,10 @@ const MatchDayInner = () => {
               short landscape screens (30vh ≈ 112px there). */}
           {matchView !== 'pitch' && (
           <GlassPanel className="p-4 max-h-[min(40vh,300px)] overflow-y-auto">
+            {/* Newest first (liveLogRows): the latest event is always the top
+                row, with no auto-scroll to animate. */}
             <div className="space-y-2" aria-live="polite" aria-label="Match events">
-              {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
+              {liveLogRows(visibleEvents).map(({ event: ev, index }) => {
                 // Structured events (goals, cards, shots, subs...) render as
                 // clear label-pill + player-chip rows. Ambient commentary and
                 // tactical prompts keep their prose styling via CommentaryRow's
@@ -2062,7 +2061,7 @@ const MatchDayInner = () => {
                   : getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId);
                 return (
                   <CommentaryRow
-                    key={i}
+                    key={index}
                     event={ev}
                     players={players}
                     clubs={clubs}
@@ -2071,7 +2070,6 @@ const MatchDayInner = () => {
                   />
                 );
               })}
-              <div ref={eventsEndRef} />
             </div>
           </GlassPanel>
           )}
@@ -2132,7 +2130,7 @@ const MatchDayInner = () => {
             {/* Customize option — expand to full tactical panel */}
             <button
               onClick={() => setShowCustomTactics(!showCustomTactics)}
-              className="w-full text-[10px] text-muted-foreground/60 hover:text-muted-foreground py-1 mb-2 transition-colors"
+              className="w-full min-h-11 text-[10px] text-muted-foreground/60 hover:text-muted-foreground mb-1 transition-colors"
             >
               {showCustomTactics ? 'Hide custom tactics' : 'Customize tactics manually...'}
             </button>
@@ -2146,13 +2144,13 @@ const MatchDayInner = () => {
             {matchSubsUsed < MAX_SUBSTITUTIONS && (
               <button
                 onClick={() => setSubSheetOpen(true)}
-                className="w-full py-2 rounded-lg bg-muted/30 text-xs text-muted-foreground hover:bg-muted/50 mb-2 flex items-center justify-center gap-1.5"
+                className="w-full min-h-11 rounded-lg bg-muted/30 text-xs text-muted-foreground hover:bg-muted/50 mb-2 flex items-center justify-center gap-1.5"
               >
                 <RefreshCw className="w-3 h-3" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
               </button>
             )}
 
-            <Button size="sm" className="w-full" onClick={() => { setShowCustomTactics(false); dismissKeyMoment(); }}>
+            <Button size="sm" className="w-full min-h-11" onClick={() => { setShowCustomTactics(false); dismissKeyMoment(); }}>
               <Play className="w-3.5 h-3.5 mr-1.5" /> Continue Match
             </Button>
           </GlassPanel>

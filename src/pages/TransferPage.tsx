@@ -457,21 +457,24 @@ const TransferPage = () => {
             )}
           </div>
 
-          {/* Position + Sort + Filters (single compact row) */}
-          <div className="flex items-center gap-1.5">
+          {/* Position + Sort + Filters (single compact row). Every chip is a
+              44px-tall button around its compact pill — they measured 19px,
+              and an ::after inset cannot reach 44 without overlapping the
+              neighbouring chip's target. */}
+          <div className="flex items-center gap-0.5 -my-2">
             {POSITION_FILTERS.map((f, i) => (
               <button
                 key={f.label}
                 aria-label={`Filter by ${f.label === 'All' ? 'all positions' : f.label}`}
                 onClick={() => { hapticLight(); setPosFilter(i); }}
-                className={cn(
-                  'relative px-2 py-0.5 rounded text-[10px] font-medium transition-all',
-                  // Hit area only — keeps the compact toolbar look.
-                  'after:absolute after:-inset-2 after:content-[""]',
-                  posFilter === i ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'
-                )}
+                className="min-h-11 min-w-9 flex items-center justify-center"
               >
-                {f.label}
+                <span className={cn(
+                  'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
+                  posFilter === i ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}>
+                  {f.label}
+                </span>
               </button>
             ))}
             <div className="flex-1" />
@@ -479,13 +482,14 @@ const TransferPage = () => {
               <button
                 aria-label={hideUnaffordable ? 'Show all prices' : 'Hide unaffordable'}
                 onClick={() => { hapticLight(); setHideUnaffordable(!hideUnaffordable); }}
-                className={cn(
-                  'relative px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
-                  'after:absolute after:-inset-2 after:content-[""]',
-                  hideUnaffordable ? 'bg-emerald-500/20 text-emerald-400' : 'text-muted-foreground hover:text-foreground'
-                )}
+                className="min-h-11 min-w-9 shrink-0 flex items-center justify-center"
               >
-                {'\u00A3'}{hideUnaffordable ? '\u2713' : ''}
+                <span className={cn(
+                  'px-1.5 py-0.5 rounded text-[10px] font-medium transition-all',
+                  hideUnaffordable ? 'bg-emerald-500/20 text-emerald-400' : 'text-muted-foreground hover:text-foreground'
+                )}>
+                  {'\u00A3'}{hideUnaffordable ? '\u2713' : ''}
+                </span>
               </button>
             )}
             <button
@@ -500,18 +504,20 @@ const TransferPage = () => {
                   setSortBy(opts[(opts.indexOf(sortBy) + 1) % opts.length]);
                 }
               }}
-              className="relative flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0 after:absolute after:-inset-2 after:content-['']"
+              className="min-h-11 min-w-11 shrink-0 flex items-center justify-end"
             >
-              <ArrowUpDown className="w-2.5 h-2.5" />
-              {tab === 'freeAgents'
-                ? (faSortBy === 'overall' ? 'OVR' : faSortBy === 'age' ? 'Age' : faSortBy === 'potential' ? 'POT' : 'Wage')
-                : (sortBy === 'overall' ? 'OVR' : sortBy === 'price' ? 'Price' : sortBy === 'age' ? 'Age' : 'POT')}
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground">
+                <ArrowUpDown className="w-2.5 h-2.5" />
+                {tab === 'freeAgents'
+                  ? (faSortBy === 'overall' ? 'OVR' : faSortBy === 'age' ? 'Age' : faSortBy === 'potential' ? 'POT' : 'Wage')
+                  : (sortBy === 'overall' ? 'OVR' : sortBy === 'price' ? 'Price' : sortBy === 'age' ? 'Age' : 'POT')}
+              </span>
             </button>
           </div>
 
           {/* Division filter (market only, inline) */}
           {tab === 'market' && (
-            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-0.5 -mb-2 overflow-x-auto scrollbar-hide">
               {[
                 { id: 'all', label: 'All' },
                 { id: '1', label: 'Top Flight' },
@@ -523,13 +529,14 @@ const TransferPage = () => {
                   key={d.id}
                   aria-label={`Filter by ${d.label}`}
                   onClick={() => { hapticLight(); setDivFilter(d.id); }}
-                  className={cn(
-                    'relative px-2 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
-                    'after:absolute after:-inset-2 after:content-[""]',
-                    divFilter === d.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
-                  )}
+                  className="min-h-11 shrink-0 flex items-center"
                 >
-                  {d.label}
+                  <span className={cn(
+                    'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
+                    divFilter === d.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
+                  )}>
+                    {d.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -625,14 +632,14 @@ const TransferPage = () => {
                 actions={
                   <>
                     <Button
-                      size="sm" className="flex-1 h-8 text-xs"
+                      size="sm" className="flex-1 h-11 text-xs"
                       disabled={!transferWindowOpen || squadFull}
                       onClick={() => handleOffer(listing)}
                     >
                       {squadFull ? 'Squad Full' : 'Make Offer'}
                     </Button>
                     <Button
-                      size="sm" variant="ghost" className="h-8 w-8 p-0"
+                      size="sm" variant="ghost" className="h-11 w-11 p-0"
                       aria-label={inShortlist ? 'Remove from shortlist' : 'Add to shortlist'}
                       onClick={() => { hapticLight(); if (inShortlist) { removeFromShortlist(p.id); infoToast('Removed from shortlist'); } else { addToShortlist(p.id); successToast('Added to shortlist'); } }}
                     >
@@ -695,19 +702,19 @@ const TransferPage = () => {
                     actions={
                       <>
                         <Button
-                          size="sm" className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                          size="sm" className="flex-1 h-11 text-xs bg-emerald-600 hover:bg-emerald-700"
                           onClick={() => handleRespondToOffer(offer.id, true)}
                         >
                           Accept
                         </Button>
                         <Button
-                          size="sm" className="flex-1 h-8 text-xs bg-amber-600 hover:bg-amber-700"
+                          size="sm" className="flex-1 h-11 text-xs bg-amber-600 hover:bg-amber-700"
                           onClick={() => { hapticMedium(); setNegotiatingOffer(offer); }}
                         >
                           Negotiate
                         </Button>
                         <Button
-                          size="sm" variant="destructive" className="flex-1 h-8 text-xs"
+                          size="sm" variant="destructive" className="flex-1 h-11 text-xs"
                           onClick={() => handleRespondToOffer(offer.id, false)}
                         >
                           Reject
@@ -744,7 +751,7 @@ const TransferPage = () => {
                     }
                     actions={
                       <Button
-                        size="sm" variant="outline" className="flex-1 h-8 text-xs"
+                        size="sm" variant="outline" className="flex-1 h-11 text-xs"
                         onClick={() => handleUnlist(p.id)}
                       >
                         Remove from List
@@ -940,7 +947,7 @@ const TransferPage = () => {
                           }
                           actions={transferWindowOpen ? (
                             <Button
-                              size="sm" variant="outline" className="w-full h-8 text-xs"
+                              size="sm" variant="outline" className="w-full h-11 text-xs"
                               onClick={() => {
                                 hapticMedium();
                                 const fee = getLoanBuyFee(loan, p);
@@ -992,7 +999,7 @@ const TransferPage = () => {
               }
               actions={
                 <Button
-                  size="sm" className="w-full h-8 text-xs"
+                  size="sm" className="w-full h-11 text-xs"
                   disabled={squadFull}
                   onClick={() => { setSigningPlayer(p.id); setOfferWage(p.wage); setOfferYears(FREE_AGENT_DEFAULT_CONTRACT_YEARS); }}
                 >

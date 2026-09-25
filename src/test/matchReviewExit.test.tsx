@@ -126,3 +126,31 @@ describe('MatchReview exits', () => {
     expect(advanceWeek).not.toHaveBeenCalled();
   });
 });
+
+// Playthrough 2026-09 (R6): Match Review phrases a half-time line against the
+// FINAL score, as PostMatchPopup does — it used to call the debrief without a
+// score, so the page read a bare "Led at half-time." and lost the lesson.
+describe('MatchReview — Tactical Debrief is a full-time review', () => {
+  it('reviews the half-time lead against the final score and keeps its lesson', () => {
+    const played = stageQuietWeek();
+    const playerHome = played.homeClubId === CLUB_ID;
+    const reviewed: Match = {
+      ...played,
+      // The player's side wins 2–1 whichever end they were at.
+      homeGoals: playerHome ? 2 : 1,
+      awayGoals: playerHome ? 1 : 2,
+      events: [
+        { minute: 0, type: 'kickoff', clubId: played.homeClubId, description: 'Kick off!' },
+        {
+          minute: 46, type: 'kickoff', clubId: played.homeClubId, description: 'Second half underway!',
+          tacticalInsight: 'Leading — SOU may push forward, watch for counters',
+        },
+      ],
+    };
+    useGameStore.setState({ currentMatchResult: reviewed });
+    renderReview();
+    expect(screen.getByText('Led at half-time and saw the game out.')).toBeTruthy();
+    expect(screen.getByText(/Holding a lead worked/)).toBeTruthy();
+    expect(screen.queryByText(/watch for counters/)).toBeNull();
+  });
+});

@@ -132,7 +132,7 @@ const ModeSelect = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground hover:text-foreground gap-1.5 -ml-2"
+          className="min-h-11 text-muted-foreground hover:text-foreground gap-1.5 -ml-2"
           onClick={() => navigate('/')}
         >
           <ArrowLeft className="w-4 h-4" /> Back

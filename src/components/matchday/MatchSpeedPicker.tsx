@@ -37,7 +37,9 @@ export function MatchSpeedPicker({
               type="button"
               onClick={() => locked ? onLockedSelect() : onSelect(s.value)}
               className={cn(
-                'px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5',
+                // 44px tall (they measured 23px at 390x844): a speed change is
+                // made mid-match, one-handed, so the chip must be hittable.
+                'min-h-11 min-w-11 px-2 rounded-md text-[10px] font-medium transition-all flex items-center justify-center gap-0.5',
                 locked
                   ? 'text-muted-foreground/40 cursor-default'
                   : speed === s.value

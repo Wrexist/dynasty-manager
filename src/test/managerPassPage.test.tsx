@@ -151,3 +151,40 @@ describe('DynastyLegacy unlocks', () => {
     expect(useGameStore.getState().currentScreen).toBe('manager-pass');
   });
 });
+
+// Playthrough 2026-09 (R16): reward names were truncated in the two-column
+// track at 390px ("The Tinkerm…", "Midnight …").
+describe('ManagerPassPage — reward names are readable at 375px', () => {
+  it('names wrap to two lines instead of truncating', async () => {
+    await renderPage(<ManagerPassPage />);
+    const names = screen.getAllByTestId('pass-reward-name');
+    expect(names.length).toBeGreaterThan(0);
+    for (const el of names) {
+      expect(el.className).toContain('line-clamp-2');
+      expect(el.className).not.toMatch(/\btruncate\b/);
+    }
+  });
+
+  it('every reward name fits two lines of a 375px cell', async () => {
+    // A cell's text width at 375px: 375 − 32 (page px-4) − 32 (panel p-4)
+    // − 36 (tier column) − 16 (two gaps) = 259 → 129.5 per cell, − 2 border
+    // − 16 (px-2) − 16 (icon) − 6 (gap) ≈ 89px. At 12px semibold that is ~13
+    // characters; the budget below is 12, greedy word wrap.
+    const CHARS_PER_LINE = 12;
+    const lines = (name: string) => {
+      let count = 1;
+      let width = 0;
+      for (const word of name.split(' ')) {
+        if (word.length > CHARS_PER_LINE) return Infinity;
+        if (width === 0) width = word.length;
+        else if (width + 1 + word.length <= CHARS_PER_LINE) width += 1 + word.length;
+        else { count++; width = word.length; }
+      }
+      return count;
+    };
+    await renderPage(<ManagerPassPage />);
+    for (const el of screen.getAllByTestId('pass-reward-name')) {
+      expect(lines(el.textContent ?? ''), el.textContent ?? '').toBeLessThanOrEqual(2);
+    }
+  });
+});

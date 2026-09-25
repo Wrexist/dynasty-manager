@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
@@ -8,17 +8,32 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
-import { usePresentationSlot } from '@/hooks/usePresentationQueue';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
-export function StorylineModal() {
+/**
+ * The pending storyline decision, as a sheet the player opens.
+ *
+ * It used to render as a large inline card at the very top of the Dashboard —
+ * above the Continue button, which a three-choice story pushed to y≈650
+ * (playthrough 2026-09, R17). The decision is now a row in "Needs your
+ * attention" (`selectAttentionItems`, id 'storyline') and this sheet opens
+ * from it. Closing the sheet keeps the decision pending; "Ignore this story"
+ * is the old dismiss. Not part of the post-advance presentation queue any
+ * more: it only shows when asked for, so it never holds other popups back.
+ */
+export function StorylineModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const pendingStoryline = useGameStore(s => s.pendingStoryline);
   const activeStorylineChains = useGameStore(s => s.activeStorylineChains);
   const respondToStoryline = useGameStore(s => s.respondToStoryline);
   const dismissStoryline = useGameStore(s => s.dismissStoryline);
-  // Presentation queue (G3): show + buzz only when we're the active overlay.
-  const active = usePresentationSlot('storyline', !!pendingStoryline);
-  const visible = !!pendingStoryline && active;
+  const reduced = useReducedMotionPref();
+  const visible = !!pendingStoryline;
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, visible);
+  useEscapeClose(onClose, visible);
 
   // Derive chain context for multi-step storylines
   const chainContext = useMemo(() => {
@@ -40,11 +55,20 @@ export function StorylineModal() {
   if (!visible) return null;
 
   return (
+    <div
+      className="fixed inset-0 z-[60] flex cursor-pointer items-end justify-center bg-black/70 backdrop-blur-sm px-3 pb-3 sm:items-center safe-area-bottom"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
     <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="storyline-sheet-title"
+      tabIndex={-1}
+      initial={reduced ? false : { opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="bg-card/80 backdrop-blur-xl border border-amber-500/30 rounded-xl p-4 space-y-3"
+      className="w-full max-w-lg max-h-[85dvh] overflow-y-auto cursor-auto outline-none bg-card/95 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-4 space-y-3"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -53,9 +77,9 @@ export function StorylineModal() {
             <DynamicIcon name={pendingStoryline.icon} className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <p className="text-xs font-bold text-amber-400 uppercase tracking-wide">
+            <h2 id="storyline-sheet-title" className="text-xs font-bold text-amber-400 uppercase tracking-wide">
               {chainContext ? chainContext.name : 'Storyline Event'}
-            </p>
+            </h2>
             <p className="text-[10px] text-muted-foreground">
               {chainContext
                 ? `${pendingStoryline.title} — Step ${chainContext.step} of ${chainContext.total}`
@@ -65,9 +89,9 @@ export function StorylineModal() {
         </div>
         <button
           type="button"
-          onClick={dismissStoryline}
+          onClick={onClose}
           className="flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 rounded-lg hover:bg-muted/50 transition-colors"
-          aria-label={t('storylineModal.dismissStorylineEvent')}
+          aria-label={t('storylineModal.decideLater')}
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -95,7 +119,7 @@ export function StorylineModal() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + index * 0.05, duration: 0.2 }}
-              onClick={() => respondToStoryline(index)}
+              onClick={() => { respondToStoryline(index); onClose(); }}
               className={cn(
                 'w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98]',
                 'border-border/50 hover:bg-muted/30'
@@ -121,6 +145,16 @@ export function StorylineModal() {
           );
         })}
       </div>
+
+      {/* The old dismiss: let the story go without answering it. */}
+      <button
+        type="button"
+        onClick={() => { dismissStoryline(); onClose(); }}
+        className="w-full min-h-11 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {t('storylineModal.ignoreStory')}
+      </button>
     </motion.div>
+    </div>
   );
 }

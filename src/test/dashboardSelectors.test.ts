@@ -215,6 +215,15 @@ describe('selectAttentionItems — only what needs action, most urgent first', (
   }
   const healthySquad = () => Array.from({ length: 25 }, () => player());
 
+  it('a pending storyline decision is a warning row that stays on the Dashboard (R17)', () => {
+    const items = selectAttentionItems(input(healthySquad(), { storyline: { title: 'Big Club Scouts Spotted', choices: 3 } }));
+    expect(items).toEqual([{
+      id: 'storyline', severity: 'warning', screen: 'dashboard',
+      params: { title: 'Big Club Scouts Spotted', choices: 3 },
+    }]);
+    expect(selectAttentionItems(input(healthySquad(), { storyline: null }))).toEqual([]);
+  });
+
   it('is empty for a healthy club with nothing pending', () => {
     expect(selectAttentionItems(input(healthySquad()))).toEqual([]);
   });

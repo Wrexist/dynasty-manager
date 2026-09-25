@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
@@ -297,6 +297,8 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
         </div>
         <SheetHeader className="pb-3">
           <SheetTitle className="text-foreground font-display text-lg tracking-wide">Quick Access</SheetTitle>
+          {/* Radix warned "Missing Description" on every open (R19). */}
+          <SheetDescription className="sr-only">{t('moreDrawer.sheetDescription')}</SheetDescription>
         </SheetHeader>
 
         {/* Pinned essentials row — each becomes a liquid-glass tile so the
