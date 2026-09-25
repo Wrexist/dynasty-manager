@@ -133,6 +133,23 @@ function competitionsCreditedToManager(state: GameState) {
   };
 }
 
+/**
+ * Whether a league title — finishing `position` — is the MANAGER's.
+ *
+ * The league is decided at season end, so it is theirs only if they are in
+ * charge then. An unemployed career manager still has `playerClubId` pointing
+ * at the club that let them go, and `history.position` is that club's final
+ * place: a title the ex-club went on to win after the sacking was credited to
+ * the manager as a "League Champions!" / "First League Title!" milestone and
+ * title XP. Same rule as the cups (`competitionsCreditedToManager`): only a
+ * competition decided while in charge counts.
+ */
+export function leagueTitleCreditedToManager(state: Pick<GameState, 'gameMode' | 'careerManager'>, position: number): boolean {
+  if (position !== 1) return false;
+  const cm = state.careerManager;
+  return !(state.gameMode === 'career' && cm && !cm.contract);
+}
+
 export function endSeasonImpl(set: Set, get: Get) {
   const state = get();
   const { season, leagueTable, players, clubs, playerClubId, boardConfidence, messages } = state;
@@ -701,8 +718,9 @@ function finalizeSeason(
   const newSeason = season + 1;
   resetSeasonGrowth();
   // Timeline milestones and trophy XP are the manager's — see
-  // `competitionsCreditedToManager`.
+  // `competitionsCreditedToManager` and `leagueTitleCreditedToManager`.
   const credited = competitionsCreditedToManager(state);
+  const titleCredited = leagueTitleCreditedToManager(state, history.position);
 
   // Snapshot everything the career tail needs to judge the season that just
   // ENDED, before the rollover below overwrites it with next season's fresh
@@ -1744,7 +1762,7 @@ function finalizeSeason(
     // Career milestones & manager XP at end of season
     careerTimeline: (() => {
       const milestones = [...state.careerTimeline];
-      if (history.position === 1) {
+      if (titleCredited) {
         const isFirst = !state.seasonHistory.some(h => h.position === 1);
         milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${history.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
       }
@@ -1770,7 +1788,7 @@ function finalizeSeason(
     })(),
     managerProgression: grantXP(state.managerProgression, (() => {
       let xp = XP_REWARDS.seasonEnd;
-      if (history.position === 1) xp += XP_REWARDS.titleWin;
+      if (titleCredited) xp += XP_REWARDS.titleWin;
       if (credited.cup.winner === playerClubId) xp += XP_REWARDS.cupWin;
       if (credited.leagueCup?.winner === playerClubId) xp += XP_REWARDS.leagueCupWin;
       if (credited.championsCup?.winnerId === playerClubId) xp += XP_REWARDS.championsCupWin;
