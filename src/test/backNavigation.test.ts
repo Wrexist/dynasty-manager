@@ -3,6 +3,8 @@ import { resolveBackTarget, resolveHardwareBack } from '@/utils/backNavigation';
 import { hasOpenOverlay, dismissTopOverlay } from '@/hooks/useHardwareBack';
 import { useGameStore } from '@/store/gameStore';
 import type { GameState } from '@/store/storeTypes';
+import type { GameScreen } from '@/types/game';
+import { DETAIL_SCREENS, DRAWER_GROUPS, MAIN_TABS, PINNED_DRAWER_SCREENS, SCREEN_GROUPS } from '@/config/navigation';
 
 // Back used to follow a fixed BACK_TARGET table and ignore the path you took:
 // Market → Player → back landed on Squad (audit 2026-09-25, navigation rework).
@@ -97,6 +99,29 @@ describe('store goBack', () => {
     useGameStore.setState({ currentScreen: 'season-summary' });
     useGameStore.getState().goBack();
     expect(useGameStore.getState().currentScreen).toBe('dashboard');
+  });
+});
+
+// Playthrough 2026-09: League Table → top-bar Inbox left no back arrow — the
+// Inbox was the one non-tab screen missing from DETAIL_SCREENS, so TopBar
+// treated it as a main tab.
+describe('every More-drawer screen offers a way back', () => {
+  it('lists each drawer and pinned screen that is not a tab or sub-nav member as a detail screen', () => {
+    const tabs = new Set<GameScreen>([...MAIN_TABS, ...SCREEN_GROUPS.flat()]);
+    const drawer = [...PINNED_DRAWER_SCREENS, ...DRAWER_GROUPS.flatMap(g => g.screens)];
+    const missing = drawer.filter(s => !tabs.has(s) && !DETAIL_SCREENS.includes(s));
+    expect(missing).toEqual([]);
+  });
+
+  it('goes back from the Inbox to the screen it was opened on', () => {
+    useGameStore.setState({
+      gameMode: 'sandbox', careerManager: null, matchPhase: 'none',
+      currentScreen: 'dashboard', previousScreen: null, previousScreenFor: null,
+    } as Partial<GameState>);
+    useGameStore.getState().setScreen('league-table');
+    useGameStore.getState().setScreen('inbox');
+    useGameStore.getState().goBack();
+    expect(useGameStore.getState().currentScreen).toBe('league-table');
   });
 });
 

@@ -7,6 +7,9 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'national-team', 'national-squad-picker', 'international-tournament', 'conference-cup',
   'job-market', 'career-overview', 'ballon-dor', 'festival', 'dynasty-legacy', 'manager-pass', 'world-cup-draw', 'world-cup-result',
   'rivalries', 'competitions', 'career-retired',
+  // The Inbox opens from the top bar on any screen, so it needs the way back
+  // to that screen (for an unemployed manager it is a tab, handled apart).
+  'inbox',
   // Sunday League's only non-tab, non-sub-nav screen. Everything else in the
   // mode is either a tab (hub / teamsheet / table / clubhouse) or a member of
   // one of the two SUNDAY_SCREEN_GROUPS below, and gets the identity header.
