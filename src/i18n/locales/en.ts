@@ -656,6 +656,12 @@ export const en = {
   'sponsorOfferSheet.performanceBonus': "Performance Bonus",
   'sponsorOfferSheet.duration': "Duration",
   'sponsorOfferSheet.weeklyPay': "Weekly Pay",
+  // ── home: More drawer ──
+  'moreDrawer.group.club': "Club",
+  'moreDrawer.group.competitions': "Competitions",
+  'moreDrawer.group.me': "Me",
+  'moreDrawer.group.app': "App",
+  'moreDrawer.jumpTo': "Jump to",
 } as const;
 
 export default en;
