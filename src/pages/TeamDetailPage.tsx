@@ -1,9 +1,10 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { Shield, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
@@ -88,12 +89,7 @@ const TeamDetailPage = () => {
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>
         <GlassPanel className="p-5">
           <div className="flex items-center gap-4">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center border-2 shrink-0"
-              style={{ backgroundColor: club.color, borderColor: club.secondaryColor }}
-            >
-              <Shield className="w-8 h-8 text-white/80" />
-            </div>
+            <ClubCrest club={club} size="xl" />
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-black text-foreground font-display truncate">{club.name}</h1>
               <p className="text-sm text-muted-foreground">

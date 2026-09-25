@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -42,12 +43,7 @@ function RivalCard({ rival }: { rival: RivalSummary }) {
   return (
     <GlassPanel className="p-4 space-y-3">
       <div className="flex items-center gap-3">
-        <div
-          className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0"
-          style={{ backgroundColor: rival.color, color: rival.secondaryColor }}
-        >
-          {rival.shortName}
-        </div>
+        <ClubCrest club={rival} clubId={rival.clubId} size="lg" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-foreground truncate">{rival.name}</p>
           {rival.derbyName ? (

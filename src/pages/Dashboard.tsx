@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
@@ -813,12 +814,7 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: club.color, color: club.secondaryColor }}
-              >
-                {club.shortName}
-              </div>
+              <ClubCrest club={club} size="lg" className="mx-auto mb-2" />
               <p className="text-sm font-bold text-foreground">{club.shortName}</p>
               <p className="text-micro text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
             </div>
@@ -826,12 +822,7 @@ const Dashboard = () => {
               <p className="text-2xl font-black text-muted-foreground">VS</p>
             </div>
             <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
-              >
-                {opponent.shortName}
-              </div>
+              <ClubCrest club={opponent} size="lg" className="mx-auto mb-2" />
               <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
               <p className="text-micro text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
             </div>
@@ -1811,10 +1802,7 @@ const Dashboard = () => {
                 )}>
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 text-right tabular-nums">{team.position}</span>
-                    <div
-                      className="w-3 h-3 rounded-full shrink-0"
-                      style={{ backgroundColor: team.color }}
-                    />
+                    <ClubCrest club={team} clubId={team.clubId} size="xs" />
                     <span className="truncate max-w-[60px]">{team.shortName}</span>
                   </div>
                   <span className="font-semibold tabular-nums">{team.points}pts</span>

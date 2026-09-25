@@ -4,7 +4,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, getCupWeek, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, ChevronRight, ChevronDown, Calendar, Target } from 'lucide-react';
+import { Trophy, ChevronRight, ChevronDown, Calendar, Target } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
@@ -28,9 +28,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
       <div className="flex items-center gap-2">
         {/* Home */}
         <div className={cn('flex-1 flex items-center gap-2', winnerId === tie.homeClubId && 'font-bold')}>
-          <ClubCrest club={home} size="xs">
-            <Shield className="w-3 h-3" />
-          </ClubCrest>
+          <ClubCrest club={home} clubId={tie.homeClubId} size="xs" />
           <span className={cn(
             'text-sm truncate',
             tie.homeClubId === playerClubId ? 'text-primary' :
@@ -67,9 +65,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           )}>
             {away?.shortName || '???'}
           </span>
-          <ClubCrest club={away} size="xs">
-            <Shield className="w-3 h-3" />
-          </ClubCrest>
+          <ClubCrest club={away} clubId={tie.awayClubId} size="xs" />
         </div>
       </div>
       {tie.penaltyShootout && (

@@ -77,3 +77,6 @@ data/fc27/*.json
 artifacts/player-portrait-rollout/*/sources/
 artifacts/player-portrait-rollout/*/references/
 artifacts/player-portrait-rollout/*/rejected-variants/
+
+# Full-resolution crest sources remain local; runtime SVG assets and manifests ship.
+artifacts/team-crest-rollout/sources/

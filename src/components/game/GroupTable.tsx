@@ -1,6 +1,7 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import type { ContinentalGroup, ContinentalGroupMatch, ContinentalCompetition, VirtualClub } from '@/types/game';
 import { cn } from '@/lib/utils';
-import { Shield, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,17 +19,6 @@ interface GroupTableProps {
   isPlayerGroup: boolean;
   currentMatchday: number;
   competition?: ContinentalCompetition;
-}
-
-function ClubBadge({ color, size = 'sm' }: { color: string; size?: 'sm' | 'xs' }) {
-  return (
-    <div
-      className={cn('rounded-full flex items-center justify-center shrink-0', size === 'sm' ? 'w-5 h-5' : 'w-4 h-4')}
-      style={{ backgroundColor: color || '#888' }}
-    >
-      <Shield className={cn('text-white', size === 'sm' ? 'w-2.5 h-2.5' : 'w-2 h-2')} />
-    </div>
-  );
 }
 
 function getClubInfo(clubId: string, clubs: Record<string, { name: string; shortName: string; color: string }>, virtualClubs: Record<string, VirtualClub>) {
@@ -54,7 +44,7 @@ function MatchResult({ match, clubs, virtualClubs, playerClubId }: {
       'flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs',
       isPlayer && 'bg-primary/10 border border-primary/20'
     )}>
-      <ClubBadge color={home.color} size="xs" />
+      <ClubCrest club={home} clubId={match.homeClubId} size="xs" />
       <span className={cn('flex-1 truncate', match.homeClubId === playerClubId && 'text-primary font-medium')}>{home.shortName}</span>
       {match.played ? (
         <span className="font-mono font-bold text-foreground">{match.homeGoals}-{match.awayGoals}</span>
@@ -62,7 +52,7 @@ function MatchResult({ match, clubs, virtualClubs, playerClubId }: {
         <span className="text-muted-foreground">vs</span>
       )}
       <span className={cn('flex-1 truncate text-right', match.awayClubId === playerClubId && 'text-primary font-medium')}>{away.shortName}</span>
-      <ClubBadge color={away.color} size="xs" />
+      <ClubCrest club={away} clubId={match.awayClubId} size="xs" />
     </div>
   );
 }
@@ -138,7 +128,7 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
                         </td>
                         <td className="py-1.5">
                           <div className="flex items-center gap-1.5">
-                            <ClubBadge color={info.color} size="xs" />
+                            <ClubCrest club={info} clubId={s.clubId} size="xs" />
                             <span className={cn('truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
                               {info.shortName}
                             </span>
