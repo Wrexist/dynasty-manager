@@ -3822,3 +3822,10 @@ export type ManagerPassEvent =
   | { source: 'match'; key: string; outcome: 'win' | 'draw' | 'loss' }
   | { source: 'objective'; key: string }
   | { source: 'season'; key: string; trophies: number };
+// ── onboarding: MatchDay playback phase ──
+/** MatchDay's LOCAL playback phase — what the screen is showing, not the
+ *  store's `matchPhase`. The two differ on purpose: the store finalises a half
+ *  while the clock is still running through it. Not persisted. */
+export type MatchDayPhase =
+  | 'pre' | 'first_half' | 'half_time' | 'second_half'
+  | 'extra_time_break' | 'extra_time' | 'penalties' | 'post';
