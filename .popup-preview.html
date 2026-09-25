@@ -1,8 +1,0 @@
-﻿<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body class="game-theme"><div id="root"></div><script type="module">
-import React from 'react';
-import {createRoot} from 'react-dom/client';
-import {PackDealUpsell} from '/src/components/game/pack/PackDealUpsell.tsx';
-import '/src/index.css';
-const deals=[{slotId:'flash',tierKey:'icon',bonusCards:3,remainingMs:10920000,endsAt:Date.now()+10920000},{slotId:'daily',tierKey:'gold',bonusCards:2,remainingMs:10920000,endsAt:Date.now()+10920000},{slotId:'weekly',tierKey:'rare_gold',bonusCards:1,remainingMs:10920000,endsAt:Date.now()+10920000}];
-createRoot(document.getElementById('root')).render(React.createElement(PackDealUpsell,{deals,onClose:()=>{},onView:()=>{}}));
-</script></body></html>
