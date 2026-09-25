@@ -124,20 +124,25 @@ export function isPersistableEntitlement(productId: ProductId): boolean {
 const isoMs = (iso: string | null | undefined): number => (iso ? new Date(iso).getTime() : NaN);
 
 /**
- * Is `candidate` a store-observed lapse written after `other`?
+ * Is `candidate` a lapse that ended AFTER `other` was last vouched for?
  *
- * A record written after its own expiry (`expiresAt <= grantedAt`) is by
- * construction the store saying "this subscription ended":
- * `extractSubscriptionInfo` produces exactly that shape for a refund,
- * revocation or lapse, and an active record never has it. Newer means a
- * later `grantedAt` than the other record, or the other record has none.
+ * `extractSubscriptionInfo` records a refund, revocation or lapse as a record
+ * written after its own expiry (`expiresAt <= grantedAt`). That shape alone is
+ * not proof of an observation: the v73→v74 migration backfilled `grantedAt`
+ * with the migration time on every dated record, so an old save's long-expired
+ * local trial has it too. What makes the lapse the newer verdict is that the
+ * subscription ENDED at or after the other record was written — e.g. a refund
+ * of the very subscription the other record describes. A lapse that ended
+ * before the other record was written (an old trial; a subscription the player
+ * has since restarted) never overrides it. An undated other record (no
+ * `grantedAt`) cannot be compared, and the lapse wins.
  */
 function isNewerObservedLapse(candidate: SubscriptionInfo, other: SubscriptionInfo): boolean {
   const expires = isoMs(candidate.expiresAt);
   const observed = isoMs(candidate.grantedAt);
   if (!Number.isFinite(expires) || !Number.isFinite(observed) || expires > observed) return false;
   const otherObserved = isoMs(other.grantedAt);
-  return !Number.isFinite(otherObserved) || observed > otherObserved;
+  return !Number.isFinite(otherObserved) || expires >= otherObserved;
 }
 
 /**
@@ -156,9 +161,11 @@ function isNewerObservedLapse(candidate: SubscriptionInfo, other: SubscriptionIn
  *
  * Neither side can be trusted wholesale, so merge rather than pick: the union
  * of entitlements, the stronger subscription record, and the earliest real
- * first-launch timestamp. A purchase is only ever added by this function, never
- * dropped; the store remains the authority for taking one away (an expired
- * subscription still reads as expired through isSubscriptionExpired).
+ * first-launch timestamp. A purchase is only ever added by this function; the
+ * one thing it lets end a subscription is the store's own lapse verdict when it
+ * postdates the other record (see `isNewerObservedLapse`). Otherwise the store
+ * remains the authority for taking one away (an expired subscription still
+ * reads as expired through isSubscriptionExpired).
  */
 export function mergeDeviceMonetization(
   saved: Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'>,

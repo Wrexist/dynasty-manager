@@ -69,6 +69,7 @@ import {
 } from '@/utils/purchases';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { __resetClockHighWaterCache } from '@/store/helpers/persistence';
+import { migrateSaveData } from '@/utils/saveMigration';
 import type { ProductId } from '@/types/game';
 import { DAY, iso, customer, proEntitlement } from './helpers/revenueCat';
 
@@ -393,6 +394,54 @@ describe('a refunded, revoked or lapsed subscription ends when the store says so
       { entitlements: [], subscription: active, firstLaunchTimestamp: 0 },
       { entitlements: [], subscription: expired, firstLaunchTimestamp: 0 },
     ).subscription).toEqual(active);
+  });
+
+  it('an old save\'s long-expired trial does not revoke a paying subscriber (v74 backfilled its grantedAt)', () => {
+    // A pre-v74 slot holding a local trial that ran out months ago. The v74
+    // migration stamps `grantedAt` with the migration time, so the record now
+    // reads "written after its own expiry" — the lapse shape — without the
+    // store ever having observed anything.
+    const migrated = migrateSaveData({
+      version: 73,
+      monetization: {
+        ...DEFAULT_MONETIZATION_STATE,
+        subscription: {
+          tier: 'trial', productId: YEARLY, expiresAt: iso(Date.now() - 60 * DAY),
+          isInGracePeriod: false, willRenew: true, isTrial: true,
+        },
+      },
+    }) as { monetization: typeof DEFAULT_MONETIZATION_STATE };
+    const paying = {
+      tier: 'annual' as const, productId: YEARLY, expiresAt: iso(Date.now() + 200 * DAY),
+      grantedAt: iso(Date.now() - 2 * 60 * 60 * 1000), isInGracePeriod: false, willRenew: true, isTrial: false,
+    };
+
+    const merged = mergeDeviceMonetization(
+      migrated.monetization,
+      { entitlements: [], subscription: paying, firstLaunchTimestamp: 0 },
+    );
+
+    expect(merged.subscription).toEqual(paying);
+    expect(isPro({ ...DEFAULT_MONETIZATION_STATE, ...merged })).toBe(true);
+  });
+
+  it('a lapse that ended before the other record was written does not override it (a restarted subscription)', () => {
+    const oldLapse = {
+      tier: 'monthly' as const, productId: MONTHLY, expiresAt: iso(Date.now() - 40 * DAY),
+      grantedAt: iso(Date.now() - 39 * DAY), isInGracePeriod: false, willRenew: false, isTrial: false,
+    };
+    const restarted = {
+      tier: 'monthly' as const, productId: MONTHLY, expiresAt: iso(Date.now() + 25 * DAY),
+      grantedAt: iso(Date.now() - 5 * DAY), isInGracePeriod: false, willRenew: true, isTrial: false,
+    };
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: oldLapse, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: restarted, firstLaunchTimestamp: 0 },
+    ).subscription).toEqual(restarted);
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: restarted, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: oldLapse, firstLaunchTimestamp: 0 },
+    ).subscription).toEqual(restarted);
   });
 });
 
