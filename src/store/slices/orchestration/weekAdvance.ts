@@ -859,6 +859,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     tickWorldPlayers(simPlayers, simClubs, state.week, state.totalWeeks, null);
     const simDivFixtures: Record<string, Match[]> = { ...state.divisionFixtures };
     const eloRankings = { ...(state.clubPowerRankings || {}) };
+    // Every club's upcoming fixture weeks, so a card picked up in any match this
+    // week bans the player for MATCHES rather than calendar weeks (S11).
+    const unempFixtureWeeks = buildFixtureWeeksByClub(state, newWeek);
 
     for (const [leagueId, clubIds] of Object.entries(state.divisionClubs)) {
       if (!clubIds?.length) continue;
@@ -897,7 +900,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
         const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, state.season, undefined, hBenchAI, aBenchAI);
         leagueFixtures[fi] = stripAiMatchDetail(result, state.playerClubId);
-        applyAIMatchEvents(result.events, simPlayers, simClubs, newWeek, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+        applyAIMatchEvents(result.events, simPlayers, simClubs, newWeek, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId, unempFixtureWeeks);
         updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
         changed = true;
       }
@@ -912,7 +915,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // every due tie (the ex-club's included) is simulated, nothing is posted.
     const unempCompetitions = progressCompetitionsWeek({
       state, clubs: simClubs, players: simPlayers, week: newWeek, season: state.season,
-      playerClubId: '', eloRankings, messages: msgs,
+      playerClubId: '', eloRankings, messages: msgs, fixtureWeeksByClub: unempFixtureWeeks,
     });
     msgs = unempCompetitions.messages;
 
@@ -1320,6 +1323,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Mutable copy of power rankings — updated after every match this week
   const eloRankings = { ...(state.clubPowerRankings || {}) };
 
+  // Every club's upcoming fixture weeks, so a card picked up in ANY match this
+  // week — the player's division, the cups, continental football, the other
+  // divisions — bans the player for MATCHES rather than calendar weeks (see
+  // `suspensionEndWeek`). Built once from the start-of-tick calendar.
+  const fixtureWeeksByClub = buildFixtureWeeksByClub(state, week);
+
   // A fixture belonging to the player's club is only in `aiMatches` because a
   // higher-priority match forced it to be auto-simmed. That club gets its saved
   // XI honoured (`honourSavedLineup`) — the manager picked it, so the assistant
@@ -1349,7 +1358,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
     const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
     updatedFixtures[idx] = stripAiMatchDetail(result, playerClubId);
-    applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+    applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId, fixtureWeeksByClub);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
   }
 
@@ -1376,6 +1385,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // unemployed week (see competitionWeek.ts), which used to skip all of them.
   const competitions = progressCompetitionsWeek({
     state, clubs, players: newPlayers, week, season, playerClubId, eloRankings, messages: newMessages,
+    fixtureWeeksByClub,
   });
   newMessages = competitions.messages;
   newTimeline.push(...competitions.milestones);
@@ -1421,9 +1431,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // every league, not just the user's. Without this, La Liga / Bundesliga
   // / Ligue 1 stars never accumulate season output and BdO becomes a
   // single-league award by accident.
-  // Every club's upcoming fixture weeks, so a card picked up below bans the
-  // player for MATCHES rather than calendar weeks (see `suspensionEndWeek`).
-  const otherLeagueFixtureWeeks = buildFixtureWeeksByClub(state, week);
+  // Cards below ban for MATCHES: `fixtureWeeksByClub` (built above).
   for (const leagueId of Object.keys(state.divisionClubs)) {
     if (leagueId === playerDiv) continue;
     const leagueFixtures = updatedDivisionFixtures[leagueId];
@@ -1462,7 +1470,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const aTacticsOther = aProfileOther && hProfileOther ? getAICounterTactics(aProfileOther, hProfileOther.defaultTactics, hc.formation || '4-4-2') : undefined;
       const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsOther, aTacticsOther, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSquadOther.bench, aSquadOther.bench);
       updatedLeagueFixtures[i] = stripAiMatchDetail(result, playerClubId);
-      applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId, otherLeagueFixtureWeeks);
+      applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId, fixtureWeeksByClub);
       updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
     }
     updatedDivisionFixtures[leagueId] = updatedLeagueFixtures;

@@ -208,6 +208,27 @@ export function suspensionEndWeek(
   return lastKnown + 1 + (matches - ahead.length);
 }
 
+/**
+ * How many of his club's MATCHES a player banned until `suspendedUntilWeek`
+ * still has to sit out — the inverse of `suspensionEndWeek`, reading the same
+ * calendar the same way (one per fixture week, one a week past the last known
+ * fixture). Display only: `suspendedUntilWeek - week` counts calendar weeks, so
+ * a one-match red card with the next fixture a week away read "2 match ban".
+ */
+export function suspensionMatchesRemaining(
+  week: number,
+  suspendedUntilWeek: number | null | undefined,
+  upcomingFixtureWeeks?: readonly number[],
+): number {
+  if (suspendedUntilWeek == null) return 0;
+  const lastBannedWeek = suspendedUntilWeek - 1;
+  if (lastBannedWeek <= week) return 0;
+  const ahead = [...new Set((upcomingFixtureWeeks ?? []).filter(w => w > week))].sort((a, b) => a - b);
+  const known = ahead.filter(w => w <= lastBannedWeek).length;
+  const lastKnown = ahead.length > 0 ? ahead[ahead.length - 1] : week;
+  return known + Math.max(0, lastBannedWeek - lastKnown);
+}
+
 /** Everything `buildFixtureWeeksByClub` reads — a structural subset of
  *  GameState, so a pure caller can hand over just the calendar. */
 export interface FixtureCalendarSource {
@@ -218,6 +239,18 @@ export interface FixtureCalendarSource {
   championsCup?: ContinentalTournamentState | null;
   shieldCup?: ContinentalTournamentState | null;
   conferenceCup?: ContinentalTournamentState | null;
+}
+
+/** `suspensionMatchesRemaining` for one player, against his own club's
+ *  calendar — what a "N-match ban" label should say. */
+export function playerBanMatchesRemaining(
+  src: FixtureCalendarSource,
+  week: number,
+  player: Pick<Player, 'clubId' | 'suspendedUntilWeek'>,
+): number {
+  if (player.suspendedUntilWeek == null || player.suspendedUntilWeek <= week + 1) return 0;
+  const calendar = buildFixtureWeeksByClub(src, week, new Set([player.clubId]));
+  return suspensionMatchesRemaining(week, player.suspendedUntilWeek, calendar[player.clubId]);
 }
 
 /**

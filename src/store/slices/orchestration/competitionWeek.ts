@@ -8,7 +8,7 @@ import { advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { simulateMatch } from '@/engine/match';
 import { neutralVenue } from '@/engine/match/helpers';
-import { applyAIMatchEvents, pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
+import { applyAIMatchEvents, buildFixtureWeeksByClub, pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound } from '@/store/slices/orchestration/tournaments';
 import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, isGroupStageComplete, isKnockoutRoundComplete, simulateGroupMatchday, simulateKnockoutLeg } from '@/utils/continental';
 import type { ContinentalWorld } from '@/utils/continental';
@@ -50,6 +50,10 @@ export interface CompetitionWeekInput {
   /** Working Elo map for this tick — updated in place. */
   eloRankings: Record<string, number>;
   messages: Message[];
+  /** Each club's upcoming fixture weeks (`buildFixtureWeeksByClub`) so a card
+   *  in a cup or continental match bans for MATCHES, not weeks. The caller
+   *  usually has it already; omitted, it is built from `state` after `week`. */
+  fixtureWeeksByClub?: Record<string, readonly number[]>;
 }
 
 export interface CompetitionWeekResult {
@@ -69,6 +73,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
   const newPlayers = input.players;
   let newMessages = input.messages;
   const newTimeline: CareerMilestone[] = [];
+  const fixtureWeeksByClub = input.fixtureWeeksByClub ?? buildFixtureWeeksByClub(state, week);
 
   // Simulate cup matches for this week (and any orphaned ties from past weeks)
   let newCup = { ...state.cup, ties: [...state.cup.ties] };
@@ -143,7 +148,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
         : (hGoals > aGoals ? tie.homeClubId : tie.awayClubId);
       newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout, winnerId: cupWinnerId };
 
-      applyAIMatchEvents(cupResult.events, newPlayers, clubs, week, hPlayers, aPlayers, cupResult.homeGoals, cupResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
+      applyAIMatchEvents(cupResult.events, newPlayers, clubs, week, hPlayers, aPlayers, cupResult.homeGoals, cupResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId, fixtureWeeksByClub);
       updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, cupResult.homeGoals, cupResult.awayGoals, 'cup');
 
       // Cup match result message for player
@@ -237,7 +242,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
         ? (penaltyShootout.home > penaltyShootout.away ? tie.homeClubId : tie.awayClubId)
         : (hGoals > aGoals ? tie.homeClubId : tie.awayClubId);
       newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout, winnerId: lcWinnerId };
-      applyAIMatchEvents(lcResult.events, newPlayers, clubs, week, hPlayers, aPlayers, lcResult.homeGoals, lcResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
+      applyAIMatchEvents(lcResult.events, newPlayers, clubs, week, hPlayers, aPlayers, lcResult.homeGoals, lcResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId, fixtureWeeksByClub);
       updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, lcResult.homeGoals, lcResult.awayGoals, 'cup');
 
       // League Cup match result message for player (orphaned past-week matches)
@@ -364,7 +369,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
     clubs, players: newPlayers, week, season,
     onEngineMatch: ({ result, homeXI, awayXI }) => {
       applyAIMatchEvents(result.events, newPlayers, clubs, week, homeXI, awayXI,
-        result.homeGoals, result.awayGoals, eloRankings, result.homeClubId, result.awayClubId);
+        result.homeGoals, result.awayGoals, eloRankings, result.homeClubId, result.awayClubId, fixtureWeeksByClub);
       updateEloRatings(eloRankings, result.homeClubId, result.awayClubId,
         result.homeGoals, result.awayGoals, 'cup');
     },

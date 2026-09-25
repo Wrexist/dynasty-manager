@@ -29,7 +29,7 @@ import { generatePressConference, getPostMatchPressContext, buildPressQuestionVa
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { neutralVenue } from '@/engine/match/helpers';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
-import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
+import { applyAIMatchEvents, buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
 import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
@@ -1021,6 +1021,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const eloRankings = { ...(state.clubPowerRankings || {}) };
   // Update ELO for the player's own match
   updateEloRatings(eloRankings, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  // Bans from these AI matches count MATCHES, not weeks (S11).
+  const aiFixtureWeeks = buildFixtureWeeksByClub(state, week);
   for (const m of aiWeekMatches) {
     const idx = fullFixtures.findIndex(f => f.id === m.id);
     const hc2 = clubs[m.homeClubId];
@@ -1036,7 +1038,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     }
     const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
     fullFixtures[idx] = stripAiMatchDetail(aiResult, playerClubId);
-    applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+    applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId, aiFixtureWeeks);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
   const divClubIds = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
@@ -1605,6 +1607,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const playersWithAI2 = { ...processed.newPlayers };
   const eloRankings2 = { ...(state.clubPowerRankings || {}) };
   updateEloRatings(eloRankings2, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  // Bans from these AI matches count MATCHES, not weeks (S11).
+  const aiFixtureWeeks2 = buildFixtureWeeksByClub(state, week);
   for (const m of aiWeekMatches2) {
     const idx = fullFixtures2.findIndex(f => f.id === m.id);
     const hc2 = clubs[m.homeClubId];
@@ -1620,7 +1624,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
     }
     const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
     fullFixtures2[idx] = stripAiMatchDetail(aiResult, playerClubId);
-    applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId);
+    applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId, aiFixtureWeeks2);
     updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
   const divClubIds2 = state.divisionClubs[state.playerDivision] || Object.keys(clubs);

@@ -909,6 +909,9 @@ export const en = {
   'matchDay.skipConfirm': 'Skip',
   'matchDay.keepWatching': 'Keep watching',
   'matchDay.skipFailed': "Couldn't skip ahead — not enough available players on the pitch.",
+
+  // ── simfinish: match-counted ban label (MatchReview) ──
+  'matchReview.matchBan': '{n}-match ban',
 } as const;
 
 export default en;

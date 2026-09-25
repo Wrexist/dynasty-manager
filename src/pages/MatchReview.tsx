@@ -70,6 +70,7 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { resolveMatchReviewExit, type MatchReviewExit } from '@/utils/matchReviewExit';
+import { playerBanMatchesRemaining } from '@/store/slices/orchestration/helpers';
 import { motion } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
@@ -160,6 +161,19 @@ const MatchReview = () => {
     g.sort((a, b) => a.minute - b.minute);
     return { goals: g, injuries: inj, cards: c };
   }, [matchEventsForReview]);
+
+  // Matches (not calendar weeks) each sent-off player will miss. The ban was
+  // counted against his club's fixtures, so the label reads that calendar back;
+  // `suspendedUntilWeek - week` counted weeks and a one-match red read "2".
+  // getState(): the calendar cannot change while the review is open (see `exit`).
+  const banMatchesByPlayer = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const e of cards) {
+      const p = e.type === 'red_card' && e.playerId ? players[e.playerId] : null;
+      if (p) out[p.id] = playerBanMatchesRemaining(useGameStore.getState(), week, p);
+    }
+    return out;
+  }, [cards, players, week]);
 
   if (!currentMatchResult) {
     return (
@@ -788,9 +802,7 @@ const MatchReview = () => {
             })}
             {cards.map((e, i) => {
               const p = e.playerId ? players[e.playerId] : null;
-              const banWeeks = (e.type === 'red_card' && p?.suspendedUntilWeek)
-                ? p.suspendedUntilWeek - week
-                : null;
+              const banMatches = p ? banMatchesByPlayer[p.id] ?? 0 : 0;
               const isSecondYellow = e.type === 'red_card' && (e.description?.includes('Second yellow') || e.description?.includes('second booking'));
               return (
                 <div key={`card-${i}`} className="flex items-center gap-2 text-xs">
@@ -804,7 +816,7 @@ const MatchReview = () => {
                   {p && <FlagIcon nationality={p.nationality} size={11} className="shrink-0" />}
                   <span className="text-foreground">
                     {p?.lastName || 'Unknown'}
-                    {banWeeks != null && banWeeks > 0 && <span className="text-muted-foreground"> — {banWeeks} match ban</span>}
+                    {banMatches > 0 && <span className="text-muted-foreground"> — {t('matchReview.matchBan', { n: banMatches })}</span>}
                   </span>
                   <span className="text-muted-foreground ml-auto tabular-nums">{e.displayMinute ?? e.minute}'</span>
                 </div>
