@@ -44,6 +44,7 @@ import { infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { ScoreHeader } from '@/components/matchday/ScoreHeader';
 import { MatchSpeedPicker } from '@/components/matchday/MatchSpeedPicker';
+import { TacticalInsightPill } from '@/components/matchday/TacticalInsightPill';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
@@ -1155,10 +1156,7 @@ const MatchDayInner = () => {
               animate={{ opacity: 1, y: 0 }}
               className="text-center"
             >
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-primary/15 text-primary border border-primary/25">
-                <Zap className="w-2.5 h-2.5" />
-                {tacticalInsights[0]}
-              </span>
+              <TacticalInsightPill text={tacticalInsights[0]} />
             </motion.div>
           )}
           {/* Active Shout Indicator */}
