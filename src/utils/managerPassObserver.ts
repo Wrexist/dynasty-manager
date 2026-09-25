@@ -5,6 +5,7 @@
  * not with the store at startup: the main chunk has a hard size cap.
  */
 import { hallEntryId } from '@/utils/hallOfManagers';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 import type { ManagerPassEvent, SeasonHistory } from '@/types/game';
 
 // ── Game-state observer ──
@@ -58,7 +59,7 @@ export function observePassState(s: PassObservableGameState): PassObservedState 
 /** Trophies a completed season delivered — same rules as the Hall of Managers. */
 export function seasonTrophyCount(h: SeasonHistory): number {
   const won = (r?: string) => (r === 'Winner' ? 1 : 0);
-  return (h.position === 1 ? 1 : 0) + won(h.cupResult) + won(h.leagueCupResult)
+  return (isManagersLeagueTitle(h) ? 1 : 0) + won(h.cupResult) + won(h.leagueCupResult)
     + won(h.championsCupResult) + won(h.shieldCupResult) + won(h.conferenceCupResult);
 }
 

@@ -16,6 +16,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { SkeletonList, Skeleton } from '@/components/Skeleton';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 
 const AVATAR_ICONS: Record<string, React.ElementType> = {
   'avatar-classic': User,
@@ -94,7 +95,7 @@ const ManagerProfile = () => {
 
   const totalMatches = managerStats.totalWins + managerStats.totalDraws + managerStats.totalLosses;
   const winRate = totalMatches > 0 ? Math.round((managerStats.totalWins / totalMatches) * 100) : 0;
-  const titles = seasonHistory.filter(h => h.position === 1).length;
+  const titles = seasonHistory.filter(isManagersLeagueTitle).length;
   const topFinishes = seasonHistory.filter(h => h.position <= 3).length;
   // Position-chart Y range from the actual league sizes managed across the
   // history — the hardcoded [1, 20] plotted positions 21-24 off-scale in

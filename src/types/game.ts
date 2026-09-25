@@ -1001,6 +1001,14 @@ export interface SeasonHistory {
    *  scorelines here at least tells them what occurred and against whom.
    *  Absent when the club was not in a playoff. Save schema v81. */
   playoffRun?: PlayoffTieResult[];
+  // ── econ: title credit follows the manager (item 9) ──
+  /** Whether the manager was in charge of this club when the season ended.
+   *  False for a career manager who was out of work at season end — the row
+   *  still records the ex-club's season (`playerClubId` keeps naming it), but
+   *  a league title in it is the ex-club's, not the manager's. Every title
+   *  count reads it through `isManagersLeagueTitle`. Save schema v94; the v94
+   *  migration sets it to true on every older row. */
+  managed?: boolean;
 }
 
 /** One promotion-playoff tie the player's club took part in. `homeClubId` is

@@ -30,8 +30,18 @@ function newCurveSquad(n = 30): Record<string, { wage: number; overall: number }
 }
 
 describe('saveMigration', () => {
-  it('should have current version set to 93', () => {
-    expect(CURRENT_VERSION).toBe(93);
+  it('should have current version set to 94', () => {
+    expect(CURRENT_VERSION).toBe(94);
+  });
+
+  it('v93 → v94 marks every existing season-history row as managed', () => {
+    const out = migrateSaveData({
+      version: 93, playerClubId: 'c1', clubs: { c1: {} },
+      seasonHistory: [{ season: 1, position: 1 }, { season: 2, position: 4, managed: false }],
+    });
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.migrationError).toBeUndefined();
+    expect((out.seasonHistory as { managed: boolean }[]).map(h => h.managed)).toEqual([true, false]);
   });
 
   it('v92 → v93 leaves careerId null so the career keeps its legacy slot hall row', () => {

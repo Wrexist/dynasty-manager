@@ -1,4 +1,5 @@
 import { SeasonHistory } from '@/types/game';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 import { readHallData, writeHallData } from '@/store/helpers/persistence';
 import { addGameBreadcrumb } from '@/utils/sentry';
 
@@ -90,7 +91,7 @@ export function buildHallEntry(
     id: saveId,
     clubName,
     seasons: seasonHistory.length,
-    titles: seasonHistory.filter(h => h.position === 1).length,
+    titles: seasonHistory.filter(isManagersLeagueTitle).length,
     cupWins: seasonHistory.filter(h => h.cupResult === 'Winner').length,
     leagueCupWins: seasonHistory.filter(h => h.leagueCupResult === 'Winner').length,
     continentalWins: seasonHistory.reduce((n, h) =>

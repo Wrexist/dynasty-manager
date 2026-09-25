@@ -12,11 +12,31 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 93;
+const CURRENT_VERSION = 94;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v93 -> v94: `SeasonHistory.managed` — was the manager in charge when the
+  // season ended? Every title count (achievements, prestige, Hall of Managers,
+  // Trophy Cabinet, Manager Profile, Manager Pass) now reads it, so a league
+  // an ex-club won while a career manager was out of work stops counting as
+  // theirs. Rows already in a save are marked managed: that is what every
+  // one of them was treated as, and a past season cannot be re-judged (the
+  // week the manager left is not stored on the row).
+  93: (data) => {
+    const history = (data as { seasonHistory?: unknown }).seasonHistory;
+    return {
+      ...data,
+      seasonHistory: Array.isArray(history)
+        ? history.map(row => (row && typeof row === 'object'
+          ? { ...(row as Record<string, unknown>), managed: typeof (row as { managed?: unknown }).managed === 'boolean' ? (row as { managed: boolean }).managed : true }
+          : row))
+        : history,
+      version: 94,
+    };
+  },
+
   // v92 -> v93: per-career Hall of Managers key (`careerId`). Deliberately NOT
   // minted here: a save that predates the field is a career whose hall row is
   // already stored under the legacy `slot-N` key, and `hallEntryId` falls back

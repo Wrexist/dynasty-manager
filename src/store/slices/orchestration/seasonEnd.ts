@@ -67,6 +67,7 @@ import { buildHallEntry, saveToHall, hallEntryId } from '@/utils/hallOfManagers'
 import { carryStorylineCooldowns } from '@/utils/storylines';
 
 import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 import {
   generateObjectives,
   pickAiMatchSquad,
@@ -147,6 +148,13 @@ function competitionsCreditedToManager(state: GameState) {
  */
 export function leagueTitleCreditedToManager(state: Pick<GameState, 'gameMode' | 'careerManager'>, position: number): boolean {
   if (position !== 1) return false;
+  return managerInChargeAtSeasonEnd(state);
+}
+
+/** False only for a career manager with no contract: they are out of work,
+ *  and the season being closed is the ex-club's. Stored on the season-history
+ *  row as `managed`. */
+export function managerInChargeAtSeasonEnd(state: Pick<GameState, 'gameMode' | 'careerManager'>): boolean {
   const cm = state.careerManager;
   return !(state.gameMode === 'career' && cm && !cm.contract);
 }
@@ -277,6 +285,9 @@ export function endSeasonImpl(set: Set, get: Get) {
     shieldCupResult: getContinentalResultForClub(credited.shieldCup, playerClubId),
     conferenceCupResult: getContinentalResultForClub(credited.conferenceCup, playerClubId),
     divisionId: playerDiv,
+    // In charge at season end? A career manager out of work keeps a row for
+    // the ex-club, but its title is not theirs (item 9).
+    managed: managerInChargeAtSeasonEnd(state),
     awards: seasonAwards,
     ballonDOrRanking,
     financialSummary: {
@@ -1766,7 +1777,7 @@ function finalizeSeason(
     careerTimeline: (() => {
       const milestones = [...state.careerTimeline];
       if (titleCredited) {
-        const isFirst = !state.seasonHistory.some(h => h.position === 1);
+        const isFirst = !state.seasonHistory.some(isManagersLeagueTitle);
         milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${history.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
       }
       if (credited.cup.winner === playerClubId) {
