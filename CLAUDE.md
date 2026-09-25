@@ -531,8 +531,9 @@ in `src/utils/monetization.ts`; state in `monetizationSlice`.
 - **Device-level, never in a save:** the record lives in localStorage
   (`STORAGE_KEYS.MANAGER_PASS`) with a write-through IndexedDB copy under the
   same key, stamped with a write counter (`rev`); `hydratePassStorage`
-  reconciles the two once at start-up (newer copy wins, collected cosmetics are
-  the union). `state.managerPass` is only a render cache — every action
+  reconciles the two at start-up (newer copy wins, collected cosmetics are the
+  union). The write-through waits until IndexedDB has been READ — an
+  unanswered read is retried by the next save, never treated as empty. `state.managerPass` is only a render cache — every action
   re-reads storage, rolls the season and writes back. No save-schema bump.
 - **Season rollover** collects reached rewards for the player (free always,
   Pro while `isPro()`). Pro rewards reached while the device read not-Pro

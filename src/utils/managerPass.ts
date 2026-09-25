@@ -397,6 +397,14 @@ export function loadPassRecord(season: ManagerPassSeason): ManagerPassRecord {
  * write-through IndexedDB copy (what survives WKWebView evicting
  * localStorage). Stamps `rev` so start-up can tell which copy is newer, and
  * returns the stamped record — the one to publish.
+ *
+ * The IndexedDB copy is written only once `hydratePassStorage` has READ it.
+ * Before that, localStorage may be an evicted or stale copy, and writing a
+ * record derived from it would overwrite the newer mirror — the only place a
+ * reward collected while localStorage refused writes still exists. Until then
+ * each save retries the reconcile instead (IndexedDB can fail to answer at
+ * launch); the reconcile writes the mirror itself once it has read it. The
+ * same rule the save slots follow (`slotHydrated` in persistence.ts).
  */
 export function savePassRecord(record: ManagerPassRecord): ManagerPassRecord {
   const stamped: ManagerPassRecord = { ...record, rev: (record.rev ?? 0) + 1 };
@@ -404,7 +412,8 @@ export function savePassRecord(record: ManagerPassRecord): ManagerPassRecord {
   unpersisted = !writeManagerPassData(json);
   memoRaw = json;
   memoRecord = stamped;
-  void writeManagerPassMirror(json);
+  if (mirrorRead) void writeManagerPassMirror(json);
+  else void hydratePassStorage();
   return stamped;
 }
 
@@ -431,20 +440,38 @@ export function mergePassRecords(local: ManagerPassRecord | null, mirror: Manage
 }
 
 let hydration: Promise<boolean> | null = null;
+/** True once the IndexedDB copy has been read (and reconciled) this session —
+ *  the gate on `savePassRecord`'s write-through. */
+let mirrorRead = false;
+/** Told when a reconcile restored the IndexedDB copy (the slice republishes). */
+let restoreListener: (() => void) | null = null;
+
+/** Register the callback a restore calls — the slice's render-cache refresh.
+ *  A reconcile can finish late (a retry from `savePassRecord`), so a promise
+ *  handed to whoever started the first attempt is not enough. */
+export function onPassStorageRestored(listener: (() => void) | null): void {
+  restoreListener = listener;
+}
 
 /**
  * Reconcile the two stored copies, once per session (the slice starts it at
  * store creation). When the IndexedDB copy is newer — localStorage was
  * evicted, or refused writes the mirror took — it is restored into
- * localStorage and this resolves `true` so the caller republishes. When the
- * localStorage copy is newer (every install that predates the mirror) it is
- * copied into IndexedDB. An IndexedDB that does not answer changes nothing.
+ * localStorage and this resolves `true` (and tells the restore listener) so
+ * the render cache is republished. When the localStorage copy is newer (every
+ * install that predates the mirror) it is copied into IndexedDB. An IndexedDB
+ * that does not answer changes nothing and leaves the reconcile to be retried
+ * by the next save.
  */
 export function hydratePassStorage(): Promise<boolean> {
   if (!hydration) {
-    hydration = (async () => {
+    const attempt: Promise<boolean> = (async () => {
       const mirror = await readManagerPassMirror();
-      if (!mirror.ok) return false;
+      if (!mirror.ok) {
+        if (hydration === attempt) hydration = null;
+        return false;
+      }
+      mirrorRead = true;
       const local = storedPassRecord();
       const remote = parsePassRecord(mirror.value);
       const merged = mergePassRecords(local, remote);
@@ -454,8 +481,10 @@ export function hydratePassStorage(): Promise<boolean> {
         return false;
       }
       savePassRecord(merged);
+      restoreListener?.();
       return true;
     })().catch(() => false);
+    hydration = attempt;
   }
   return hydration;
 }
@@ -466,6 +495,7 @@ export function __resetPassStorageForTests(): void {
   memoRecord = null;
   unpersisted = false;
   hydration = null;
+  mirrorRead = false;
 }
 
 /**

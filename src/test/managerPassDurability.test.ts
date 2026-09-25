@@ -120,6 +120,26 @@ describe('Manager Pass — IndexedDB mirror', () => {
     expect(loadPassRecord(SEP).xp).toBe(450);
   });
 
+  it('never writes through to IndexedDB before reading it — a stale localStorage copy cannot clobber the mirror', async () => {
+    // localStorage was evicted (or is stale) and IndexedDB does not answer at
+    // launch: the mirror holds the only copy of a collected reward.
+    idb.store.set(KEY, JSON.stringify({ ...freshPassRecord(SEP), xp: 900, rev: 9, ownedRewardIds: ['badge-the-grafter'] }));
+    idb.answer = false;
+    await expect(hydratePassStorage()).resolves.toBe(false);
+    savePassRecord({ ...freshPassRecord(SEP), xp: 30 });
+    await flush();
+    expect(parsePassRecord(idb.store.get(KEY) ?? null)).toMatchObject({ rev: 9, ownedRewardIds: ['badge-the-grafter'] });
+
+    // IndexedDB answers again: the next save retries the reconcile, the reward
+    // comes back, and the store's render cache is republished.
+    idb.answer = true;
+    useGameStore.getState().refreshManagerPass();
+    await flush();
+    expect(isEarnedCosmeticOwned({ id: 'badge-the-grafter', earnedBy: 'manager_pass' })).toBe(true);
+    expect(useGameStore.getState().managerPass.ownedRewardIds).toContain('badge-the-grafter');
+    expect(parsePassRecord(idb.store.get(KEY) ?? null)!.ownedRewardIds).toContain('badge-the-grafter');
+  });
+
   it('merge: a tie keeps the localStorage copy; ownership is a union', () => {
     const local = { ...freshPassRecord(SEP), xp: 100, rev: 3 };
     const mirror = { ...freshPassRecord(SEP), xp: 50, rev: 3 };

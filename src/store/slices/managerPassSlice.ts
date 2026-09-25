@@ -5,7 +5,8 @@
  * truth: every action loads the stored record, rolls it into the current
  * season, applies its change and writes it back, so a stale in-memory copy can
  * never overwrite newer progress. Storage is localStorage with a write-through
- * IndexedDB copy, reconciled once at start-up (`hydratePassStorage`). It is deliberately absent from the save
+ * IndexedDB copy, reconciled at start-up (`hydratePassStorage`) before the
+ * first write-through. It is deliberately absent from the save
  * payload — the pass belongs to the device, not to a slot (see
  * `config/managerPass.ts`) — so there is no save-schema change.
  *
@@ -30,6 +31,7 @@ import {
   passRewardId,
   isEarnedCosmeticOwned,
   hydratePassStorage,
+  onPassStorageRestored,
 } from '@/utils/managerPass';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -57,11 +59,11 @@ export function createManagerPassSlice(_set: Set, _get: Get) {
     return saved;
   };
 
-  // Reconcile the localStorage and IndexedDB copies once per session. Only a
-  // restore (IndexedDB was newer) changes what the render cache should show.
-  void hydratePassStorage().then(restored => {
-    if (restored) _set({ managerPass: loadPassRecord(getManagerPassSeason(passNow())) });
-  });
+  // Reconcile the localStorage and IndexedDB copies once per session (retried
+  // by the next save if IndexedDB does not answer). Only a restore (IndexedDB
+  // was newer) changes what the render cache should show.
+  onPassStorageRestored(() => _set({ managerPass: loadPassRecord(getManagerPassSeason(passNow())) }));
+  void hydratePassStorage();
 
   return {
     // Storage reads never throw (persistence swallows availability errors).
