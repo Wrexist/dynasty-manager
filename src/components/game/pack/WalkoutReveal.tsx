@@ -100,10 +100,11 @@ function ParticleDrift({ accent, count = 14 }: { accent: string; count?: number 
  *  good, and it is still climbing". */
 const OVR_ROLL_FLOOR = WALKOUT_OVR_THRESHOLD - 6;
 
-function OvrOverlay({ value, accent, durationMs, rollMs }: {
+// No duration prop: the overlay lives exactly as long as the flip phase
+// (AnimatePresence tears it down), and only the roll itself is timed here.
+function OvrOverlay({ value, accent, rollMs }: {
   value: number;
   accent: string;
-  durationMs: number;
   rollMs: number;
 }) {
   const from = Math.min(OVR_ROLL_FLOOR, value - 1);
@@ -655,7 +656,6 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
             key="ovr-overlay"
             value={player.overall}
             accent={tier.gradientVia}
-            durationMs={PACK_ANIM.walkout.ovrOverlayMs}
             rollMs={PACK_ANIM.walkout.ovrRollMs}
           />
         )}
