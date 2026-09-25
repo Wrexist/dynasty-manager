@@ -4,6 +4,11 @@ Everything you need to ship paid UA creatives for Meta and TikTok without
 re-thinking the brief every time. Hand any one of these scripts to a creator
 (or shoot yourself with a phone) and ship in under an hour.
 
+**Start with [`PLAYBOOK.md`](PLAYBOOK.md)** — the growth strategy (category
+audit, positioning, real-name/portrait rights ladder, packs as the growth
+engine, organic cadence, paid gates, 90-day plan) that decides which of the
+tools below to use and when.
+
 ## How to use this directory
 
 ```
