@@ -54,7 +54,7 @@ import { simulateMatch } from '@/engine/match';
 import { neutralVenue } from '@/engine/match/helpers';
 import { getDerbyIntensity } from '@/data/league';
 
-import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
+import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool, nationalTeamOfferReputation } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
@@ -1861,13 +1861,17 @@ function finalizeSeason(
     saveToHall(hallEntry);
   }
 
-  // Career mode: check if the FA should re-offer the national team job (after sacking)
+  // Career mode: the FA offers the national team job once the manager's
+  // reputation is enough for a nation of that standing — the first approach
+  // (R7: no longer automatic on day one) or a re-offer after a sacking.
   {
     const cs = get();
     if (cs.gameMode === 'career' && cs.careerManager && cs.managerNationality
-      && !cs.nationalTeam && !cs.nationalTeamOffer
-      && cs.careerManager.nationalTeamSacked) {
-      const threshold = NT_JOB_REHIRE_REPUTATION;
+      && !cs.nationalTeam && !cs.nationalTeamOffer) {
+      const nationThreshold = nationalTeamOfferReputation(cs.managerNationality);
+      const threshold = cs.careerManager.nationalTeamSacked
+        ? Math.max(NT_JOB_REHIRE_REPUTATION, nationThreshold)
+        : nationThreshold;
       const upcomingTournament = getTournamentForSeason(season + 1) || getTournamentForSeason(season + 2);
       if (cs.careerManager.reputationScore >= threshold && upcomingTournament) {
         const expWeek = cs.week + NT_JOB_OFFER_DURATION_WEEKS;

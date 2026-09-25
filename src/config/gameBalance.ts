@@ -1158,6 +1158,21 @@ export const REP_INTL_FINAL = 40;
 export const REP_INTL_SEMI = 20;
 /** Reputation bonus for reaching knockouts */
 export const REP_INTL_KNOCKOUT = 10;
+// ── econ: national-team offers scale with the nation (R7) ──
+/**
+ * Reputation a career manager needs before a nation's FA approaches them, by
+ * the nation's base ranking (first band whose `maxRanking` covers it wins).
+ * A rookie starts at 30, so day one only the smaller nations call. Before this,
+ * every career opened with an offer from the manager's own nation, which made
+ * a rookie at Keflavík the England manager on day one. The 11-25 band keeps
+ * the old single threshold, `NT_JOB_MIN_REPUTATION`.
+ */
+export const NT_OFFER_REPUTATION_BY_RANKING: ReadonlyArray<{ maxRanking: number; minReputation: number }> = [
+  { maxRanking: 10, minReputation: 600 },
+  { maxRanking: 25, minReputation: NT_JOB_MIN_REPUTATION },
+  { maxRanking: 40, minReputation: 150 },
+  { maxRanking: Infinity, minReputation: 0 },
+];
 /** Reputation penalty for group stage exit */
 export const REP_INTL_GROUP_EXIT = -15;
 /** Consecutive group-stage exits before sacking */
