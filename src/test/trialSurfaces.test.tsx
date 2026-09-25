@@ -155,6 +155,24 @@ describe('Shop subscription cards name the confirmed trial', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Dynasty Pro Annual' })).toBeTruthy());
     expect(screen.queryByText(/Free for/)).toBeNull();
     expect(checkIntroOfferEligibility).not.toHaveBeenCalled();
+    // A lapsed Monthly is not "your current monthly plan".
+    expect(screen.queryByText('Switch to Annual')).toBeNull();
+  });
+
+  it('offers Switch to Annual to a live Monthly subscriber', async () => {
+    storeSays({ [YEARLY]: true, [MONTHLY]: true });
+    useGameStore.setState(st => ({
+      monetization: {
+        ...st.monetization,
+        subscription: {
+          tier: 'monthly', productId: MONTHLY, expiresAt: new Date(Date.now() + 20 * 86_400_000).toISOString(),
+          isInGracePeriod: false, willRenew: true, isTrial: false,
+        },
+      },
+    }));
+    renderShop();
+
+    await waitFor(() => expect(screen.getByText('Switch to Annual')).toBeTruthy());
   });
 });
 

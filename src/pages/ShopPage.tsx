@@ -92,7 +92,10 @@ const ShopPage = () => {
   // A store subscription to show and manage — NOT a Lifetime record sitting in
   // the subscription slot (that is Pro with nothing to renew or cancel).
   const hasActiveSub = hasRecurringSubscription(monetization);
-  const onMonthlyPlan = monetization.subscription?.tier === 'monthly';
+  // "Switch to Annual … vs your current monthly plan" only for a LIVE Monthly
+  // plan: a lapsed Monthly record (the store now reports lapses, so a fresh
+  // install of a former subscriber has one) is no current plan.
+  const onMonthlyPlan = hasActiveSub && monetization.subscription?.tier === 'monthly';
   const starterKitAvailable = isStarterKitAvailable(monetization);
 
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
