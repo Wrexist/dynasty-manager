@@ -42,7 +42,7 @@ import type { Player } from '@/types/game';
 import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { isPro } from '@/utils/monetization';
 import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight, isPackPurchaseInFlight } from '@/utils/packCreditRecovery';
-import { purchaseConsumable, readConsumableHistory, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
+import { purchaseConsumable, readConsumableHistory, getStoreAvailability, isPurchaseNotAttempted, isPaymentPendingError } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit, currentWeekIndex, msUntilNextWeekIndex } from '@/store/helpers/persistence';
 import { track } from '@/utils/analytics';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
@@ -506,10 +506,35 @@ const PacksPage = () => {
     // every bonus that was actually granted.
     const bonusAtPurchase = advertisedDeal?.bonusCards ?? bonusFor(tierKey);
     setBusy(true);
-    setPackPurchaseInFlight(true);
-    addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
-    track('purchase_initiated', { productId: tier.productId, surface: 'packs' });
     try {
+      // An earlier purchase that never confirmed blocks this one. Give it a
+      // chance to resolve first — a verified "no payment" releases it, and a
+      // verified payment is delivered — instead of refusing on sight.
+      const earlier = readPendingPackCredit();
+      if (earlier) {
+        const recovered = await reconcilePendingPackCreditAtLaunch(false);
+        if (recovered?.success && recovered.players?.length) {
+          successToast('Purchase restored', 'Your earlier pack purchase has been credited.');
+          setOpening({ tier: earlier.tierKey as PackTierKey, players: recovered.players, pityTriggered: recovered.pityTriggered });
+          return;
+        }
+        const still = readPendingPackCredit();
+        if (still) {
+          if (still.slot !== activeSlot) {
+            infoToast('A purchase is still waiting', 'Reopen the Market in the save that bought the pack before buying another.');
+          } else if (still.charged === false) {
+            infoToast('Checking your last purchase', still.deferred
+              ? 'Your last pack purchase is waiting for approval. It will be credited once approved.'
+              : 'No payment has arrived yet. If none does, the Market unlocks again automatically.');
+          } else {
+            infoToast('A purchase is still waiting', recovered?.message || 'Your paid pack must be credited before you buy another.');
+          }
+          return;
+        }
+      }
+      setPackPurchaseInFlight(true);
+      addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
+      track('purchase_initiated', { productId: tier.productId, surface: 'packs' });
       // Crash durability: persist a pending-credit marker BEFORE the StoreKit
       // charge. Consumables never appear in RevenueCat entitlements, so if
       // the app dies between the charge completing and the pack being
@@ -520,10 +545,6 @@ const PacksPage = () => {
       // un-charged and only promoted once the store confirms, otherwise any
       // failed attempt (offline, force-quit on the sheet) left a record the
       // reconciler happily granted — a free, repeatable paid pack.
-      if (readPendingPackCredit()) {
-        infoToast('A purchase is still waiting', 'Reopen the Market in the save that bought the pack before buying another.');
-        return;
-      }
       const history = await readConsumableHistory(tier.productId);
       if (useGameStore.getState().activeSlot !== activeSlot || useGameStore.getState().playerClubId !== club.id) return;
       // Recheck after the network probe: an offer may have expired meanwhile.
@@ -592,6 +613,15 @@ const PacksPage = () => {
       // never reached the store (offline, product unavailable) is definitively
       // un-charged and its marker is dropped; keeping it was the exploit.
       if (isPurchaseNotAttempted(err)) clearPendingPackCredit();
+      // Awaiting approval (Ask to Buy): not a failure, and the payment may
+      // still land after the sheet closed — the marker waits longer for it.
+      if (isPaymentPendingError(err)) {
+        const waiting = readPendingPackCredit();
+        if (waiting?.charged === false && waiting.productId === tier.productId) writePendingPackCredit({ ...waiting, deferred: true });
+        addGameBreadcrumb('purchase', 'pack iap deferred', { surface: 'packs', tierKey });
+        infoToast('Waiting for approval', `Your ${tier.label} will be credited once the purchase is approved.`);
+        return;
+      }
       addGameBreadcrumb('purchase', 'pack iap threw', { surface: 'packs', tierKey, notAttempted: isPurchaseNotAttempted(err) });
       Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
       track('purchase_failed', { productId: tier.productId, surface: 'packs' });

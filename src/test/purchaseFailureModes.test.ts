@@ -50,6 +50,7 @@ vi.mock('@sentry/react', () => ({
 import * as Sentry from '@sentry/react';
 import {
   isUserCancelledError,
+  isPaymentPendingError,
   purchaseProduct,
   purchaseConsumable,
   getStoreAvailability,
@@ -87,6 +88,22 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockPurchases.setLogLevel.mockResolvedValue(undefined);
   mockPurchases.configure.mockResolvedValue(undefined);
+});
+
+describe('isPaymentPendingError', () => {
+  it('recognises the deferred-payment code in every shape the SDK sends', () => {
+    expect(isPaymentPendingError({ code: '20' })).toBe(true);
+    expect(isPaymentPendingError({ code: 20 })).toBe(true);
+    expect(isPaymentPendingError({ userInfo: { readableErrorCode: 'PAYMENT_PENDING_ERROR' } })).toBe(true);
+    expect(isPaymentPendingError({ data: { readableErrorCode: 'PAYMENT_PENDING' } })).toBe(true);
+  });
+
+  it('does not mistake a cancel or a real failure for a deferred payment', () => {
+    expect(isPaymentPendingError(iosCancel)).toBe(false);
+    expect(isPaymentPendingError({ code: '2' })).toBe(false);
+    expect(isPaymentPendingError(new Error('boom'))).toBe(false);
+    expect(isPaymentPendingError(null)).toBe(false);
+  });
 });
 
 describe('isUserCancelledError', () => {

@@ -776,6 +776,9 @@ export interface PendingPackCredit {
    *            can only have been written by the old binary, so they are still
    *            honoured; new code always writes the flag. */
   charged?: boolean;
+  /** The store reported the payment as pending approval (Ask to Buy / SCA).
+   *  Such a marker waits longer before an unconfirmed release. */
+  deferred?: boolean;
   /** Stable grant id, persisted before generation and reused after a crash. */
   recordId?: string;
 }
@@ -799,6 +802,7 @@ export function readPendingPackCredit(): PendingPackCredit | null {
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
       slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
       ...(parsed.reported === true ? { reported: true } : {}),
+      ...(parsed.deferred === true ? { deferred: true } : {}),
       ...(typeof parsed.recordId === 'string' ? { recordId: parsed.recordId } : {}),
       // Preserved as a tri-state: `undefined` (legacy marker) must stay
       // distinguishable from an explicit `false` (written, never charged).

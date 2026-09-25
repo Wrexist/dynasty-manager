@@ -455,6 +455,27 @@ export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.yearly
 /** How long after first launch the Starter Kit is recommended to new managers. */
 export const STARTER_KIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// ── Unconfirmed pack purchases ──
+//
+// A pack purchase writes an un-charged marker before StoreKit is asked, and
+// the Market refuses a second purchase while any marker exists. A marker the
+// store never confirmed used to live forever, so one network error mid-sheet
+// locked the device out of pack purchases permanently. These windows are how
+// long the store gets to surface the transaction before an un-charged marker
+// whose purchase history shows NO new transaction is released.
+
+/** Ordinary interrupted purchase: long enough for StoreKit to replay an
+ *  unfinished transaction and RevenueCat to record it on the next sync. */
+export const PACK_UNCONFIRMED_SETTLE_MS = 30 * 60 * 1000; // 30 minutes
+
+/** Deferred payment (Ask to Buy / SCA): a guardian can approve it well after
+ *  the sheet closed, so the marker waits much longer before release. */
+export const PACK_DEFERRED_SETTLE_MS = 72 * 60 * 60 * 1000; // 72 hours
+
+/** A legacy marker without a transaction snapshot cannot be verified at all;
+ *  release it after a week rather than blocking purchases forever. */
+export const PACK_UNVERIFIABLE_MARKER_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
 export const STARTER_KIT = {
   name: 'Starter Kit',
   description: 'A great first purchase — the Manager Identity Pack: 12 avatars, 8 title badges & 3 celebration texts to personalise your manager.',

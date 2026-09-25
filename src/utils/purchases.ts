@@ -143,6 +143,27 @@ export function isUserCancelledError(err: unknown): boolean {
   return codes.some(c => (typeof c === 'string' || typeof c === 'number') && CANCEL_CODES.has(String(c)));
 }
 
+const PAYMENT_PENDING_CODES = new Set([
+  '20', // PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR
+  'PAYMENT_PENDING',
+  'PAYMENT_PENDING_ERROR',
+]);
+
+/** True when the store accepted the purchase but is waiting on approval
+ *  (Ask to Buy, strong customer authentication). Nothing is charged yet, but
+ *  the transaction may still complete after the sheet has closed. */
+export function isPaymentPendingError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as {
+    code?: unknown;
+    readableErrorCode?: unknown;
+    userInfo?: { readableErrorCode?: unknown };
+    data?: { readableErrorCode?: unknown };
+  };
+  const codes = [e.code, e.readableErrorCode, e.userInfo?.readableErrorCode, e.data?.readableErrorCode];
+  return codes.some(c => (typeof c === 'string' || typeof c === 'number') && PAYMENT_PENDING_CODES.has(String(c)));
+}
+
 // ── Product resolution ──
 //
 // RevenueCat's recommended path is Offerings → Package → purchasePackage, and
