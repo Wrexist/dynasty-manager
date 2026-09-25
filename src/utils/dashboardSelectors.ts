@@ -23,7 +23,7 @@ import type {
 } from '@/types/game';
 import {
   RACE_MODE_WINDOW_WEEKS, TITLE_RACE_MAX_POSITION, TITLE_RACE_MAX_POINTS_GAP,
-  RELEGATION_BATTLE_BOTTOM_PLACES, SPRING_PHASE_END_WEEK,
+  RELEGATION_BATTLE_BOTTOM_PLACES, SPRING_PHASE_END_WEEK, COACH_CHECKLIST_MAX_SEASON,
 } from '@/config/gameBalance';
 import type { TransferWindows } from '@/config/transfers';
 import { computeObjectiveProgress, type ObjectiveInstance } from '@/utils/weeklyObjectives';
@@ -145,4 +145,47 @@ export function selectObjectivesWithProgress(input: ObjectiveProgressInput): Obj
     domesticSuperCup: input.domesticSuperCup,
     continentalSuperCup: input.continentalSuperCup,
   });
+}
+
+// ── Getting Started checklist ──
+
+/**
+ * Which part of the ONE Getting Started checklist is showing.
+ *
+ * There used to be three onboarding systems on the Dashboard in week 1: a
+ * welcome modal, the first-session checklist, and a separate coach checklist
+ * with XP claims — two cards and a blocking popup teaching overlapping things.
+ * They are now one card with two stages:
+ *   - 'first-session' — season 1, week 1 of a first career: the walkthrough
+ *     rows (set a plan, sign the sponsor, send a scout, play the match);
+ *   - 'coach' — afterwards, through `COACH_CHECKLIST_MAX_SEASON`: the claimable
+ *     coach tasks, until every one is claimed.
+ * One dismissal (`settings.hideOnboarding`) hides both.
+ */
+export type ChecklistStage = 'first-session' | 'coach' | null;
+
+export interface ChecklistStageInput {
+  season: number;
+  week: number;
+  prestigeLevel: number;
+  hideOnboarding: boolean;
+  /** The first-session rows were completed this session. */
+  firstSessionDone: boolean;
+  seasonOver: boolean;
+  coachTaskCount: number;
+  coachTasksClaimed: number;
+}
+
+export function selectChecklistStage(input: ChecklistStageInput): ChecklistStage {
+  if (input.hideOnboarding) return null;
+  if (input.season === 1 && input.week === 1 && input.prestigeLevel === 0 && !input.firstSessionDone) {
+    return 'first-session';
+  }
+  if (
+    input.season <= COACH_CHECKLIST_MAX_SEASON && !input.seasonOver
+    && input.coachTaskCount > 0 && input.coachTasksClaimed < input.coachTaskCount
+  ) {
+    return 'coach';
+  }
+  return null;
 }

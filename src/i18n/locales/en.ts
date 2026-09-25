@@ -662,6 +662,28 @@ export const en = {
   'moreDrawer.group.me': "Me",
   'moreDrawer.group.app': "App",
   'moreDrawer.jumpTo': "Jump to",
+  // ── home: Getting Started checklist ──
+  'onboardingChecklist.title': "Getting Started",
+  'onboardingChecklist.firstSession': "First Session",
+  'onboardingChecklist.coachStage': "Coach Checklist",
+  'onboardingChecklist.doneCount': "{done}/{total} done",
+  'onboardingChecklist.firstSessionIntro': "Welcome, Manager! Tap any step for an exact walkthrough — we'll tell you which buttons to press.",
+  'onboardingChecklist.coachIntro': "Your coach's to-do list. Tap a step to go there, then claim the XP.",
+  'onboardingChecklist.takeTheTour': "Take the tour",
+  'onboardingChecklist.whyBother': "Why bother",
+  'onboardingChecklist.stepByStep': "Step by step",
+  'onboardingChecklist.whatSuccessLooksLike': "What success looks like",
+  'onboardingChecklist.takeMeThere': "Take me there",
+  'onboardingChecklist.gotIt': "Got it",
+  'onboardingChecklist.completeToastTitle': "Getting Started complete!",
+  'onboardingChecklist.completeToastBody': "+{xp} XP — you've got the basics down.",
+  'onboardingChecklist.allClaimedTitle': "Checklist Complete!",
+  'onboardingChecklist.allClaimedBody': "+{xp} XP bonus earned",
+  'onboardingChecklist.hiddenToast': "Checklist hidden. Bring it back from Settings → New-career walkthrough.",
+  'onboardingChecklist.claim': "Claim +{xp}",
+  'onboardingChecklist.claimAria': "Claim {xp} XP for {task}",
+  'onboardingChecklist.xp': "{xp} XP",
+  'onboardingChecklist.plusXp': "+{xp} XP",
 } as const;
 
 export default en;

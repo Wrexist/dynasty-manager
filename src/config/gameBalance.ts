@@ -1374,3 +1374,5 @@ export const RELEGATION_BATTLE_BOTTOM_PLACES = 3;
  *  this, informational popups are filed to the inbox and offers wait for the
  *  next advance; decisions always show (see `utils/presentationQueue.ts`). */
 export const BLOCKING_POPUPS_PER_ADVANCE = 2;
+/** The Getting Started checklist's coach tasks run through this season. */
+export const COACH_CHECKLIST_MAX_SEASON = 2;

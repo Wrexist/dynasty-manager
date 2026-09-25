@@ -11,8 +11,6 @@ import { getActiveCompetitions } from '@/utils/competitionStatus';
 import type { CompetitionStatusEntry } from '@/types/game';
 import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
 import { PressConference } from '@/components/game/PressConference';
-import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
-import { WelcomeCard } from '@/components/game/WelcomeCard';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
@@ -30,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { getContractUrgency } from '@/utils/contracts';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration, detectTrophyMoments } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { getTransferWindows } from '@/config/transfers';
@@ -71,11 +69,10 @@ import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_
 import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
 import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
-import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
+import { getFlag, setFlag } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 import { usePresentationOverflow } from '@/hooks/usePresentationQueue';
 import { digestNote, gemNote, farewellNotes, celebrationNote, achievementNote, midSeasonNote } from '@/utils/overlayInbox';
-import { buildCoachTasks } from '@/utils/gameCoach';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { FormGuide } from '@/components/game/FormGuide';
 import { getRecentForm } from '@/utils/formGuide';
@@ -83,7 +80,6 @@ import { objectiveXpMultiplier } from '@/utils/weeklyObjectives';
 import { isSeasonOver, getRaceMode, getSeasonStage, selectObjectivesWithProgress, type SeasonStage } from '@/utils/dashboardSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 
-const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
 // Collapse panels animate `height: auto`, which triggers a layout pass on
 // every frame. Spring physics + auto-height re-measures the content each
 // frame and stutters under load (especially with nested motion children
@@ -150,8 +146,8 @@ const Dashboard = () => {
     weekCliffhangers, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
     managerProgression, clubRecords, transferWindowOpen, training,
-    weeklyObjectives, shortlist, seasonPhase, totalWeeks,
-    objectivesStartWeek, completedCoachTaskIds,
+    weeklyObjectives, seasonPhase, totalWeeks,
+    objectivesStartWeek,
     gameMode, careerManager, jobOffers,
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
@@ -172,9 +168,9 @@ const Dashboard = () => {
     divisionTables: s.divisionTables, playerDivision: s.playerDivision,
     managerProgression: s.managerProgression, clubRecords: s.clubRecords,
     transferWindowOpen: s.transferWindowOpen, training: s.training,
-    weeklyObjectives: s.weeklyObjectives, shortlist: s.shortlist,
+    weeklyObjectives: s.weeklyObjectives,
     seasonPhase: s.seasonPhase, totalWeeks: s.totalWeeks,
-    objectivesStartWeek: s.objectivesStartWeek, completedCoachTaskIds: s.completedCoachTaskIds,
+    objectivesStartWeek: s.objectivesStartWeek,
     gameMode: s.gameMode, careerManager: s.careerManager, jobOffers: s.jobOffers,
     pendingPressConference: s.pendingPressConference, pendingStoryline: s.pendingStoryline,
     pendingTransferTalk: s.pendingTransferTalk, activeChallenge: s.activeChallenge,
@@ -194,7 +190,6 @@ const Dashboard = () => {
   const advanceToNextMatch = useGameStore(s => s.advanceToNextMatch);
   const endSeason = useGameStore(s => s.endSeason);
   const selectPlayer = useGameStore(s => s.selectPlayer);
-  const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
   const claimObjective = useGameStore(s => s.claimObjective);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
@@ -213,20 +208,6 @@ const Dashboard = () => {
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
-
-  const [showWelcome, setShowWelcome] = useState(() => {
-    if (season === 1 && week === 1 && !getFlag(WELCOME_KEY)) return true;
-    return false;
-  });
-
-  // First run defaults to the single WelcomeCard; "Take the tour" opens the
-  // full 6-panel WelcomeOverlay. Both share the device-global WELCOME_SHOWN
-  // flag — dismissing either surface counts as seen.
-  const [welcomeTour, setWelcomeTour] = useState(false);
-  const dismissWelcome = () => {
-    setShowWelcome(false);
-    setFlag(WELCOME_KEY);
-  };
 
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [advanceDone, setAdvanceDone] = useState(false);
@@ -547,33 +528,6 @@ const Dashboard = () => {
     tacticalFamiliarity: training.tacticalFamiliarity,
   }) : [], [week, season, totalWeeks, club, players, fixtures, transferWindowOpen, boardConfidence, incomingOffers.length, training.tacticalFamiliarity]);
 
-  const coachTasks = useMemo(() => {
-    if (!club) return [];
-    return buildCoachTasks({
-      club,
-      fixtures,
-      playerClubId,
-      unreadMessages: unread,
-      objectives: weeklyObjectives,
-      players,
-      transferWindowOpen: transferWindowOpen,
-      scoutAssignments: scouting.assignments,
-      scoutReportsCount: scouting.reports.length,
-      shortlistCount: shortlist.length,
-      week,
-      season,
-      completedTaskIds: completedCoachTaskIds,
-    });
-  }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, season, completedCoachTaskIds]);
-  // A coach task is "claimed" once its id is in completedCoachTaskIds (claiming
-  // is what grants the XP). A task can be completed-but-unclaimed (ready to
-  // claim). Counts + the "all done" state track CLAIMED, and the panel hides
-  // entirely once everything is claimed so it stops taking up space.
-  const isCoachClaimed = useCallback((id: string) => completedCoachTaskIds.includes(id), [completedCoachTaskIds]);
-  const completedCoachTasks = coachTasks.filter(task => isCoachClaimed(task.id)).length;
-  const allCoachTasksDone = coachTasks.length > 0 && completedCoachTasks === coachTasks.length;
-  const [coachCollapsed, setCoachCollapsed] = useState(false);
-
   // ── Objectives ── claimed-based; panel hides once every objective is claimed.
   const claimedObjectives = weeklyObjectives.filter(o => o.claimed).length;
   const allObjectivesDone = weeklyObjectives.length > 0 && weeklyObjectives.every(o => o.completed && o.claimed);
@@ -615,26 +569,6 @@ const Dashboard = () => {
 
   // Coach-task XP is no longer auto-granted on completion — the player claims
   // each completed task (markCoachTaskComplete grants the XP on the claim tap).
-
-  // Track "just completed" for reward animations
-  const prevCompletedCoachRef = useRef<Set<string> | null>(null);
-  const [justCompletedCoach, setJustCompletedCoach] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (prevCompletedCoachRef.current === null) {
-      prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
-      return;
-    }
-    const prev = prevCompletedCoachRef.current;
-    const newlyDone = new Set<string>();
-    for (const task of coachTasks) {
-      if (task.completed && !prev.has(task.id)) newlyDone.add(task.id);
-    }
-    prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
-    // Light tap when a task becomes ready to claim. XP + the reward animation
-    // now fire on the claim tap (handleClaimCoach), not here.
-    if (newlyDone.size > 0) hapticLight();
-  }, [coachTasks]);
 
   // Shared with weeklyObjectives + weekAdvance so the number shown here can
   // never drift from the number granted.
@@ -678,16 +612,6 @@ const Dashboard = () => {
     setJustCompletedObj(new Set([objectiveId]));
     setTimeout(() => setJustCompletedObj(new Set()), 1000);
   }, [weeklyObjectives, claimObjective]);
-
-  const handleClaimCoachTask = useCallback((taskId: string) => {
-    if (completedCoachTaskIds.includes(taskId)) return;
-    const wasLast = coachTasks.length > 0 && coachTasks.filter(t => completedCoachTaskIds.includes(t.id)).length + 1 === coachTasks.length;
-    markCoachTaskComplete(taskId);
-    hapticMedium();
-    setJustCompletedCoach(new Set([taskId]));
-    setTimeout(() => setJustCompletedCoach(new Set()), 1000);
-    if (wasLast) celebrationToast('Checklist Complete!', `+${COACH_ALL_TASKS_BONUS_XP} XP bonus earned`);
-  }, [completedCoachTaskIds, coachTasks, markCoachTaskComplete]);
 
   // Last played match
   const lastMatchInfo = useMemo(() => {
@@ -779,12 +703,6 @@ const Dashboard = () => {
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      {/* Welcome for first-time players — single card by default, full tour on request */}
-      {showWelcome && (welcomeTour
-        ? <WelcomeOverlay onComplete={dismissWelcome} />
-        : <WelcomeCard onDismiss={dismissWelcome} onTakeTour={() => setWelcomeTour(true)} />
-      )}
-
       {/* Daily login-streak reward — auto-presents once per day when claimable. */}
       <DailyRewardModal />
 
@@ -950,8 +868,8 @@ const Dashboard = () => {
       {/* Persistent legacy/streak visibility — self-hides for fresh installs. */}
       <DynastyStatusChip />
 
-      {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
-          the user advances week or dismisses it. */}
+      {/* Getting Started — the ONE onboarding checklist (first-session
+          walkthrough, then the coach tasks). Self-hides when done or dismissed. */}
       <OnboardingChecklist />
 
       {/* Starter Kit offer — same product/price as the Shop card, surfaced on
@@ -1249,104 +1167,6 @@ const Dashboard = () => {
             <p className="text-xs font-semibold text-foreground truncate">{getDerbyName(playerClubId, opponent.id) || `vs ${opponent.shortName}`}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-        </GlassPanel>
-      )}
-
-      {/* Guided checklist for new careers */}
-      {!seasonOver && season <= 2 && coachTasks.length > 0 && !allCoachTasksDone && (
-        <GlassPanel className="p-4 border-primary/20">
-          <button
-            type="button"
-            onClick={() => setCoachCollapsed(c => !c)}
-            aria-expanded={!coachCollapsed}
-            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
-                <ChevronRight className="w-3 h-3 text-primary" />
-              </motion.div>
-              <p className="text-micro text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
-              {allCoachTasksDone && <span className="text-micro text-emerald-400 font-bold">&#10003; Complete</span>}
-            </div>
-            <span className="text-micro text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
-          </button>
-          <PremiumProgress
-            className="mt-2"
-            size="sm"
-            tone={allCoachTasksDone ? 'emerald' : 'primary'}
-            value={coachTasks.length > 0 ? Math.round((completedCoachTasks / coachTasks.length) * 100) : 0}
-            glow={allCoachTasksDone}
-            animate={false}
-          />
-          <AnimatePresence initial={false}>
-            {!coachCollapsed && (
-              <motion.div
-                key="coach-content"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_TRANSITION}
-                className="overflow-hidden"
-                style={{ willChange: 'height' }}
-              >
-                <div className="space-y-2 mt-3">
-                  {coachTasks.map((task) => {
-                    const claimed = isCoachClaimed(task.id);
-                    const claimable = task.completed && !claimed;
-                    return (
-                    <div key={task.id} className="relative">
-                      <div
-                        className={cn(
-                          'w-full rounded-lg px-3 py-2 border transition-colors flex items-start justify-between gap-2',
-                          claimed ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : claimable ? 'bg-primary/10 border-primary/40'
-                            : 'bg-muted/20 border-border/40'
-                        )}
-                      >
-                        <button
-                          type="button"
-                          disabled={!task.screen}
-                          onClick={() => task.screen && setScreen(task.screen)}
-                          className="text-left flex-1 min-w-0"
-                        >
-                          <p className={cn('text-xs font-semibold', claimed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                          <p className="text-micro text-muted-foreground mt-0.5">{task.description}</p>
-                        </button>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {claimable ? (
-                            <button
-                              type="button"
-                              onClick={() => handleClaimCoachTask(task.id)}
-                              aria-label={`Claim ${task.xpReward} XP for ${task.title}`}
-                              className="inline-flex items-center gap-0.5 text-micro font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform"
-                            >
-                              Claim +{task.xpReward}
-                            </button>
-                          ) : claimed ? (
-                            <span className="inline-flex items-center gap-0.5 text-micro font-bold px-1.5 py-0.5 rounded text-emerald-400/70 bg-emerald-500/10">
-                              <PremiumCheck className="w-2.5 h-2.5" />{task.xpReward} XP
-                            </span>
-                          ) : (
-                            <>
-                              <span className="inline-flex items-center gap-0.5 text-micro font-bold px-1.5 py-0.5 rounded text-primary/70 bg-primary/10">+{task.xpReward} XP</span>
-                              <span className={cn(
-                                'text-micro uppercase tracking-wide px-1.5 py-0.5 rounded',
-                                task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                              )}>
-                                {task.priority}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
-                    </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </GlassPanel>
       )}
 
