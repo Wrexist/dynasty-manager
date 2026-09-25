@@ -252,6 +252,15 @@
     overscroll-behavior-y: none;
   }
 
+  /* A horizontal overscroll of the viewport is the browser's swipe-to-go-back.
+     In Chromium a right swipe on the League Table fired it alongside the
+     in-game swipe back and left the game for the title screen (playthrough
+     2026-09). The game owns horizontal swipes (useSwipeGesture); Chromium
+     reads this from the root element, not body. */
+  html {
+    overscroll-behavior-x: none;
+  }
+
   input, textarea {
     -webkit-user-select: text;
     user-select: text;

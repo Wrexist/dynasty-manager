@@ -413,8 +413,16 @@ export function simulateHalf(
     }
   }
 
+  // The player's second half is simulated in segments (SECOND_HALF_SEGMENTS),
+  // each resuming from the previous one's state. Only the call that opens a
+  // half (46, or 91 for extra time) is a restart: a segment resuming at 61 or
+  // 76 must not re-announce "Second half underway!" — that kickoff event reset
+  // the pitch to kickoff shape and the momentum bar to 50/50 mid-half, and
+  // re-stamped "Level at half-time" advice at 61'.
+  const resumesMidHalf = !!prevState && startMin > 46 && startMin <= 90;
+
   // Second-half: generate fresh score-aware tactical insights
-  if (prevState && playerClubId) {
+  if (prevState && playerClubId && !resumesMidHalf) {
     const playerIsHome = playerClubId === homeClub.id;
     const myGoals = playerIsHome ? prevState.homeGoals : prevState.awayGoals;
     const oppGoals = playerIsHome ? prevState.awayGoals : prevState.homeGoals;
@@ -1047,7 +1055,7 @@ export function simulateHalf(
   }
 
   // Emit second-half kickoff with tactical insight if available
-  if (prevState && tacticalInsights.length > 0) {
+  if (prevState && !resumesMidHalf && tacticalInsights.length > 0) {
     events.push({ minute: startMin, type: 'kickoff', clubId: homeClub.id, description: 'Second half underway!', tacticalInsight: tacticalInsights[0] });
   }
 
