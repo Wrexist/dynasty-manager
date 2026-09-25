@@ -1130,6 +1130,47 @@ export const FAN_RALLY_MORALE_BOOST = 5;
 export const SPONSOR_BONUS_MULTIPLIER = 0.10;
 /** Extra board confidence penalty during media scrutiny */
 export const MEDIA_SCRUTINY_CONFIDENCE_HIT = 3;
+// ── content: more random event templates ──
+// Every magnitude below sits inside the band the original six events set:
+// one player ±10 morale / −15 fitness / +10 form, the squad ±5 morale,
+// board confidence ±3, budget +10%.
+/** Squad morale lift from a community visit. */
+export const CHARITY_VISIT_MORALE_BOOST = 3;
+/** Fitness lost by each player a sickness bug goes through. */
+export const SICKNESS_FITNESS_LOSS = 10;
+/** How many players a sickness bug reaches (at most). */
+export const SICKNESS_MAX_PLAYERS = 3;
+/** Weeks in which a sickness bug is likelier (the winter run). */
+export const SICKNESS_PEAK_WEEKS: readonly [number, number] = [14, 26];
+/** Veteran mentor: the youngster's form and morale lift… */
+export const MENTOR_YOUTH_FORM_BOOST = 8;
+export const MENTOR_YOUTH_MORALE_BOOST = 5;
+/** …and the veteran's own morale lift. */
+export const MENTOR_VETERAN_MORALE_BOOST = 3;
+/** A player's training clip goes viral. */
+export const VIRAL_CLIP_MORALE_BOOST = 8;
+export const VIRAL_CLIP_FORM_BOOST = 5;
+/** An agent's comments unsettle the squad's best player. */
+export const AGENT_UNSETTLE_MORALE_HIT = 8;
+/** The chairman praises the manager after a good run. */
+export const BOARDROOM_PRAISE_CONFIDENCE_BOOST = 3;
+/** Shirt-sales spike: budget bonus as a fraction of the budget (half a sponsor windfall). */
+export const SHIRT_SALES_BUDGET_MULTIPLIER = 0.05;
+/** A player fined for a late night: his morale, and the board's view. */
+export const LATE_NIGHT_MORALE_HIT = 8;
+export const LATE_NIGHT_CONFIDENCE_HIT = 1;
+/** A club legend visits training: squad morale and one youngster's form. */
+export const LEGEND_VISIT_MORALE_BOOST = 2;
+export const LEGEND_VISIT_YOUTH_FORM_BOOST = 6;
+/** A new signing is homesick. */
+export const HOMESICK_MORALE_HIT = 8;
+/** Sports-science recovery day: fitness regained by anyone below the threshold. */
+export const RECOVERY_DAY_FITNESS_GAIN = 8;
+export const RECOVERY_DAY_FITNESS_THRESHOLD = 80;
+/** Players-only meeting after a bad run lifts the squad. */
+export const PLAYERS_MEETING_MORALE_BOOST = 4;
+/** A youngster's under-21 international call-up. */
+export const YOUTH_CALLUP_MORALE_BOOST = 8;
 
 // ── Player Match History ──
 export const MAX_PLAYER_MATCH_HISTORY = 20;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { Player, Club, Message } from '@/types/game';
-import { generateRandomEvents } from '@/utils/randomEvents';
+import { generateRandomEvents, randomEventWeights, buildRandomEventContext, RANDOM_EVENT_TEMPLATES } from '@/utils/randomEvents';
 import {
   RANDOM_EVENT_BASE_CHANCE,
   BUSTUP_MORALE_HIT,
@@ -60,6 +60,23 @@ function mockRandomSequence(seq: number[]) {
   });
 }
 
+/** A weight-roll fraction that lands in the middle of `id`'s slice of this
+ *  week's draw table — computed, not hand-summed, so adding a template does not
+ *  silently retarget every test. */
+function rollFor(id: string, club: Club, players: Record<string, Player>, week: number, season: number, recent: ('W' | 'D' | 'L')[], conf: number): number {
+  const table = randomEventWeights(buildRandomEventContext(club, players, week, season, recent, conf));
+  const total = table.reduce((s, e) => s + e.weight, 0);
+  let start = 0;
+  for (const e of table) {
+    if (e.id === id) {
+      if (e.weight <= 0) throw new Error(`${id} has no weight in this context`);
+      return (start + e.weight / 2) / total;
+    }
+    start += e.weight;
+  }
+  throw new Error(`unknown event ${id}`);
+}
+
 describe('generateRandomEvents', () => {
   afterEach(() => { vi.restoreAllMocks(); });
 
@@ -84,16 +101,10 @@ describe('generateRandomEvents', () => {
   });
 
   it('fan_rally branch boosts every squad member\'s morale and emits one message', () => {
-    // Seq: [base-pass, weight-roll landing on fan_rally]. With recentWins>=3
-    // fan_rally weight is 18. Event list cumulative weights (before fan_rally):
-    //   bustup=8, intl_fatigue=6 → fan_rally starts at 14. Weight-roll = r*total.
-    // Easiest: force the roll to land inside the fan_rally slice by returning
-    // a number > (8+6)/total but within the fan_rally window. Total with high
-    // recentWins/boardConfidence is 8+6+18+12+4+10 = 58; fan_rally occupies
-    // [14,32). Pick r = 20/58 ≈ 0.345.
-    mockRandomSequence([0, 20 / 58]);
+    // Seq: [base-pass, weight-roll landing on fan_rally].
     const { players, ids } = buildSquad(5, () => ({ morale: 60 }));
     const club = makeClub({ playerIds: ids });
+    mockRandomSequence([0, rollFor('fan_rally', club, players, 5, 1, ['W', 'W', 'W'], 70)]);
     const out = generateRandomEvents(club, players, [], 5, 1, ['W', 'W', 'W'], 70);
     for (const id of ids) {
       expect(out.playerUpdates[id]?.morale).toBe(60 + FAN_RALLY_MORALE_BOOST);
@@ -102,7 +113,7 @@ describe('generateRandomEvents', () => {
   });
 
   it('bustup branch decrements exactly two players\' morale', () => {
-    // bustup occupies [0, 8) in the weight range. r=0 picks bustup.
+    // bustup is first in the table; r=0 picks it.
     mockRandomSequence([0, 0]);
     const { players, ids } = buildSquad(5, () => ({ morale: 60 }));
     const club = makeClub({ playerIds: ids });
@@ -113,11 +124,9 @@ describe('generateRandomEvents', () => {
   });
 
   it('intl_fatigue branch decreases fitness and requires an eligible player', () => {
-    // intl_fatigue range [8, 14) at baseline. With recentWins=0, boardConf<60
-    // totals 8+6+8+6+4+10 = 42. intl_fatigue slice is [8,14). r = 10/42.
-    mockRandomSequence([0, 10 / 42, 0]); // last 0 picks first eligible player
     const { players, ids } = buildSquad(4, () => ({ overall: 70, fitness: 90 }));
     const club = makeClub({ playerIds: ids });
+    mockRandomSequence([0, rollFor('intl_fatigue', club, players, 5, 1, [], 50), 0]); // last 0 picks first eligible player
     const out = generateRandomEvents(club, players, [], 5, 1, [], 50);
     const fatigued = Object.values(out.playerUpdates).find(u => u.fitness === 90 - INTL_FATIGUE_FITNESS_LOSS);
     expect(fatigued).toBeTruthy();
@@ -126,12 +135,98 @@ describe('generateRandomEvents', () => {
 
   it('media_scrutiny branch produces a negative confidence delta', () => {
     // With recentLosses>=3, media_scrutiny weight is 15.
-    // Weights: 8+6+8+6+15+10 = 53. media_scrutiny occupies [28, 43).
-    mockRandomSequence([0, 30 / 53]);
     const { players, ids } = buildSquad(5);
     const club = makeClub({ playerIds: ids });
+    mockRandomSequence([0, rollFor('media_scrutiny', club, players, 5, 1, ['L', 'L', 'L'], 50)]);
     const out = generateRandomEvents(club, players, [], 5, 1, ['L', 'L', 'L'], 50);
     expect(out.confidenceDelta).toBe(-MEDIA_SCRUTINY_CONFIDENCE_HIT);
     expect(out.messages.some(m => m.title === 'Media Scrutiny')).toBe(true);
+  });
+});
+
+// ── content: the added templates ─────────────────────────────────────────────
+
+/** A squad with someone for every template to be about: veterans, youngsters,
+ *  tired players, a signing from this season. Morale/fitness/form mid-range so
+ *  every delta is visible (no clamping at 10 or 100). */
+function richSquad(season: number) {
+  return buildSquad(14, i => ({
+    age: i < 3 ? 32 : i < 7 ? 19 : 25,
+    overall: 60 + i,
+    potential: 80,
+    morale: 60,
+    fitness: i % 2 === 0 ? 70 : 90,
+    form: 60,
+    joinedSeason: i === 10 ? season : season - 2,
+  }));
+}
+
+/** The bands the original six events set (per player, and for the board/budget). */
+const BOUNDS = { morale: [-10, 10], fitness: [-15, 10], form: [0, 10], confidence: [-3, 3], budgetFraction: [0, 0.1] } as const;
+
+describe('random event templates', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('has at least 16 templates with unique ids', () => {
+    expect(RANDOM_EVENT_TEMPLATES.length).toBeGreaterThanOrEqual(16);
+    expect(new Set(RANDOM_EVENT_TEMPLATES.map(t => t.id)).size).toBe(RANDOM_EVENT_TEMPLATES.length);
+  });
+
+  for (const template of RANDOM_EVENT_TEMPLATES) {
+    it(`${template.id}: fires with one message and stays inside the original effect bands`, () => {
+      const season = 3;
+      const { players, ids } = richSquad(season);
+      const club = makeClub({ playerIds: ids });
+      const recent: ('W' | 'D' | 'L')[] = ['W', 'W', 'L', 'L', 'W'];
+      mockRandomSequence([0, rollFor(template.id, club, players, 20, season, recent, 55), 0.3]);
+      const out = generateRandomEvents(club, players, [], 20, season, recent, 55);
+
+      expect(out.messages, 'exactly one inbox message').toHaveLength(1);
+      expect(out.messages[0].title.length).toBeGreaterThan(0);
+      expect(out.messages[0].body).not.toMatch(/undefined|NaN|\{|\}/);
+      for (const [pid, upd] of Object.entries(out.playerUpdates)) {
+        const before = players[pid];
+        for (const stat of ['morale', 'fitness', 'form'] as const) {
+          if (upd[stat] === undefined) continue;
+          const d = upd[stat]! - before[stat];
+          expect(d, `${template.id} ${stat}`).toBeGreaterThanOrEqual(BOUNDS[stat][0]);
+          expect(d, `${template.id} ${stat}`).toBeLessThanOrEqual(BOUNDS[stat][1]);
+        }
+      }
+      expect(out.confidenceDelta).toBeGreaterThanOrEqual(BOUNDS.confidence[0]);
+      expect(out.confidenceDelta).toBeLessThanOrEqual(BOUNDS.confidence[1]);
+      if (out.clubUpdate.budget !== undefined) {
+        const frac = (out.clubUpdate.budget - club.budget) / club.budget;
+        expect(frac).toBeGreaterThanOrEqual(BOUNDS.budgetFraction[0]);
+        expect(frac).toBeLessThanOrEqual(BOUNDS.budgetFraction[1]);
+      }
+    });
+  }
+
+  it('is a quiet week when the event has nobody to be about', () => {
+    // veteran_mentor with no veterans in the squad.
+    const { players, ids } = buildSquad(6, () => ({ age: 24 }));
+    const club = makeClub({ playerIds: ids });
+    mockRandomSequence([0, rollFor('veteran_mentor', club, players, 10, 2, [], 50)]);
+    const out = generateRandomEvents(club, players, [], 10, 2, [], 50);
+    expect(out.messages).toHaveLength(0);
+    expect(out.playerUpdates).toEqual({});
+  });
+
+  it('never calls a season-1 squad member "homesick" (everyone joined in season 1)', () => {
+    const { players, ids } = buildSquad(6, () => ({ joinedSeason: 1 }));
+    const club = makeClub({ playerIds: ids });
+    const table = randomEventWeights(buildRandomEventContext(club, players, 10, 1, [], 50));
+    expect(table.find(e => e.id === 'homesick_signing')!.weight).toBe(0);
+  });
+
+  it('context steers the draw: winter bugs, praise after a winning run', () => {
+    const { players, ids } = buildSquad(6);
+    const club = makeClub({ playerIds: ids });
+    const w = (week: number, recent: ('W' | 'D' | 'L')[]) =>
+      Object.fromEntries(randomEventWeights(buildRandomEventContext(club, players, week, 2, recent, 50)).map(e => [e.id, e.weight]));
+    expect(w(20, []).sickness_bug).toBeGreaterThan(w(5, []).sickness_bug);
+    expect(w(10, ['W', 'W', 'W']).boardroom_praise).toBeGreaterThan(w(10, []).boardroom_praise);
+    expect(w(10, ['L', 'L']).players_meeting).toBeGreaterThan(w(10, []).players_meeting);
   });
 });
