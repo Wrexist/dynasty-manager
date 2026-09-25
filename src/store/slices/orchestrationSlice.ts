@@ -49,7 +49,7 @@ import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { maybeEnterPlayoff } from '@/store/slices/orchestration/playoff';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import {
-  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl, rollKeeperTauntImpl,
+  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl, rollKeeperTauntImpl, withLiveMatchRandom,
 } from '@/store/slices/orchestration/matchActions';
 import {
   playWorldCupFirstHalfImpl, playWorldCupSecondHalfImpl, playWorldCupExtraTimeImpl,
@@ -789,15 +789,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playSecondHalf: (untilMin?: number) => playSecondHalfImpl(set, get, untilMin),
 
-  playExtraTime: () => playExtraTimeImpl(set, get),
+  // R14: extra time and every shootout step draw from the match's seed (keyed
+  // by the kick count), so a replay after a reload resolves the same way for
+  // the same choices. Kickoff and the second half seed themselves inside
+  // matchActions, where the match is identified.
+  playExtraTime: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, 'extra-time', () => playExtraTimeImpl(set, get)),
 
-  playPenalties: () => playPenaltiesImpl(set, get),
+  playPenalties: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, 'penalties', () => playPenaltiesImpl(set, get)),
 
-  rollKeeperTaunt: () => rollKeeperTauntImpl(set, get),
-  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, opts),
-  revealOpponentPenalty: () => revealOpponentPenaltyImpl(set, get),
+  rollKeeperTaunt: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, `taunt:${get().penaltyShootoutKicks.length}`, () => rollKeeperTauntImpl(set, get)),
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) =>
+    withLiveMatchRandom(get(), get().currentMatchResult?.id, `kick:${get().penaltyShootoutKicks.length}`, () => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, opts)),
+  revealOpponentPenalty: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, `kick:${get().penaltyShootoutKicks.length}`, () => revealOpponentPenaltyImpl(set, get)),
 
-  skipPenaltyShootout: () => skipPenaltyShootoutImpl(set, get),
+  skipPenaltyShootout: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, `shootout-skip:${get().penaltyShootoutKicks.length}`, () => skipPenaltyShootoutImpl(set, get)),
 
   playWorldCupFirstHalf: () => playWorldCupFirstHalfImpl(set, get),
 

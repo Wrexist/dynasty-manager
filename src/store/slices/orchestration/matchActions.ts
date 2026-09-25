@@ -39,6 +39,7 @@ import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, 
 import { dynastyMult } from '@/utils/managerPerks';
 import { isPro } from '@/utils/monetization';
 import { updateEloRatings } from '@/utils/teamRankings';
+import { fnv1a, installSeededRandom } from '@/utils/hashString';
 /**
  * Match-action pipeline extracted from orchestrationSlice.ts.
  *
@@ -565,6 +566,45 @@ export function buildMatchSquad(
   return { xi, bench };
 }
 
+/**
+ * The seed a live match's random draws come from (R14).
+ *
+ * Closing or reloading mid-match discarded it and the replay from kickoff was
+ * a fresh simulation, so a bad first half could be re-rolled. The seed is
+ * derived from what the save already holds — the career, the season, the
+ * match's own id and the stage — so nothing new has to be persisted and there
+ * is no window where a kill loses it: the replay re-derives the same seed and,
+ * for the same decisions, produces the same events and score.
+ *
+ * A used Invincible rewind is part of the key, so the perk's replay is still a
+ * genuinely new match; replays after that are deterministic again.
+ */
+export function liveMatchSeed(
+  state: Pick<GameState, 'careerId' | 'activeSlot' | 'playerClubId' | 'season' | 'invincibleUsedThisSeason'>,
+  matchId: string,
+  stage: string,
+): number {
+  const career = state.careerId ?? `slot-${state.activeSlot}:${state.playerClubId}`;
+  return fnv1a(`${career}|${state.season}|${matchId}|${state.invincibleUsedThisSeason ? 'rewound' : ''}|${stage}`);
+}
+
+/** Run a synchronous match step with `Math.random` on the match's seed. Steps
+ *  with no current match (`matchId` missing) run unseeded. */
+export function withLiveMatchRandom<T>(
+  state: Parameters<typeof liveMatchSeed>[0],
+  matchId: string | null | undefined,
+  stage: string,
+  fn: () => T,
+): T {
+  if (!matchId) return fn();
+  const restore = installSeededRandom(liveMatchSeed(state, matchId, stage));
+  try {
+    return fn();
+  } finally {
+    restore();
+  }
+}
+
 export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const state = get();
   // Career mode: block match play when unemployed
@@ -608,6 +648,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Build match object from the detected source
   let match: Match | null = null;
   let ephemeralClub: { club: Club; players: Record<string, Player> } | null = null;
+  let ephemeralOppId: string | null = null;
   let effectiveClubs = clubs;
   let effectivePlayers = players;
 
@@ -642,26 +683,31 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     // qualifier), `clubs[oppId]` is the real club — generating an ephemeral
     // copy would overwrite its real squad/budget on `set({ clubs })` and the
     // post-match `vc-*` player sweep would then strand its `playerIds`.
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
     match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(continentalFinal) } as Match;
   } else if (leagueCupTie) {
     match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(leagueCupTie.round)) } as Match;
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
     match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
   }
 
   if (!match) return null;
+
+  // R14: every random draw from here on comes from this match's seed, so a
+  // replay after a reload (or a kill mid-match) plays out exactly as before
+  // for the same decisions — a bad half can no longer be re-rolled.
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, 'full-match'));
+  try {
+  if (ephemeralOppId) {
+    ephemeralClub = createEphemeralClub((state.virtualClubs || {})[ephemeralOppId], season, state.communityPackEnabled);
+    effectiveClubs = { ...clubs, [ephemeralOppId]: ephemeralClub.club };
+    effectivePlayers = { ...players, ...ephemeralClub.players };
+  }
 
   // Determine competition metadata
   const isFriendly = !!friendlyMatch;
@@ -1122,6 +1168,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     }
     return null;
   }
+  } finally {
+    restoreRandom();
+  }
 }
 
 export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
@@ -1166,6 +1215,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // Build match object from the detected source
   let match: Match | null = null;
   let ephemeralClub: { club: Club; players: Record<string, Player> } | null = null;
+  let ephemeralOppId: string | null = null;
   let effectiveClubs = clubs;
   let effectivePlayers = players;
 
@@ -1198,26 +1248,31 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     // opponent isn't already a loaded real club (see playCurrentMatchImpl).
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
     match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(continentalFinal) } as Match;
   } else if (leagueCupTie) {
     match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(leagueCupTie.round)) } as Match;
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
     match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
   }
 
   if (!match) return null;
+
+  // R14: every random draw from here on comes from this match's seed, so a
+  // replay after a reload (or a kill mid-match) plays out exactly as before
+  // for the same decisions — a bad half can no longer be re-rolled.
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, 'first-half'));
+  try {
+  if (ephemeralOppId) {
+    ephemeralClub = createEphemeralClub((state.virtualClubs || {})[ephemeralOppId], season, state.communityPackEnabled);
+    effectiveClubs = { ...clubs, [ephemeralOppId]: ephemeralClub.club };
+    effectivePlayers = { ...players, ...ephemeralClub.players };
+  }
 
   const hc = effectiveClubs[match.homeClubId];
   const ac = effectiveClubs[match.awayClubId];
@@ -1328,6 +1383,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     }
     return null;
   }
+  } finally {
+    restoreRandom();
+  }
 }
 
 /**
@@ -1412,6 +1470,11 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   }
   if (!match) return null;
 
+  // R14: seeded per segment start, so the same decisions at the same moments
+  // replay the same second half after a reload.
+  const segmentStart = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, `second-half:${segmentStart}`));
+  try {
   const hc = clubs[match.homeClubId];
   const ac = clubs[match.awayClubId];
   if (!hc || !ac) return null;
@@ -1665,6 +1728,9 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   // already do this).
   if (get().settings.autoSave) get().saveGame();
   return result;
+  } finally {
+    restoreRandom();
+  }
   } catch (err) {
     Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
     try {
