@@ -175,6 +175,22 @@ export function isPaymentPendingError(err: unknown): boolean {
 // about a product as soon as it's approved, regardless of RevenueCat's offering
 // config, so we fall back to getProducts() → purchaseStoreProduct().
 
+/**
+ * Our product ID for an identifier the store reports.
+ *
+ * Google Play subscriptions come back from RevenueCat as
+ * `<subscriptionId>:<basePlanId>` (StoreProduct.identifier, and on some SDK
+ * paths the purchased-product list). Compared raw against our catalogue, every
+ * Pro subscription read as "not sold" on Android and its purchase could never
+ * be matched to a plan. iOS product IDs never contain a colon, so this is the
+ * identity there.
+ */
+export function normalizeStoreProductId(identifier: string | null | undefined): string {
+  if (typeof identifier !== 'string') return '';
+  const colon = identifier.indexOf(':');
+  return colon === -1 ? identifier : identifier.slice(0, colon);
+}
+
 interface StoreProductLike {
   identifier: string;
   priceString?: string;
@@ -310,7 +326,7 @@ async function buyProduct(Purchases: PurchasesModule, productId: ProductId) {
   } catch (err) {
     throw new PurchaseNotAttemptedError(`Could not load offerings for ${productId}`, err);
   }
-  const pkg = packages.find(p => p.product.identifier === productId);
+  const pkg = packages.find(p => normalizeStoreProductId(p.product.identifier) === productId);
   if (pkg) {
     // pkg is narrowed from the loose offerings shape above; the runtime object
     // satisfies PurchasesPackage but structural typing misses the extra fields.
@@ -321,7 +337,8 @@ async function buyProduct(Purchases: PurchasesModule, productId: ProductId) {
 
   let product: Awaited<ReturnType<typeof fetchStoreProducts>>[number] | undefined;
   try {
-    [product] = await fetchStoreProducts(Purchases, [productId]);
+    const products = await fetchStoreProducts(Purchases, [productId]);
+    product = products.find(p => normalizeStoreProductId(p.identifier) === productId);
   } catch (err) {
     throw new PurchaseNotAttemptedError(`Could not load product ${productId}`, err);
   }
@@ -384,8 +401,8 @@ export async function getStoreAvailability(
     const available = new Set<ProductId>();
     let currencyCode: string | undefined;
     for (const entry of [...packages.map(p => p.product), ...products]) {
-      if (!wanted.has(entry.identifier)) continue;
-      const id = entry.identifier as ProductId;
+      const id = normalizeStoreProductId(entry.identifier) as ProductId;
+      if (!wanted.has(id)) continue;
       available.add(id);
       if (entry.priceString && !prices[id]) prices[id] = entry.priceString;
       if (typeof entry.price === 'number' && Number.isFinite(entry.price) && amounts[id] == null) {
@@ -445,7 +462,7 @@ export async function readConsumableHistory(productId: string, sync = false): Pr
   return {
     customerId: customerInfo.originalAppUserId,
     transactionIds: customerInfo.nonSubscriptionTransactions
-      .filter(t => t.productIdentifier === productId).map(t => t.transactionIdentifier),
+      .filter(t => normalizeStoreProductId(t.productIdentifier) === productId).map(t => t.transactionIdentifier),
   };
 }
 
@@ -717,7 +734,7 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
   if (activeEntitlements && typeof activeEntitlements === 'object') {
     for (const key of Object.keys(activeEntitlements)) {
       const ent = activeEntitlements[key];
-      if (ent?.productIdentifier) purchased.add(ent.productIdentifier);
+      if (ent?.productIdentifier) purchased.add(normalizeStoreProductId(ent.productIdentifier));
     }
   }
 
@@ -728,7 +745,8 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
   // indefinitely. For non-consumable one-time purchases (Pro, Lifetime,
   // packs, bundle) the list is a reliable forever-record.
   const allIds = customerInfo?.allPurchasedProductIdentifiers || [];
-  for (const id of allIds) {
+  for (const rawId of allIds) {
+    const id = normalizeStoreProductId(rawId);
     const product = PRODUCTS[id as ProductId];
     if (product && product.type !== 'subscription') {
       purchased.add(id);
@@ -764,7 +782,7 @@ function extractConfirmedLapse(customerInfo: CustomerInfo | null | undefined): S
   if (!all || typeof all !== 'object') return null;
   const ent = PRO_ENTITLEMENT_IDS.map(id => all[id]).find(Boolean);
   if (!ent || ent.isActive !== false) return null;
-  const productId = ent.productIdentifier as ProductId;
+  const productId = normalizeStoreProductId(ent.productIdentifier) as ProductId;
   const product = PRODUCTS[productId];
   if (!product || product.type !== 'subscription') return null;
   const now = Date.now();
@@ -802,7 +820,7 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
     const proEntitlement = PRO_ENTITLEMENT_IDS.map(id => activeEntitlements[id]).find(Boolean);
     if (!proEntitlement) return extractConfirmedLapse(customerInfo);
 
-    const productId = proEntitlement.productIdentifier as ProductId;
+    const productId = normalizeStoreProductId(proEntitlement.productIdentifier) as ProductId;
     const product = PRODUCTS[productId];
     if (!product || (product.type !== 'subscription' && product.subscriptionTier !== 'lifetime')) return null;
 
@@ -852,18 +870,20 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
 export async function openSubscriptionManagement(): Promise<boolean> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return false;
 
-  // Apple's universal subscription-management URL — works on every iOS
-  // device even when RevenueCat hasn't synced customerInfo yet. Used as
-  // a fallback when `customerInfo.managementURL` is missing (audit
-  // finding: without it, a flaky RC sync left the user with no way to
-  // manage their subscription).
-  const APPLE_SUB_FALLBACK = 'https://apps.apple.com/account/subscriptions';
+  // The store's own subscription-management page — works even when
+  // RevenueCat hasn't synced customerInfo yet. Used as a fallback when
+  // `customerInfo.managementURL` is missing (audit finding: without it, a
+  // flaky RC sync left the user with no way to manage their subscription).
+  // Per platform: an Android player sent to Apple's page cannot cancel.
+  const STORE_SUB_FALLBACK = Capacitor.getPlatform() === 'android'
+    ? 'https://play.google.com/store/account/subscriptions'
+    : 'https://apps.apple.com/account/subscriptions';
 
   try {
     await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
-    const managementUrl = customerInfo?.managementURL || APPLE_SUB_FALLBACK;
+    const managementUrl = customerInfo?.managementURL || STORE_SUB_FALLBACK;
     const { openExternalUrl } = await import('@/utils/externalUrl');
     void openExternalUrl(managementUrl);
     return true;
@@ -874,7 +894,7 @@ export async function openSubscriptionManagement(): Promise<boolean> {
     // so the user can still cancel their subscription.
     try {
       const { openExternalUrl } = await import('@/utils/externalUrl');
-      void openExternalUrl(APPLE_SUB_FALLBACK);
+      void openExternalUrl(STORE_SUB_FALLBACK);
       return true;
     } catch {
       return false;

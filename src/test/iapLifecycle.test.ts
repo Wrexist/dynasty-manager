@@ -24,13 +24,18 @@ const mockPurchases = {
   checkTrialOrIntroductoryPriceEligibility: vi.fn(),
 };
 
+/** Simulated device platform — iOS unless a test says otherwise. */
+const platform = { value: 'ios' as 'ios' | 'android' };
+
 vi.mock('@capacitor/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@capacitor/core')>();
   return {
     ...actual,
-    Capacitor: { ...actual.Capacitor, isNativePlatform: () => true, getPlatform: () => 'ios' },
+    Capacitor: { ...actual.Capacitor, isNativePlatform: () => true, getPlatform: () => platform.value },
   };
 });
+
+vi.mock('@/utils/externalUrl', () => ({ openExternalUrl: vi.fn().mockResolvedValue(undefined) }));
 
 vi.mock('@revenuecat/purchases-capacitor', () => ({
   Purchases: mockPurchases,
@@ -54,7 +59,11 @@ import { useGameStore } from '@/store/gameStore';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { isPro, isSubscriptionActive, mergeDeviceMonetization } from '@/utils/monetization';
 import { purchaseAndSync, restoreAndSync, syncStoreState } from '@/utils/purchaseSync';
-import { purchaseProduct, purchaseConsumable, isPaymentPendingError, extractSubscriptionInfo } from '@/utils/purchases';
+import {
+  purchaseProduct, purchaseConsumable, isPaymentPendingError, extractSubscriptionInfo,
+  getStoreAvailability, openSubscriptionManagement, restorePurchases,
+} from '@/utils/purchases';
+import { openExternalUrl } from '@/utils/externalUrl';
 import { __resetClockHighWaterCache } from '@/store/helpers/persistence';
 import type { ProductId } from '@/types/game';
 
@@ -125,6 +134,7 @@ const monetization = () => useGameStore.getState().monetization;
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
+  platform.value = 'ios';
   localStorage.clear();
   __resetClockHighWaterCache();
   mockPurchases.setLogLevel.mockResolvedValue(undefined);
@@ -394,5 +404,58 @@ describe('a refunded, revoked or lapsed subscription ends when the store says so
       { entitlements: [], subscription: active, firstLaunchTimestamp: 0 },
       { entitlements: [], subscription: expired, firstLaunchTimestamp: 0 },
     ).subscription).toEqual(active);
+  });
+});
+
+describe('Android (Google Play) identifiers and management', () => {
+  beforeEach(() => { platform.value = 'android'; });
+
+  it('a Play subscription reported as "<id>:<basePlan>" is still recognised as our plan', async () => {
+    mockPurchases.getOfferings.mockResolvedValue({ current: { availablePackages: [] }, all: {} });
+    mockPurchases.getProducts.mockImplementation(async ({ type }: { type?: string }) => ({
+      products: type === 'SUBSCRIPTION'
+        ? [{ identifier: `${YEARLY}:yearly-base`, priceString: '24,99 €', price: 24.99, currencyCode: 'EUR' }]
+        : [{ identifier: LIFETIME, priceString: '39,99 €', price: 39.99, currencyCode: 'EUR' }],
+    }));
+
+    const { available, prices, amounts } = await getStoreAvailability([YEARLY, LIFETIME]);
+
+    expect(available.sort()).toEqual([YEARLY, LIFETIME].sort());
+    expect(prices[YEARLY]).toBe('24,99 €');
+    expect(amounts[YEARLY]).toBe(24.99);
+  });
+
+  it('buys the Play subscription through its offering package', async () => {
+    const pkg = { product: { identifier: `${MONTHLY}:monthly-base` } };
+    mockPurchases.getOfferings.mockResolvedValue({ current: { availablePackages: [pkg] }, all: {} });
+    const info = customer({ active: { pro: { ...proEntitlement(MONTHLY), productPlanIdentifier: 'monthly-base' } } });
+    mockPurchases.purchasePackage.mockResolvedValue({ customerInfo: info });
+    storeRecord(info);
+
+    const outcome = await purchaseAndSync(MONTHLY);
+
+    expect(mockPurchases.purchasePackage).toHaveBeenCalledWith({ aPackage: pkg });
+    expect(outcome.status).toBe('completed');
+    expect(monetization().subscription).toMatchObject({ productId: MONTHLY, tier: 'monthly' });
+  });
+
+  it('a subscription ID in the purchased list is still never persisted as an entitlement', async () => {
+    mockPurchases.restorePurchases.mockResolvedValue({
+      customerInfo: customer({ purchased: [`${YEARLY}:yearly-base`, MANAGER_PACK] }),
+    });
+    await expect(restorePurchases()).resolves.toEqual([MANAGER_PACK]);
+  });
+
+  it('with no management URL from the store, an Android player is sent to Google Play, not Apple', async () => {
+    storeRecord(customer());
+    await openSubscriptionManagement();
+    expect(openExternalUrl).toHaveBeenCalledWith('https://play.google.com/store/account/subscriptions');
+  });
+
+  it('iOS still falls back to Apple\'s subscription page', async () => {
+    platform.value = 'ios';
+    storeRecord(customer());
+    await openSubscriptionManagement();
+    expect(openExternalUrl).toHaveBeenCalledWith('https://apps.apple.com/account/subscriptions');
   });
 });
