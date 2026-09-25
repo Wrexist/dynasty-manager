@@ -25,6 +25,7 @@ import {
   RACE_MODE_WINDOW_WEEKS, TITLE_RACE_MAX_POSITION, TITLE_RACE_MAX_POINTS_GAP,
   RELEGATION_BATTLE_BOTTOM_PLACES, SPRING_PHASE_END_WEEK, COACH_CHECKLIST_MAX_SEASON,
   LINEUP_SIZE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, BOARD_ATTENTION_CRITICAL_CONFIDENCE,
+  PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK,
 } from '@/config/gameBalance';
 import { CONFIDENCE_CRITICAL_THRESHOLD } from '@/config/ui';
 import { getSuffix, isAwayOnLoan } from '@/utils/helpers';
@@ -92,9 +93,31 @@ export function getRaceMode(input: RaceModeInput): RaceMode {
 
 export type SeasonStage = 'preSeason' | 'autumn' | 'winter' | 'spring' | 'runIn';
 
-/** Which part of the season a week falls in — was written out twice, inline. */
-export function getSeasonStage(week: number, windows: TransferWindows): SeasonStage {
-  if (week <= windows.summerEnd) return 'preSeason';
+/** The week of the club's first league fixture this season, or the configured
+ *  default when the club has none (e.g. between seasons). */
+export function getFirstLeagueWeek(fixtures: Match[], clubId: string): number {
+  let first = Infinity;
+  for (const m of fixtures) {
+    if ((m.homeClubId === clubId || m.awayClubId === clubId) && m.week < first) first = m.week;
+  }
+  return Number.isFinite(first) ? first : PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK;
+}
+
+/**
+ * Which part of the season a week falls in — was written out twice, inline.
+ *
+ * Pre-season is the weeks BEFORE the club's first league fixture
+ * (`firstLeagueWeek`, see `getFirstLeagueWeek`). It used to be every week up
+ * to the summer transfer window's close, so "Season 1 · Week 5 · Pre-Season"
+ * sat over a league table with four rounds played (R2). The open window and
+ * the season stage are separate facts.
+ */
+export function getSeasonStage(
+  week: number,
+  windows: TransferWindows,
+  firstLeagueWeek: number = PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK,
+): SeasonStage {
+  if (week < firstLeagueWeek) return 'preSeason';
   if (week < windows.winterStart) return 'autumn';
   if (week <= windows.winterEnd) return 'winter';
   if (week <= SPRING_PHASE_END_WEEK) return 'spring';

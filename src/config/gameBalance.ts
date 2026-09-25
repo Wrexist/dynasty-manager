@@ -16,6 +16,14 @@ export const LINEUP_SIZE = 11;
  *  engine's real-football target band; see `resolveCatchUpFixture`. */
 export const CATCH_UP_EXPECTED_GOALS = 2.7;
 export const LOW_FITNESS_THRESHOLD = 65;
+// ── econ: pre-season boundary (R2) ──
+/** Pre-season is the weeks before the club's first league fixture. When the
+ *  caller does not pass that week, this is the assumed start. Round 1 falls in
+ *  week 1 in almost every league (week 2 where the calendar is longer than the
+ *  round count), so with a default of 1 no league week reads "Pre-Season".
+ *  It used to be every week up to the summer window's close, so weeks 1-7 of
+ *  a 46-week season said "Pre-Season" while league matches were played. */
+export const PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK = 1;
 
 // ── First Match Confidence Boost (Season 1 only) ──
 export const FIRST_MATCH_ATTACK_BOOST = 0.08;
