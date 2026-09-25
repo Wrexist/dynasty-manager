@@ -919,7 +919,7 @@ export const en = {
   'onboardingChecklist.claimReadyAria': 'Claim {xp} XP for {n} completed steps',
   // ── uipolish: storyline decisions in "Needs your attention" (Dashboard) ──
   'dashboard.attention.storyline': 'Decision: {title}',
-  'dashboard.attention.storylineDetail': '{choices} choices — tap to decide',
+  'dashboard.attention.storylineDetail': '{choices} choices — decide before you continue',
   'storylineModal.decideLater': 'Decide later',
   'storylineModal.ignoreStory': 'Ignore this story',
   // ── uipolish: sheet descriptions for screen readers (Radix Description) ──

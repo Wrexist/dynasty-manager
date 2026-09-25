@@ -181,6 +181,9 @@ describe('Dashboard — a storyline decision waits in "Needs your attention"', (
     renderDashboard();
     const row = screen.getByRole('button', { name: /Decision: Big Club Scouts Spotted/ });
     expect(row.textContent).toMatch(/3 choices/);
+    // An unanswered story is replaced on the next advance (weekAdvance sets
+    // `pendingStoryline` afresh), so "Decide later" must not read as "any time".
+    expect(row.textContent).toMatch(/decide before you continue/);
     expect(before(continueButton(), row)).toBe(true);
     // No choices and no story body on the page until the row is opened.
     expect(screen.queryByText('Shield him from the media')).toBeNull();
