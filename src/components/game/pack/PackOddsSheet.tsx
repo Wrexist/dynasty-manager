@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, ShieldCheck, Info } from 'lucide-react';
 import type { PackTierDefinition } from '@/types/game';
@@ -324,7 +324,14 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
         {random > 0 && (
           <p className="mt-1 text-[11px] text-muted-foreground" data-testid="pack-guide-rarity-key">
             Rarity names mean the same range in every pack:{' '}
-            {packRarityLegend().map(r => `${r.name} ${r.minOvr}–${r.maxOvr}`).join(' · ')}.
+            {packRarityLegend().map((r, i, all) => (
+              // One unbreakable unit per rung ("45–\n59" split a range in
+              // two); the space between rungs stays outside it, breakable.
+              <Fragment key={r.rarity}>
+                <span className="whitespace-nowrap">{`${r.name} ${r.minOvr}–${r.maxOvr}`}{i < all.length - 1 ? ' ·' : '.'}</span>
+                {i < all.length - 1 ? ' ' : ''}
+              </Fragment>
+            ))}
           </p>
         )}
 
