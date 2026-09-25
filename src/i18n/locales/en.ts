@@ -912,6 +912,11 @@ export const en = {
   'dashboard.pass.tier': 'Tier {tier}/{max}',
   'dashboard.pass.toCollect': '{n} to collect',
   'managerCreation.suggestedNation': 'From your device',
+  // ── uipolish: one Getting Started checklist (OnboardingChecklist) ──
+  'onboardingChecklist.partFirstWeek': 'Part 1 of 2 · Your first week',
+  'onboardingChecklist.partFirstSeasons': 'Part 2 of 2 · Your first seasons',
+  'onboardingChecklist.partOneDoneTitle': 'Your first week is set up',
+  'onboardingChecklist.claimReadyAria': 'Claim {xp} XP for {n} completed steps',
 } as const;
 
 export default en;

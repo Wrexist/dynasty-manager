@@ -15,6 +15,9 @@ import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { selectChecklistStage } from '@/utils/dashboardSelectors';
 import { COACH_CHECKLIST_MAX_SEASON } from '@/config/gameBalance';
 import { en } from '@/i18n/locales/en';
+import { MemoryRouter } from 'react-router-dom';
+import Dashboard from '@/pages/Dashboard';
+import { resetPresentationLedger } from '@/hooks/usePresentationQueue';
 
 const CLUB_ID = 'celtic';
 
@@ -91,15 +94,15 @@ describe('Getting Started — one card', () => {
     expect(screen.getByRole('button', { name: /Skip tutorial/i })).toBeTruthy();
   });
 
-  it('after week 1: the coach tasks, claimable for XP', () => {
+  it('after week 1: the coach tasks, with their XP collected by one claim', () => {
     freshCareer(5, 1);
     render(<OnboardingChecklist />);
     expect(screen.queryByText(/Set a plan for your first match/)).toBeNull();
     expect(screen.getByText('Set your best XI')).toBeTruthy();
-    const claim = screen.getAllByRole('button', { name: /^Claim \d+ XP for/ })[0];
+    const claim = screen.getByRole('button', { name: /^Claim \d+ XP for \d+ completed steps/ });
     const xpBefore = useGameStore.getState().managerProgression.xp;
     act(() => { fireEvent.click(claim); });
-    expect(useGameStore.getState().completedCoachTaskIds.length).toBe(1);
+    expect(useGameStore.getState().completedCoachTaskIds.length).toBeGreaterThan(0);
     expect(useGameStore.getState().managerProgression.xp).toBeGreaterThan(xpBefore);
   });
 
@@ -129,5 +132,96 @@ describe('Getting Started — one card', () => {
     freshCareer(5, COACH_CHECKLIST_MAX_SEASON + 1);
     render(<OnboardingChecklist />);
     expect(screen.queryByRole('region')).toBeNull();
+  });
+});
+
+// ── Playthrough 2026-09 (R3): one checklist whose rows tick as they happen ──
+
+/** Mark the club's fixture(s) in `week` as played. */
+function playThisWeek(week: number) {
+  const s = useGameStore.getState();
+  useGameStore.setState({
+    fixtures: s.fixtures.map(f => (f.week === week && (f.homeClubId === s.playerClubId || f.awayClubId === s.playerClubId))
+      ? { ...f, played: true, homeGoals: 1, awayGoals: 0 }
+      : f),
+  });
+}
+
+/** Rows of the card, by their visible label. */
+function row(label: RegExp): HTMLElement {
+  return screen.getByText(label).closest('button') as HTMLElement;
+}
+
+describe('Getting Started — one checklist that ticks as it goes', () => {
+  beforeEach(() => freshCareer());
+
+  it('the first-match row ticks once the match is played (it stayed open after the final whistle)', () => {
+    const { unmount } = render(<OnboardingChecklist />);
+    expect(row(/play your first match/i).querySelector('.line-through')).toBeNull();
+    unmount();
+    act(() => playThisWeek(1));
+    render(<OnboardingChecklist />);
+    expect(row(/play your first match/i).querySelector('.line-through')).not.toBeNull();
+    // …and the counter counts it.
+    const counter = screen.getByText(/\d+\/\d+ done/);
+    const [done, total] = counter.textContent!.match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
+    expect(done).toBeGreaterThanOrEqual(1);
+    expect(total).toBe(screen.getAllByRole('listitem').length);
+  });
+
+  it('after the first advance the counter counts steps already done, not XP already claimed', () => {
+    freshCareer(2, 1);
+    act(() => playThisWeek(1));
+    render(<OnboardingChecklist />);
+    // Nothing claimed yet — it used to read 0/N here with a Claim on each done row.
+    expect(useGameStore.getState().completedCoachTaskIds).toEqual([]);
+    const counter = screen.getByText(/\d+\/\d+ done/);
+    const done = Number(counter.textContent!.match(/(\d+)\//)![1]);
+    expect(done).toBeGreaterThanOrEqual(2); // XI set + first match played
+    expect(row(/Play your first match week/).querySelector('.line-through')).not.toBeNull();
+  });
+
+  it('one claim button collects every ready step, never one per row', () => {
+    freshCareer(2, 1);
+    act(() => playThisWeek(1));
+    render(<OnboardingChecklist />);
+    const claims = screen.getAllByRole('button', { name: /^Claim/ });
+    expect(claims).toHaveLength(1);
+    act(() => { fireEvent.click(claims[0]); });
+    const claimed = useGameStore.getState().completedCoachTaskIds;
+    expect(claimed).toEqual(expect.arrayContaining(['lineup', 'first-match']));
+    expect(screen.queryAllByRole('button', { name: /^Claim/ })).toHaveLength(0);
+  });
+
+  it('one title in both parts, the eyebrow names the part, and the tour is the one guide entry', () => {
+    const { unmount } = render(<OnboardingChecklist />);
+    expect(screen.getAllByText('Getting Started')).toHaveLength(1);
+    expect(screen.getByText(/Part 1 of 2/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Take the tour/ })).toBeTruthy();
+    unmount();
+    freshCareer(5, 1);
+    render(<OnboardingChecklist />);
+    expect(screen.getAllByText('Getting Started')).toHaveLength(1);
+    expect(screen.getByText(/Part 2 of 2/)).toBeTruthy();
+    expect(screen.queryByText(/Coach Checklist/i)).toBeNull();
+    expect(screen.getByRole('button', { name: /Take the tour/ })).toBeTruthy();
+  });
+});
+
+describe('Dashboard — one guide entry in week 1', () => {
+  beforeEach(() => {
+    freshCareer();
+    resetPresentationLedger();
+    useGameStore.setState({
+      currentScreen: 'dashboard', weeklyDigest: null, pendingPressConference: null, pendingStoryline: null,
+      pendingTransferTalk: null, pendingGemReveal: null, pendingFarewell: [], pendingAchievementIds: [],
+    });
+  });
+
+  it('shows the checklist once and no separate "Your Dashboard" guide card', () => {
+    render(<MemoryRouter><Dashboard /></MemoryRouter>);
+    expect(screen.getAllByText('Getting Started')).toHaveLength(1);
+    expect(screen.queryByText(en['dashboard.yourDashboard'])).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Take the tour/ })).toHaveLength(1);
   });
 });

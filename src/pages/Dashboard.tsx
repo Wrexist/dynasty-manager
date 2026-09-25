@@ -9,7 +9,9 @@
  *      (`selectAttentionItems`), each row tapping to the screen that resolves
  *      it. Injuries and expiring contracts used to render below the XP bar,
  *      sagas, objectives, achievements and cliffhangers.
- *   3. The Getting Started checklist (new careers only).
+ *   3. The Getting Started checklist (new careers only) — also the page's
+ *      one guide entry ("Take the tour"); the separate "Your Dashboard" hint
+ *      card that sat above the Continue button is gone.
  *   4. The next match.
  *   5. Live-event and starter-kit banners, and the one-line Manager Pass
  *      entry (tier + a count badge when rewards are collectable).
@@ -48,7 +50,6 @@ import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
 import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
-import { PageHint } from '@/components/game/PageHint';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { StarterKitBanner } from '@/components/game/StarterKitBanner';
 import { DailyRewardModal } from '@/components/game/DailyRewardModal';
@@ -541,12 +542,6 @@ const Dashboard = () => {
         open={!!currentAchievement}
         onClose={dismissAchievement}
         achievement={currentAchievement}
-      />
-
-      <PageHint
-        screen="dashboard"
-        title={t('dashboard.yourDashboard')}
-        body={t('dashboard.thisIsYourWeeklyHub')}
       />
 
       {/* ── 1. Header + Continue ── */}

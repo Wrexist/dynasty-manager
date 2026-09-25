@@ -17,6 +17,19 @@
  *      coach tasks (`buildCoachTasks`), each paying its XP on the claim tap,
  *      until every task is claimed.
  *
+ * It reads as ONE checklist, not two lists that happen to share a title (the
+ * 2026-09 playthrough saw "Getting Started" twice, a first-match row that never
+ * ticked, and a coach list that opened at 0/7 with three Claim buttons):
+ *   - one title, and an eyebrow that names the part ("Part 1 of 2 · Your first
+ *     week" → "Part 2 of 2 · Your first seasons");
+ *   - every row ticks the moment its step is done, and the counter counts
+ *     ticked rows — including the first-match row and coach tasks whose XP has
+ *     not been collected yet;
+ *   - collecting XP is one "Claim +N XP" button for everything ready, not a
+ *     button per row;
+ *   - it is the Dashboard's one guide entry: "Take the tour" sits in both
+ *     parts, and the separate "Your Dashboard" hint card is gone.
+ *
  * One dismiss control for both: it sets `settings.hideOnboarding`, which is
  * persisted with the save and re-enabled from Settings → New-career
  * walkthrough. (It used to be a session-only dismissal, so the card came back
@@ -36,7 +49,8 @@
  *   - Sponsor row done when sponsorOffers.length === 0.
  *   - Scout row done when scouting.assignments.length > 0; swapped for a
  *     "hire a scout" row when scouting.maxAssignments === 0.
- *   - Advance-week row never ticks; advancing ends the stage via the week.
+ *   - First-match row ticks once this week's match is played; advancing
+ *     ends the stage via the week.
  *
  * `WELCOME_SHOWN` (which holds back the daily-reward modal and the festival
  * banner so they do not land on top of a brand-new player) is set as soon as
@@ -87,6 +101,8 @@ interface ChecklistItem {
 
 interface FirstSessionInput {
   hasMatchThisWeek: boolean;
+  /** The club's match this week has been played (the first-match row ticks). */
+  firstMatchPlayed: boolean;
   gamePlanTaskDone: boolean;
   sponsorTaskDone: boolean;
   scouting: { maxAssignments: number; assignments: unknown[] };
@@ -95,7 +111,7 @@ interface FirstSessionInput {
 /** The first-session rows. The scout row swaps to a "hire a scout from Staff"
  *  row when the user has no scout on payroll, so the checklist never has an
  *  un-tickable orphan row. */
-function buildFirstSessionItems({ hasMatchThisWeek, gamePlanTaskDone, sponsorTaskDone, scouting }: FirstSessionInput): ChecklistItem[] {
+function buildFirstSessionItems({ hasMatchThisWeek, firstMatchPlayed, gamePlanTaskDone, sponsorTaskDone, scouting }: FirstSessionInput): ChecklistItem[] {
   const items: ChecklistItem[] = [];
 
   // FIRST, and deliberately so. The other two rows are administration — they
@@ -110,7 +126,8 @@ function buildFirstSessionItems({ hasMatchThisWeek, gamePlanTaskDone, sponsorTas
   // `PostMatchPopup` renders a debrief line that ONLY appears when a plan was
   // set. So choose -> play -> the game tells you whether it worked, which is
   // the loop the first session has to teach. Nobody was being pointed at it.
-  if (hasMatchThisWeek) {
+  // Still listed (ticked) once the match is played, rather than vanishing.
+  if (hasMatchThisWeek || firstMatchPlayed) {
     items.push({
       id: 'game-plan',
       label: 'Set a plan for your first match',
@@ -197,7 +214,9 @@ function buildFirstSessionItems({ hasMatchThisWeek, gamePlanTaskDone, sponsorTas
     label: 'Then: play your first match',
     description: 'When you\'re set up, play your Week 1 matches to start the season.',
     icon: Calendar,
-    done: false,
+    // Ticks when the match is played. It used to be hard-coded false, so the
+    // row still read "Then: play your first match" after the final whistle.
+    done: firstMatchPlayed,
     screen: 'match-prep',
     whyItMatters: 'Time only moves when you advance it. The game pauses indefinitely between weeks so you can set tactics, manage transfers, and review scout reports. Once you advance, the next week begins and training fires.',
     steps: [
@@ -218,7 +237,7 @@ export function OnboardingChecklist() {
   const { t } = useTranslation();
   const {
     week, season, totalWeeks, seasonPhase, sponsorOffers, scouting, prestigeLevel, hideOnboarding, matchGamePlan,
-    hasMatchThisWeek, club, fixtures, playerClubId, players, weeklyObjectives, transferWindowOpen, shortlistCount,
+    hasMatchThisWeek, firstMatchPlayed, club, fixtures, playerClubId, players, weeklyObjectives, transferWindowOpen, shortlistCount,
     completedCoachTaskIds,
   } = useGameStore(
     useShallow(s => ({
@@ -236,6 +255,10 @@ export function OnboardingChecklist() {
       // cannot tick.
       hasMatchThisWeek: s.fixtures.some(
         f => f.week === s.week && !f.played
+          && (f.homeClubId === s.playerClubId || f.awayClubId === s.playerClubId),
+      ),
+      firstMatchPlayed: s.fixtures.some(
+        f => f.week === s.week && f.played
           && (f.homeClubId === s.playerClubId || f.awayClubId === s.playerClubId),
       ),
       club: s.clubs[s.playerClubId],
@@ -257,7 +280,8 @@ export function OnboardingChecklist() {
   const [firstSessionDone, setFirstSessionDone] = useState(() => readSessionJson<boolean>(FIRST_SESSION_DONE_KEY) === true);
   const [activeWalkthrough, setActiveWalkthrough] = useState<ChecklistItem | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
-  const [justClaimed, setJustClaimed] = useState<string | null>(null);
+  /** XP just collected by the claim button (drives the floating +XP). */
+  const [justClaimed, setJustClaimed] = useState<number | null>(null);
 
   // Focus trap + Escape close for the walkthrough modal. Hooks must run
   // unconditionally before the early-return guards below.
@@ -313,7 +337,8 @@ export function OnboardingChecklist() {
     if (!isFirstSession) return;
     if (!allFirstSessionDone) { sawIncompleteRef.current = true; return; }
     if (completeOnboardingChecklist()) {
-      toast.success(t('onboardingChecklist.completeToastTitle'), {
+      // Part 1 of the checklist, not the whole of it — part 2 follows.
+      toast.success(t('onboardingChecklist.partOneDoneTitle'), {
         description: t('onboardingChecklist.completeToastBody', { xp: ONBOARDING_COMPLETION_XP }),
       });
     }
@@ -332,14 +357,19 @@ export function OnboardingChecklist() {
     if (prev && [...ready].some(id => !prev.has(id))) hapticLight();
   }, [coachTasks]);
 
+  // Done steps whose XP has not been collected. One button collects them all:
+  // after the first advance several steps are usually done at once, and a
+  // Claim button on each of them read as a to-do list of claims.
+  const claimable = coachTasks.filter(task => task.completed && !isClaimed(task.id));
+  const claimableXp = claimable.reduce((sum, task) => sum + task.xpReward, 0);
   const claimTimerRef = useRef<number | null>(null);
   useEffect(() => () => { if (claimTimerRef.current) window.clearTimeout(claimTimerRef.current); }, []);
-  const claimCoachTask = (taskId: string) => {
-    if (isClaimed(taskId)) return;
-    const wasLast = claimedCount + 1 === coachTasks.length;
-    markCoachTaskComplete(taskId);
+  const claimAllReady = () => {
+    if (claimable.length === 0) return;
+    const wasLast = claimedCount + claimable.length === coachTasks.length;
+    for (const task of claimable) markCoachTaskComplete(task.id);
     hapticMedium();
-    setJustClaimed(taskId);
+    setJustClaimed(claimableXp);
     if (claimTimerRef.current) window.clearTimeout(claimTimerRef.current);
     claimTimerRef.current = window.setTimeout(() => setJustClaimed(null), 1000);
     if (wasLast) {
@@ -363,13 +393,15 @@ export function OnboardingChecklist() {
   if (!stage) return tour;
 
   const firstSessionItems = isFirstSession
-    ? buildFirstSessionItems({ hasMatchThisWeek, gamePlanTaskDone, sponsorTaskDone, scouting })
+    ? buildFirstSessionItems({ hasMatchThisWeek, firstMatchPlayed, gamePlanTaskDone, sponsorTaskDone, scouting })
     : [];
-  // The advance row is the closing step, not a tickable task — excluded from
-  // the counter so it reads 1/3, 2/3, 3/3.
-  const tickable = firstSessionItems.filter(i => i.id !== 'advance');
-  const doneCount = isFirstSession ? tickable.filter(i => i.done).length : claimedCount;
-  const totalCount = isFirstSession ? tickable.length : coachTasks.length;
+  // The counter counts ticked rows — every visible row, the first-match row
+  // included, and coach steps that are done whether or not their XP has been
+  // collected (it read 0/7 after the first advance with three steps done).
+  const doneCount = isFirstSession
+    ? firstSessionItems.filter(i => i.done).length
+    : coachTasks.filter(task => task.completed || isClaimed(task.id)).length;
+  const totalCount = isFirstSession ? firstSessionItems.length : coachTasks.length;
 
   return (
     <>
@@ -407,7 +439,7 @@ export function OnboardingChecklist() {
 
         <div className="relative flex items-center justify-between mb-1 pr-9">
           <span className="text-[11px] uppercase tracking-[0.18em] text-primary/80 font-semibold">
-            {isFirstSession ? t('onboardingChecklist.firstSession') : t('onboardingChecklist.coachStage')}
+            {isFirstSession ? t('onboardingChecklist.partFirstWeek') : t('onboardingChecklist.partFirstSeasons')}
           </span>
           <span className="text-[11px] text-foreground/60 tabular-nums">
             {t('onboardingChecklist.doneCount', { done: doneCount, total: totalCount })}
@@ -418,16 +450,15 @@ export function OnboardingChecklist() {
         <p className="relative text-[11px] text-foreground/70 mb-2 leading-snug">
           {isFirstSession ? t('onboardingChecklist.firstSessionIntro') : t('onboardingChecklist.coachIntro')}
         </p>
-        {isFirstSession && (
-          <button
-            type="button"
-            onClick={() => { hapticLight(); setTourOpen(true); }}
-            className="relative min-h-11 -ml-1 px-1 mb-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
-          >
-            {t('onboardingChecklist.takeTheTour')}
-            <ChevronRight className="w-3.5 h-3.5" aria-hidden />
-          </button>
-        )}
+        {/* The Dashboard's one guide entry — in both parts. */}
+        <button
+          type="button"
+          onClick={() => { hapticLight(); setTourOpen(true); }}
+          className="relative min-h-11 -ml-1 px-1 mb-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+        >
+          {t('onboardingChecklist.takeTheTour')}
+          <ChevronRight className="w-3.5 h-3.5" aria-hidden />
+        </button>
         {!isFirstSession && (
           <PremiumProgress
             className="relative mb-3"
@@ -476,51 +507,63 @@ export function OnboardingChecklist() {
 
           {!isFirstSession && coachTasks.map(task => {
             const claimed = isClaimed(task.id);
-            const claimable = task.completed && !claimed;
+            const ticked = task.completed || claimed;
             // 'dashboard' tasks (play a match week, complete an objective) are
             // done from this screen — the row is a label, not a link.
             const target = task.screen && task.screen !== 'dashboard' ? task.screen : null;
             return (
-              <li key={task.id} className="relative">
-                <div className={cn(
-                  'w-full rounded-xl border transition-colors flex items-center gap-2 pr-1.5',
-                  claimed ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : claimable ? 'bg-primary/10 border-primary/40'
-                    : 'bg-white/[0.025] border-white/[0.04]',
-                )}>
-                  <button
-                    type="button"
-                    disabled={!target}
-                    onClick={() => target && goThere(target)}
-                    className="flex-1 min-w-0 min-h-11 px-3 py-2 text-left disabled:cursor-default"
-                  >
-                    <p className={cn('text-xs font-semibold', claimed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                    <p className="text-[11px] text-foreground/60 leading-snug">{task.description}</p>
-                  </button>
-                  {claimable ? (
-                    <button
-                      type="button"
-                      onClick={() => claimCoachTask(task.id)}
-                      aria-label={t('onboardingChecklist.claimAria', { xp: task.xpReward, task: task.title })}
-                      className="shrink-0 min-h-11 px-3 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform"
-                    >
-                      {t('onboardingChecklist.claim', { xp: task.xpReward })}
-                    </button>
-                  ) : claimed ? (
+              <li key={task.id}>
+                <button
+                  type="button"
+                  disabled={!target}
+                  onClick={() => target && goThere(target)}
+                  className={cn(
+                    'w-full min-h-11 flex items-center gap-3 px-3 py-2 rounded-xl border text-left transition-colors disabled:cursor-default',
+                    ticked ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-white/[0.025] border-white/[0.04]',
+                  )}
+                >
+                  <span className={cn(
+                    'shrink-0 w-7 h-7 rounded-full flex items-center justify-center',
+                    'shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.25)]',
+                    ticked ? 'bg-emerald-500/25 text-emerald-300' : 'bg-white/10 text-foreground/40',
+                  )} aria-hidden>
+                    {ticked ? <Check className="w-3.5 h-3.5" /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className={cn('block text-xs font-semibold', ticked ? 'text-foreground/50 line-through' : 'text-foreground')}>{task.title}</span>
+                    <span className="block text-[11px] text-foreground/60 leading-snug">{task.description}</span>
+                  </span>
+                  {claimed ? (
                     <span className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded text-emerald-400/70 bg-emerald-500/10">
                       <PremiumCheck className="w-2.5 h-2.5" />{t('onboardingChecklist.xp', { xp: task.xpReward })}
                     </span>
                   ) : (
-                    <span className="shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded text-primary/70 bg-primary/10">
+                    <span className={cn(
+                      'shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded',
+                      ticked ? 'text-primary bg-primary/15' : 'text-primary/70 bg-primary/10',
+                    )}>
                       {t('onboardingChecklist.plusXp', { xp: task.xpReward })}
                     </span>
                   )}
-                </div>
-                <FloatingXP amount={task.xpReward} show={justClaimed === task.id} />
+                </button>
               </li>
             );
           })}
         </ul>
+
+        {!isFirstSession && (claimable.length > 0 || justClaimed != null) && (
+          <div className="relative mt-2 min-h-11">
+            {claimable.length > 0 && <button
+              type="button"
+              onClick={claimAllReady}
+              aria-label={t('onboardingChecklist.claimReadyAria', { xp: claimableXp, n: claimable.length })}
+              className="w-full min-h-11 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-[0.98] transition-transform"
+            >
+              {t('onboardingChecklist.claim', { xp: claimableXp })}
+            </button>}
+            <FloatingXP amount={justClaimed ?? 0} show={justClaimed != null} />
+          </div>
+        )}
       </motion.div>
 
       <AnimatePresence>
@@ -560,7 +603,7 @@ export function OnboardingChecklist() {
                   <button
                     type="button"
                     onClick={() => setActiveWalkthrough(null)}
-                    className="p-2 -m-2 rounded-full text-foreground/50 hover:text-foreground hover:bg-white/5 transition-colors"
+                    className="w-11 h-11 -m-2.5 flex items-center justify-center rounded-full text-foreground/50 hover:text-foreground hover:bg-white/5 transition-colors"
                     aria-label={t('onboardingChecklist.closeWalkthrough')}
                   >
                     <X className="w-4 h-4" />
