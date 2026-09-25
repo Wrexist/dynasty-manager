@@ -664,6 +664,15 @@ export const en = {
   'clubSelection.quickStart.loading': 'Setting up...',
   'clubSelection.quickStart.nationLine': 'Nationality: {nation} · or choose your own below',
   'clubSelection.suggestedNation': 'From your device',
+
+  // ── onboarding: Skip to full time (MatchDay) ──
+  'matchDay.skipToFullTime': 'Skip to full time',
+  'matchDay.skipShort': 'Skip to FT',
+  'matchDay.skipConfirmTitle': 'Skip to full time?',
+  'matchDay.skipConfirmBody': 'The rest of the match plays out instantly with your current lineup and tactics — the same result as watching without making changes. A penalty shootout, if it comes to that, is still yours to take.',
+  'matchDay.skipConfirm': 'Skip',
+  'matchDay.keepWatching': 'Keep watching',
+  'matchDay.skipFailed': "Couldn't skip ahead — not enough available players on the pitch.",
 } as const;
 
 export default en;

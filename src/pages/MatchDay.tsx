@@ -5,7 +5,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
 import { readMatchViewMode, writeMatchViewMode } from '@/store/helpers/persistence';
 import { DEFAULT_PITCH_TACTICS } from '@/config/pitchChoreography';
-import type { MatchViewMode } from '@/types/game';
+import type { MatchDayPhase, MatchViewMode } from '@/types/game';
 
 // Lazy so the pitch renderer + choreographer never touch the eager bundle.
 const PitchView = lazy(() => import('@/components/game/pitch/PitchView'));
@@ -17,7 +17,7 @@ import { MatchEvent, Match, Club, ContinentalTournamentState, TeamTalkType } fro
 import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, SkipForward, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
 import { resumeSfx, sfxWhistle, sfxRoar, sfxNet, sfxGroan, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
@@ -47,6 +47,7 @@ import { MatchSpeedPicker } from '@/components/matchday/MatchSpeedPicker';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
+import { canSkipToFullTime, playOutSecondHalf } from '@/utils/skipToFullTime';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
@@ -170,7 +171,7 @@ const MatchDayInner = () => {
   // Kick Off screen. Evaluated once at mount, like the initializers it feeds.
   const [wcPenaltyResume] = useState(() =>
     isWorldCup && matchPhase === 'penalties' && !!useGameStore.getState().currentMatchResult);
-  const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>(wcPenaltyResume ? 'penalties' : 'pre');
+  const [phase, setPhase] = useState<MatchDayPhase>(wcPenaltyResume ? 'penalties' : 'pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
   const [allEvents, setAllEvents] = useState<MatchEvent[]>(() =>
     wcPenaltyResume ? (useGameStore.getState().currentMatchResult?.events ?? []) : []);
@@ -195,6 +196,8 @@ const MatchDayInner = () => {
     return tier.pro && !isPro(useGameStore.getState().monetization) ? DEFAULT_MATCH_SPEED : saved;
   });
   const [paused, setPaused] = useState(false);
+  // "Skip to full time" confirmation is open — holds the clock like a pause.
+  const [confirmSkip, setConfirmSkip] = useState(false);
   // Brief auto-pause so the player's own goals land before play resumes.
   const [goalPause, setGoalPause] = useState(false);
   const goalPauseTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -625,7 +628,7 @@ const MatchDayInner = () => {
   useEffect(() => {
     if (phase !== 'first_half' && phase !== 'second_half' && phase !== 'extra_time') return;
     if (allEvents.length === 0) return;
-    if (keyMoment || paused || goalPause) return; // Paused for key moment, manual pause, or goal celebration
+    if (keyMoment || paused || goalPause || confirmSkip) return; // Paused for key moment, manual pause, goal celebration, or the skip confirmation
 
     intervalRef.current = setInterval(() => {
       const next = currentMinRef.current + 1;
@@ -707,7 +710,7 @@ const MatchDayInner = () => {
       }
     }, matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED));
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused, goalPause, matchView]);
+  }, [phase, allEvents, speed, keyMoment, paused, goalPause, confirmSkip, matchView]);
 
   // Persist speed preference to settings so it carries across matches.
   // Intentionally depends only on `speed`: `settings.matchSpeed` would cause
@@ -823,6 +826,90 @@ const MatchDayInner = () => {
   const dismissKeyMoment = () => {
     setKeyMoment(null);
     // Resume will happen via useEffect since keyMoment becomes null
+  };
+
+  // ── Skip to full time ──
+  // PLAYBACK-ONLY. Makes exactly the store calls the clock and the break
+  // screens would have made with nobody touching anything — start the second
+  // half (the half-time button), each remaining segment (the clock), extra time
+  // (the break button) — then lands the screen where the clock would have. The
+  // result is committed and saved by those same store calls, so a skipped match
+  // persists through the identical path as a watched one. Penalties stay
+  // interactive: the shootout is the player's to take (or skip) as before.
+  const skippingRef = useRef(false);
+  const requestSkip = () => {
+    if (!canSkipToFullTime(phaseRef.current, isPro(monetization))) return;
+    hapticLight();
+    setConfirmSkip(true);
+  };
+  const skipToFullTime = () => {
+    setConfirmSkip(false);
+    const from = phaseRef.current;
+    if (skippingRef.current || resumingRef.current || !canSkipToFullTime(from, isPro(monetization))) return;
+    skippingRef.current = true;
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    clearTimeout(goalPauseTimerRef.current);
+    let events = allEvents;
+    // Where the screen lands if a store call refuses part-way — the same place
+    // the equivalent button would have left the player, so they can retry.
+    const land = (to: MatchDayPhase, minute: number) => {
+      // Don't replay goal haptics/sounds/celebration pauses for goals the
+      // player chose not to watch — only the full-time whistle.
+      prevGoalCountRef.current = events.filter(isScoreChangingEvent).length;
+      setKeyMoment(null);
+      setPaused(false);
+      setGoalPause(false);
+      setSubSheetOpen(false);
+      setInjurySubMode(false);
+      setAllEvents(events);
+      setVisibleEvents(events);
+      currentMinRef.current = minute;
+      setCurrentMin(minute);
+      setPhase(to);
+    };
+    try {
+      let reachedExtraTimeBreak = from === 'extra_time_break';
+      if (from === 'first_half' || from === 'half_time' || from === 'second_half') {
+        if (from !== 'second_half') {
+          // = "Start 2nd Half" (resumeSecondHalf)
+          const started = isWorldCup ? playWorldCupSecondHalf() : playSecondHalf(SECOND_HALF_SEGMENTS[0]);
+          if (!started) {
+            errorToast(t('matchDay.skipFailed'));
+            if (from === 'first_half') land('half_time', 45);
+            return;
+          }
+          events = started.events;
+          secondHalfFrontierRef.current = isWorldCup ? 90 : SECOND_HALF_SEGMENTS[0];
+        }
+        // = the clock extending the half at each segment boundary
+        if (!isWorldCup) {
+          const out = playOutSecondHalf(secondHalfFrontierRef.current, playSecondHalf);
+          secondHalfFrontierRef.current = out.frontier;
+          if (out.match) events = out.match.events;
+        }
+        if (useGameStore.getState().matchPhase !== 'extra_time') {
+          land('post', 90);
+          return;
+        }
+        reachedExtraTimeBreak = true;
+      }
+      if (reachedExtraTimeBreak) {
+        // = "Play Extra Time" (resumeExtraTime)
+        const et = isWorldCup ? playWorldCupExtraTime() : playExtraTime();
+        if (!et) {
+          errorToast(t('matchDay.skipFailed'));
+          land('extra_time_break', 90);
+          return;
+        }
+        events = et.events;
+      }
+      // = the extra-time clock running out
+      land(useGameStore.getState().matchPhase === 'penalties' ? 'penalties' : 'post', 120);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'skipToFullTime' } });
+    } finally {
+      skippingRef.current = false;
+    }
   };
 
   // Memoize injured player IDs to avoid creating new array references on every render
@@ -968,6 +1055,18 @@ const MatchDayInner = () => {
   const activeShout = matchShouts.find(s => currentMin >= s.startMinute && currentMin < s.startMinute + SHOUT_DURATION);
 
   const userIsPro = isPro(monetization);
+  // Free: from half-time. Pro: from kickoff (alongside Instant Sim in Match Prep).
+  const canSkip = canSkipToFullTime(phase, userIsPro);
+  const skipButton = (
+    <Button
+      variant="outline"
+      className="h-12 px-4 font-bold gap-2 border-primary/50 text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30"
+      onClick={requestSkip}
+      aria-label={t('matchDay.skipToFullTime')}
+    >
+      <SkipForward className="w-5 h-5" aria-hidden="true" /> {t('matchDay.skipShort')}
+    </Button>
+  );
   const stadiumTheme = getActiveCosmetic(monetization, 'stadium_theme');
   const pitchSkin = getActiveCosmetic(monetization, 'pitch_skin');
   const isPlayerHome = match?.homeClubId === playerClubId;
@@ -1421,10 +1520,11 @@ const MatchDayInner = () => {
 
           <div className="h-16" /> {/* spacer for sticky button */}
           <div className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
-            <div className="max-w-lg mx-auto">
-              <Button className="w-full h-12 text-base font-bold gap-2" onClick={resumeSecondHalf}>
+            <div className="max-w-lg mx-auto flex gap-2">
+              <Button className="flex-1 h-12 text-base font-bold gap-2" onClick={resumeSecondHalf}>
                 <Play className="w-5 h-5" /> Start 2nd Half
               </Button>
+              {canSkip && skipButton}
             </div>
           </div>
         </>
@@ -1549,10 +1649,11 @@ const MatchDayInner = () => {
 
           <div className="h-16" /> {/* spacer for sticky button */}
           <div className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
-            <div className="max-w-lg mx-auto">
-              <Button className="w-full h-12 text-base font-bold gap-2" onClick={resumeExtraTime}>
+            <div className="max-w-lg mx-auto flex gap-2">
+              <Button className="flex-1 h-12 text-base font-bold gap-2" onClick={resumeExtraTime}>
                 <Play className="w-5 h-5" /> Play Extra Time
               </Button>
+              {canSkip && skipButton}
             </div>
           </div>
         </>
@@ -1818,6 +1919,17 @@ const MatchDayInner = () => {
                 </button>
 
                 <div className="flex-1" />
+
+                {/* Skip to full time — playback-only; see skipToFullTime(). */}
+                {canSkip && (
+                  <button
+                    onClick={requestSkip}
+                    aria-label={t('matchDay.skipToFullTime')}
+                    className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 active:scale-[0.97] transition-all"
+                  >
+                    <SkipForward className="w-3.5 h-3.5" aria-hidden="true" /> {t('matchDay.skipShort')}
+                  </button>
+                )}
 
                 {/* Speed */}
                 <button
@@ -2109,6 +2221,31 @@ const MatchDayInner = () => {
           </motion.div>
         );
       })()}
+
+      {/* Confirm skip — it forfeits live control for the rest of the match,
+          same as Instant Sim's confirmation in Match Prep. The clock holds
+          while this is open. */}
+      {confirmSkip && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="skip-ft-title"
+        >
+          <GlassPanel className="p-5 max-w-sm w-full space-y-4">
+            <h3 id="skip-ft-title" className="text-base font-bold text-foreground font-display">{t('matchDay.skipConfirmTitle')}</h3>
+            <p className="text-sm text-muted-foreground">{t('matchDay.skipConfirmBody')}</p>
+            <div className="flex gap-2">
+              <Button className="flex-1 h-11 gap-1.5" onClick={skipToFullTime}>
+                <SkipForward className="w-4 h-4" aria-hidden="true" /> {t('matchDay.skipConfirm')}
+              </Button>
+              <Button variant="outline" className="flex-1 h-11" onClick={() => setConfirmSkip(false)}>
+                {t('matchDay.keepWatching')}
+              </Button>
+            </div>
+          </GlassPanel>
+        </div>
+      )}
 
       {/* Substitution Sheet — used from half-time, key moments, injuries, and paused play */}
       <SubstitutionSheet
