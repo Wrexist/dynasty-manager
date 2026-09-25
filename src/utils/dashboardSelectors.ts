@@ -18,15 +18,18 @@
  * dependency of the memo that calls these.
  */
 import type {
-  Club, CupState, ContinentalTournamentState, LeagueCupState, LeagueTableEntry, Match, Player,
-  SeasonPhase, SuperCupMatch,
+  BoardUltimatum, Club, CupState, ContinentalTournamentState, GameScreen, LeagueCupState, LeagueTableEntry, Match,
+  Player, SeasonPhase, SuperCupMatch,
 } from '@/types/game';
 import {
   RACE_MODE_WINDOW_WEEKS, TITLE_RACE_MAX_POSITION, TITLE_RACE_MAX_POINTS_GAP,
   RELEGATION_BATTLE_BOTTOM_PLACES, SPRING_PHASE_END_WEEK, COACH_CHECKLIST_MAX_SEASON,
+  LINEUP_SIZE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, BOARD_ATTENTION_CRITICAL_CONFIDENCE,
 } from '@/config/gameBalance';
+import { CONFIDENCE_CRITICAL_THRESHOLD } from '@/config/ui';
+import { getSuffix, isAwayOnLoan } from '@/utils/helpers';
 import type { TransferWindows } from '@/config/transfers';
-import { computeObjectiveProgress, type ObjectiveInstance } from '@/utils/weeklyObjectives';
+import { computeObjectiveProgress, objectiveXpMultiplier, type ObjectiveInstance } from '@/utils/weeklyObjectives';
 
 // ── Season state ──
 
@@ -147,6 +150,17 @@ export function selectObjectivesWithProgress(input: ObjectiveProgressInput): Obj
   });
 }
 
+/** XP an objective pays on claim — the same multiplier weeklyObjectives and
+ *  weekAdvance use, so the number shown can never drift from the number paid. */
+export function effectiveObjectiveXp(obj: Pick<ObjectiveInstance, 'xpReward' | 'rarity'>): number {
+  return obj.xpReward * objectiveXpMultiplier(obj);
+}
+
+/** Completed monthly objectives whose XP has not been collected yet. */
+export function countClaimableObjectives(objectives: ObjectiveInstance[]): number {
+  return objectives.filter(o => o.completed && !o.claimed).length;
+}
+
 // ── Getting Started checklist ──
 
 /**
@@ -188,4 +202,186 @@ export function selectChecklistStage(input: ChecklistStageInput): ChecklistStage
     return 'coach';
   }
   return null;
+}
+
+// ── The Continue button ──
+
+export type PrimaryAction =
+  | { kind: 'season-summary' }
+  | { kind: 'match-prep' }
+  | { kind: 'advance'; nextWeek: number; canSkipToNextMatch: boolean };
+
+export interface PrimaryActionInput {
+  seasonOver: boolean;
+  /** A match (league, cup, continental or playoff) this week with a known opponent. */
+  hasMatchThisWeek: boolean;
+  /** Any fixture resolved for this week, even one whose opponent did not resolve. */
+  hasFixtureThisWeek: boolean;
+  seasonPhase: SeasonPhase;
+  week: number;
+  totalWeeks: number;
+}
+
+/**
+ * The ONE thing the Dashboard asks the player to do next: roll the season,
+ * prepare for this week's match, or advance a training week (optionally
+ * skipping straight to the next match in the regular season).
+ */
+export function selectPrimaryAction(input: PrimaryActionInput): PrimaryAction {
+  if (input.seasonOver) return { kind: 'season-summary' };
+  if (input.hasMatchThisWeek) return { kind: 'match-prep' };
+  return {
+    kind: 'advance',
+    nextWeek: input.week + 1,
+    canSkipToNextMatch: !input.hasFixtureThisWeek && input.seasonPhase === 'regular' && input.week < input.totalWeeks,
+  };
+}
+
+/** The player's next unplayed league fixture after this week, or null. */
+export function selectNextFixture(fixtures: Match[], playerClubId: string, week: number): Match | null {
+  let next: Match | null = null;
+  for (const m of fixtures) {
+    if (m.played || m.week <= week) continue;
+    if (m.homeClubId !== playerClubId && m.awayClubId !== playerClubId) continue;
+    if (!next || m.week < next.week) next = m;
+  }
+  return next;
+}
+
+// ── Needs your attention ──
+
+export type AttentionId =
+  | 'ultimatum' | 'board' | 'lineup' | 'injuries' | 'contracts' | 'offers' | 'deadline'
+  | 'squad-short' | 'squad-full' | 'job-offers' | 'youth';
+
+export type AttentionSeverity = 'critical' | 'warning' | 'info';
+
+export interface AttentionItem {
+  id: AttentionId;
+  severity: AttentionSeverity;
+  /** Where tapping the row goes — the screen that resolves it. */
+  screen: GameScreen;
+  /** Interpolation values for the row's copy. */
+  params: Record<string, string | number>;
+}
+
+export interface AttentionInput {
+  club: Club;
+  players: Record<string, Player>;
+  playerClubId: string;
+  season: number;
+  week: number;
+  incomingOffers: number;
+  boardConfidence: number;
+  boardUltimatum: BoardUltimatum | null;
+  /** 1-based league position, or 0 when not in a table. */
+  leaguePosition: number;
+  transferWindowOpen: boolean;
+  windows: TransferWindows;
+  jobOffers: number;
+  youthReady: number;
+  hasMatchThisWeek: boolean;
+}
+
+const SEVERITY_RANK: Record<AttentionSeverity, number> = { critical: 0, warning: 1, info: 2 };
+
+function ordinal(n: number): string {
+  return `${n}${getSuffix(n)}`;
+}
+
+function names(list: Player[], max = 2): string {
+  const shown = list.slice(0, max).map(p => p.lastName).join(', ');
+  return list.length > max ? `${shown} +${list.length - max}` : shown;
+}
+
+/**
+ * Everything on the club that needs a decision, most urgent first — and only
+ * that. These used to render as separate panels BELOW the XP bar, sagas,
+ * objectives, achievements and cliffhangers, so the injury list and the
+ * expiring contracts were the last thing on the page.
+ *
+ * Every item names the screen that resolves it. Nothing informational belongs
+ * here: if there is no action, it is not attention.
+ */
+export function selectAttentionItems(input: AttentionInput): AttentionItem[] {
+  const { club, players, playerClubId, season, week } = input;
+  const items: AttentionItem[] = [];
+  const squad = club.playerIds.map(id => players[id]).filter(Boolean);
+  const atClub = squad.filter(p => !isAwayOnLoan(p, playerClubId));
+
+  const ultimatum = input.boardUltimatum && input.boardUltimatum.issuedSeason === season
+    && week <= input.boardUltimatum.deadlineWeek ? input.boardUltimatum : null;
+  if (ultimatum) {
+    items.push({
+      id: 'ultimatum', severity: 'critical', screen: 'board',
+      params: {
+        target: ordinal(ultimatum.targetPosition),
+        deadline: ultimatum.deadlineWeek,
+        weeks: Math.max(0, ultimatum.deadlineWeek - week),
+        position: input.leaguePosition > 0 ? ordinal(input.leaguePosition) : '—',
+      },
+    });
+  } else if (input.boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD) {
+    // The ultimatum row already says the board is out of patience.
+    items.push({
+      id: 'board',
+      severity: input.boardConfidence <= BOARD_ATTENTION_CRITICAL_CONFIDENCE ? 'critical' : 'warning',
+      screen: 'board',
+      params: { confidence: Math.round(input.boardConfidence) },
+    });
+  }
+
+  const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
+  const fit = (club.lineup || [])
+    .map(id => players[id])
+    .filter(p => p && !p.injured && !isSuspended(p) && !isAwayOnLoan(p, playerClubId));
+  const gaps = LINEUP_SIZE - Math.min(LINEUP_SIZE, fit.length);
+  if (gaps > 0) {
+    // The engine patches the XI from the bench, so this is never a forfeit —
+    // but it is the player's team the engine is choosing.
+    items.push({ id: 'lineup', severity: input.hasMatchThisWeek ? 'warning' : 'info', screen: 'tactics', params: { gaps } });
+  }
+
+  const injured = atClub.filter(p => p.injured).sort((a, b) => (b.injuryWeeks || 0) - (a.injuryWeeks || 0));
+  if (injured.length > 0) {
+    items.push({
+      id: 'injuries', severity: 'warning', screen: 'squad',
+      params: { count: injured.length, names: names(injured), weeks: injured[0].injuryWeeks || 0 },
+    });
+  }
+
+  // Expiring THIS season. A borrowed player's contract is his parent club's.
+  const expiring = squad
+    .filter(p => p.contractEnd <= season && !(p.onLoan && p.loanToClubId === playerClubId))
+    .sort((a, b) => b.overall - a.overall);
+  if (expiring.length > 0) {
+    items.push({ id: 'contracts', severity: 'warning', screen: 'squad', params: { count: expiring.length, names: names(expiring) } });
+  }
+
+  if (input.incomingOffers > 0) {
+    items.push({ id: 'offers', severity: 'warning', screen: 'transfers', params: { count: input.incomingOffers } });
+  }
+
+  if (input.transferWindowOpen && (week === input.windows.summerEnd || week === input.windows.winterEnd)) {
+    items.push({ id: 'deadline', severity: 'warning', screen: 'transfers', params: {} });
+  }
+
+  if (club.playerIds.length < MIN_SQUAD_SIZE) {
+    items.push({ id: 'squad-short', severity: 'warning', screen: 'transfers', params: { size: club.playerIds.length, min: MIN_SQUAD_SIZE } });
+  } else if (club.playerIds.length >= MAX_SQUAD_SIZE) {
+    items.push({ id: 'squad-full', severity: 'info', screen: 'squad', params: { size: club.playerIds.length, max: MAX_SQUAD_SIZE } });
+  }
+
+  if (input.jobOffers > 0) {
+    items.push({ id: 'job-offers', severity: 'info', screen: 'job-market', params: { count: input.jobOffers } });
+  }
+  if (input.youthReady > 0) {
+    items.push({ id: 'youth', severity: 'info', screen: 'youth-academy', params: { count: input.youthReady } });
+  }
+
+  // Stable sort: severity first, then the order above.
+  return items
+    .map((item, i) => ({ item, i }))
+    .sort((a, b) => SEVERITY_RANK[a.item.severity] - SEVERITY_RANK[b.item.severity] || a.i - b.i)
+    .map(({ item }) => item);
 }

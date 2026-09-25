@@ -469,6 +469,10 @@ export const STORAGE_KEYS = {
    *  any career save — deliberately NOT save-scoped, so it persists across new
    *  careers and slot deletion. Badges are cosmetic labels, never entitlements. */
   COMPLETED_CHALLENGES: 'dynasty-completed-challenges',
+  // ── home: Dashboard ──
+  /** localStorage flag (getFlag/setFlag): the Dashboard's collapsed "More"
+   *  section is expanded. A per-device layout preference, not save-scoped. */
+  DASHBOARD_MORE_EXPANDED: 'dynasty-dashboard-more-expanded',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */

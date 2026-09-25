@@ -7,14 +7,16 @@
  * `utils/dashboardSelectors.ts`).
  */
 import { describe, it, expect } from 'vitest';
-import type { LeagueTableEntry, Match, CupState, Club } from '@/types/game';
+import type { LeagueTableEntry, Match, CupState, Club, Player } from '@/types/game';
 import {
   isSeasonOver, getRaceMode, getSeasonStage, selectObjectivesWithProgress,
+  selectPrimaryAction, selectNextFixture, selectAttentionItems, countClaimableObjectives, type AttentionInput,
 } from '@/utils/dashboardSelectors';
 import { getTransferWindows } from '@/config/transfers';
 import {
-  RACE_MODE_WINDOW_WEEKS, TITLE_RACE_MAX_POINTS_GAP, SPRING_PHASE_END_WEEK,
+  RACE_MODE_WINDOW_WEEKS, TITLE_RACE_MAX_POINTS_GAP, SPRING_PHASE_END_WEEK, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE,
 } from '@/config/gameBalance';
+import { CONFIDENCE_CRITICAL_THRESHOLD } from '@/config/ui';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 
 const ME = 'me';
@@ -136,5 +138,143 @@ describe('selectObjectivesWithProgress', () => {
   it('returns the objectives untouched when there is no club', () => {
     const objectives = [objective];
     expect(selectObjectivesWithProgress({ ...base, club: null, weeklyObjectives: objectives })).toBe(objectives);
+  });
+});
+
+describe('selectPrimaryAction — the one Continue button', () => {
+  const base = { seasonOver: false, hasMatchThisWeek: false, hasFixtureThisWeek: false, seasonPhase: 'regular' as const, week: 10, totalWeeks: 38 };
+
+  it('rolls the season when it is over', () => {
+    expect(selectPrimaryAction({ ...base, seasonOver: true, hasMatchThisWeek: true })).toEqual({ kind: 'season-summary' });
+  });
+
+  it('goes to Match Prep in a match week', () => {
+    expect(selectPrimaryAction({ ...base, hasMatchThisWeek: true, hasFixtureThisWeek: true })).toEqual({ kind: 'match-prep' });
+  });
+
+  it('advances a training week, offering the skip in the regular season', () => {
+    expect(selectPrimaryAction(base)).toEqual({ kind: 'advance', nextWeek: 11, canSkipToNextMatch: true });
+    expect(selectPrimaryAction({ ...base, seasonPhase: 'playoff' })).toMatchObject({ kind: 'advance', canSkipToNextMatch: false });
+    expect(selectPrimaryAction({ ...base, week: 38 })).toMatchObject({ kind: 'advance', canSkipToNextMatch: false });
+  });
+
+  it('does not offer the skip when a fixture exists this week but its opponent did not resolve', () => {
+    expect(selectPrimaryAction({ ...base, hasFixtureThisWeek: true })).toMatchObject({ kind: 'advance', canSkipToNextMatch: false });
+  });
+});
+
+describe('selectNextFixture', () => {
+  it('is the earliest unplayed player fixture after this week', () => {
+    const fixtures = [fixture(12, false), fixture(11, true), fixture(14, false), fixture(13, false, 'x', 'y'), fixture(10, false)];
+    expect(selectNextFixture(fixtures, ME, 10)?.week).toBe(12);
+    expect(selectNextFixture(fixtures, ME, 14)).toBeNull();
+  });
+});
+
+describe('countClaimableObjectives', () => {
+  it('counts completed objectives whose XP is uncollected', () => {
+    const o = (completed: boolean, claimed: boolean) => ({ objectiveId: `${completed}${claimed}`, title: '', description: '', icon: '', xpReward: 5, completed, claimed });
+    expect(countClaimableObjectives([o(true, false), o(true, true), o(false, false)])).toBe(1);
+  });
+});
+
+describe('selectAttentionItems — only what needs action, most urgent first', () => {
+  let n = 0;
+  const player = (over: Partial<Player> = {}): Player => ({
+    id: `p${++n}`, firstName: 'A', lastName: `Player${n}`, position: 'CM', age: 25, overall: 70, potential: 72,
+    clubId: ME, contractEnd: 5, injured: false, injuryWeeks: 0, ...over,
+  } as unknown as Player);
+
+  function input(squad: Player[], over: Partial<AttentionInput> = {}): AttentionInput {
+    const players = Object.fromEntries(squad.map(p => [p.id, p]));
+    const club = { id: ME, playerIds: squad.map(p => p.id), lineup: squad.slice(0, 11).map(p => p.id), subs: [] } as unknown as Club;
+    return {
+      club, players, playerClubId: ME, season: 1, week: 10, incomingOffers: 0, boardConfidence: 60,
+      boardUltimatum: null, leaguePosition: 8, transferWindowOpen: false, windows: getTransferWindows(38),
+      jobOffers: 0, youthReady: 0, hasMatchThisWeek: true, ...over,
+    };
+  }
+  const healthySquad = () => Array.from({ length: 25 }, () => player());
+
+  it('is empty for a healthy club with nothing pending', () => {
+    expect(selectAttentionItems(input(healthySquad()))).toEqual([]);
+  });
+
+  it('lists injuries with names and the longest lay-off, pointing at the squad', () => {
+    const squad = healthySquad();
+    squad[20] = player({ injured: true, injuryWeeks: 2, lastName: 'Saka' });
+    squad[21] = player({ injured: true, injuryWeeks: 6, lastName: 'Kane' });
+    const [item] = selectAttentionItems(input(squad));
+    expect(item).toMatchObject({ id: 'injuries', screen: 'squad', params: { count: 2, names: 'Kane, Saka', weeks: 6 } });
+  });
+
+  it('flags an injured starter as an XI to fix, in Tactics', () => {
+    const squad = healthySquad();
+    squad[0] = player({ injured: true, injuryWeeks: 1 });
+    const items = selectAttentionItems(input(squad));
+    expect(items.find(i => i.id === 'lineup')).toMatchObject({ screen: 'tactics', params: { gaps: 1 }, severity: 'warning' });
+  });
+
+  it('lists contracts expiring THIS season, not next, and never a borrowed player', () => {
+    const squad = healthySquad();
+    squad[22] = player({ contractEnd: 1, lastName: 'Rice' });
+    squad[23] = player({ contractEnd: 2, lastName: 'NextYear' });
+    squad[24] = player({ contractEnd: 1, onLoan: true, loanToClubId: ME, loanFromClubId: 'parent', lastName: 'Borrowed' });
+    const item = selectAttentionItems(input(squad)).find(i => i.id === 'contracts');
+    expect(item?.params).toEqual({ count: 1, names: 'Rice' });
+  });
+
+  it('does not count a player out on loan as injured here', () => {
+    const squad = healthySquad();
+    squad[24] = player({ injured: true, injuryWeeks: 3, onLoan: true, loanToClubId: 'elsewhere' });
+    expect(selectAttentionItems(input(squad)).find(i => i.id === 'injuries')).toBeUndefined();
+  });
+
+  it('puts a board ultimatum first, and does not repeat it as a confidence row', () => {
+    const items = selectAttentionItems(input(healthySquad(), {
+      incomingOffers: 2, boardConfidence: 20, leaguePosition: 17,
+      boardUltimatum: { issuedSeason: 1, issuedWeek: 8, deadlineWeek: 14, targetPosition: 12 },
+    }));
+    expect(items[0]).toMatchObject({ id: 'ultimatum', severity: 'critical', screen: 'board', params: { target: '12th', deadline: 14, weeks: 4, position: '17th' } });
+    expect(items.some(i => i.id === 'board')).toBe(false);
+    expect(items.some(i => i.id === 'offers')).toBe(true);
+  });
+
+  it('ignores an ultimatum from another season', () => {
+    const items = selectAttentionItems(input(healthySquad(), {
+      boardUltimatum: { issuedSeason: 0, issuedWeek: 30, deadlineWeek: 36, targetPosition: 12 },
+    }));
+    expect(items.some(i => i.id === 'ultimatum')).toBe(false);
+  });
+
+  it('shows critical board confidence without an ultimatum', () => {
+    expect(selectAttentionItems(input(healthySquad(), { boardConfidence: CONFIDENCE_CRITICAL_THRESHOLD }))[0])
+      .toMatchObject({ id: 'board', screen: 'board' });
+    expect(selectAttentionItems(input(healthySquad(), { boardConfidence: CONFIDENCE_CRITICAL_THRESHOLD + 1 })))
+      .toEqual([]);
+  });
+
+  it('flags squad size problems at both ends', () => {
+    const short = Array.from({ length: MIN_SQUAD_SIZE - 1 }, () => player());
+    expect(selectAttentionItems(input(short)).find(i => i.id === 'squad-short')).toMatchObject({ screen: 'transfers', params: { size: MIN_SQUAD_SIZE - 1, min: MIN_SQUAD_SIZE } });
+    const full = Array.from({ length: MAX_SQUAD_SIZE }, () => player());
+    expect(selectAttentionItems(input(full)).find(i => i.id === 'squad-full')).toMatchObject({ screen: 'squad' });
+  });
+
+  it('flags deadline day only while the window is open', () => {
+    const windows = getTransferWindows(38);
+    expect(selectAttentionItems(input(healthySquad(), { week: windows.summerEnd, transferWindowOpen: true })).map(i => i.id)).toContain('deadline');
+    expect(selectAttentionItems(input(healthySquad(), { week: windows.summerEnd, transferWindowOpen: false })).map(i => i.id)).not.toContain('deadline');
+  });
+
+  it('orders critical, then warnings, then info', () => {
+    const squad = healthySquad();
+    squad[20] = player({ injured: true, injuryWeeks: 2 });
+    const items = selectAttentionItems(input(squad, { youthReady: 1, jobOffers: 1, boardConfidence: 10, incomingOffers: 1 }));
+    const rank = { critical: 0, warning: 1, info: 2 } as const;
+    const ranks = items.map(i => rank[i.severity]);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    expect(items[0].id).toBe('board');
+    expect(items.at(-1)?.severity).toBe('info');
   });
 });

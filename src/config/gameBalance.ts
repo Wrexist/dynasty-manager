@@ -1376,3 +1376,7 @@ export const RELEGATION_BATTLE_BOTTOM_PLACES = 3;
 export const BLOCKING_POPUPS_PER_ADVANCE = 2;
 /** The Getting Started checklist's coach tasks run through this season. */
 export const COACH_CHECKLIST_MAX_SEASON = 2;
+/** "Needs your attention": board confidence at or below this is a critical row
+ *  (red); up to `CONFIDENCE_CRITICAL_THRESHOLD` it is a warning. Mirrors the
+ *  old BoardWarning's "Final Warning" tier. */
+export const BOARD_ATTENTION_CRITICAL_CONFIDENCE = 25;
