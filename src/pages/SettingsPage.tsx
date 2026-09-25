@@ -87,30 +87,37 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
           <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{description}</p>
         </div>
       </div>
+      {/* The switch is a 44x44 target around the 44x24 track (the track
+          alone was the hit area); -my-2.5 keeps the row height unchanged. */}
       <button
         role="switch"
         aria-checked={value}
         aria-label={label}
         onClick={onChange}
-        className={cn(
-          'relative w-11 h-6 rounded-full shrink-0 transition-colors border backdrop-blur-md',
-          value
-            ? 'bg-gradient-to-b from-primary/90 to-primary/70 border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.3),0_0_18px_-4px_hsl(43_96%_46%/0.55)]'
-            : 'bg-white/5 border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]',
-        )}
+        className="shrink-0 min-h-11 min-w-11 -my-2.5 flex items-center justify-center"
       >
         <span
+          aria-hidden
           className={cn(
-            // `left-0` anchors the knob at the track's inner-left edge.
-            // Without it, buttons' default `text-align: center` lands the
-            // knob's static x-position in the middle of the track, and the
-            // translate then pushes it past the right rim on the ON state.
-            'absolute left-0 top-[2px] w-[18px] h-[18px] rounded-full transition-transform',
-            'bg-gradient-to-b from-white to-white/80',
-            'shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_2px_4px_-1px_rgba(0,0,0,0.35)]',
-            value ? 'translate-x-[22px]' : 'translate-x-[2px]',
+            'relative block w-11 h-6 rounded-full transition-colors border backdrop-blur-md',
+            value
+              ? 'bg-gradient-to-b from-primary/90 to-primary/70 border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.3),0_0_18px_-4px_hsl(43_96%_46%/0.55)]'
+              : 'bg-white/5 border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]',
           )}
-        />
+        >
+          <span
+            className={cn(
+              // `left-0` anchors the knob at the track's inner-left edge.
+              // Without it, buttons' default `text-align: center` lands the
+              // knob's static x-position in the middle of the track, and the
+              // translate then pushes it past the right rim on the ON state.
+              'absolute left-0 top-[2px] w-[18px] h-[18px] rounded-full transition-transform',
+              'bg-gradient-to-b from-white to-white/80',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_2px_4px_-1px_rgba(0,0,0,0.35)]',
+              value ? 'translate-x-[22px]' : 'translate-x-[2px]',
+            )}
+          />
+        </span>
       </button>
     </div>
   );
@@ -425,7 +432,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                       updateSettings({ matchSpeed: s.value });
                     }}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-1 py-2 rounded-full text-xs font-semibold transition-all',
+                      'flex-1 min-h-11 flex items-center justify-center gap-1 py-2 rounded-full text-xs font-semibold transition-all',
                       locked
                         ? 'text-muted-foreground/40 cursor-default'
                         : active

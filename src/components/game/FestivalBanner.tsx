@@ -49,8 +49,10 @@ export function FestivalBanner() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, height: 0 }}
         transition={{ duration: 0.2 }}
+        // The dismiss X is a 44px flex sibling of the Enter link (it was a
+        // 30px glyph absolutely positioned under the link's padding).
         className={cn(
-          'relative overflow-hidden rounded-xl p-3.5 mb-3 border border-primary/30',
+          'relative overflow-hidden rounded-xl py-2.5 pl-3.5 pr-0.5 mb-3 border border-primary/30 flex items-center gap-1',
           'bg-gradient-to-br from-primary/15 via-primary/5 to-transparent',
           'shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
         )}
@@ -61,16 +63,7 @@ export function FestivalBanner() {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent"
         />
-        <button
-          type="button"
-          onClick={dismiss}
-          className="absolute top-2 right-2 p-2 -m-1 rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
-          aria-label={t('festivalBanner.dismissFestivalBanner')}
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-
-        <button type="button" onClick={enter} className="relative flex items-center gap-3 w-full text-left pr-6">
+        <button type="button" onClick={enter} className="relative flex-1 min-w-0 min-h-11 flex items-center gap-3 text-left">
           <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-b from-primary/30 to-primary/10 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)]">
             <Trophy className="w-5 h-5" />
           </div>
@@ -87,6 +80,14 @@ export function FestivalBanner() {
           <span className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-primary">
             Enter <ArrowRight className="w-3.5 h-3.5" />
           </span>
+        </button>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="relative shrink-0 w-11 h-11 flex items-center justify-center rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
+          aria-label={t('festivalBanner.dismissFestivalBanner')}
+        >
+          <X className="w-3.5 h-3.5" />
         </button>
       </motion.div>
     </AnimatePresence>

@@ -370,7 +370,7 @@ const ShopPage = () => {
             </div>
             <button
               onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
-              className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_16px_hsl(var(--gold)/0.25)]"
+              className="w-full min-h-11 py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_16px_hsl(var(--gold)/0.25)]"
             >
               Get Everything
             </button>
@@ -396,7 +396,7 @@ const ShopPage = () => {
           </div>
           <button
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
-            className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
+            className="mt-3 w-full min-h-11 py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
             Get — {priceFor('com.dynastymanager.pack.manager')}
           </button>
@@ -446,7 +446,7 @@ const ShopPage = () => {
               )}
               <button
                 onClick={handleManageSubscription}
-                className="mt-3 w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+                className="mt-3 w-full min-h-11 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
               >
                 <ExternalLink className="w-3 h-3" />
                 Manage Subscription
@@ -477,7 +477,7 @@ const ShopPage = () => {
               </p>
               {isPurchasable('com.dynastymanager.pro.yearly') && <button
                 onClick={() => handlePurchase('com.dynastymanager.pro.yearly')}
-                className="w-full py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                className="w-full min-h-11 py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
               >
                 Upgrade — {priceFor('com.dynastymanager.pro.yearly')}/year
               </button>}
@@ -550,7 +550,7 @@ const ShopPage = () => {
                     <button
                       onClick={() => handlePurchase(productId)}
                       className={cn(
-                        'w-full py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
+                        'w-full min-h-11 py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
                         isLifetime
                           ? 'bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] shadow-[0_0_12px_hsl(var(--gold)/0.2)]'
                           : isAnnual
@@ -648,9 +648,11 @@ const ShopPage = () => {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">{product.description}</p>
+                {/* 44px tall (it measured 15px); -mt-2 pulls the extra height into the gap above. */}
                 <button
                   onClick={() => setExpandedPack(isExpanded ? null : productId)}
-                  className="flex items-center gap-1 text-[10px] text-primary font-semibold mb-2 hover:text-primary/80 transition-colors"
+                  aria-expanded={isExpanded}
+                  className="min-h-11 -mt-2 flex items-center gap-1 text-[10px] text-primary font-semibold hover:text-primary/80 transition-colors"
                 >
                   {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   {isExpanded ? 'Hide contents' : `View all ${packItems.length} items`}
@@ -667,7 +669,7 @@ const ShopPage = () => {
                 {!owned && (
                   <button
                     onClick={() => handlePurchase(productId)}
-                    className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.98] transition-all border border-border/50"
+                    className="w-full min-h-11 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.98] transition-all border border-border/50"
                   >
                     {priceFor(productId)}
                   </button>
@@ -702,7 +704,7 @@ const ShopPage = () => {
           </p>
           <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
-            className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
+            className="w-full min-h-11 py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
           >
             Get Everything — {priceFor('com.dynastymanager.bundle.all')}
           </button>
@@ -778,7 +780,7 @@ const ShopPage = () => {
           <button
             type="button"
             onClick={() => { void openExternalUrl(TERMS_URL); }}
-            className="underline hover:text-muted-foreground transition-colors"
+            className="min-h-11 px-1 underline hover:text-muted-foreground transition-colors"
           >
             Terms of Service
           </button>
@@ -786,7 +788,7 @@ const ShopPage = () => {
           <button
             type="button"
             onClick={() => { void openExternalUrl(PRIVACY_URL); }}
-            className="underline hover:text-muted-foreground transition-colors"
+            className="min-h-11 px-1 underline hover:text-muted-foreground transition-colors"
           >
             Privacy Policy
           </button>

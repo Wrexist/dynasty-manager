@@ -332,7 +332,7 @@ const TitleScreen = () => {
                       </div>
                       <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-background/90 animate-pulse" />
                     </div>
-                    <div className="flex-1 min-w-0 pr-8">
+                    <div className="flex-1 min-w-0 pr-10">
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-bold text-foreground truncate">{slot.clubName || t('title.damaged')}</p>
                         {slot.gameMode === 'career' && (
@@ -362,7 +362,7 @@ const TitleScreen = () => {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); hapticLight(); setConfirmDelete(slot.slot); }}
-                    className="absolute top-1.5 right-1.5 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 transition-colors"
+                    className="absolute top-0 right-0 w-11 h-11 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 transition-colors"
                     aria-label={`Delete save slot ${slot.slot}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
