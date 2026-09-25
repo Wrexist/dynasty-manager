@@ -240,12 +240,15 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
           </div>
         )}
 
-        {tier.cards + bonusCards === 1 ? (
+        {random === 0 ? (
           /* A one-card pack IS its guaranteed slot: the filler loop that rolls
              the rarity table never executes, so publishing weight percentages
              would disclose a roll that never happens (audit finding — the
              Legends table said 45/55 while the card draws uniformly across the
-             band from whichever real players live there). One honest row. */
+             band from whichever real players live there). One honest row.
+             Keyed on the generator's model (no rarity-rolled cards), not on the
+             card count: bonus cards also roll in the band, so a bonus on a
+             one-card pack used to flip this sheet back to the rarity table. */
           <div className="text-xs">
             <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground pb-1.5">
               <span className="font-semibold">Rating</span>
@@ -269,6 +272,11 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
                 <span className="text-foreground/90">{tier.guaranteedMinOvr}–{tier.ovrMax} OVR, drawn from every real player in that range</span>
                 <span className="tabular-nums font-semibold text-foreground">100%</span>
               </div>
+            )}
+            {legendChance > 0 && bonusCards > 0 && (
+              <p className="text-[11px] text-muted-foreground pt-1">
+                The Hall of Legends chance applies to the guaranteed card. Bonus cards always come from the {tier.guaranteedMinOvr}–{tier.ovrMax} OVR range.
+              </p>
             )}
           </div>
         ) : (
