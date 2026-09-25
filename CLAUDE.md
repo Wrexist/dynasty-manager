@@ -546,18 +546,32 @@ contains, what it costs, and what its odds are.
 | Slot | Tier key | Price | Contents |
 |---|---|---|---|
 | Free Today | `daily` — *Rise to Glory* | free, 1/day (+1 per ad when ads ship) | 3 players, floor rises with login streak: 66+ → 69+ → 72+ → 75+ at day 7 |
-| Packs | `gold` — *Champions* | $2.99 | 5 players, 78+ guaranteed |
-| Packs | `premium` — *Elite* | $4.99 | 5 players, 82+ guaranteed — **BEST VALUE** |
-| Packs | `rare` — *World Class* | $6.99 | 5 players, 84+ guaranteed, walkout possible |
-| Packs | `icon` — *Legends* | $9.99 | 1 player, 88+ guaranteed, walkout guaranteed |
+| Packs | `bronze` — *Bronze Pack* | free, 1/day (no ad slot, no SKU) | 3 players, 60+ guaranteed (band 55–68) |
+| Packs | `silver` — *Silver Pack* | free, 1/day (no ad slot, no SKU) | 3 players, 70+ guaranteed (band 62–76) |
+| Packs | `gold` — *Gold Pack* | $2.99 | 5 players, 78+ guaranteed |
+| Packs | `premium` — *Elite Pack* | $4.99 | 5 players, 82+ guaranteed — **BEST VALUE** |
+| Packs | `rare` — *World Class Pack* | $6.99 | 5 players, 84+ guaranteed, walkout possible |
+| Packs | `icon` — *Legends Pack* | $9.99 | 1 player, 88+ guaranteed, walkout guaranteed |
 
-- **`PACK_STOREFRONT_ORDER` is what renders, not `PACK_TIERS`.** `bronze` and
-  `silver` are ARCHIVED: unobtainable, but never deletable — `OpenedPackRecord`
-  in shipped saves references them and Recent Pulls resolves label/art through
-  `PACK_TIER_MAP`.
-- **One free pack, not three.** Bronze, Silver and a free-odds Gold used to run
-  side by side, dominating each other and shipping ~11 players/day into a 40-man
-  squad. `FREE_PACK_TIER` is the one free tier and a test pins that count at 1.
+- **`PACK_STOREFRONT_ORDER` is what renders, not `PACK_TIERS`.** It is
+  `['daily', 'bronze', 'silver', 'gold', 'premium', 'rare', 'icon']`;
+  `isStorefrontTier` reads it, and `PAID_PACK_TIERS` is the subset with a
+  `productId`. `PacksPage` puts `FREE_PACK_TIER` under Free Today and every
+  other storefront tier, Bronze and Silver included, on the Packs shelf.
+  Adding a tier to `PACK_TIERS` does not put it on sale. Never delete a tier
+  from `PACK_TIERS`: `OpenedPackRecord` in shipped saves references tier keys,
+  and Recent Pulls resolves label/art through `PACK_TIER_MAP`.
+- **Three free packs a day: Daily, Bronze and Silver.** `FREE_PACK_TIER`
+  (`daily`) is the *streak* pack. It is the only free tier with an ad slot
+  and the one that answers to `freeOpen`/`streak`. Bronze and Silver were
+  archived for a while and are back as permanent shelf tiers: `price: 0`, one
+  free open a day each (`freeDailyLimit: 1`), no `adDailyLimit`, no
+  `productId`, and base cards (no `versionBoost`). `packs.test.ts` pins the
+  free set to `[FREE_PACK_TIER, 'bronze', 'silver']` and pins Bronze/Silver's
+  allowance at 1 with no ad slot and no SKU. That makes 9 free cards a day.
+  The streak pack's day-7 elite-rate ceiling is the free-supply guard the
+  tests enforce, and the Daily's max-streak band must stay under Gold's
+  floor and ceiling.
 - **Weekly featured offer.** `getFeaturedPackTier(currentWeekIndex())` rotates
   over `FEATURED_PACK_ROTATION` on the REAL week (it used to key on the in-game
   week, so the headline changed several times per sitting). The first purchase
