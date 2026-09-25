@@ -212,4 +212,12 @@ export function getCupResultForClub(cup: CupState, clubId: string): string {
   return getRoundName(lastTie.round);
 }
 
+// ── simfinish: neutral venues ──
+/** Domestic Cup and League Cup finals are played at a neutral ground; every
+ *  earlier round is at the home side's. The draw's "home" club for a final is
+ *  just the first name out of the hat — it must not carry HOME_ADVANTAGE. */
+export function isNeutralCupRound(round: CupRound): boolean {
+  return round === 'F';
+}
+
 export { CUP_WEEKS, ROUND_ORDER };

@@ -49,8 +49,9 @@ import {
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
 } from '@/config/playoffs';
 import { resetSeasonGrowth } from '@/store/helpers/development';
-import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
+import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub, isNeutralPlayoffRound } from '@/utils/promotionRelegation';
 import { simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
 import { getDerbyIntensity } from '@/data/league';
 
 import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
@@ -131,6 +132,23 @@ function competitionsCreditedToManager(state: GameState) {
     shieldCup: continental(real.shieldCup),
     conferenceCup: continental(real.conferenceCup),
   };
+}
+
+/**
+ * Whether a league title — finishing `position` — is the MANAGER's.
+ *
+ * The league is decided at season end, so it is theirs only if they are in
+ * charge then. An unemployed career manager still has `playerClubId` pointing
+ * at the club that let them go, and `history.position` is that club's final
+ * place: a title the ex-club went on to win after the sacking was credited to
+ * the manager as a "League Champions!" / "First League Title!" milestone and
+ * title XP. Same rule as the cups (`competitionsCreditedToManager`): only a
+ * competition decided while in charge counts.
+ */
+export function leagueTitleCreditedToManager(state: Pick<GameState, 'gameMode' | 'careerManager'>, position: number): boolean {
+  if (position !== 1) return false;
+  const cm = state.careerManager;
+  return !(state.gameMode === 'career' && cm && !cm.contract);
 }
 
 export function endSeasonImpl(set: Set, get: Get) {
@@ -372,7 +390,7 @@ export function endSeasonImpl(set: Set, get: Get) {
   for (const r of state.playoffState?.resolved ?? []) {
     prePlayed.set([r.homeClubId, r.awayClubId].sort().join('|'), r);
   }
-  const resolvePlayoffTie = (homeClubId: string, awayClubId: string): string => {
+  const resolvePlayoffTie = (homeClubId: string, awayClubId: string, teamsInRound?: number): string => {
     const already = prePlayed.get([homeClubId, awayClubId].sort().join('|'));
     if (already) {
       if (already.homeClubId === playerClubId || already.awayClubId === playerClubId) {
@@ -392,6 +410,8 @@ export function endSeasonImpl(set: Set, get: Get) {
       id: `playoff-${state.season}-${homeClubId}-${awayClubId}`,
       week: state.week, season: state.season,
       homeClubId, awayClubId, homeGoals: 0, awayGoals: 0, played: false, events: [],
+      // The final is at a neutral ground — the same rule as `playoff.ts`.
+      ...neutralVenue(isNeutralPlayoffRound(teamsInRound)),
     } as Match;
     const { result } = simulateMatch(
       tie, hc, ac, hp, ap,
@@ -701,8 +721,9 @@ function finalizeSeason(
   const newSeason = season + 1;
   resetSeasonGrowth();
   // Timeline milestones and trophy XP are the manager's — see
-  // `competitionsCreditedToManager`.
+  // `competitionsCreditedToManager` and `leagueTitleCreditedToManager`.
   const credited = competitionsCreditedToManager(state);
+  const titleCredited = leagueTitleCreditedToManager(state, history.position);
 
   // Snapshot everything the career tail needs to judge the season that just
   // ENDED, before the rollover below overwrites it with next season's fresh
@@ -1744,7 +1765,7 @@ function finalizeSeason(
     // Career milestones & manager XP at end of season
     careerTimeline: (() => {
       const milestones = [...state.careerTimeline];
-      if (history.position === 1) {
+      if (titleCredited) {
         const isFirst = !state.seasonHistory.some(h => h.position === 1);
         milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${history.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
       }
@@ -1770,7 +1791,7 @@ function finalizeSeason(
     })(),
     managerProgression: grantXP(state.managerProgression, (() => {
       let xp = XP_REWARDS.seasonEnd;
-      if (history.position === 1) xp += XP_REWARDS.titleWin;
+      if (titleCredited) xp += XP_REWARDS.titleWin;
       if (credited.cup.winner === playerClubId) xp += XP_REWARDS.cupWin;
       if (credited.leagueCup?.winner === playerClubId) xp += XP_REWARDS.leagueCupWin;
       if (credited.championsCup?.winnerId === playerClubId) xp += XP_REWARDS.championsCupWin;

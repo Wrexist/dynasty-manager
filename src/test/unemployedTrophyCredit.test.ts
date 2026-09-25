@@ -16,6 +16,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { createDefaultManager } from '@/utils/managerCareer';
+import { leagueTitleCreditedToManager } from '@/store/slices/orchestration/seasonEnd';
 import type { CupState, CupTie } from '@/types/game';
 
 const CLUB = 'manchester-city';
@@ -108,5 +109,47 @@ describe('an unemployed manager and the ex-club\'s trophies', () => {
     const row = s.seasonHistory[s.seasonHistory.length - 1];
     expect(row.cupResult).toBe('Winner');
     expect(s.careerTimeline.slice(timelineBefore).map(m => m.title)).toContain('Cup Winners!');
+  });
+});
+
+describe('an unemployed manager and the ex-club\'s league title', () => {
+  beforeEach(async () => {
+    Math.random = mulberry32(0x7209);
+    useGameStore.getState().resetGame();
+    localStorage.clear();
+    await useGameStore.getState().initGame(CLUB);
+    const s = useGameStore.getState();
+    useGameStore.setState({ settings: { ...s.settings, autoSave: false } });
+  });
+  afterEach(() => { Math.random = realRandom; });
+
+  it('the league is the manager\'s only if they are in charge at season end', () => {
+    const manager = createDefaultManager('Test Manager', 'England', 40, []);
+    const employed = { ...manager, contract: { clubId: CLUB, salary: 1, startSeason: 1, endSeason: 3, bonuses: [] } } as typeof manager;
+    expect(leagueTitleCreditedToManager({ gameMode: 'career', careerManager: employed }, 1)).toBe(true);
+    expect(leagueTitleCreditedToManager({ gameMode: 'sandbox', careerManager: null }, 1)).toBe(true);
+    expect(leagueTitleCreditedToManager({ gameMode: 'career', careerManager: { ...manager, contract: null } }, 1)).toBe(false);
+    expect(leagueTitleCreditedToManager({ gameMode: 'career', careerManager: employed }, 2)).toBe(false);
+  });
+
+  it('does not credit a title the ex-club won after the manager left', { timeout: 120_000 }, async () => {
+    const totalWeeks = useGameStore.getState().totalWeeks;
+    unemployedLateInSeason(totalWeeks, 8, { ties: [], currentRound: null, eliminated: false, winner: null });
+    // The ex-club wins every match: champions by a distance.
+    const s0 = useGameStore.getState();
+    const div = s0.playerDivision;
+    const fixtures = s0.divisionFixtures[div].map(m => ({
+      ...m, played: true, homeGoals: m.awayClubId === CLUB ? 0 : 1, awayGoals: m.awayClubId === CLUB ? 1 : 0,
+    }));
+    useGameStore.setState({ divisionFixtures: { ...s0.divisionFixtures, [div]: fixtures }, fixtures });
+
+    const timelineBefore = useGameStore.getState().careerTimeline.length;
+    await useGameStore.getState().advanceWeek(); // season end
+    const s = useGameStore.getState();
+    const row = s.seasonHistory[s.seasonHistory.length - 1];
+    expect(row.position, 'the ex-club really did win it').toBe(1);
+    const titles = s.careerTimeline.slice(timelineBefore).map(m => m.title);
+    expect(titles).not.toContain('League Champions!');
+    expect(titles).not.toContain('First League Title!');
   });
 });

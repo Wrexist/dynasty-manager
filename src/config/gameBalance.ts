@@ -213,8 +213,18 @@ export const FORM_DRAW_CHANGE = 0;
 // loses morale and form (just less), and an anonymous 4.5 in a win still gains
 // (just less). Before this existed, the MOTM and the player sent off took an
 // identical morale hit.
-/** Per-match rating that produces zero adjustment (league-wide mean). */
-export const RATING_MORALE_BASELINE = 7.0;
+/** Per-match rating that produces zero adjustment: the MEASURED league-wide
+ *  mean engine rating, so an average performance is morale-neutral.
+ *
+ *  simfinish: measured with a seeded harness over real saves (the real loop —
+ *  `advanceWeek` + `playCurrentMatch` — 20 weeks each of arsenal, coventry-city
+ *  and getafe, every engine-rated participant of every match, ~115k ratings):
+ *  6.238 / 6.242 / 6.247. It was 7.0, which put the average player 0.76 below
+ *  baseline and cost him ~1.9 morale a match from the rating term alone — a
+ *  steady downward pull on the player's squad (AI squads take no rating term).
+ *  Pinned by `moraleRatingBaseline.test.ts`; re-measure if the engine's rating
+ *  scale (RATING_BASE_*, bonuses, variance) is retuned. */
+export const RATING_MORALE_BASELINE = 6.24;
 export const MORALE_PER_RATING_POINT = 2.5;
 /** Cap must stay below |MORALE_LOSS_CHANGE| (10) or a good game inverts a defeat. */
 export const MORALE_RATING_ADJ_CAP = 5;
@@ -233,9 +243,9 @@ export const FORM_NEUTRAL = 50;
  *  always adds at least 1 (`nextMatchForm`), which outweighs the pull there. */
 export const FORM_MEAN_REVERSION = 0.1;
 /** Match rating that moves form neither way. This is the MEASURED league-mean
- *  rating (the same number development centres on), not RATING_MORALE_BASELINE's
- *  7.0: centred there, the average player lost 1.4 form per match from the
- *  rating term alone. */
+ *  rating (the same number development centres on). RATING_MORALE_BASELINE was
+ *  7.0 at the time: centred there, the average player lost 1.4 form per match
+ *  from the rating term alone. */
 export const FORM_RATING_BASELINE = DEV_RATING_BASELINE;
 export const FORM_MIN = 10;
 export const FORM_MAX = 100;

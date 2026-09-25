@@ -22,7 +22,9 @@ import type {
   ContinentalTournamentState,
   SuperCupMatch,
   Match,
+  TacticalInstructions,
 } from '@/types/game';
+import { getAICounterTactics } from '@/config/aiManager';
 import { LEAGUES, ALL_CLUBS } from '@/data/league';
 import {
   BOARD_OBJ_XP_CRITICAL,
@@ -61,7 +63,8 @@ import {
   REGEN_YOUTH_QUALITY_GAP,
   REGEN_FILL_QUALITY_CAP,
 } from '@/config/gameBalance';
-import { GOAL_EVENT_TYPES, HOME_ADVANTAGE } from '@/config/matchEngine';
+import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { homeAdvantageFactor } from '@/engine/match/helpers';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import { getOpponentQualityBonus } from '@/utils/teamRankings';
 import { selectBestLineup, getTeamStrength } from '@/utils/playerGen';
@@ -207,6 +210,27 @@ export function suspensionEndWeek(
   return lastKnown + 1 + (matches - ahead.length);
 }
 
+/**
+ * How many of his club's MATCHES a player banned until `suspendedUntilWeek`
+ * still has to sit out — the inverse of `suspensionEndWeek`, reading the same
+ * calendar the same way (one per fixture week, one a week past the last known
+ * fixture). Display only: `suspendedUntilWeek - week` counts calendar weeks, so
+ * a one-match red card with the next fixture a week away read "2 match ban".
+ */
+export function suspensionMatchesRemaining(
+  week: number,
+  suspendedUntilWeek: number | null | undefined,
+  upcomingFixtureWeeks?: readonly number[],
+): number {
+  if (suspendedUntilWeek == null) return 0;
+  const lastBannedWeek = suspendedUntilWeek - 1;
+  if (lastBannedWeek <= week) return 0;
+  const ahead = [...new Set((upcomingFixtureWeeks ?? []).filter(w => w > week))].sort((a, b) => a - b);
+  const known = ahead.filter(w => w <= lastBannedWeek).length;
+  const lastKnown = ahead.length > 0 ? ahead[ahead.length - 1] : week;
+  return known + Math.max(0, lastBannedWeek - lastKnown);
+}
+
 /** Everything `buildFixtureWeeksByClub` reads — a structural subset of
  *  GameState, so a pure caller can hand over just the calendar. */
 export interface FixtureCalendarSource {
@@ -217,6 +241,18 @@ export interface FixtureCalendarSource {
   championsCup?: ContinentalTournamentState | null;
   shieldCup?: ContinentalTournamentState | null;
   conferenceCup?: ContinentalTournamentState | null;
+}
+
+/** `suspensionMatchesRemaining` for one player, against his own club's
+ *  calendar — what a "N-match ban" label should say. */
+export function playerBanMatchesRemaining(
+  src: FixtureCalendarSource,
+  week: number,
+  player: Pick<Player, 'clubId' | 'suspendedUntilWeek'>,
+): number {
+  if (player.suspendedUntilWeek == null || player.suspendedUntilWeek <= week + 1) return 0;
+  const calendar = buildFixtureWeeksByClub(src, week, new Set([player.clubId]));
+  return suspensionMatchesRemaining(week, player.suspendedUntilWeek, calendar[player.clubId]);
 }
 
 /**
@@ -700,6 +736,24 @@ export function stripAiMatchDetail(result: Match, playerClubId: string): Match {
 }
 
 /**
+ * The tactics both sides take into an AI-vs-AI match: each AI manager reads
+ * the opponent's default setup (`getAICounterTactics`). ONE rule for every AI
+ * path — the week tick's divisions (employed and unemployed) and the AI round
+ * played alongside the player's own match — so no division plays on a
+ * different rulebook. Undefined when either club has no AI profile (the
+ * engine then falls back to the profile's defaults). Rolls home, then away.
+ */
+export function aiMatchTactics(hc: Club, ac: Club): { home?: TacticalInstructions; away?: TacticalInstructions } {
+  const hp = hc.aiManagerProfile;
+  const ap = ac.aiManagerProfile;
+  if (!hp || !ap) return {};
+  return {
+    home: getAICounterTactics(hp, ap.defaultTactics, ac.formation || '4-4-2'),
+    away: getAICounterTactics(ap, hp.defaultTactics, hc.formation || '4-4-2'),
+  };
+}
+
+/**
  * Cheap scoreline-only resolver for AI-vs-AI catch-up fixtures.
  *
  * The season-end catch-up exists to COMPLETE TABLES — it fast-forwards fixtures
@@ -715,14 +769,15 @@ export function stripAiMatchDetail(result: Match, playerClubId: string): Match {
  * before this, on a pyramid where only the player's own division had been played.
  *
  * Poisson around a strength-derived expectation, with the same home advantage the
- * engine uses, so promotion and relegation stay plausible.
+ * engine uses (none at a neutral venue), so promotion and relegation stay
+ * plausible.
  */
 export function resolveCatchUpFixture(
   match: Match,
   homePlayers: Player[],
   awayPlayers: Player[],
 ): Match {
-  const hs = getTeamStrength(homePlayers) * HOME_ADVANTAGE;
+  const hs = getTeamStrength(homePlayers) * homeAdvantageFactor(match.neutral);
   const as = getTeamStrength(awayPlayers);
   const total = hs + as;
   const share = total > 0 ? hs / total : 0.5;
@@ -762,15 +817,17 @@ export function stableClubSlice(clubId: string, slices: number): number {
 /**
  * Fast-forward every unplayed fixture in every loaded division.
  *
- * `weekAdvance` only simulates other divisions where `m.week === week`, and the
- * season ends at the PLAYER's `totalWeeks` — but each division's fixtures are
- * generated over its OWN length. A Premier League save (38 weeks) therefore left
- * 8 rounds / 96 fixtures unplayed in each of the three lower English tiers,
- * EVERY season: browse the Championship and every club is on 38 games in a
- * 46-game season, with promotion and relegation for three divisions decided 8
- * rounds early. Same in Spain (4 rounds), Germany (4). It also catches any
- * fixture stranded by a mid-season collision, and the final round of an
- * odd-team league where one club is idle.
+ * The season ends at the PLAYER's `totalWeeks`, but each division's fixtures
+ * are generated over its OWN length. That used to leave a Premier League save
+ * (38 weeks) with 8 rounds / 96 fixtures unplayed in each of the three lower
+ * English tiers every season (Spain 4, Germany 4), all decided here by a
+ * Poisson scoreline. It no longer does: the week tick (employed and
+ * unemployed) plays every division's fixtures up to the current week and fits a
+ * longer division's remaining rounds into the season as midweek doubles
+ * (`fitDivisionFixturesToSeason`). So in a normal season this finds little or
+ * nothing; it is the safety net for fixtures the calendar never reached — one
+ * stranded by a mid-season collision, a division loaded mid-season, the idle
+ * final round of an odd-team league, a save written before the fit existed.
  *
  * WHY THIS IS A SHARED HELPER RATHER THAN INLINE IN `endSeasonImpl`. The
  * promotion playoff is seeded from a league table, and rollover decides

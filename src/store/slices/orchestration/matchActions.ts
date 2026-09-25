@@ -21,14 +21,15 @@ import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/mana
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
 import { mergeGamePlanMods } from '@/config/gamePlan';
-import { advanceCupRound, getRoundName } from '@/data/cup';
+import { advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { pickAiMatchSquad, stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
 import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { generatePressConference, getPostMatchPressContext, buildPressQuestionVars } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
-import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
+import { aiMatchTactics, applyAIMatchEvents, buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
 import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
@@ -617,9 +618,10 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   } else if (leagueMatch) {
     match = leagueMatch;
   } else if (cupTie) {
-    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(cupTie.round)) } as Match;
   } else if (continentalMatch && continentalTourney) {
     let homeId: string, awayId: string, matchId: string;
+    let continentalFinal = false;
     if (continentalMatch.type === 'group') {
       const gm = continentalTourney.groups[continentalMatch.groupIdx].matches[continentalMatch.matchIdx];
       homeId = gm.homeClubId; awayId = gm.awayClubId; matchId = gm.id;
@@ -631,6 +633,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
         homeId = tie.awayClubId; awayId = tie.homeClubId;
       }
       matchId = tie.id;
+      continentalFinal = tie.round === 'F';
     }
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
@@ -644,9 +647,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
-    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(continentalFinal) } as Match;
   } else if (leagueCupTie) {
-    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(leagueCupTie.round)) } as Match;
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
@@ -655,7 +658,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
-    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
   }
 
   if (!match) return null;
@@ -1018,6 +1021,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const eloRankings = { ...(state.clubPowerRankings || {}) };
   // Update ELO for the player's own match
   updateEloRatings(eloRankings, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  // Bans from these AI matches count MATCHES, not weeks (S11).
+  const aiFixtureWeeks = buildFixtureWeeksByClub(state, week);
   for (const m of aiWeekMatches) {
     const idx = fullFixtures.findIndex(f => f.id === m.id);
     const hc2 = clubs[m.homeClubId];
@@ -1031,9 +1036,11 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
+    // Same counter-tactics every other AI-vs-AI path uses (see `aiMatchTactics`).
+    const aiTactics = aiMatchTactics(hc2, ac2);
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, aiTactics.home, aiTactics.away, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
     fullFixtures[idx] = stripAiMatchDetail(aiResult, playerClubId);
-    applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+    applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId, aiFixtureWeeks);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
   const divClubIds = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
@@ -1169,9 +1176,10 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   } else if (leagueMatch) {
     match = leagueMatch;
   } else if (cupTie) {
-    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(cupTie.round)) } as Match;
   } else if (continentalMatch && continentalTourney) {
     let homeId: string, awayId: string, matchId: string;
+    let continentalFinal = false;
     if (continentalMatch.type === 'group') {
       const gm = continentalTourney.groups[continentalMatch.groupIdx].matches[continentalMatch.matchIdx];
       homeId = gm.homeClubId; awayId = gm.awayClubId; matchId = gm.id;
@@ -1184,6 +1192,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
         homeId = tie.awayClubId; awayId = tie.homeClubId; // Leg 2: reversed
       }
       matchId = tie.id;
+      continentalFinal = tie.round === 'F';
     }
     // Create ephemeral club for the continental opponent — only when the
     // opponent isn't already a loaded real club (see playCurrentMatchImpl).
@@ -1194,9 +1203,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
-    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(continentalFinal) } as Match;
   } else if (leagueCupTie) {
-    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(leagueCupTie.round)) } as Match;
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
@@ -1205,7 +1214,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
-    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
   }
 
   if (!match) return null;
@@ -1274,7 +1283,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // is dismissed (clearMatchResult).
   const preMatchTalkMods = mergeGamePlanMods(teamTalkModifiers(state.matchTeamTalk), state.matchGamePlan);
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus);
+  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus, match.neutral);
 
   // Determine which cup tracking IDs to set
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
@@ -1363,16 +1372,16 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
           const tie = tourney.knockoutTies[matchInfo.tieIdx];
           const homeId = matchInfo.leg === 1 || tie.round === 'F' ? tie.homeClubId : tie.awayClubId;
           const awayId = matchInfo.leg === 1 || tie.round === 'F' ? tie.awayClubId : tie.homeClubId;
-          tournamentMatch = { id: tie.id, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+          tournamentMatch = { id: tie.id, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(tie.round === 'F') } as Match;
         }
       }
     } else if (state.currentLeagueCupTieId) {
       const lcTie = state.leagueCup?.ties.find(t => t.id === state.currentLeagueCupTieId);
-      if (lcTie) tournamentMatch = { id: lcTie.id, week, homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+      if (lcTie) tournamentMatch = { id: lcTie.id, week, homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(lcTie.round)) } as Match;
     } else {
       // Super cup — same catch-up rule as every other selection site.
       const sc = pendingSuperCup(state, week, playerClubId);
-      if (sc) tournamentMatch = { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+      if (sc) tournamentMatch = { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
     }
   }
 
@@ -1388,7 +1397,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const match: Match | null = isTournamentMatch
     ? tournamentMatch
     : cupTie
-      ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match
+      ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(cupTie.round)) } as Match
       : (playoffMatch || friendlyMatch || leagueMatch || null);
 
   // Tournament rebuild can return null if the tournament state mutated
@@ -1453,7 +1462,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const resumeFrom = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
   const segmentEnd = Math.max(resumeFrom, Math.min(90, Math.round(untilMin)));
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
+  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H, match.neutral);
 
   // Partial segment: bank the state and hand control back so the player can act
   // before the next stretch is simulated. Deliberately does NOT finalise — no
@@ -1600,6 +1609,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const playersWithAI2 = { ...processed.newPlayers };
   const eloRankings2 = { ...(state.clubPowerRankings || {}) };
   updateEloRatings(eloRankings2, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  // Bans from these AI matches count MATCHES, not weeks (S11).
+  const aiFixtureWeeks2 = buildFixtureWeeksByClub(state, week);
   for (const m of aiWeekMatches2) {
     const idx = fullFixtures2.findIndex(f => f.id === m.id);
     const hc2 = clubs[m.homeClubId];
@@ -1613,9 +1624,11 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
+    // Same counter-tactics every other AI-vs-AI path uses (see `aiMatchTactics`).
+    const aiTactics = aiMatchTactics(hc2, ac2);
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, aiTactics.home, aiTactics.away, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
     fullFixtures2[idx] = stripAiMatchDetail(aiResult, playerClubId);
-    applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId);
+    applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId, aiFixtureWeeks2);
     updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
   const divClubIds2 = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
@@ -1716,7 +1729,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
   const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const etWeather = state.currentMatchWeather;
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hcMedical, acMedical, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET);
+  const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hcMedical, acMedical, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET, currentMatchResult.neutral);
 
   // Build the extended match result
   const etResult: Match = {
