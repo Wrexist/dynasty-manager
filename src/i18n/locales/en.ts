@@ -923,6 +923,14 @@ export const en = {
   'econ.digest.netThisWeek': 'Net this week',
   'econ.digest.homeGate': 'Home gate {amount}',
   'econ.digest.awayWeek': 'Away week: no gate',
+
+  // ── econ: unattached players sign as free agents (TransferNegotiation, TransferPage) ──
+  'econ.negotiation.budgetAfterDeal': 'Budget after deal:',
+  'econ.negotiation.signFreeAgent': 'Sign Free Agent',
+  'econ.negotiation.freeAgentNoClub': 'Free agent · no club',
+  'econ.negotiation.signingOnFee': 'Signing-on fee ',
+  'econ.negotiation.noCurrentContract': 'No current contract',
+  'econ.market.freeAgentFee': 'Free agent · signing-on fee',
 } as const;
 
 export default en;

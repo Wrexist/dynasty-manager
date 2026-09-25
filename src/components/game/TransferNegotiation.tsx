@@ -11,6 +11,7 @@ import { TransferListing } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage, getSignedWage, getPreferredYears } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
+import { isUnattachedListing } from '@/utils/transferOffers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -54,6 +55,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
     ? { ...rawSellerClub, shortName: rawSellerClub.shortName || rawSellerClub.name || 'Unknown' }
     : { name: 'Unattached', shortName: 'Unattached', id: '' };
   const buyerClub = clubs[playerClubId];
+  // No club owns an unattached player: he signs as a free agent, the price is
+  // his signing-on fee, and he has no current contract (R9).
+  const unattached = isUnattachedListing({ clubs }, listing);
 
   const [offerFee, setOfferFee] = useState(listing.askingPrice);
   const [finalFee, setFinalFee] = useState<number>(listing.askingPrice);
@@ -255,7 +259,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                 {!lockout.locked && (<><div className="p-4 pb-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2.5">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Buy Player</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{unattached ? t('econ.negotiation.signFreeAgent') : 'Buy Player'}</p>
                       {strikeCount > 0 && <StrikeIndicator strikes={strikeCount} latestOutcome={null} />}
                     </div>
                     <button type="button" onClick={onClose} aria-label="Close" className="min-w-11 min-h-11 -mr-2 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
@@ -277,7 +281,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                         {player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}
                       </p>
                       <p className="text-[11px] text-muted-foreground/70 mt-0.5 truncate">
-                        From <span className="text-foreground/80">{sellerClub.name}</span>
+                        {unattached
+                          ? <span className="text-amber-400">{t('econ.negotiation.freeAgentNoClub')}</span>
+                          : <>From <span className="text-foreground/80">{sellerClub.name}</span></>}
                       </p>
                       {/* Top 3 attributes inline beside the card so the modal stays compact */}
                       <div className="flex flex-wrap gap-1 mt-1.5">
@@ -303,7 +309,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                       <span className="text-foreground font-semibold">{formatMoney(player.value)}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">Asking </span>
+                      <span className="text-muted-foreground">{unattached ? t('econ.negotiation.signingOnFee') : 'Asking '}</span>
                       <span className="text-primary font-bold">{formatMoney(listing.askingPrice)}</span>
                       {valueDiff > 5 && <TrendingUp className="w-3 h-3 text-red-400" />}
                       {valueDiff < -5 && <TrendingDown className="w-3 h-3 text-emerald-400" />}
@@ -414,7 +420,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     <div className="flex items-center gap-3 text-[11px]">
                       <div className="flex items-center gap-1.5 flex-1">
                         <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground">Budget:</span>
+                        <span className="text-muted-foreground">{t('econ.negotiation.budgetAfterDeal')}</span>
                         <span className={cn('font-bold tabular-nums', evaluation.budgetAfter >= 0 ? 'text-foreground' : 'text-red-400')}>
                           {formatMoney(evaluation.budgetAfter)}
                         </span>
@@ -438,10 +444,16 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-muted-foreground">
                       <Handshake className="w-3 h-3 text-primary shrink-0" />
                       <p>
-                        Current deal{' '}
-                        <span className={cn('font-semibold', remainingContractYears <= 1 ? 'text-amber-400' : 'text-foreground/80')}>
-                          {remainingContractYears <= 0 ? 'expiring' : `${remainingContractYears} yr${remainingContractYears === 1 ? '' : 's'} left`}
-                        </span>
+                        {unattached ? (
+                          <span className="font-semibold text-foreground/80">{t('econ.negotiation.noCurrentContract')}</span>
+                        ) : (
+                          <>
+                            Current deal{' '}
+                            <span className={cn('font-semibold', remainingContractYears <= 1 ? 'text-amber-400' : 'text-foreground/80')}>
+                              {remainingContractYears <= 0 ? 'expiring' : `${remainingContractYears} yr${remainingContractYears === 1 ? '' : 's'} left`}
+                            </span>
+                          </>
+                        )}
                         {' '}· signs a fresh{' '}
                         <span className="font-semibold text-foreground/80">{signedYears}-yr</span>
                         {' '}deal at{' '}

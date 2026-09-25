@@ -3,7 +3,7 @@ import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { awardFestivalSigning } from '@/utils/liveEvents';
 import { absWeek } from '@/utils/staff';
-import { getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
+import { getMaxFreeAgentOverall, calculateSigningBonus, isUnattachedListing } from '@/utils/transferOffers';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
@@ -390,8 +390,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const acceptChance = fee >= listing.askingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= listing.askingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
     // Preview must use the same trigger executeTransfer applies (value-relative,
     // not a flat £5M floor) or the UI promises clause-free bargain flips.
-    const wouldTriggerSellOn = resolveSellOnPct(fee, player.value, () => 0) > 0;
-    const sellOnPct = fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_EVAL_HIGH_PCT : wouldTriggerSellOn ? SELL_ON_EVAL_LOW_PCT : 0;
+    // An unattached player has no club to owe a sell-on to — executeTransfer
+    // never applies one (R9). The preview used to promise "~15% sell-on".
+    const unattached = isUnattachedListing(state, listing);
+    const wouldTriggerSellOn = !unattached && resolveSellOnPct(fee, player.value, () => 0) > 0;
+    const sellOnPct = unattached ? 0 : fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_EVAL_HIGH_PCT : wouldTriggerSellOn ? SELL_ON_EVAL_LOW_PCT : 0;
     const budgetAfter = club.budget - fee;
     const wageImpact = player.wage;
     const positionCount = club.playerIds.filter(id => state.players[id]?.position === player.position).length;
@@ -454,10 +457,15 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // Check for counter-offer
     if (ratio >= COUNTER_OFFER_MIN_THRESHOLD && ratio < COUNTER_OFFER_MAX_THRESHOLD && Math.random() < COUNTER_OFFER_CHANCE) {
       const counterFee = Math.round(fee + (listing.askingPrice - fee) * (COUNTER_OFFER_BASE_RATIO + Math.random() * COUNTER_OFFER_RANDOM_RANGE));
-      const sellerName = listing.externalPlayer ? 'The seller' : (state.clubs[listing.sellerClubId]?.shortName || 'The club');
-      return { outcome: 'counter', counterFee, message: `${sellerName} want${listing.externalPlayer ? 's' : ''} more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
+      if (isUnattachedListing(state, listing)) {
+        const name = state.players[playerId]?.lastName || 'The player';
+        return { outcome: 'counter', counterFee, message: `${name}'s agent wants a bigger signing-on fee — £${(counterFee / 1e6).toFixed(1)}M.` };
+      }
+      const sellerName = state.clubs[listing.sellerClubId]?.shortName || 'The club';
+      return { outcome: 'counter', counterFee, message: `${sellerName} want more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
     }
 
+    if (isUnattachedListing(state, listing)) return { outcome: 'rejected', message: 'Offer rejected. He wants a bigger signing-on fee.' };
     return { outcome: 'rejected', message: 'Offer rejected. They want a higher fee.' };
   },
 
@@ -482,7 +490,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
 
     const player = { ...state.players[playerId] };
-    const isExternalPlayer = listing.externalPlayer || !listing.sellerClubId || !state.clubs[listing.sellerClubId];
+    const isExternalPlayer = isUnattachedListing(state, listing);
     const oldClub = isExternalPlayer ? null : { ...state.clubs[listing.sellerClubId] };
     const newClub = { ...state.clubs[state.playerClubId] };
 
@@ -551,12 +559,17 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     newClub.wageBill += updatedPlayer.wage;
 
     const transferMarket = state.transferMarket.filter(l => l.playerId !== playerId);
-    const fromName = isExternalPlayer ? 'the transfer market' : (oldClub?.name || 'Unknown');
+    const fromName = isExternalPlayer ? 'free agency' : (oldClub?.name || 'Unknown');
     const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${sellOnClubName})` : '';
+    // An unattached player signs as a free agent: no club is paid, so the
+    // money is his signing-on fee (R9). It used to read as a transfer fee
+    // "from the transfer market", paid to nobody.
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${updatedPlayer.lastName} Signed!`,
-      body: `${updatedPlayer.firstName} ${updatedPlayer.lastName} has joined ${newClub.name} from ${fromName} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
+      body: isExternalPlayer
+        ? `${updatedPlayer.firstName} ${updatedPlayer.lastName} has joined ${newClub.name} as a free agent, with a £${(fee / 1e6).toFixed(1)}M signing-on fee.`
+        : `${updatedPlayer.firstName} ${updatedPlayer.lastName} has joined ${newClub.name} from ${fromName} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
       playerId,
     });
 
