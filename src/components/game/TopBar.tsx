@@ -12,7 +12,7 @@ import { CountBadge } from '@/components/game/CountBadge';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { LEAGUES } from '@/data/league';
 import { getSundayDivision } from '@/config/sundayLeague';
-import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
+import { DETAIL_SCREENS, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
@@ -25,17 +25,20 @@ export function TopBar() {
   const { t: tr } = useTranslation();
   const {
     playerClubId, clubs, leagueTable, playerDivision, fixtures,
-    currentScreen, previousScreen, managerProgression, gameMode, careerManager,
+    currentScreen, managerProgression, gameMode, careerManager,
     messages, managerNationality, internationalTournament, sunday, week,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
     playerDivision: s.playerDivision, fixtures: s.fixtures,
-    currentScreen: s.currentScreen, previousScreen: s.previousScreen,
+    currentScreen: s.currentScreen,
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
     messages: s.messages, managerNationality: s.managerNationality, internationalTournament: s.internationalTournament,
     sunday: s.sunday, week: s.week,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  // Every back button here goes through the store's goBack: the screen you
+  // came from first, the BACK_TARGET table second (utils/backNavigation).
+  const goBack = useGameStore(s => s.goBack);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const club = clubs[playerClubId];
@@ -101,7 +104,7 @@ export function TopBar() {
           ) : (
             <div className="flex items-center gap-2 min-w-0">
               <button
-                onClick={() => { setScreen(BACK_TARGET[currentScreen] || 'sunday-hub'); hapticMedium(); }}
+                onClick={() => { goBack(); hapticMedium(); }}
                 aria-label={tr('common.goBack')}
                 className="shrink-0 w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-foreground/90 hover:text-foreground bg-white/[0.06] border border-white/20 active:scale-95 transition-transform"
               >
@@ -162,7 +165,7 @@ export function TopBar() {
           ) : (
           <div className="flex items-center gap-2 min-w-0">
             <button
-              onClick={() => { setScreen(BACK_TARGET[currentScreen] || 'dashboard'); hapticMedium(); }}
+              onClick={() => { goBack(); hapticMedium(); }}
               aria-label={tr('common.goBack')}
               className="shrink-0 w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-foreground/90 hover:text-foreground bg-white/[0.06] border border-white/20 active:scale-95 transition-transform"
             >
@@ -211,17 +214,6 @@ export function TopBar() {
     ? UNEMPLOYED_MAIN_TABS.includes(currentScreen)
     : !DETAIL_SCREENS.includes(currentScreen);
   const showBack = !matchLocked && !isMainTab;
-  // Context-aware back: when a detail screen was opened *from another detail
-  // screen* (e.g. team-detail → player-detail), honour that trail rather than
-  // the static BACK_TARGET fallback, so the round back button returns the user
-  // to where they actually came from.
-  const rawBack = (currentScreen === 'player-detail' && previousScreen === 'team-detail')
-    ? 'team-detail'
-    : (BACK_TARGET[currentScreen] || previousScreen || 'dashboard');
-  // When unemployed, redirect any back target that would hit a club screen to job-market
-  const backTarget = isUnemployed
-    ? (rawBack === 'dashboard' || rawBack === 'squad' ? 'job-market' : rawBack)
-    : rawBack;
 
   return (
     // `transform-gpu` (translateZ(0)) pins the bar to its own compositor
@@ -251,7 +243,7 @@ export function TopBar() {
         <div className="flex items-center gap-2.5 min-w-0">
           {showBack && (
             <button
-              onClick={() => { setScreen(backTarget); hapticMedium(); }}
+              onClick={() => { goBack(); hapticMedium(); }}
               aria-label={tr('common.goBack')}
               className={cn(
                 // Round Liquid Glass back button — translucent, outlined, sees

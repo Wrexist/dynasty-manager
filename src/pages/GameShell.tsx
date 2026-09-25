@@ -11,7 +11,8 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, SUNDAY_SCREEN_GROUPS, SUNDAY_TEAM_GROUP, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { useHardwareBack } from '@/hooks/useHardwareBack';
+import { MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, SUNDAY_SCREEN_GROUPS, SUNDAY_TEAM_GROUP, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { MARKET_SUB_NAV, SQUAD_SUB_NAV, SUNDAY_TEAM_SUB_NAV, SUNDAY_CLUB_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
@@ -194,6 +195,7 @@ const GameShell = () => {
     gameMode: s.gameMode,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const goBack = useGameStore(s => s.goBack);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const isRetired = useCareerRetired();
@@ -364,17 +366,18 @@ const GameShell = () => {
       setScreen(activeTabs[idx - 1]);
       return;
     }
-    // Swipe-back on detail screens
-    if (!activeTabs.includes(currentScreen)) {
-      const backTarget = BACK_TARGET[currentScreen] || (isUnemployed ? 'job-market' : 'dashboard');
-      setScreen(backTarget);
-    }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeGroups, activeTabs]);
+    // Swipe-back on detail screens — same resolution as the TopBar back button
+    // (where you came from, else BACK_TARGET).
+    if (!activeTabs.includes(currentScreen)) goBack();
+  }, [currentScreen, setScreen, goBack, matchLocked, useSubGroups, activeGroups, activeTabs]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,
     onSwipeRight: handleSwipeRight,
   });
+
+  // Android hardware back: close an open overlay, else the same in-game back.
+  useHardwareBack({ matchLocked, onTab: activeTabs.includes(currentScreen), onBack: goBack });
 
   if (import.meta.env.DEV && !screens[currentScreen]) {
     console.warn(`[GameShell] Unrecognized screen: "${currentScreen}", falling back to Dashboard`);

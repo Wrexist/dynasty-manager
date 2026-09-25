@@ -9,6 +9,10 @@ export interface GameState {
   playerClubId: string;
   currentScreen: GameScreen;
   previousScreen: GameScreen | null;
+  /** The screen `previousScreen` was recorded on arrival at. Transient (not
+   *  in the save whitelist): lets back tell a live trail from a stale one left
+   *  by flows that assign `currentScreen` directly. See utils/backNavigation. */
+  previousScreenFor: GameScreen | null;
   selectedPlayerId: string | null;
   selectedClubId: string | null;
   season: number;
@@ -355,6 +359,8 @@ export interface GameState {
   initGame: (clubId: string, options?: { communityPackEnabled?: boolean }) => Promise<void> | void;
   initializeLeague: (leagueId: string) => void;
   setScreen: (screen: GameScreen) => void;
+  /** In-game back: the screen you came from, else the BACK_TARGET table. */
+  goBack: () => void;
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;
   advanceWeek: () => Promise<void> | void;

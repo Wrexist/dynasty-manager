@@ -1,6 +1,7 @@
 import { GameScreen, GameSettings, LeagueId, SeasonPhase, TransferNewsEntry } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { resolveBackTarget } from '@/utils/backNavigation';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -24,6 +25,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   playerClubId: '',
   currentScreen: 'dashboard' as GameScreen,
   previousScreen: null as GameScreen | null,
+  previousScreenFor: null as GameScreen | null,
   selectedPlayerId: null as string | null,
   selectedClubId: null as string | null,
   season: 1,
@@ -94,7 +96,24 @@ export const createCoreSlice = (set: Set, get: Get) => ({
     if (isMatchLocked(get(), screen)) return;
     const redirect = getUnemployedRedirect(get(), screen);
     const target = redirect ?? screen;
-    set(s => ({ currentScreen: target, previousScreen: s.currentScreen }));
+    set(s => ({ currentScreen: target, previousScreen: s.currentScreen, previousScreenFor: target }));
+  },
+  goBack: () => {
+    const s = get();
+    const isUnemployed = s.gameMode === 'career' && !!s.careerManager && !s.careerManager.contract &&
+      !s.careerRetired && !s.careerManager.careerHistory?.some(e => e.reason === 'retired');
+    const back = resolveBackTarget({
+      currentScreen: s.currentScreen,
+      previousScreen: s.previousScreen,
+      previousScreenFor: s.previousScreenFor,
+      root: s.gameMode === 'sunday' ? 'sunday-hub' : isUnemployed ? 'job-market' : 'dashboard',
+      isUnemployed,
+    });
+    if (isMatchLocked(s, back)) return;
+    const target = getUnemployedRedirect(s, back) ?? back;
+    // Going back consumes the trail: without this, A → B → back → A would
+    // offer B as A's "previous" and back would ping-pong between the two.
+    set({ currentScreen: target, previousScreen: null, previousScreenFor: null });
   },
   selectPlayer: (id: string | null) => {
     const next = id ? 'player-detail' as GameScreen : get().currentScreen;
@@ -107,7 +126,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
     set(s => ({
       selectedPlayerId: id,
       currentScreen: target,
-      ...(target !== s.currentScreen ? { previousScreen: s.currentScreen } : {}),
+      ...(target !== s.currentScreen ? { previousScreen: s.currentScreen, previousScreenFor: target } : {}),
     }));
   },
   selectClub: (id: string | null) => {
@@ -118,7 +137,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
     set(s => ({
       selectedClubId: id,
       currentScreen: target,
-      ...(target !== s.currentScreen ? { previousScreen: s.currentScreen } : {}),
+      ...(target !== s.currentScreen ? { previousScreen: s.currentScreen, previousScreenFor: target } : {}),
     }));
   },
   /** See `GameState.recordCelebrationKeys`. Filter + record happen in one
