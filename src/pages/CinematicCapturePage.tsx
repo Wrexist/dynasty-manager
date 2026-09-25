@@ -174,6 +174,7 @@ const CinematicCapturePage = () => {
           players={players}
           onClose={handlePackClose}
           onKeepAll={noop}
+          hideShare
         />
       )}
 

@@ -14,12 +14,10 @@ import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
 import { PackStadium } from './PackStadium';
 import { WalkoutReveal } from './WalkoutReveal';
-import { tierForOvr } from './packHelpers';
-import { cn } from '@/lib/utils';
+import { pickBestPull, tierForOvr } from './packHelpers';
 import { ShareMomentButton } from '@/components/game/ShareMomentButton';
-import { buildPackPullMoment } from '@/utils/shareCard';
-import { getPlayerCardArt } from '@/utils/uiHelpers';
-import { getPlayerPortrait } from '@/utils/playerPortrait';
+import { buildPackPullCardData } from '@/utils/shareCard';
+import { cn } from '@/lib/utils';
 
 // Quick-sell pricing comes from config so the button can never promise a
 // different number than the slice pays out — the cap especially: an uncapped
@@ -74,6 +72,9 @@ interface PackOpeningOverlayProps {
    *  on key presence alone. Computed by the parent (which has the squad in
    *  state) and passed in. */
   improvement?: Record<string, { delta: number; currentBestOvr: number }>;
+  /** Hide the best-pull Share action (ad capture renders this overlay and must
+   *  not grow a button in its footage). */
+  hideShare?: boolean;
 }
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -96,7 +97,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeepAll, onSellSelected, placement, improvement }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeepAll, onSellSelected, placement, improvement, hideShare }: PackOpeningOverlayProps) {
   const { t } = useTranslation();
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotionPref();
@@ -212,25 +213,18 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // (the OVR tier every 90+ pull shares) throws away the one thing that made
   // this open different, on the screen the player lingers on.
   const hasLegendPull = useMemo(() => players.some(p => p.legendId), [players]);
-  // The card the share button posts: the Hall of Legends card when there is
-  // one (that is the headline of the open), otherwise the highest OVR. Drawn
-  // from the same art + portrait sources the cards on screen use, so the
-  // shared image is exactly what the player saw.
-  const shareMoment = useMemo(() => {
-    if (players.length === 0) return null;
-    const best = players.find(p => p.legendId)
-      ?? players.reduce((a, b) => (b.overall > a.overall ? b : a));
-    const art = getPlayerCardArt(best.overall, { packFrame: best.packFrame });
-    const portrait = getPlayerPortrait(best);
-    return buildPackPullMoment({
-      name: `${best.firstName} ${best.lastName}`.trim(),
-      overall: best.overall,
-      position: best.position,
+  // Share card for the best pull (growth playbook P1). Built from the card's
+  // face only — OVR, position, art — never the player's name or portrait.
+  // Hall-first, like the chip's label, so the card shared is the one named.
+  const bestPullShare = useMemo(() => {
+    const best = pickBestPull(players);
+    if (!best) return null;
+    return buildPackPullCardData(best, {
       packLabel: tierDef.label,
-      legend: !!best.legendId,
-      card: { artSrc: art.src, artFilter: art.filter, portraitSrc: portrait?.src },
+      pulledLabel: t('packOpeningOverlay.sharePulledIn'),
+      shareMessage: t('packOpeningOverlay.shareMessage', { pack: tierDef.label }),
     });
-  }, [players, tierDef.label]);
+  }, [players, tierDef.label, t]);
   const confettiCount = topOvr >= 90
     ? PACK_ANIM.confetti.icon
     : topOvr >= 84 ? PACK_ANIM.confetti.legendary
@@ -1565,31 +1559,33 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               {/* Best-pull rarity chip — tints the results header with the
                   top card's tier so the headline rarity of the pack reads at
                   a glance, echoing the same tier palette the cards' auras use. */}
-              {topOvr > 0 && (
-                <motion.div
-                  className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-display font-bold uppercase tracking-[0.22em] text-white"
-                  style={{
-                    background: `linear-gradient(135deg, ${topTier.gradientFrom}33, ${topTier.gradientTo}1f)`,
-                    border: `1px solid ${topTier.gradientVia}66`,
-                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px -10px ${topTier.gradientVia}99`,
-                  }}
-                  initial={{ opacity: 0, scale: 0.9, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.14 }}
-                >
-                  <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>{hasLegendPull ? '♛' : '★'}</span>
-                  <span>Best pull · {hasLegendPull ? 'Hall of Legends' : topTier.label}</span>
-                </motion.div>
-              )}
-              {shareMoment && (
-                <div className="mt-2 flex justify-center">
+              <div className="mt-2 flex items-center justify-center gap-2">
+                {topOvr > 0 && (
+                  <motion.div
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-display font-bold uppercase tracking-[0.22em] text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${topTier.gradientFrom}33, ${topTier.gradientTo}1f)`,
+                      border: `1px solid ${topTier.gradientVia}66`,
+                      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px -10px ${topTier.gradientVia}99`,
+                    }}
+                    initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.14 }}
+                  >
+                    <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>{hasLegendPull ? '♛' : '★'}</span>
+                    <span>Best pull · {hasLegendPull ? 'Hall of Legends' : topTier.label}</span>
+                  </motion.div>
+                )}
+                {!hideShare && bestPullShare && (
                   <ShareMomentButton
-                    data={shareMoment}
+                    data={bestPullShare}
                     label={t('packOpeningOverlay.shareBestPull')}
-                    className="w-auto h-11 px-5 rounded-full text-[11px] font-display uppercase tracking-[0.18em] text-white bg-white/[0.08] border-white/20"
+                    // 44px tap target; a pill beside the chip, not the default
+                    // full-width block, so the results header barely grows.
+                    className="w-auto h-11 px-4 rounded-full text-xs text-white bg-white/10 border-white/25"
                   />
-                </div>
-              )}
+                )}
+              </div>
               {/* Soft gradient rule — visually separates the header from the
                   scrolling grid below. Fades to transparent at the edges so
                   it doesn't feel like a hard divider on the dark backdrop. */}

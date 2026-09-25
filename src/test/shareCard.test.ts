@@ -12,7 +12,6 @@ import {
   truncateToWidth,
   detectShareCapability,
   buildMomentFilename,
-  buildPackPullMoment,
   drawMomentCard,
   type MomentCardData,
 } from '@/utils/shareCard';
@@ -128,54 +127,5 @@ describe('drawMomentCard', () => {
     };
     expect(() => drawMomentCard(ctx, 1080, 1920, data)).not.toThrow();
     expect(fillTexts).toContain('SHOOTOUT DRAMA');
-  });
-});
-
-describe('pack pull moment (best-pull share card)', () => {
-  const card = { artSrc: '/player-cards/gold.webp', portraitSrc: '/player-portraits/x.webp' };
-
-  it('names the card after the player and the pack it came from', () => {
-    const m = buildPackPullMoment({ name: 'Jan Novak', overall: 86, position: 'ST', packLabel: 'World Class', legend: false, card });
-    expect(m.type).toBe('pack');
-    expect(m.headline).toBe('BEST PULL');
-    expect(m.subject).toBe('Jan Novak');
-    expect(m.detail).toBe('86 OVR · ST');
-    expect(m.tagline).toBe('World Class Pack');
-    expect(m.card).toMatchObject({ artSrc: card.artSrc, portraitSrc: card.portraitSrc, overall: 86, position: 'ST' });
-  });
-
-  it('does not double the word when the tier label already says Pack', () => {
-    // Every storefront tier label ends in "Pack"; a weekly skin name does not.
-    const gold = buildPackPullMoment({ name: 'X', overall: 80, position: 'CM', packLabel: 'Gold Pack', legend: false, card });
-    expect(gold.tagline).toBe('Gold Pack');
-    const skin = buildPackPullMoment({ name: 'X', overall: 80, position: 'CM', packLabel: 'The Dynasty', legend: false, card });
-    expect(skin.tagline).toBe('The Dynasty Pack');
-  });
-
-  it('headlines a Hall of Legends card as one', () => {
-    const m = buildPackPullMoment({ name: 'A Legend', overall: 93, position: 'CAM', packLabel: 'Legends', legend: true, card });
-    expect(m.headline).toBe('HALL OF LEGENDS');
-  });
-
-  it('files the image as a pack pull', () => {
-    expect(buildMomentFilename('pack', new Date(2026, 8, 25))).toBe('dynasty-pack-pull-2026-09-25.png');
-  });
-
-  it('draws the card instead of the emoji when art is available, with the rating on it', () => {
-    const texts: string[] = [];
-    const grad = { addColorStop: () => {} };
-    const ctx = {
-      fillRect: () => {}, strokeRect: () => {},
-      fillText: (t: string) => { texts.push(t); },
-      measureText: (t: string) => ({ width: t.length * 10 }),
-      createLinearGradient: () => grad, createRadialGradient: () => grad,
-      font: '', fillStyle: '', strokeStyle: '', lineWidth: 0, textAlign: 'center', textBaseline: 'middle',
-    };
-    const m = buildPackPullMoment({ name: 'Jan Novak', overall: 86, position: 'ST', packLabel: 'Elite', legend: false, card });
-    let drewCard = false;
-    drawMomentCard(ctx as never, 1080, 1920, m, () => { drewCard = true; });
-    expect(drewCard).toBe(true);
-    expect(texts).not.toContain(m.emoji);
-    expect(texts).toEqual(expect.arrayContaining(['86', 'ST', 'Jan Novak', 'BEST PULL']));
   });
 });
