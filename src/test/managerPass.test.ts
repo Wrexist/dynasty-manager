@@ -389,6 +389,14 @@ describe('Manager Pass — store slice', () => {
     expect(parsePassRecord(localStorage.getItem(STORAGE_KEYS.MANAGER_PASS))!.xp).toBe(MANAGER_PASS_XP.dailyCheckIn);
   });
 
+  it('the existing daily login claim is also the day\'s Pass check-in', () => {
+    expect(useGameStore.getState().claimDailyStreakReward()).not.toBeNull();
+    expect(useGameStore.getState().managerPass.xp).toBe(MANAGER_PASS_XP.dailyCheckIn);
+    // One check-in a day: the Pass page's own button is then spent.
+    expect(useGameStore.getState().checkInManagerPass()).toBeNull();
+    expect(useGameStore.getState().managerPass.xp).toBe(MANAGER_PASS_XP.dailyCheckIn);
+  });
+
   it('records observed events, idempotently', () => {
     const events: ManagerPassEvent[] = [match('m:c:1'), { source: 'objective', key: 'o:c:1' }];
     const gained = useGameStore.getState().recordManagerPassEvents(events);
