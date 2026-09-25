@@ -13,20 +13,54 @@ interface FlagIconProps {
   className?: string;
 }
 
+type LoadState = 'pending' | 'loaded' | 'failed';
+
 function isOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
+/** What shows when the image cannot: the emoji flag where the platform can
+ *  draw one, otherwise the nation's code. Sized to the flag's own box — it is
+ *  a graphic standing in for a flag, not copy. */
+function FlagFallback({ nationality, height, fill }: { nationality: string; height: number; fill?: boolean }) {
+  if (supportsFlagEmoji()) {
+    return (
+      <span
+        aria-hidden
+        data-flag-fallback="emoji"
+        className={cn('absolute inset-0 flex items-center justify-center leading-none', fill && 'text-4xl')}
+        style={fill ? undefined : { fontSize: height }}
+      >
+        {getFlag(nationality)}
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      data-flag-fallback="code"
+      className={cn(
+        'absolute inset-0 flex items-center justify-center bg-muted/60 text-foreground/80 font-bold leading-none tracking-tight',
+        fill && 'text-sm tracking-wide',
+      )}
+      style={fill ? undefined : { fontSize: Math.max(6, Math.round(height * 0.62)) }}
+    >
+      {getFlagFallbackCode(nationality)}
+    </span>
+  );
+}
+
 /**
- * Renders a real flag image from flagcdn.com, with a fallback that is never a
- * blank square.
+ * Renders a real flag image from flagcdn.com, and never a blank square.
  *
- * The fallback is the emoji flag where the platform can draw one (iOS,
- * Android), and the nation's three-letter code otherwise: offline on a
- * platform without flag glyphs the emoji rendered as an empty box on every
- * nation but England (playthrough 2026-09, R12). Offline, no request is made
- * at all; an image that failed once is not requested again this session.
- * Aspect ratio is 3:2 (standard flag proportions) unless `fill` is set.
+ * The flag's box always shows something: the fallback (the emoji flag where
+ * the platform can draw one — iOS, Android — otherwise the nation's code)
+ * until the image has actually loaded, and for good if it fails. Offline in
+ * the 2026-09 playthrough (R12), every nation but England showed an empty box:
+ * a request that is slow to fail left a transparent <img>, and on a platform
+ * without flag glyphs the emoji fallback drew nothing either. Offline, no
+ * request is made at all; a URL that failed once is not requested again this
+ * session. Aspect ratio is 3:2 (standard flag proportions) unless `fill` is set.
  *
  * The fallback is DECLARATIVE state, never imperative DOM. The previous
  * onError handler did `e.target.replaceWith(<hand-made node>)` — React's
@@ -39,86 +73,53 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
   // Request 2x resolution for retina displays
   const cdnWidth = fill ? 160 : size <= 20 ? 40 : size <= 40 ? 80 : 160;
   const url = getFlagUrl(nationality, cdnWidth);
+  const initialState = (): LoadState => (!url || hasFlagUrlFailed(url) || isOffline() ? 'failed' : 'pending');
 
-  const [errored, setErrored] = useState(() => !url || hasFlagUrlFailed(url) || isOffline());
-  // Reset the error state if the component is reused for a different
-  // nationality (list rows recycle by index).
-  useEffect(() => { setErrored(!url || hasFlagUrlFailed(url) || isOffline()); }, [url]);
+  const [state, setState] = useState<LoadState>(initialState);
+  // Reset if the component is reused for a different nationality (list rows
+  // recycle by index).
+  useEffect(() => {
+    setState(!url || hasFlagUrlFailed(url) || isOffline() ? 'failed' : 'pending');
+  }, [url]);
   const onError = () => {
     if (url) markFlagUrlFailed(url);
-    setErrored(true);
+    setState('failed');
   };
 
-  if (errored) {
-    if (supportsFlagEmoji()) {
-      if (fill) {
-        return (
-          <div role="img" aria-label={nationality} title={nationality} className={cn('w-full h-full flex items-center justify-center text-4xl', className)}>
-            {getFlag(nationality)}
-          </div>
-        );
-      }
-      return <span role="img" aria-label={nationality} title={nationality} className={className}>{getFlag(nationality)}</span>;
-    }
-    // No flag glyphs on this platform: the code, on a flag-shaped chip.
-    if (fill) {
-      return (
-        <div
-          role="img"
-          aria-label={nationality}
-          title={nationality}
-          data-flag-fallback="code"
-          className={cn('w-full h-full flex items-center justify-center bg-muted/60 text-foreground/80 text-sm font-bold tracking-wide', className)}
-        >
-          {getFlagFallbackCode(nationality)}
-        </div>
-      );
-    }
-    return (
-      <span
-        role="img"
-        aria-label={nationality}
-        title={nationality}
-        data-flag-fallback="code"
-        className={cn(
-          'inline-flex items-center justify-center rounded-[2px] shrink-0 px-0.5 align-middle',
-          'bg-muted/60 text-foreground/80 text-[11px] leading-none font-bold tracking-tight',
-          className,
-        )}
-        style={{ minWidth: size, height: Math.max(Math.round(size * 0.667), 14) }}
-      >
-        {getFlagFallbackCode(nationality)}
-      </span>
-    );
-  }
+  const height = Math.round(size * 0.667); // 3:2 aspect ratio
+  const image = state !== 'failed' && (
+    <img
+      src={url}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      width={fill ? undefined : size}
+      height={fill ? undefined : height}
+      className={cn('absolute inset-0 w-full h-full object-cover', state !== 'loaded' && 'opacity-0')}
+      onLoad={() => setState('loaded')}
+      onError={onError}
+    />
+  );
+  const fallback = state !== 'loaded' && <FlagFallback nationality={nationality} height={height} fill={fill} />;
 
   if (fill) {
     return (
-      <img
-        src={url}
-        alt={`Flag of ${nationality}`}
-        title={nationality}
-        loading="lazy"
-        decoding="async"
-        className={cn('w-full h-full object-cover', className)}
-        onError={onError}
-      />
+      <div role="img" aria-label={`Flag of ${nationality}`} title={nationality} className={cn('relative w-full h-full overflow-hidden', className)}>
+        {fallback}
+        {image}
+      </div>
     );
   }
-
-  const height = Math.round(size * 0.667); // 3:2 aspect ratio
   return (
-    <img
-      src={url}
-      alt={nationality}
+    <span
+      role="img"
+      aria-label={nationality}
       title={nationality}
-      width={size}
-      height={height}
-      loading="lazy"
-      decoding="async"
-      className={cn('inline-block object-cover rounded-[2px] shrink-0', className)}
+      className={cn('relative inline-block overflow-hidden rounded-[2px] shrink-0 align-middle', className)}
       style={{ width: size, height }}
-      onError={onError}
-    />
+    >
+      {fallback}
+      {image}
+    </span>
   );
 }

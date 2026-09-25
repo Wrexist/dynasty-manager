@@ -51,6 +51,20 @@ describe('FlagIcon fallback', () => {
     expect(screen.getByRole('img', { name: 'France' }).textContent).toBe(getFlag('France'));
   });
 
+  it('while the image is still loading the box shows the fallback, then the flag once it loads', () => {
+    // A request that is slow to fail (no network behind a proxy) left an
+    // empty, transparent <img> — the blank square the playthrough saw.
+    __setFlagEmojiSupportForTests(false);
+    const { container } = render(<FlagIcon nationality="Germany" size={28} />);
+    const flag = screen.getByRole('img', { name: 'Germany' });
+    const img = container.querySelector('img')!;
+    expect(flag.textContent).toBe('GER');
+    expect(img.className).toContain('opacity-0');
+    fireEvent.load(img);
+    expect(flag.textContent).toBe('');
+    expect(container.querySelector('img')!.className).not.toContain('opacity-0');
+  });
+
   it('offline: no request at all, straight to the fallback', () => {
     __setFlagEmojiSupportForTests(false);
     setOnline(false);
@@ -73,7 +87,7 @@ describe('FlagIcon fallback', () => {
     __setFlagEmojiSupportForTests(false);
     const { container } = render(<FlagIcon nationality="Japan" fill />);
     fireEvent.error(container.querySelector('img')!);
-    expect(screen.getByRole('img', { name: 'Japan' }).textContent).toBe('JPN');
+    expect(screen.getByRole('img', { name: /Japan/ }).textContent).toBe('JPN');
   });
 
   it('an unknown nationality is never blank either', () => {
