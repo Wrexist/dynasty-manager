@@ -34,7 +34,6 @@ import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WE
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { getTransferWindows } from '@/config/transfers';
-import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import type { Celebration, TrophyMoment } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
@@ -78,7 +77,8 @@ import { buildCoachTasks } from '@/utils/gameCoach';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { FormGuide } from '@/components/game/FormGuide';
 import { getRecentForm } from '@/utils/formGuide';
-import { computeObjectiveProgress, objectiveXpMultiplier } from '@/utils/weeklyObjectives';
+import { objectiveXpMultiplier } from '@/utils/weeklyObjectives';
+import { isSeasonOver, getRaceMode, getSeasonStage, selectObjectivesWithProgress, type SeasonStage } from '@/utils/dashboardSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 
 const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
@@ -122,6 +122,9 @@ const TIP_ICON: Record<TipType, string> = {
   squad: 'text-emerald-400',
   info: 'text-primary',
 };
+const SEASON_STAGE_LABEL: Record<SeasonStage, string> = {
+  preSeason: 'Pre-Season', autumn: 'Autumn', winter: 'Winter', spring: 'Spring', runIn: 'Run-In',
+};
 const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
 // Icon per competition row on the consolidated Competitions card. Continental
@@ -151,7 +154,7 @@ const Dashboard = () => {
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
     pendingAchievementIds,
-    activeStorylineChains, unlockedAchievements, packPityCounter, dailyPackOpens,
+    activeStorylineChains, unlockedAchievements, packPityCounter, dailyPackOpens, friendlies,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -179,6 +182,7 @@ const Dashboard = () => {
     unlockedAchievements: s.unlockedAchievements,
     packPityCounter: s.packPityCounter || 0,
     dailyPackOpens: s.dailyPackOpens,
+    friendlies: s.friendlies,
   })));
   const tw = getTransferWindows(totalWeeks);
   // Actions — stable references, individual selectors
@@ -561,32 +565,14 @@ const Dashboard = () => {
   }, [unlockedAchievements, week]);
 
 
-  const objectivesWithProgress = useMemo(() => {
-    if (!club) return weeklyObjectives;
-    const state = useGameStore.getState();
-    const ctx = {
-      playerClubId,
-      players,
-      playerIds: club.playerIds,
-      fixtures,
-      leagueTable,
-      week,
-      season,
-      lineup: club.lineup || [],
-      // Pass every match source so pre-season friendlies, cup ties,
-      // and continental matches actually move match-based objective
-      // progress (was previously league-only).
-      friendlies: state.friendlies,
-      cupTies: state.cup?.ties,
-      leagueCupTies: state.leagueCup?.ties,
-      championsCup: state.championsCup,
-      shieldCup: state.shieldCup,
-      conferenceCup: state.conferenceCup,
-      domesticSuperCup: state.domesticSuperCup,
-      continentalSuperCup: state.continentalSuperCup,
-    };
-    return computeObjectiveProgress(weeklyObjectives, ctx);
-  }, [weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season]);
+  // Every match source is a selected, named dependency — the old inline version
+  // read cups/continental/friendlies via getState() inside this memo without
+  // listing them, so a cup-tie goal did not move objective progress.
+  const objectivesWithProgress = useMemo(() => selectObjectivesWithProgress({
+    weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season,
+    friendlies, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
+  }), [weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season,
+    friendlies, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup]);
 
   // Coach-task XP is no longer auto-granted on completion — the player claims
   // each completed task (markCoachTaskComplete grants the XP on the claim tap).
@@ -690,31 +676,16 @@ const Dashboard = () => {
     leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,
   });
 
-  // Season over check — uses totalWeeks from league config, but only when all player matches done and not in playoffs
-  const seasonOver = useMemo(() => {
-    const allMatchesPlayed = fixtures
-      .filter(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)
-      .every(m => m.played);
-    return !inPlayoffs && (week > totalWeeks || (allMatchesPlayed && fixtures.filter(m => m.played).length > 0));
-  }, [fixtures, playerClubId, week, inPlayoffs, totalWeeks]);
-
-  // Title race / relegation battle mode — special UI in final 10 weeks
-  const raceMode = useMemo(() => {
-    if (seasonOver || inPlayoffs) return null;
-    const weeksLeft = totalWeeks - week;
-    if (weeksLeft > 10 || !entry) return null;
-    const playerPos = leagueTable.indexOf(entry) + 1;
-    const totalTeams = leagueTable.length;
-    // Title contender: top 2 and within 6 points of leader
-    if (playerPos <= 2) {
-      const leaderPts = leagueTable[0]?.points || 0;
-      const gap = leaderPts - (entry.points || 0);
-      if (gap <= 6) return 'title' as const;
-    }
-    // Relegation battle: bottom 3
-    if (playerPos >= totalTeams - 2) return 'relegation' as const;
-    return null;
-  }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
+  const seasonOver = useMemo(
+    () => isSeasonOver({ fixtures, playerClubId, week, totalWeeks, seasonPhase }),
+    [fixtures, playerClubId, week, totalWeeks, seasonPhase],
+  );
+  const relegationSpots = LEAGUES.find(d => d.id === playerDivision)?.relegationSpots ?? 0;
+  const raceMode = useMemo(
+    () => getRaceMode({ seasonOver, seasonPhase, week, totalWeeks, leagueTable, playerClubId, relegationSpots }),
+    [seasonOver, seasonPhase, week, totalWeeks, leagueTable, playerClubId, relegationSpots],
+  );
+  const seasonStage = getSeasonStage(week, tw);
 
   if (!club) {
     // `playerClubId` no longer resolves. In career mode `setScreen` redirects an
@@ -963,7 +934,7 @@ const Dashboard = () => {
             <div>
               <p className="text-lg font-bold font-display text-foreground">{season === 1 && week === 1 ? `Welcome to ${club.name}` : club.name}</p>
               <p className="text-micro text-muted-foreground">
-                Season {season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
+                Season {season} · {SEASON_STAGE_LABEL[seasonStage]}
               </p>
             </div>
           </div>
@@ -1438,7 +1409,7 @@ const Dashboard = () => {
               </button>
             )}
             <span className="text-micro text-muted-foreground">
-              Wk {week} / S{season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
+              Wk {week} / S{season} · {SEASON_STAGE_LABEL[seasonStage]}
             </span>
           </div>
 

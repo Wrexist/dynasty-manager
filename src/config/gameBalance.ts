@@ -1358,3 +1358,15 @@ export const BALLON_DOR_CONTINENTAL_BONUS = {
   shield_cup: { group: 2, R16: 5, QF: 8, SF: 12, F: 15, winner: 20 },
   conference_cup: { group: 1, R16: 3, QF: 5, SF: 8, F: 10, winner: 14 },
 } as const;
+
+// ── home: Dashboard rules (see src/utils/dashboardSelectors.ts) ──
+/** Final stretch (weeks left in the season) in which the Dashboard flags a
+ *  title race or a relegation battle. */
+export const RACE_MODE_WINDOW_WEEKS = 10;
+/** Title race: in the top N places… */
+export const TITLE_RACE_MAX_POSITION = 2;
+/** …and within this many points of the leader. */
+export const TITLE_RACE_MAX_POINTS_GAP = 6;
+/** Relegation battle: within this many places of the bottom. Only offered in a
+ *  league that actually relegates — the bottom of the lowest tier is safe. */
+export const RELEGATION_BATTLE_BOTTOM_PLACES = 3;
