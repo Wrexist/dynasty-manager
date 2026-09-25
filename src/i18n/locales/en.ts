@@ -661,6 +661,8 @@ export const en = {
   'matchPrep.simConfirmTitle': 'Simulate this match?',
   'matchPrep.simConfirmBody': "Instant Sim plays the match out immediately — you won't be able to make substitutions, change tactics, or influence it live.",
   'matchPrep.simConfirmAction': 'Sim Match',
+  'contractNegotiation.shorterContract': 'Shorter contract',
+  'contractNegotiation.longerContract': 'Longer contract',
 } as const;
 
 export default en;
