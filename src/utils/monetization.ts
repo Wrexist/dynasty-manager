@@ -7,7 +7,7 @@
  */
 
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
-import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
+import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS, FREE_TRIAL_DAYS, SUB_TRIAL_PRODUCT_IDS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
 import { observeClock } from '@/store/helpers/persistence';
 
 /**
@@ -252,4 +252,59 @@ export function getStarterKitRemainingMs(state: MonetizationState): number {
 /** Count how many products the player owns (for stats/display) */
 export function getPurchaseCount(state: MonetizationState): number {
   return state.entitlements.length;
+}
+
+// ── Paywall free-trial offers ──
+
+export interface PaywallTrialInputs {
+  /** Plans the paywall is showing. */
+  planIds: ProductId[];
+  /** True on a device with a real store; false on web/dev (purchases mocked). */
+  native: boolean;
+  /** No subscription record on this install. */
+  locallyEligible: boolean;
+  /** Per-product store eligibility: true / false / null (unknown). */
+  eligibility: Partial<Record<ProductId, boolean | null>>;
+  /** Free intro-offer length per product, as App Store Connect configured it. */
+  storeTrialDays: Partial<Record<ProductId, number>>;
+}
+
+/**
+ * Which plans the paywall may sell with a free trial, and for how many days.
+ *
+ * On device a plan qualifies only when the store BOTH has a free intro offer
+ * on that exact product AND confirms this Apple ID can still use it. The trial
+ * used to be hardcoded — "7-day free trial" on Yearly and Monthly, gated on
+ * one probe of Yearly alone — so if App Store Connect put the offer on the
+ * other product, or gave it a different length, the paywall either hid a
+ * trial the store would grant or promised one it would not (3.1.2(c)).
+ * Unknown eligibility never qualifies. Off-device the flow is mocked, so every
+ * trial-bearing plan shows the configured default to keep it testable.
+ */
+export function resolvePaywallTrials(inputs: PaywallTrialInputs): Partial<Record<ProductId, number>> {
+  const trials: Partial<Record<ProductId, number>> = {};
+  if (!inputs.locallyEligible) return trials;
+  for (const id of inputs.planIds) {
+    if (!SUB_TRIAL_PRODUCT_IDS.includes(id)) continue;
+    if (!inputs.native) {
+      trials[id] = FREE_TRIAL_DAYS;
+      continue;
+    }
+    const days = inputs.storeTrialDays[id];
+    if (inputs.eligibility[id] === true && typeof days === 'number' && days > 0) trials[id] = days;
+  }
+  return trials;
+}
+
+/** The plan a paywall should preselect: the trial target when it carries a
+ *  trial (or when no plan does), otherwise the first plan that does — a free
+ *  trial the player never sees selected converts nobody. */
+export function preferredPaywallPlan(
+  visibleIds: ProductId[],
+  trials: Partial<Record<ProductId, number>>,
+): ProductId | undefined {
+  const target = visibleIds.includes(TRIAL_TARGET_PRODUCT_ID) ? TRIAL_TARGET_PRODUCT_ID : undefined;
+  if (target && trials[target]) return target;
+  const withTrial = visibleIds.find(id => trials[id]);
+  return withTrial ?? target ?? visibleIds[0];
 }

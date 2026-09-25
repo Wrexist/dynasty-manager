@@ -1,0 +1,79 @@
+/**
+ * Paywall free-trial resolution (utils/monetization.ts).
+ *
+ * The trial used to be hardcoded: "7-day free trial" on Yearly and Monthly,
+ * gated on one store probe of Yearly alone. If App Store Connect put the
+ * intro offer on a different product, or gave it another length, the paywall
+ * either hid a trial the store would grant or promised one it would not.
+ * These tests pin that the claim follows the store, product by product.
+ */
+import { describe, it, expect } from 'vitest';
+import { resolvePaywallTrials, preferredPaywallPlan } from '@/utils/monetization';
+import { FREE_TRIAL_DAYS } from '@/config/monetization';
+import type { ProductId } from '@/types/game';
+
+const YEARLY: ProductId = 'com.dynastymanager.pro.yearly';
+const MONTHLY: ProductId = 'com.dynastymanager.pro.monthly';
+const LIFETIME: ProductId = 'com.dynastymanager.pro.lifetime';
+const PLANS = [YEARLY, LIFETIME, MONTHLY];
+
+const onDevice = (overrides: Partial<Parameters<typeof resolvePaywallTrials>[0]> = {}) => resolvePaywallTrials({
+  planIds: PLANS,
+  native: true,
+  locallyEligible: true,
+  eligibility: {},
+  storeTrialDays: {},
+  ...overrides,
+});
+
+describe('resolvePaywallTrials', () => {
+  it('offers a trial only where the store has one AND confirms eligibility', () => {
+    const trials = onDevice({
+      eligibility: { [YEARLY]: false, [MONTHLY]: true },
+      storeTrialDays: { [MONTHLY]: 7 },
+    });
+    expect(trials).toEqual({ [MONTHLY]: 7 });
+  });
+
+  it('uses the length App Store Connect configured, not the default', () => {
+    const trials = onDevice({ eligibility: { [YEARLY]: true }, storeTrialDays: { [YEARLY]: 3 } });
+    expect(trials[YEARLY]).toBe(3);
+  });
+
+  it('never claims a trial on unknown eligibility or a missing offer', () => {
+    expect(onDevice({ eligibility: { [YEARLY]: null }, storeTrialDays: { [YEARLY]: 7 } })).toEqual({});
+    expect(onDevice({ eligibility: { [YEARLY]: true }, storeTrialDays: {} })).toEqual({});
+  });
+
+  it('never offers a trial on a one-time purchase', () => {
+    expect(onDevice({ eligibility: { [LIFETIME]: true }, storeTrialDays: { [LIFETIME]: 7 } })).toEqual({});
+  });
+
+  it('offers nothing to an install that already holds a subscription record', () => {
+    expect(onDevice({ locallyEligible: false, eligibility: { [YEARLY]: true }, storeTrialDays: { [YEARLY]: 7 } })).toEqual({});
+  });
+
+  it('keeps the mocked web flow testable with the configured default', () => {
+    const trials = resolvePaywallTrials({ planIds: PLANS, native: false, locallyEligible: true, eligibility: {}, storeTrialDays: {} });
+    expect(trials).toEqual({ [YEARLY]: FREE_TRIAL_DAYS, [MONTHLY]: FREE_TRIAL_DAYS });
+  });
+});
+
+describe('preferredPaywallPlan', () => {
+  it('keeps Yearly when it carries the trial', () => {
+    expect(preferredPaywallPlan(PLANS, { [YEARLY]: 7, [MONTHLY]: 7 })).toBe(YEARLY);
+  });
+
+  it('moves to the plan with the trial when Yearly has none', () => {
+    expect(preferredPaywallPlan(PLANS, { [MONTHLY]: 7 })).toBe(MONTHLY);
+  });
+
+  it('keeps Yearly when no plan has a trial', () => {
+    expect(preferredPaywallPlan(PLANS, {})).toBe(YEARLY);
+  });
+
+  it('falls through to the first visible plan when Yearly is not on sale', () => {
+    expect(preferredPaywallPlan([LIFETIME, MONTHLY], {})).toBe(LIFETIME);
+    expect(preferredPaywallPlan([], {})).toBeUndefined();
+  });
+});

@@ -183,6 +183,13 @@ interface StoreProductLike {
    *  USD config values, which are wrong in every non-US storefront. */
   price?: number;
   currencyCode?: string;
+  /** The store's introductory offer, if App Store Connect configured one. */
+  introPrice?: {
+    price?: number;
+    cycles?: number;
+    periodUnit?: string;
+    periodNumberOfUnits?: number;
+  } | null;
 }
 
 interface PackageLike {
@@ -342,6 +349,10 @@ export interface StoreAvailability {
   amounts: Partial<Record<ProductId, number>>;
   /** ISO currency code of the storefront, when the store reported one. */
   currencyCode?: string;
+  /** Length in days of each product's FREE introductory offer, as configured
+   *  in App Store Connect. A product with no free intro offer is absent — a
+   *  paid introductory price is not a free trial and is never reported here. */
+  freeTrialDays?: Partial<Record<ProductId, number>>;
 }
 
 /**
@@ -355,7 +366,7 @@ export async function getStoreAvailability(
   productIds: ProductId[] = Object.keys(PRODUCTS) as ProductId[],
 ): Promise<StoreAvailability> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
-    return { supported: false, available: [], prices: {}, amounts: {} };
+    return { supported: false, available: [], prices: {}, amounts: {}, freeTrialDays: {} };
   }
 
   try {
@@ -369,6 +380,7 @@ export async function getStoreAvailability(
     const wanted = new Set<string>(productIds);
     const prices: Partial<Record<ProductId, string>> = {};
     const amounts: Partial<Record<ProductId, number>> = {};
+    const freeTrialDays: Partial<Record<ProductId, number>> = {};
     const available = new Set<ProductId>();
     let currencyCode: string | undefined;
     for (const entry of [...packages.map(p => p.product), ...products]) {
@@ -380,13 +392,28 @@ export async function getStoreAvailability(
         amounts[id] = entry.price;
       }
       if (!currencyCode && entry.currencyCode) currencyCode = entry.currencyCode;
+      const trialDays = freeIntroOfferDays(entry.introPrice);
+      if (trialDays != null && freeTrialDays[id] == null) freeTrialDays[id] = trialDays;
     }
-    return { supported: true, available: Array.from(available), prices, amounts, currencyCode };
+    return { supported: true, available: Array.from(available), prices, amounts, currencyCode, freeTrialDays };
   } catch (err) {
     if (import.meta.env.DEV) console.error('[Purchases] getStoreAvailability failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.getStoreAvailability' } });
-    return { supported: true, available: [], prices: {}, amounts: {} };
+    return { supported: true, available: [], prices: {}, amounts: {}, freeTrialDays: {} };
   }
+}
+
+const INTRO_PERIOD_DAYS: Record<string, number> = { DAY: 1, WEEK: 7, MONTH: 30, YEAR: 365 };
+
+/** Days of free access an introductory offer grants, or null when the offer
+ *  is missing, paid, or has a shape we cannot read. Exported for tests. */
+export function freeIntroOfferDays(intro: StoreProductLike['introPrice']): number | null {
+  if (!intro || intro.price !== 0) return null;
+  const unitDays = INTRO_PERIOD_DAYS[String(intro.periodUnit || '').toUpperCase()];
+  const units = intro.periodNumberOfUnits;
+  if (!unitDays || typeof units !== 'number' || !Number.isFinite(units) || units <= 0) return null;
+  const cycles = typeof intro.cycles === 'number' && intro.cycles > 0 ? intro.cycles : 1;
+  return unitDays * units * cycles;
 }
 
 /**
@@ -536,28 +563,40 @@ export async function restorePurchases(): Promise<ProductId[]> {
  *           this function never guesses.
  */
 export async function isEligibleForIntroOffer(productId: ProductId): Promise<boolean | null> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return null;
+  const result = await checkIntroOfferEligibility([productId]);
+  return result[productId] ?? null;
+}
+
+/** `isEligibleForIntroOffer` for several products in one store round-trip.
+ *  Each product maps to true / false / null with the same meaning; a product
+ *  the store did not answer for maps to null. Never throws. */
+export async function checkIntroOfferEligibility(
+  productIds: ProductId[],
+): Promise<Partial<Record<ProductId, boolean | null>>> {
+  const unknown = Object.fromEntries(productIds.map(id => [id, null])) as Partial<Record<ProductId, boolean | null>>;
+  if (productIds.length === 0 || !Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return unknown;
 
   try {
     await ensureConfigured();
     const { Purchases, INTRO_ELIGIBILITY_STATUS } = await import('@revenuecat/purchases-capacitor');
     const result = await Purchases.checkTrialOrIntroductoryPriceEligibility({
-      productIdentifiers: [productId],
+      productIdentifiers: productIds,
     });
-    const status = result?.[productId]?.status;
-    if (status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) return true;
-    if (
-      status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE ||
-      status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_NO_INTRO_OFFER_EXISTS
-    ) {
-      return false;
+    const out = { ...unknown };
+    for (const id of productIds) {
+      const status = result?.[id]?.status;
+      if (status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) out[id] = true;
+      else if (
+        status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE ||
+        status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_NO_INTRO_OFFER_EXISTS
+      ) out[id] = false;
+      // INTRO_ELIGIBILITY_STATUS_UNKNOWN, or a shape we don't recognise: null.
     }
-    // INTRO_ELIGIBILITY_STATUS_UNKNOWN, or a shape we don't recognise.
-    return null;
+    return out;
   } catch (err) {
     if (import.meta.env.DEV) console.error('[Purchases] intro eligibility check failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.isEligibleForIntroOffer' } });
-    return null;
+    return unknown;
   }
 }
 

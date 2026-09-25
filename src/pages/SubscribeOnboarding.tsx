@@ -24,16 +24,14 @@ import {
   getCustomerInfo,
   extractSubscriptionInfo,
   getStoreAvailability,
-  isEligibleForIntroOffer,
+  checkIntroOfferEligibility,
 } from '@/utils/purchases';
 import {
-  FREE_TRIAL_DAYS,
   PRODUCTS,
   SUB_TRIAL_PRODUCT_IDS,
-  TRIAL_TARGET_PRODUCT_ID,
 } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
-import { isPro } from '@/utils/monetization';
+import { isPro, resolvePaywallTrials, preferredPaywallPlan } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
@@ -83,8 +81,6 @@ interface PlanRow {
   title: string;
   /** Length of subscription, shown plainly to satisfy Apple 3.1.2(c). */
   lengthLabel: string;
-  /** Optional small caption shown ABOVE the price (subordinate). */
-  trialCaption?: string;
   /** Optional badge displayed at the right (e.g. "BEST VALUE", "POPULAR"). */
   badge?: string;
 }
@@ -94,7 +90,6 @@ const PLAN_ROWS: PlanRow[] = [
     productId: 'com.dynastymanager.pro.yearly',
     title: 'Pro Yearly',
     lengthLabel: '12 months · auto-renews yearly',
-    trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
     badge: 'BEST VALUE',
   },
   {
@@ -106,7 +101,6 @@ const PLAN_ROWS: PlanRow[] = [
     productId: 'com.dynastymanager.pro.monthly',
     title: 'Pro Monthly',
     lengthLabel: 'Auto-renews monthly',
-    trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
   },
 ];
 
@@ -129,31 +123,19 @@ const SubscribeOnboarding = () => {
   // was shown "7 days free" on a purchase the store charges immediately. That
   // is a false claim, a 3.1.2(c) exposure and a refund request.
   //
-  // `storeTrialEligible` is null until the probe answers (and stays null
-  // off-device), in which case we fall back to the local heuristic so web/dev
-  // testing still shows the trial flow. A definite `false` from the store
-  // always wins.
+  // Eligibility and the offer itself are asked per product: the store decides
+  // which plan carries a free trial and for how long, and an unknown answer
+  // never qualifies on device (see `resolvePaywallTrials`). Off-device the
+  // local heuristic drives the mocked flow so web/dev testing still shows it.
   const locallyTrialEligible = monetization.subscription == null;
-  const [storeTrialEligible, setStoreTrialEligible] = useState<boolean | null>(null);
+  const [storeEligibility, setStoreEligibility] = useState<Partial<Record<ProductId, boolean | null>>>({});
   useEffect(() => {
     let cancelled = false;
-    isEligibleForIntroOffer(TRIAL_TARGET_PRODUCT_ID)
-      .then(v => { if (!cancelled) setStoreTrialEligible(v); })
-      .catch(() => { if (!cancelled) setStoreTrialEligible(null); });
+    checkIntroOfferEligibility(SUB_TRIAL_PRODUCT_IDS)
+      .then(v => { if (!cancelled) setStoreEligibility(v); })
+      .catch(() => { if (!cancelled) setStoreEligibility({}); });
     return () => { cancelled = true; };
   }, []);
-  // On device, "unknown" must NOT be treated as eligible. The probe returns
-  // null whenever it throws — the common offline case — and
-  // `locallyTrialEligible` is true on any fresh install, so a lapsed subscriber
-  // reinstalling with a flaky connection was shown "Try 7 Days Free" and "Free
-  // for 7 days, then ..." on a purchase Apple charges immediately. That is the
-  // false-claim class (Guideline 3.1.2(c)) this probe exists to prevent; a
-  // definite `false` winning is not enough if `null` loses to a local guess.
-  // Off-device the purchase is mocked anyway, so the local value still drives
-  // the flow there and keeps it testable.
-  const trialEligible = storeTrialEligible === null
-    ? (Capacitor.isNativePlatform() ? false : locallyTrialEligible)
-    : storeTrialEligible && locallyTrialEligible;
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
   // A webview reload / deep link on #/subscribe loses nav state. Without a slot
@@ -184,6 +166,9 @@ const SubscribeOnboarding = () => {
   const [storeStatus, setStoreStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   // Localised store prices. Empty on web/dev — falls back to the USD config price.
   const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
+  // Free intro-offer length per product, read from the store — the trial the
+  // paywall advertises is the one App Store Connect actually configured.
+  const [storeTrialDays, setStoreTrialDays] = useState<Partial<Record<ProductId, number>>>({});
   // Numeric prices in the storefront's own currency. Every comparative claim
   // on this screen ("SAVE 58%", the per-month line) is computed from these and
   // NOT from `priceUsd` — Apple's price tiers do not preserve the USD ratios,
@@ -197,9 +182,10 @@ const SubscribeOnboarding = () => {
     let cancelled = false;
     setStoreStatus('loading');
     getStoreAvailability(PLAN_ROWS.map(r => r.productId))
-      .then(({ supported, available, prices, amounts }) => {
+      .then(({ supported, available, prices, amounts, freeTrialDays }) => {
         if (cancelled) return;
         setStorePrices(prices);
+        setStoreTrialDays(freeTrialDays || {});
         setStoreAmounts(amounts || {});
         // Off-device (web/dev) purchases are mocked — every plan stays live so
         // the flow remains testable in the browser.
@@ -237,13 +223,31 @@ const SubscribeOnboarding = () => {
     [availableIds],
   );
 
-  // Keep the selection on a row that is actually purchasable — if the default
-  // (Yearly) didn't come back from the store, fall through to the first row
-  // that did rather than leaving a dead CTA selected.
+  // Plans that may be sold with a free trial right now, with the store's length.
+  const trials = useMemo(() => resolvePaywallTrials({
+    planIds: visibleRows.map(r => r.productId),
+    native: Capacitor.isNativePlatform(),
+    locallyEligible: locallyTrialEligible,
+    eligibility: storeEligibility,
+    storeTrialDays,
+  }), [visibleRows, locallyTrialEligible, storeEligibility, storeTrialDays]);
+  const trialEligible = Object.keys(trials).length > 0;
+
+  // Keep the selection on a row that is actually purchasable, and until the
+  // player picks one themselves, on the plan that carries the free trial — if
+  // Yearly didn't come back from the store or has no trial, fall through
+  // rather than leaving a dead CTA or a trial-less plan selected.
+  const userPickedRef = useRef(false);
   useEffect(() => {
     if (visibleRows.length === 0) return;
-    if (!visibleRows.some(r => r.productId === selected)) setSelected(visibleRows[0].productId);
-  }, [visibleRows, selected]);
+    const ids = visibleRows.map(r => r.productId);
+    if (!userPickedRef.current) {
+      const preferred = preferredPaywallPlan(ids, trials);
+      if (preferred && preferred !== selected) setSelected(preferred);
+      return;
+    }
+    if (!ids.includes(selected)) setSelected(ids[0]);
+  }, [visibleRows, selected, trials]);
 
   // ── Paywall funnel instrumentation ──
   const paywallMountedAtRef = useRef(Date.now());
@@ -351,7 +355,8 @@ const SubscribeOnboarding = () => {
       // 12-month subscription, and Pro vanished at day 7 until the next
       // successful sync. Sync first, and only mint the local record if the
       // store gave us nothing.
-      const isTrial = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
+      const trialDays = trials[selected];
+      const isTrial = trialDays != null;
       const syncedSub = await syncAfterPurchase();
       if (isTrial && !syncedSub) startFreeTrial(selected);
       // `trial_started` is the authoritative trial signal — the
@@ -361,7 +366,7 @@ const SubscribeOnboarding = () => {
 
       const product = PRODUCTS[selected];
       successToast(
-        isTrial ? `${FREE_TRIAL_DAYS}-Day Free Trial Started!` : 'Welcome to Dynasty Pro!',
+        isTrial ? `${trialDays}-Day Free Trial Started!` : 'Welcome to Dynasty Pro!',
         isTrial
           ? `Pro is unlocked. You'll be charged ${priceFor(selected)}${product.billingPeriod || ''} after the trial unless you cancel.`
           : `${product.name} is now active.`,
@@ -445,11 +450,12 @@ const SubscribeOnboarding = () => {
   };
 
   const selectedProduct = PRODUCTS[selected];
-  const isTrialPlan = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
+  const selectedTrialDays = trials[selected];
+  const isTrialPlan = selectedTrialDays != null;
   const billingSummary = useMemo(() => {
     if (isTrialPlan) {
       const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
-      return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per ${period}. Auto-renews until cancelled.`;
+      return `Free for ${selectedTrialDays} days, then ${priceFor(selected)} per ${period}. Auto-renews until cancelled.`;
     }
     if (selectedProduct.type === 'subscription') {
       const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
@@ -458,7 +464,7 @@ const SubscribeOnboarding = () => {
     return `${priceFor(selected)} one-time payment. No subscription, no renewal.`;
     // priceFor is recomputed every render — depending on storePrices captures it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, storePrices, isTrialPlan, selectedProduct]);
+  }, [selected, storePrices, isTrialPlan, selectedTrialDays, selectedProduct]);
 
   // Redirecting to the title (no slot / no in-app context) — render nothing.
   // Placed after all hooks to satisfy the Rules of Hooks.
@@ -594,7 +600,7 @@ const SubscribeOnboarding = () => {
               <button
                 key={row.productId}
                 type="button"
-                onClick={() => { hapticLight(); setSelected(row.productId); }}
+                onClick={() => { hapticLight(); userPickedRef.current = true; setSelected(row.productId); }}
                 disabled={purchasing}
                 aria-pressed={isSelected}
                 className={cn(
@@ -640,9 +646,9 @@ const SubscribeOnboarding = () => {
                       Works out at {annualPerMonth}/month
                     </p>
                   )}
-                  {row.trialCaption && trialEligible && (
+                  {trials[row.productId] != null && (
                     <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
-                      {row.trialCaption}
+                      {trials[row.productId]}-day free trial included
                     </p>
                   )}
                 </div>
@@ -706,7 +712,7 @@ const SubscribeOnboarding = () => {
               <>
                 <Sparkles className="w-5 h-5" />
                 {isTrialPlan
-                  ? `Try ${FREE_TRIAL_DAYS} Days Free`
+                  ? `Try ${selectedTrialDays} Days Free`
                   : `Continue — ${priceFor(selected)}${selectedProduct.billingPeriod || ''}`}
               </>
             )}

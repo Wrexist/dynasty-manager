@@ -28,6 +28,7 @@ const mockPurchases = {
   syncPurchases: vi.fn().mockResolvedValue(undefined),
   invalidateCustomerInfoCache: vi.fn().mockResolvedValue(undefined),
   getCustomerInfo: vi.fn(),
+  checkTrialOrIntroductoryPriceEligibility: vi.fn(),
 };
 
 vi.mock('@capacitor/core', () => ({
@@ -40,6 +41,12 @@ vi.mock('@capacitor/core', () => ({
 vi.mock('@revenuecat/purchases-capacitor', () => ({
   Purchases: mockPurchases,
   LOG_LEVEL: { DEBUG: 'DEBUG', INFO: 'INFO' },
+  INTRO_ELIGIBILITY_STATUS: {
+    INTRO_ELIGIBILITY_STATUS_UNKNOWN: 0,
+    INTRO_ELIGIBILITY_STATUS_INELIGIBLE: 1,
+    INTRO_ELIGIBILITY_STATUS_ELIGIBLE: 2,
+    INTRO_ELIGIBILITY_STATUS_NO_INTRO_OFFER_EXISTS: 3,
+  },
 }));
 
 vi.mock('@sentry/react', () => ({
@@ -55,6 +62,8 @@ import {
   purchaseConsumable,
   getStoreAvailability,
   readConsumableHistory,
+  checkIntroOfferEligibility,
+  freeIntroOfferDays,
 } from '@/utils/purchases';
 
 const ANNUAL = 'com.dynastymanager.pro.yearly' as const;
@@ -232,5 +241,52 @@ describe('getStoreAvailability — paywall gating', () => {
 
     expect(supported).toBe(true);
     expect(available).toEqual([]);
+  });
+});
+
+describe('free-trial offers come from the store, per product', () => {
+  const MONTHLY = 'com.dynastymanager.pro.monthly' as const;
+
+  it('reads each product\'s free intro offer and ignores a paid one', async () => {
+    mockPurchases.getOfferings.mockResolvedValue({ current: { availablePackages: [] }, all: {} });
+    mockPurchases.getProducts.mockResolvedValue({ products: [
+      { identifier: ANNUAL, priceString: '$24.99', introPrice: { price: 0, cycles: 1, periodUnit: 'WEEK', periodNumberOfUnits: 1 } },
+      { identifier: MONTHLY, priceString: '$4.99', introPrice: { price: 0.99, cycles: 1, periodUnit: 'MONTH', periodNumberOfUnits: 1 } },
+    ] });
+
+    const { freeTrialDays } = await getStoreAvailability([ANNUAL, MONTHLY]);
+
+    expect(freeTrialDays?.[ANNUAL]).toBe(7);
+    expect(freeTrialDays?.[MONTHLY]).toBeUndefined();
+  });
+
+  it('converts store periods to days and rejects shapes it cannot read', () => {
+    expect(freeIntroOfferDays({ price: 0, cycles: 1, periodUnit: 'DAY', periodNumberOfUnits: 3 })).toBe(3);
+    expect(freeIntroOfferDays({ price: 0, cycles: 2, periodUnit: 'WEEK', periodNumberOfUnits: 1 })).toBe(14);
+    expect(freeIntroOfferDays({ price: 0, cycles: 1, periodUnit: 'MONTH', periodNumberOfUnits: 1 })).toBe(30);
+    expect(freeIntroOfferDays({ price: 0, periodUnit: 'FORTNIGHT', periodNumberOfUnits: 1 })).toBeNull();
+    expect(freeIntroOfferDays({ price: 0, periodUnit: 'DAY', periodNumberOfUnits: 0 })).toBeNull();
+    expect(freeIntroOfferDays({ price: 1.99, periodUnit: 'DAY', periodNumberOfUnits: 7 })).toBeNull();
+    expect(freeIntroOfferDays(null)).toBeNull();
+  });
+
+  it('asks eligibility for every product in one call and maps each answer', async () => {
+    mockPurchases.checkTrialOrIntroductoryPriceEligibility.mockResolvedValue({
+      [ANNUAL]: { status: 3 },
+      [MONTHLY]: { status: 2 },
+    });
+
+    const result = await checkIntroOfferEligibility([ANNUAL, MONTHLY, 'com.dynastymanager.pro.lifetime']);
+
+    expect(mockPurchases.checkTrialOrIntroductoryPriceEligibility).toHaveBeenCalledTimes(1);
+    expect(result[ANNUAL]).toBe(false);
+    expect(result[MONTHLY]).toBe(true);
+    expect(result['com.dynastymanager.pro.lifetime']).toBeNull();
+  });
+
+  it('answers unknown for every product when the store call fails', async () => {
+    mockPurchases.checkTrialOrIntroductoryPriceEligibility.mockRejectedValue(new Error('offline'));
+    const result = await checkIntroOfferEligibility([ANNUAL, MONTHLY]);
+    expect(result).toEqual({ [ANNUAL]: null, [MONTHLY]: null });
   });
 });
