@@ -395,13 +395,17 @@ export function OnboardingChecklist() {
   const firstSessionItems = isFirstSession
     ? buildFirstSessionItems({ hasMatchThisWeek, firstMatchPlayed, gamePlanTaskDone, sponsorTaskDone, scouting })
     : [];
-  // The counter counts ticked rows — every visible row, the first-match row
-  // included, and coach steps that are done whether or not their XP has been
-  // collected (it read 0/7 after the first advance with three steps done).
+  // The counter counts ticked rows, including coach steps that are done
+  // whether or not their XP has been collected (it read 0/7 after the first
+  // advance with three steps done). The closing "Then: play your first match"
+  // row counts once it has ticked, not before: part 1 completes — and hands
+  // over — on the rows above it, so counting it unticked made the handover
+  // read "3/4 done" under the "first week is set up" toast.
+  const countedFirstSessionItems = firstSessionItems.filter(i => i.id !== 'advance' || i.done);
   const doneCount = isFirstSession
-    ? firstSessionItems.filter(i => i.done).length
+    ? countedFirstSessionItems.filter(i => i.done).length
     : coachTasks.filter(task => task.completed || isClaimed(task.id)).length;
-  const totalCount = isFirstSession ? firstSessionItems.length : coachTasks.length;
+  const totalCount = isFirstSession ? countedFirstSessionItems.length : coachTasks.length;
 
   return (
     <>
