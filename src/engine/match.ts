@@ -264,6 +264,9 @@ export function simulateHalf(
   teamTalkModifiers?: { attackMod: number; defenseMod: number; foulMod: number; fitnessDrainMult?: number },
   matchWeather?: MatchWeather,
   setPieceCoachBonus?: number,
+  /** Neutral venue (`Match.neutral`): no home advantage. Every segment of a
+   *  match — both halves and extra time — must pass the same value. */
+  neutral?: boolean,
 ): HalfState {
   // An abandoned match is over. Every later segment — second half, extra time,
   // a resumed mid-match save — must be a no-op, or the forfeited scoreline gets
@@ -349,7 +352,7 @@ export function simulateHalf(
   const weatherGKErrorMod = matchWeather ? WEATHER_GK_ERROR_MOD[matchWeather.weather] || 0 : 0;
 
   const _str = computeStrengths(
-    homeClub, awayClub, homePlayers, awayPlayers, homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason,
+    homeClub, awayClub, homePlayers, awayPlayers, homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason, neutral,
   );
   let { homeStr, awayStr } = _str;
   const { homeMods, awayMods } = _str;
@@ -600,7 +603,7 @@ export function simulateHalf(
     const s = withTeamTalk(computeStrengths(
       homeClub, awayClub, homeAvail(), awayAvail(),
       currentHomeTactics, currentAwayTactics,
-      tacticalFamiliarity, playerClubId, currentSeason,
+      tacticalFamiliarity, playerClubId, currentSeason, neutral,
     ));
     homeStr = s.homeStr;
     awayStr = s.awayStr;
@@ -2083,7 +2086,7 @@ export function finalizeMatch(
    *  simulateMatch doesn't need it (its lineups cover all participants). */
   playersById?: Record<string, Player>,
 ): { result: Match; playerRatings: PlayerMatchRating[] } {
-  const total = computeStrengths(homeClub, awayClub, homePlayers, awayPlayers);
+  const total = computeStrengths(homeClub, awayClub, homePlayers, awayPlayers, undefined, undefined, undefined, undefined, undefined, match.neutral);
   const totalStr = total.homeStr + total.awayStr;
   // Blend strength-based possession with actual match events for realism
   const strengthShare = totalStr > 0 ? total.homeStr / totalStr : 0.5;
@@ -2232,7 +2235,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus, match.neutral);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -2248,7 +2251,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus, match.neutral);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   // Attach weather to the match result

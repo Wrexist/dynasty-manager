@@ -4,9 +4,10 @@ import { addMsg } from '@/utils/helpers';
 import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, getCompetitionCalendar } from '@/config/continental';
 import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FORFEIT_SCORE } from '@/config/gameBalance';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
-import { advanceCupRound, getRoundName } from '@/data/cup';
+import { advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
 import { applyAIMatchEvents, pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound } from '@/store/slices/orchestration/tournaments';
 import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, isGroupStageComplete, isKnockoutRoundComplete, simulateGroupMatchday, simulateKnockoutLeg } from '@/utils/continental';
@@ -92,7 +93,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
         continue;
       }
       const { result: cupResult } = simulateMatch(
-        { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
+        { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(tie.round)) },
         hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hCupSquad.bench, aCupSquad.bench
       );
 
@@ -206,7 +207,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
         continue;
       }
       const { result: lcResult } = simulateMatch(
-        { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
+        { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(tie.round)) },
         hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hLcSquad.bench, aLcSquad.bench
       );
 
@@ -297,7 +298,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
       const aBenchSC = aScSquad.bench;
       if (hPlayers.length > 0 && aPlayers.length > 0) {
         const { result: scResult } = simulateMatch(
-          { id: 'super-cup', week, homeClubId: newDomesticSuperCup.homeClubId, awayClubId: newDomesticSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
+          { id: 'super-cup', week, homeClubId: newDomesticSuperCup.homeClubId, awayClubId: newDomesticSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true },
           hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season, undefined, hBenchSC, aBenchSC
         );
         const winnerId = scResult.homeGoals > scResult.awayGoals ? newDomesticSuperCup.homeClubId :
@@ -325,7 +326,7 @@ export function progressCompetitionsWeek(input: CompetitionWeekInput): Competiti
       const aBenchCSC = aCscSquad.bench;
       if (hPlayers.length > 0 && aPlayers.length > 0) {
         const { result: scResult } = simulateMatch(
-          { id: 'continental-super-cup', week, homeClubId: newContinentalSuperCup.homeClubId, awayClubId: newContinentalSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
+          { id: 'continental-super-cup', week, homeClubId: newContinentalSuperCup.homeClubId, awayClubId: newContinentalSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true },
           hClub as Club, aClub as Club, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season, undefined, hBenchCSC, aBenchCSC
         );
         const winnerId = scResult.homeGoals > scResult.awayGoals ? newContinentalSuperCup.homeClubId :

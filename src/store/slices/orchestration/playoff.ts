@@ -21,13 +21,20 @@ import { buildLeagueTable, LEAGUES, getDerbyIntensity } from '@/data/league';
 import { determineProRelZones, resumePlayoff } from '@/utils/promotionRelegation';
 import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 import { simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
 import { safeRandomUUID } from '@/utils/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
+/** The playoff FINAL (two clubs left) is played at a neutral ground; the
+ *  semi-finals are hosted by the better-placed side. */
+function isNeutralPlayoffRound(teamsInRound: number): boolean {
+  return teamsInRound <= 2;
+}
+
 /** Build the Match object for a pending tie. Not a league fixture — see header. */
-function makePlayoffMatch(state: GameState, homeClubId: string, awayClubId: string): Match {
+function makePlayoffMatch(state: GameState, homeClubId: string, awayClubId: string, teamsInRound: number): Match {
   return {
     id: `playoff-${state.season}-${safeRandomUUID()}`,
     week: state.week,
@@ -38,6 +45,7 @@ function makePlayoffMatch(state: GameState, homeClubId: string, awayClubId: stri
     awayGoals: 0,
     played: false,
     events: [],
+    ...neutralVenue(isNeutralPlayoffRound(teamsInRound)),
   } as Match;
 }
 
@@ -48,7 +56,7 @@ function makePlayoffMatch(state: GameState, homeClubId: string, awayClubId: stri
  * better-placed one (see `stepPlayoff`'s seeding). That rule is applied here and
  * in `seasonEnd`'s resolver, and must stay identical in both.
  */
-function simulateAiTie(state: GameState, homeClubId: string, awayClubId: string): string {
+function simulateAiTie(state: GameState, homeClubId: string, awayClubId: string, teamsInRound: number): string {
   const hc = state.clubs[homeClubId];
   const ac = state.clubs[awayClubId];
   if (!hc || !ac) return homeClubId;
@@ -57,7 +65,7 @@ function simulateAiTie(state: GameState, homeClubId: string, awayClubId: string)
   if (hp.length === 0) return awayClubId;
   if (ap.length === 0) return homeClubId;
   const { result } = simulateMatch(
-    makePlayoffMatch(state, homeClubId, awayClubId), hc, ac, hp, ap,
+    makePlayoffMatch(state, homeClubId, awayClubId, teamsInRound), hc, ac, hp, ap,
     undefined, undefined, undefined, state.playerClubId,
     getDerbyIntensity(homeClubId, awayClubId), undefined, state.season,
   );
@@ -91,8 +99,8 @@ function advanceBracket(
   resolved: PlayoffTieResult[],
 ): { pending: { homeClubId: string; awayClubId: string; teamsInRound: number } | null; resolved: PlayoffTieResult[] } {
   const working = [...resolved];
-  const outcome = resumePlayoff(candidates, working, state.playerClubId, (home, away) => {
-    const winner = simulateAiTie(state, home, away);
+  const outcome = resumePlayoff(candidates, working, state.playerClubId, (home, away, teamsInRound) => {
+    const winner = simulateAiTie(state, home, away, teamsInRound);
     // Record AI ties too, so a replay after a save/load cannot re-decide them
     // with a different roll.
     working.push({
@@ -140,7 +148,7 @@ export function maybeEnterPlayoff(set: Set, get: Get): boolean {
     leagueId: qualified.leagueId,
     candidates: qualified.candidates,
     resolved,
-    pendingMatch: makePlayoffMatch(state, pending.homeClubId, pending.awayClubId),
+    pendingMatch: makePlayoffMatch(state, pending.homeClubId, pending.awayClubId, pending.teamsInRound),
     teamsInRound: pending.teamsInRound,
   };
   set({ seasonPhase: 'playoff', playoffState });
@@ -184,7 +192,7 @@ export function recordPlayerPlayoffResult(set: Set, get: Get, result: Match): { 
       playoffState: {
         ...ps,
         resolved,
-        pendingMatch: makePlayoffMatch(get(), pending.homeClubId, pending.awayClubId),
+        pendingMatch: makePlayoffMatch(get(), pending.homeClubId, pending.awayClubId, pending.teamsInRound),
         teamsInRound: pending.teamsInRound,
       },
     });

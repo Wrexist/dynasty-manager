@@ -45,7 +45,7 @@ import {
   DEFENDER_POSITIONS, DEFENSE_DEFENDING_WEIGHT, DEFENSE_PHYSICAL_WEIGHT, DEFENSE_MENTAL_WEIGHT, DEFENSE_QUALITY_FALLBACK,
   GK_DEFENDING_WEIGHT, GK_MENTAL_WEIGHT, GK_PHYSICAL_WEIGHT, GK_SAVE_BASE, GK_SAVE_RANGE,
   EMERGENCY_KEEPER_SAVE_MULT,
-  TACTICAL_FAMILIARITY_MULTIPLIER, HOME_ADVANTAGE,
+  TACTICAL_FAMILIARITY_MULTIPLIER, HOME_ADVANTAGE, NEUTRAL_VENUE_ADVANTAGE,
   FORMATION_ATTACK_BONUS, FORMATION_DEFENSE_BONUS,
   STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD, STOPPAGE_TIME_GOAL_ADD, STOPPAGE_TIME_MAX,
   FOULER_DEFENDER_WEIGHT, FOULER_MIDFIELDER_WEIGHT, FOULER_ATTACKER_WEIGHT,
@@ -305,6 +305,22 @@ function getAlignedChemistryBonus(club: Club, pool: Player[], currentSeason?: nu
 }
 
 /**
+ * The home side's strength factor: HOME_ADVANTAGE at the home side's ground,
+ * NEUTRAL_VENUE_ADVANTAGE (the away side's own 1.0) at a neutral one. Every
+ * path that applies home advantage — the engine and the catch-up resolver —
+ * reads it here, so a neutral final can never be half-neutral.
+ */
+export function homeAdvantageFactor(neutral?: boolean): number {
+  return neutral ? NEUTRAL_VENUE_ADVANTAGE : HOME_ADVANTAGE;
+}
+
+/** Spread into a Match literal: `{ ...neutralVenue(isFinal) }`. Adds the key
+ *  only when true, so a home-venue fixture keeps exactly its old shape. */
+export function neutralVenue(neutral: boolean): { neutral?: true } {
+  return neutral ? { neutral: true } : {};
+}
+
+/**
  * Compute attack/defense strength for both sides factoring in:
  * player attributes, tactical modifiers, formation fit, familiarity,
  * home advantage, and rock-paper-scissors tactical matchups.
@@ -314,6 +330,8 @@ export function computeStrengths(
   homePlayers: Player[], awayPlayers: Player[],
   homeTactics?: TacticalInstructions, awayTactics?: TacticalInstructions,
   tacticalFamiliarity?: number, playerClubId?: string, currentSeason?: number,
+  /** A neutral venue (`Match.neutral`): no home advantage — see `homeAdvantageFactor`. */
+  neutral?: boolean,
 ) {
   const homeMods = getTacticsModifiers(homeTactics);
   const awayMods = getTacticsModifiers(awayTactics);
@@ -375,7 +393,7 @@ export function computeStrengths(
   // symmetrically (own attackMod up, opponent's defenseMod down), so it trades
   // goals-for against goals-against instead of being free points.
   // Clamped to a minimum of 0.01 to prevent negative/zero strength from extreme modifier combinations
-  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (HOME_ADVANTAGE + homeMods.territoryMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayFormDef + awayDefFitBonus + awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (homeAdvantageFactor(neutral) + homeMods.territoryMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayFormDef + awayDefFitBonus + awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
   const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * awayNumericalMod * (1 + awayMods.territoryMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeFormDef + homeDefFitBonus + homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
   return { homeStr, awayStr, homeMods, awayMods };
 }

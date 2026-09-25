@@ -61,7 +61,8 @@ import {
   REGEN_YOUTH_QUALITY_GAP,
   REGEN_FILL_QUALITY_CAP,
 } from '@/config/gameBalance';
-import { GOAL_EVENT_TYPES, HOME_ADVANTAGE } from '@/config/matchEngine';
+import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { homeAdvantageFactor } from '@/engine/match/helpers';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import { getOpponentQualityBonus } from '@/utils/teamRankings';
 import { selectBestLineup, getTeamStrength } from '@/utils/playerGen';
@@ -715,14 +716,15 @@ export function stripAiMatchDetail(result: Match, playerClubId: string): Match {
  * before this, on a pyramid where only the player's own division had been played.
  *
  * Poisson around a strength-derived expectation, with the same home advantage the
- * engine uses, so promotion and relegation stay plausible.
+ * engine uses (none at a neutral venue), so promotion and relegation stay
+ * plausible.
  */
 export function resolveCatchUpFixture(
   match: Match,
   homePlayers: Player[],
   awayPlayers: Player[],
 ): Match {
-  const hs = getTeamStrength(homePlayers) * HOME_ADVANTAGE;
+  const hs = getTeamStrength(homePlayers) * homeAdvantageFactor(match.neutral);
   const as = getTeamStrength(awayPlayers);
   const total = hs + as;
   const share = total > 0 ? hs / total : 0.5;

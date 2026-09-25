@@ -566,6 +566,14 @@ export interface Match {
   stats?: MatchStats;
   penaltyShootout?: { home: number; away: number };
   weather?: MatchWeather;
+  // ── simfinish: neutral venues ──
+  /** Played at a neutral ground: nobody gets HOME_ADVANTAGE. Set when the
+   *  engine's Match is built for a domestic Cup / League Cup final, either
+   *  Super Cup, a continental final, the promotion-playoff final and every
+   *  international tournament match (no host nation is modelled). Absent on
+   *  league fixtures and on anything saved before v93 — absent reads as "home
+   *  venue", which is what every such match was. */
+  neutral?: boolean;
 }
 
 // ── Match Choreography (2.5D pitch visualization) ──

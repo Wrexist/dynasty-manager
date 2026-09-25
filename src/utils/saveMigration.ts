@@ -26,6 +26,9 @@ const migrations: Record<number, MigrationFn> = {
   // Same version also adds optional `Player.ballonDOrTop10OverallDelta` (the
   // exact overall the Ballon d'Or top-10 boost applied). Absent on older saves
   // by design: `revertBallonDorTop10Boost` falls back to the formula delta.
+  // And optional `Match.neutral` (neutral-venue finals, Super Cups, the playoff
+  // final, international tournament matches). Absent on older saves by design:
+  // absent reads as a home-venue match, which is what every saved match was.
   92: (data) => ({
     ...data,
     careerId: typeof (data as { careerId?: unknown }).careerId === 'string'

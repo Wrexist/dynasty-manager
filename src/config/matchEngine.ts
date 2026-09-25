@@ -181,9 +181,27 @@ export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.012;
  *  barely an edge — where real league football runs ~44-46% home and ~27-30%
  *  away. 1.35 lands 44-45% home and ~30-31% away. Once the weather tax was
  *  fixed (see WEATHER_CONVERSION_MIN) no other change was needed for it.
- *  NB: there is no neutral-venue flag, so cup finals and tournament games give
- *  the side listed at home this edge too. */
+ *  Finals, Super Cups, the promotion-playoff final and international
+ *  tournament matches are played at a NEUTRAL venue (`Match.neutral`) and use
+ *  NEUTRAL_VENUE_ADVANTAGE instead — see `homeAdvantageFactor`. */
 export const HOME_ADVANTAGE = 1.35;
+
+// ── simfinish: neutral venues ──
+/** The home side's strength factor at a neutral venue. 1.0 is exactly the away
+ *  side's factor in `computeStrengths` (`1 + …`), so a neutral match is
+ *  symmetric: swapping the sides mirrors the expected strengths. Before this
+ *  the club drawn "home" for a Cup Final, a Super Cup or a World Cup tie took
+ *  the full 1.35 league edge for a match nobody hosts. */
+export const NEUTRAL_VENUE_ADVANTAGE = 1.0;
+/** Home bonus in the reputation model for GENUINELY virtual continental
+ *  fixtures (`simulateContinentalMatch`, strength units 0.2-1.0). Was an inline
+ *  literal; zero at a neutral venue. */
+export const CONTINENTAL_REPUTATION_HOME_BONUS = 0.1;
+/** Home bonus in the AI-vs-AI international model (`simulateInternationalMatch`,
+ *  nation-strength units 0-1). Was an inline literal. Every international
+ *  tournament match is neutral — the game models no host nation — so the
+ *  tournament callers do not apply it. */
+export const INTERNATIONAL_HOME_BONUS = 0.08;
 
 // ── Event Generation ──
 // Raised 0.35 → 0.50 so the event stream can carry a realistic FOUL count
