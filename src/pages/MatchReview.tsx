@@ -69,7 +69,7 @@ import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
-import { findTournamentMatch } from '@/hooks/useGameSelectors';
+import { resolveMatchReviewExit, type MatchReviewExit } from '@/utils/matchReviewExit';
 import { motion } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
@@ -128,23 +128,17 @@ const MatchReview = () => {
     goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
   }), [allHighlights, playerClubId]);
 
-  // Is ANOTHER unplayed match for the player's club scheduled THIS week
-  // (pre-season friendlies share weeks 1-3 with league fixtures; cup ties can
-  // share weeks too)? Drives the Continue button label — the overloaded
+  // What the primary button does — leave (past week), return for another
+  // match this week, or advance the week — and so what it says. The overloaded
   // "Continue" made players think the game was stuck when it bounced them to
-  // a second same-week match. Must run before the null-match early returns
+  // a second same-week match, and it never said that it advanced the week
+  // while Back / swipe did not. Label and handler share this one resolution
+  // (utils/matchReviewExit). Must run before the null-match early returns
   // (rules of hooks); getState() is safe here because scheduling can't
   // change while the review is open.
-  const hasAnotherMatchThisWeek = useMemo(() => {
-    if (!currentMatchResult) return false;
-    const s2 = useGameStore.getState();
-    if (currentMatchResult.week !== s2.week) return false; // historical review
-    const pid = s2.playerClubId;
-    const mine = (m: { week: number; played: boolean; homeClubId: string; awayClubId: string; id: string }) =>
-      m.week === s2.week && !m.played && (m.homeClubId === pid || m.awayClubId === pid) && m.id !== currentMatchResult.id;
-    if (s2.friendlies?.some(mine)) return true;
-    if (s2.fixtures.some(mine)) return true;
-    return !!findTournamentMatch(s2);
+  const exit = useMemo<MatchReviewExit>(() => {
+    if (!currentMatchResult) return 'dashboard';
+    return resolveMatchReviewExit(useGameStore.getState(), currentMatchResult);
   }, [currentMatchResult]);
 
   // Single-pass partition over match.events, memoized on the events array.
@@ -175,7 +169,7 @@ const MatchReview = () => {
             icon={Calendar}
             title={t('matchReview.noMatchToReview')}
             description={t('matchReview.playAFixtureAndThe')}
-            action={{ label: 'Back to Dashboard', onClick: () => setScreen('dashboard') }}
+            action={{ label: t('matchReview.backToDashboard'), onClick: () => setScreen('dashboard') }}
           />
         </motion.div>
       </div>
@@ -191,7 +185,7 @@ const MatchReview = () => {
         <GlassPanel className="p-6 text-center">
           <Calendar className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">Unable to load match data</p>
-          <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
+          <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>{t('matchReview.backToDashboard')}</Button>
         </GlassPanel>
       </div>
     );
@@ -217,27 +211,16 @@ const MatchReview = () => {
   const isHistoricalReview = match.week !== week;
 
   const handleContinue = () => {
-    if (isHistoricalReview) {
+    if (isHistoricalReview || exit === 'dashboard') {
       // Reviewing a past match — just go back, never advance the week
       setScreen('dashboard');
       return;
     }
     setIsAdvancing(true);
     advanceTimerRef.current = setTimeout(() => {
-      // Read fresh state from the store (not stale closure from render time)
-      const s = useGameStore.getState();
-      const hasUnplayedLeague = s.fixtures.some(
-        m => m.week === s.week && !m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId)
-      );
-      const hasUnplayedTournament = !!findTournamentMatch({
-        week: s.week, playerClubId: s.playerClubId, cup: s.cup,
-        leagueCup: s.leagueCup, championsCup: s.championsCup,
-        shieldCup: s.shieldCup, conferenceCup: s.conferenceCup,
-        domesticSuperCup: s.domesticSuperCup,
-        continentalSuperCup: s.continentalSuperCup,
-      });
-
-      if (hasUnplayedLeague || hasUnplayedTournament) {
+      // Re-resolve against fresh state (not the render-time snapshot) with
+      // the same rule the label used.
+      if (resolveMatchReviewExit(useGameStore.getState(), match) !== 'advance') {
         // Another match this week — return to dashboard without advancing
         setScreen('dashboard');
       } else {
@@ -327,7 +310,14 @@ const MatchReview = () => {
       {/* Continue — sticky at top so player doesn't have to scroll */}
       <div className="sticky top-0 z-10 -mx-4 px-4 pt-1 pb-2 bg-gradient-to-b from-background via-background to-transparent">
         <Button size="lg" className="w-full h-12 text-base font-bold gap-2" disabled={isAdvancing} onClick={handleContinue}>
-          {isAdvancing ? 'Advancing...' : isHistoricalReview ? 'Back to Dashboard' : hasAnotherMatchThisWeek ? 'Next Match This Week' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
+          {isAdvancing
+            ? t('matchReview.advancing')
+            : isHistoricalReview || exit === 'dashboard'
+              ? t('matchReview.backToDashboard')
+              : exit === 'next-match'
+                ? t('matchReview.nextMatchThisWeek')
+                : t('matchReview.advanceToNextWeek')}
+          {!isAdvancing && <ChevronRight className="w-5 h-5" />}
         </Button>
       </div>
 

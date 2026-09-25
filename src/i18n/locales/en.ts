@@ -663,6 +663,10 @@ export const en = {
   'matchPrep.simConfirmAction': 'Sim Match',
   'contractNegotiation.shorterContract': 'Shorter contract',
   'contractNegotiation.longerContract': 'Longer contract',
+  'matchReview.advanceToNextWeek': 'Advance to Next Week',
+  'matchReview.nextMatchThisWeek': 'Next Match This Week',
+  'matchReview.backToDashboard': 'Back to Dashboard',
+  'matchReview.advancing': 'Advancing...',
 } as const;
 
 export default en;
