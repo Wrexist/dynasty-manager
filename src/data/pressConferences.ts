@@ -867,6 +867,33 @@ function pickFreshQuestion(context: PressConference['context'], pool: QuestionDe
   return chosen;
 }
 
+/**
+ * The numbers a Pro answer actually applies: those of the free answer nearest
+ * the authored ones (L1 distance; ties go to the earlier free tone).
+ *
+ * Pro buys a fourth VOICE, not a stronger lever. Press effects move squad
+ * morale — which the match engine reads — plus board confidence and fan mood,
+ * and monetization must never move a sim parameter. The authored Pro effects
+ * out-scored every free answer on at least one stat in most questions (74 of
+ * 88 gave more board confidence than any free option), so they are no longer
+ * applied; they only choose which free answer's effects the Pro line mirrors,
+ * keeping the author's intent (a fan-heavy line mirrors the fan-heavy answer).
+ */
+export function proOptionEffects(q: QuestionDef): PressOption['effects'] {
+  const free = [q.options.confident.effects, q.options.humble.effects, q.options.deflect.effects];
+  const authored = q.proOption?.effects;
+  if (!authored) return { ...free[0] };
+  let best = free[0];
+  let bestDist = Infinity;
+  for (const e of free) {
+    const d = Math.abs(e.morale - authored.morale)
+      + Math.abs(e.boardConfidence - authored.boardConfidence)
+      + Math.abs(e.fanMood - authored.fanMood);
+    if (d < bestDist) { best = e; bestDist = d; }
+  }
+  return { ...best };
+}
+
 /** Pick a press conference appropriate to the context */
 export function generatePressConference(context: PressConference['context'], proUser = false): PressConference {
   const pool = QUESTIONS[context];
@@ -882,7 +909,7 @@ export function generatePressConference(context: PressConference['context'], pro
       id: safeRandomUUID(),
       context,
       question: chosen.question,
-      options: [...baseOptions, { tone: chosen.proOption.tone, text: chosen.proOption.text, effects: chosen.proOption.effects }],
+      options: [...baseOptions, { tone: chosen.proOption.tone, text: chosen.proOption.text, effects: proOptionEffects(chosen) }],
       hasProOption: true,
     };
   }
