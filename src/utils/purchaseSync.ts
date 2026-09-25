@@ -138,13 +138,17 @@ export async function purchaseAndSync(
     await syncStoreState();
 
     // The store completed a subscription purchase but the customer record we
-    // just read does not show it yet (propagation lag, or a RevenueCat product
-    // not attached to the `pro` entitlement). The transaction is the proof of
-    // payment, so unlock Pro now with a bounded local record instead of making
-    // a paying player wait for the next launch. The next sync that carries a
-    // real record replaces it; with none, `isSubscriptionExpired` ends it after
-    // one trial or billing period.
-    if (product?.type === 'subscription' && !purchaseLanded(productId)) {
+    // just read shows no active subscription (propagation lag, or a RevenueCat
+    // product not attached to the `pro` entitlement). The transaction is the
+    // proof of payment, so unlock Pro now with a bounded local record instead
+    // of making a paying player wait for the next launch. The next sync that
+    // carries a real record replaces it; with none, `isSubscriptionExpired`
+    // ends it after one trial or billing period.
+    //
+    // Only when NO subscription is active: Monthly → Yearly is a crossgrade
+    // that Apple may apply at the next renewal, so the store rightly still
+    // reports Monthly — that record is the truth and must not be overwritten.
+    if (product?.type === 'subscription' && !isSubscriptionActive(useGameStore.getState().monetization)) {
       const now = Date.now();
       const trialDays = options.trialDays;
       const onTrial = typeof trialDays === 'number' && trialDays > 0;

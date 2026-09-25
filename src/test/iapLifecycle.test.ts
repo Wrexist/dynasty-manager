@@ -213,6 +213,22 @@ describe('one purchase path for every surface (purchaseAndSync)', () => {
     expect(monetization().subscription).toMatchObject({ tier: 'annual', productId: YEARLY, isTrial: false });
   });
 
+  it('Monthly → Yearly applied at renewal keeps the store\'s Monthly record instead of inventing a Yearly one', async () => {
+    const monthlyRecord = customer({ active: { pro: proEntitlement(MONTHLY, { expiresInDays: 12 }) } });
+    storeRecord(monthlyRecord);
+    await syncStoreState();
+    storeSells(YEARLY);
+    // The crossgrade is accepted, but the entitlement stays on Monthly until renewal.
+    mockPurchases.purchasePackage.mockResolvedValue({ customerInfo: monthlyRecord });
+
+    const outcome = await purchaseAndSync(YEARLY);
+
+    expect(outcome.status).toBe('completed');
+    expect(monetization().subscription).toMatchObject({ productId: MONTHLY, tier: 'monthly' });
+    expect(monetization().subscription!.expiresAt).not.toBeNull();
+    expect(isPro(monetization())).toBe(true);
+  });
+
   it('a throw AFTER the charge is a completed purchase once the re-sync finds it (the Shop used to report it as failed)', async () => {
     storeSells(LIFETIME);
     mockPurchases.purchasePackage.mockRejectedValue({ message: 'receipt validation', code: '8' });
