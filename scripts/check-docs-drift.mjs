@@ -29,9 +29,9 @@
  *   node scripts/check-docs-drift.mjs         # report drift, exit 1 if any
  *   node scripts/check-docs-drift.mjs --fix   # rewrite CLAUDE.md in place
  */
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, realpathSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -238,8 +238,19 @@ export function findDrift(doc, checks) {
         drift.push({ label: check.label, documented: m[1], actual: check.actual, matched: m[0] });
       }
     }
-    fixed = fixed.replace(re, (full, documented) =>
-      (agrees(check, documented) ? full : full.replace(documented, render(check, documented))));
+    // Splice at the CAPTURE GROUP's own offsets (the `d` flag) rather than
+    // searching the matched text for the documented number: in
+    // "**15 slices** + 5 helpers" a search for "5" lands in the slice count.
+    const withIndices = new RegExp(re.source, `${flags}d`);
+    let out = '';
+    let last = 0;
+    for (const m of fixed.matchAll(withIndices)) {
+      if (agrees(check, m[1])) continue;
+      const [start, end] = m.indices[1];
+      out += fixed.slice(last, start) + render(check, m[1]);
+      last = end;
+    }
+    fixed = out + fixed.slice(last);
   }
   return { drift, fixed };
 }
@@ -277,4 +288,16 @@ function main() {
   process.exit(1);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();
+// Run only when executed directly (tests import buildChecks/findDrift). Compare
+// REAL paths: import.meta.url is already symlink-resolved and argv[1] is not,
+// so a plain comparison skipped main() — and exited 0, a silently green gate —
+// whenever the script was invoked through a symlinked path.
+function invokedDirectly() {
+  try {
+    return !!process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedDirectly()) main();

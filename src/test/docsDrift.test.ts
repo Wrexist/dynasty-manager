@@ -9,10 +9,14 @@
  * count drifted the same way.
  */
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildChecks, findDrift } from '../../scripts/check-docs-drift.mjs';
+
+const SCRIPTS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../scripts');
 
 const LOC = { label: 'weekAdvance.ts LOC', actual: 3482, re: /weekAdvance\.ts(?:(?!\.tsx?\b)[^\n(]){0,60}\((\d[\d,]*) LOC/g };
 
@@ -31,6 +35,30 @@ describe('docs drift checker', () => {
     const doc = 'weekAdvance.ts (3,094 LOC) … later … `weekAdvance.ts` (3094 LOC)';
     const { fixed } = findDrift(doc, [LOC]);
     expect(fixed).toBe('weekAdvance.ts (3,482 LOC) … later … `weekAdvance.ts` (3482 LOC)');
+  });
+
+  it('--fix rewrites the captured number, not an earlier copy of its digits', () => {
+    // The store-helper claim's match also contains the slice count; the old
+    // search-and-replace turned "**15 slices** + 5 helpers" into
+    // "**16 slices** + 5 helpers".
+    const helpers = { label: 'store helper count', actual: 6, re: /\*\*\d+ slices\*\* \+ (\d+) helpers/g };
+    const { fixed } = findDrift('**15 slices** + 5 helpers', [helpers]);
+    expect(fixed).toBe('**15 slices** + 6 helpers');
+  });
+
+  it('runs its check when invoked through a symlinked path', () => {
+    // A path comparison that ignored symlinks skipped main() and exited 0
+    // without checking anything.
+    const dir = mkdtempSync(join(tmpdir(), 'docs-drift-link-'));
+    try {
+      const link = join(dir, 'scripts');
+      symlinkSync(SCRIPTS_DIR, link, 'dir');
+      const r = spawnSync(process.execPath, [join(link, 'check-docs-drift.mjs')], { encoding: 'utf8' });
+      // In sync or drifted, a real run always reports on CLAUDE.md.
+      expect(`${r.stdout}${r.stderr}`).toMatch(/CLAUDE\.md/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('attributes each number to its own file on a shared line', () => {
