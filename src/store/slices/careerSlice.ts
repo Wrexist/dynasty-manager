@@ -220,7 +220,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           divisionId: vacancy.divisionId,
           salary: vacancy.salary,
           contractLength: vacancy.contractLength,
-          bonuses: generateDefaultBonuses(qualityTier as 1 | 2 | 3 | 4),
+          bonuses: generateDefaultBonuses(qualityTier as 1 | 2 | 3 | 4, league),
           boardExpectations: vacancy.boardExpectations,
           expiresWeek: vacancy.expiresWeek,
           expiresSeason: vacancy.expiresSeason,
