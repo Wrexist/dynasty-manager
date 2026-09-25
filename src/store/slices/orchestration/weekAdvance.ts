@@ -669,6 +669,43 @@ function isInBracket(
  *  results carry no round, so "reached a knockout" is membership in this set. */
 const KNOCKOUT_ROUNDS = new Set<string>(['R32', 'R16', 'QF', 'SF', 'F']);
 
+/**
+ * The world's weekly player tick: injury/suspension/fitness upkeep for every
+ * player, plus the amortised AI development slice. Shared by the employed week
+ * and the unemployed career week — the latter used to skip both, so while the
+ * manager was out of work nobody in the world healed or recovered fitness
+ * (while match injuries kept accruing) and no AI player developed.
+ *
+ * `skipClubId` is the club whose squad the caller develops itself (the
+ * player's, with training); pass null to tick every club. Mutates `players`,
+ * which the caller owns as a fresh copy.
+ */
+function tickWorldPlayers(
+  players: Record<string, Player>,
+  clubs: Record<string, Club>,
+  week: number,
+  totalWeeks: number,
+  skipClubId: string | null,
+): void {
+  const skipPlayerIds = skipClubId ? (clubs[skipClubId]?.playerIds ?? []) : [];
+  applyWorldWeeklyUpkeep(players, clubs, week, skipPlayerIds);
+
+  const slices = aiDevelopmentSlices(totalWeeks || TOTAL_WEEKS);
+  const activeSlice = week % slices;
+  // Start-of-week rosters. A transfer completed later this same tick lands in
+  // the next slice pass; a one-week lag in squad membership is immaterial to
+  // development and keeps this out of the mid-tick club rebuild.
+  for (const club of Object.values(clubs)) {
+    if (club.id === skipClubId) continue;
+    if (stableClubSlice(club.id, slices) !== activeSlice) continue;
+    for (const pid of club.playerIds) {
+      const target = players[pid];
+      if (!target) continue; // ids can outlive the player they point at
+      players[pid] = applyPlayerDevelopment(target, 'balanced');
+    }
+  }
+}
+
 export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const state = get();
 
@@ -822,6 +859,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // Simulate league matches for all loaded divisions during unemployment
     const simPlayers = { ...state.players };
     const simClubs = { ...state.clubs };
+    // Nobody manages the ex-club now, so it ticks with everyone else.
+    tickWorldPlayers(simPlayers, simClubs, state.week, state.totalWeeks, null);
     const simDivFixtures: Record<string, Match[]> = { ...state.divisionFixtures };
     const eloRankings = { ...(state.clubPowerRankings || {}) };
 
@@ -1127,27 +1166,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // the PLAYER's fixtures for want of eleven fit opponents) and never recovered
   // fitness (average 87 -> 74.8 by season 4 while the player's club held ~89,
   // a compounding unearned edge through `getTeamStrength`).
-  {
-    const recoveries = applyWorldWeeklyUpkeep(newPlayers, clubs, week, playerClub.playerIds);
-    void recoveries; // digest reports the player's own squad only
-  }
-
-  {
-    const slices = aiDevelopmentSlices(state.totalWeeks || TOTAL_WEEKS);
-    const activeSlice = state.week % slices;
-    // Start-of-week rosters. A transfer completed later this same tick lands in
-    // the next slice pass; a one-week lag in squad membership is immaterial to
-    // development and keeps this out of the mid-tick club rebuild.
-    for (const club of Object.values(clubs)) {
-      if (club.id === playerClubId) continue; // handled above, with training
-      if (stableClubSlice(club.id, slices) !== activeSlice) continue;
-      for (const pid2 of club.playerIds) {
-        const target = newPlayers[pid2];
-        if (!target) continue; // ids can outlive the player they point at
-        newPlayers[pid2] = applyPlayerDevelopment(target, 'balanced');
-      }
-    }
-  }
+  // The player's own squad is handled above, with training.
+  tickWorldPlayers(newPlayers, clubs, week, state.totalWeeks, playerClubId);
 
   // Weekly development ticks and training injuries are reported via the
   // WeeklyDigest (playerDevelopment / injuriesThisWeek) — no inbox duplicates.
