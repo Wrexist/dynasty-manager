@@ -264,6 +264,9 @@ export const PRO_FEATURES: ProFeature[] = [
   'instant_sim',
   'optimize_lineup',
   'pro_badge',
+  // Cosmetic only: the Pass's Pro row pays titles, celebration lines and
+  // banners (config/managerPass.ts) — nothing the simulation reads.
+  'manager_pass_pro',
 ];
 
 export const PRO_FEATURE_LABELS: Record<ProFeature, string> = {
@@ -275,6 +278,7 @@ export const PRO_FEATURE_LABELS: Record<ProFeature, string> = {
   instant_sim: 'Instant Match Sim',
   optimize_lineup: 'Optimize Lineup',
   pro_badge: 'Pro Badge',
+  manager_pass_pro: 'Manager Pass Pro Track',
 };
 
 /** Maximum number of tactical presets a Pro user can save */

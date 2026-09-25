@@ -1984,7 +1984,9 @@ export type ProFeature =
   | 'historical_records'
   | 'instant_sim'
   | 'optimize_lineup'
-  | 'pro_badge';
+  | 'pro_badge'
+  // uifinish: the Manager Pass Pro reward row (cosmetic only).
+  | 'manager_pass_pro';
 
 export type CosmeticCategory = 'avatar' | 'title_badge' | 'celebration_text' | 'stadium_theme' | 'pitch_skin' | 'confetti_style' | 'cabinet_style' | 'prestige_badge' | 'hom_frame'
   // legacy: the manager banner behind the Manager Pass / Legacy heroes. Earned only.
@@ -3830,6 +3832,28 @@ export type ManagerPassEvent =
   | { source: 'match'; key: string; outcome: 'win' | 'draw' | 'loss' }
   | { source: 'objective'; key: string }
   | { source: 'season'; key: string; trophies: number };
+// ── uifinish: Manager Pass durability ──
+/** Pro-track rewards reached but not collected when a Pass season closed
+ *  while `isPro()` read false (e.g. a renewed subscription whose saved expiry
+ *  was stale at that moment). Collectable once Pro is confirmed, during the
+ *  season right after the one they were earned in only. */
+export interface ManagerPassProCarry {
+  /** The closed season these rewards were reached in. */
+  seasonId: string;
+  seasonOrdinal: number;
+  /** COSMETIC_ITEMS ids on the Pro track, not owned when that season closed. */
+  rewardIds: string[];
+}
+// Merged into ManagerPassRecord above (interface declaration merging), so the
+// shared section only grows at its end.
+export interface ManagerPassRecord {
+  /** Write counter, +1 on every save. Decides which of the localStorage and
+   *  IndexedDB copies is newer at start-up. Absent on records written before
+   *  the mirror existed (reads as 0). */
+  rev?: number;
+  /** Last season's uncollected Pro rewards (see ManagerPassProCarry). */
+  proCarry?: ManagerPassProCarry | null;
+}
 // ── onboarding: MatchDay playback phase ──
 /** MatchDay's LOCAL playback phase — what the screen is showing, not the
  *  store's `matchPhase`. The two differ on purpose: the store finalises a half

@@ -24,10 +24,16 @@ import {
 import { COSMETIC_ITEMS } from '@/config/monetization';
 import { localDateKey, daysBetween } from '@/utils/dailyStreak';
 import { legacyUnlockedRewardIds, readLegacyTier } from '@/utils/managerLegacy';
-import { readManagerPassData, writeManagerPassData } from '@/store/helpers/persistence';
+import {
+  readManagerPassData,
+  writeManagerPassData,
+  readManagerPassMirror,
+  writeManagerPassMirror,
+} from '@/store/helpers/persistence';
 import type {
   CosmeticItem,
   ManagerPassEvent,
+  ManagerPassProCarry,
   ManagerPassRecord,
   ManagerPassSeason,
   ManagerPassTierDef,
@@ -94,6 +100,17 @@ const tiers = (v: unknown): number[] =>
 const num = (v: unknown, fallback = 0): number =>
   typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : fallback;
 
+/** Every Pro-track reward id — a stored carry may only name these. */
+const PRO_TRACK_IDS = new Set(MANAGER_PASS_TRACK.map(t => t.pro));
+
+function parseProCarry(v: unknown): ManagerPassProCarry | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const c = v as Record<string, unknown>;
+  if (typeof c.seasonId !== 'string' || !Number.isInteger(c.seasonOrdinal)) return null;
+  const rewardIds = strings(c.rewardIds).filter(id => PRO_TRACK_IDS.has(id));
+  return rewardIds.length > 0 ? { seasonId: c.seasonId, seasonOrdinal: c.seasonOrdinal as number, rewardIds } : null;
+}
+
 /**
  * Parse a stored record, or null when there is nothing usable.
  *
@@ -127,6 +144,8 @@ export function parsePassRecord(raw: string | null): ManagerPassRecord | null {
     awardedKeys: strings(o.awardedKeys).slice(-MANAGER_PASS_LEDGER_MAX),
     ownedRewardIds: strings(o.ownedRewardIds),
     completedSeasonIds: strings(o.completedSeasonIds),
+    rev: Math.floor(num(o.rev)),
+    proCarry: parseProCarry(o.proCarry),
   };
 }
 
@@ -261,7 +280,53 @@ export function claimablePassRewards(record: ManagerPassRecord, isPro: boolean):
 }
 
 export function applyClaimAll(record: ManagerPassRecord, isPro: boolean): ManagerPassRecord {
-  return claimablePassRewards(record, isPro).reduce((r, c) => applyPassClaim(r, c.tier, c.track, isPro), record);
+  const claimed = claimablePassRewards(record, isPro).reduce((r, c) => applyPassClaim(r, c.tier, c.track, isPro), record);
+  return applyCarriedProClaim(claimed, isPro);
+}
+
+// ── Last season's Pro rewards (carry-over) ──
+
+/**
+ * Pro rewards carried over from the previous season that are collectable now:
+ * Pro is confirmed, the carry comes from the season IMMEDIATELY before the
+ * record's own (bounded — an older carry is dead), and the reward is not
+ * already owned. Pass `isPro = true` to ask what is waiting behind Pro.
+ *
+ * The same track runs every season, so a carried reward can also be the one
+ * this season's Pro row pays at a tier already reached. That reward is counted
+ * and collected on the track, not a second time here — otherwise the badge,
+ * "Collect all" and the Pro upsell ("N rewards already earned") would count
+ * one cosmetic twice.
+ */
+export function carriedProRewards(record: ManagerPassRecord, isPro: boolean): string[] {
+  const carry = record.proCarry;
+  if (!isPro || !carry || carry.seasonOrdinal !== record.seasonOrdinal - 1) return [];
+  const onTrack = new Set(
+    claimablePassRewards(record, true).filter(c => c.track === 'pro').map(c => passRewardId(c.tier, 'pro')),
+  );
+  return carry.rewardIds.filter(id => !record.ownedRewardIds.includes(id) && !onTrack.has(id));
+}
+
+/** Progress after collecting every carried Pro reward; the same record when
+ *  there is nothing collectable. The carry is spent once collected. */
+export function applyCarriedProClaim(record: ManagerPassRecord, isPro: boolean): ManagerPassRecord {
+  const ids = carriedProRewards(record, isPro);
+  if (ids.length === 0) return record;
+  return { ...record, ownedRewardIds: [...record.ownedRewardIds, ...ids], proCarry: null };
+}
+
+/** Pro-track rewards reached this season but neither collected nor owned. */
+function uncollectedProRewards(record: ManagerPassRecord): string[] {
+  const reached = passTierForXp(record.xp);
+  return MANAGER_PASS_TRACK
+    .filter(def => def.tier <= reached && !record.claimedPro.includes(def.tier) && !record.ownedRewardIds.includes(def.pro))
+    .map(def => def.pro);
+}
+
+/** Rewards collectable right now on either track, plus last season's Pro
+ *  carry — the number a "to collect" badge shows. */
+export function passClaimableCount(record: ManagerPassRecord, isPro: boolean): number {
+  return claimablePassRewards(record, isPro).length + carriedProRewards(record, isPro).length;
 }
 
 /**
@@ -274,16 +339,39 @@ export function applyClaimAll(record: ManagerPassRecord, isPro: boolean): Manage
  * reward earned and lost to a forgotten tap is the one outcome worse than not
  * offering it. XP, claims and today's counters reset; the ledger, the owned
  * collection and the completed-season list carry over.
+ *
+ * `isPro` is only what the device believes at this instant. A subscriber whose
+ * renewal has not synced yet reads as not-Pro, so the Pro rewards they reached
+ * are not dropped: they become `proCarry`, collectable once Pro is confirmed
+ * during the next season (`carriedProRewards`). Only the season immediately
+ * before is carried; an older carry is replaced.
  */
 export function rollPassSeason(record: ManagerPassRecord, season: ManagerPassSeason, isPro: boolean): ManagerPassRecord {
   if (record.seasonId === season.id || record.seasonOrdinal > season.ordinal) return record;
   const settled = applyClaimAll(record, isPro);
+  const missedPro = !isPro && season.ordinal === record.seasonOrdinal + 1 ? uncollectedProRewards(settled) : [];
   return {
     ...freshPassRecord(season),
+    rev: record.rev,
     awardedKeys: settled.awardedKeys,
     ownedRewardIds: settled.ownedRewardIds,
     completedSeasonIds: settled.completedSeasonIds,
+    proCarry: missedPro.length > 0
+      ? { seasonId: record.seasonId, seasonOrdinal: record.seasonOrdinal, rewardIds: missedPro }
+      : null,
   };
+}
+
+/**
+ * What a home surface (Dashboard row, More drawer) shows for the Pass: the
+ * tier reached and how many rewards are collectable, judged on the record
+ * rolled into the season containing `now` IN MEMORY — the render cache may
+ * still hold last season's record until a Pass action writes, and last
+ * season's reached rewards are not collectable in this one. Pure: no write.
+ */
+export function passHomeSummary(record: ManagerPassRecord, isPro: boolean, now: Date = new Date()): { tier: number; claimable: number } {
+  const rolled = rollPassSeason(record, getManagerPassSeason(now), isPro);
+  return { tier: passTierForXp(rolled.xp), claimable: passClaimableCount(rolled, isPro) };
 }
 
 // ── Storage (the only side-effecting section) ──
@@ -313,11 +401,110 @@ export function loadPassRecord(season: ManagerPassSeason): ManagerPassRecord {
   return storedPassRecord() ?? freshPassRecord(season);
 }
 
-export function savePassRecord(record: ManagerPassRecord): void {
-  const json = JSON.stringify(record);
+/**
+ * Persist the record: localStorage (read synchronously all session) and a
+ * write-through IndexedDB copy (what survives WKWebView evicting
+ * localStorage). Stamps `rev` so start-up can tell which copy is newer, and
+ * returns the stamped record — the one to publish.
+ *
+ * The IndexedDB copy is written only once `hydratePassStorage` has READ it.
+ * Before that, localStorage may be an evicted or stale copy, and writing a
+ * record derived from it would overwrite the newer mirror — the only place a
+ * reward collected while localStorage refused writes still exists. Until then
+ * each save retries the reconcile instead (IndexedDB can fail to answer at
+ * launch); the reconcile writes the mirror itself once it has read it. The
+ * same rule the save slots follow (`slotHydrated` in persistence.ts).
+ */
+export function savePassRecord(record: ManagerPassRecord): ManagerPassRecord {
+  const stamped: ManagerPassRecord = { ...record, rev: (record.rev ?? 0) + 1 };
+  const json = JSON.stringify(stamped);
   unpersisted = !writeManagerPassData(json);
   memoRaw = json;
-  memoRecord = record;
+  memoRecord = stamped;
+  if (mirrorRead) void writeManagerPassMirror(json);
+  else void hydratePassStorage();
+  return stamped;
+}
+
+const union = (a: string[], b: string[]): string[] => {
+  const extra = b.filter(x => !a.includes(x));
+  return extra.length > 0 ? [...a, ...extra] : a;
+};
+
+/**
+ * The newer of the localStorage and IndexedDB copies (higher `rev`; a tie
+ * keeps `local`). Collected cosmetics and completed seasons only ever grow, so
+ * those are the union of both copies: an older copy can lose progress, never
+ * a reward. Returns `local` itself when it is already the answer.
+ */
+export function mergePassRecords(local: ManagerPassRecord | null, mirror: ManagerPassRecord | null): ManagerPassRecord | null {
+  if (!local) return mirror;
+  if (!mirror) return local;
+  const newer = (mirror.rev ?? 0) > (local.rev ?? 0) ? mirror : local;
+  const older = newer === local ? mirror : local;
+  const owned = union(newer.ownedRewardIds, older.ownedRewardIds);
+  const completed = union(newer.completedSeasonIds, older.completedSeasonIds);
+  if (owned === newer.ownedRewardIds && completed === newer.completedSeasonIds) return newer;
+  return { ...newer, ownedRewardIds: owned, completedSeasonIds: completed };
+}
+
+let hydration: Promise<boolean> | null = null;
+/** True once the IndexedDB copy has been read (and reconciled) this session —
+ *  the gate on `savePassRecord`'s write-through. */
+let mirrorRead = false;
+/** Told when a reconcile restored the IndexedDB copy (the slice republishes). */
+let restoreListener: (() => void) | null = null;
+
+/** Register the callback a restore calls — the slice's render-cache refresh.
+ *  A reconcile can finish late (a retry from `savePassRecord`), so a promise
+ *  handed to whoever started the first attempt is not enough. */
+export function onPassStorageRestored(listener: (() => void) | null): void {
+  restoreListener = listener;
+}
+
+/**
+ * Reconcile the two stored copies, once per session (the slice starts it at
+ * store creation). When the IndexedDB copy is newer — localStorage was
+ * evicted, or refused writes the mirror took — it is restored into
+ * localStorage and this resolves `true` (and tells the restore listener) so
+ * the render cache is republished. When the localStorage copy is newer (every
+ * install that predates the mirror) it is copied into IndexedDB. An IndexedDB
+ * that does not answer changes nothing and leaves the reconcile to be retried
+ * by the next save.
+ */
+export function hydratePassStorage(): Promise<boolean> {
+  if (!hydration) {
+    const attempt: Promise<boolean> = (async () => {
+      const mirror = await readManagerPassMirror();
+      if (!mirror.ok) {
+        if (hydration === attempt) hydration = null;
+        return false;
+      }
+      mirrorRead = true;
+      const local = storedPassRecord();
+      const remote = parsePassRecord(mirror.value);
+      const merged = mergePassRecords(local, remote);
+      if (!merged) return false;
+      if (merged === local) {
+        if (!remote || (remote.rev ?? 0) !== (local.rev ?? 0)) void writeManagerPassMirror(JSON.stringify(local));
+        return false;
+      }
+      savePassRecord(merged);
+      restoreListener?.();
+      return true;
+    })().catch(() => false);
+    hydration = attempt;
+  }
+  return hydration;
+}
+
+/** Test-only: forget the in-memory state so a test can start a "new session". */
+export function __resetPassStorageForTests(): void {
+  memoRaw = undefined;
+  memoRecord = null;
+  unpersisted = false;
+  hydration = null;
+  mirrorRead = false;
 }
 
 /**

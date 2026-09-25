@@ -747,6 +747,26 @@ export function writeManagerPassData(json: string): boolean {
   catch { return false; }
 }
 
+// ── uifinish: Manager Pass IndexedDB mirror ──
+// The Pass record is the ONLY copy of collected Pass cosmetics, and
+// localStorage is a best-effort store on iOS: WKWebView can evict it and its
+// ~5MB quota is shared with the save mirror. The record is written through to
+// IndexedDB under the same key; `utils/managerPass.ts` decides which copy is
+// newer at start-up (`hydratePassStorage`). Still device-level, never in a
+// save slot, and wiped with everything else by `deleteAllDynastyData`.
+
+/** The IndexedDB copy of the Pass record. `ok: false` when IDB did not
+ *  answer (a timed-out open), which is NOT the same as "no copy". */
+export function readManagerPassMirror(): Promise<{ ok: true; value: string | null } | { ok: false }> {
+  return idbRead(STORAGE_KEYS.MANAGER_PASS).catch(() => ({ ok: false as const }));
+}
+
+/** Write-through to the IndexedDB copy. Resolves false when IDB refused or is
+ *  unavailable; never rejects. */
+export function writeManagerPassMirror(json: string): Promise<boolean> {
+  return idbPut(STORAGE_KEYS.MANAGER_PASS, json).catch(() => false);
+}
+
 // ── Completed Challenges (device-global) ──
 
 /** Device-global list of completed challenge-scenario ids. */

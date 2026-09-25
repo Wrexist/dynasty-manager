@@ -19,6 +19,9 @@ import { getSuffix } from '@/utils/helpers';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { CountBadge } from '@/components/game/CountBadge';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { isPro } from '@/utils/monetization';
+import { passHomeSummary } from '@/utils/managerPass';
+import { observeClock } from '@/store/helpers/persistence';
 
 // Liquid-glass tile shared by pinned quick-actions and drawer rows. Mirrors
 // the GlassPanel treatment (gradient + thick-rim inset shadow + specular top
@@ -166,8 +169,16 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
     fixtures: s.fixtures, playerClubId: s.playerClubId, leagueTable: s.leagueTable,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const managerPass = useGameStore(s => s.managerPass);
+  const monetization = useGameStore(s => s.monetization);
   const isUnemployed = useCareerUnemployed();
   const unread = messages.filter(m => !m.read).length;
+  // Manager Pass rewards waiting to be collected — only worked out while the
+  // drawer is open, since that is the only time the row is drawn.
+  const passClaimable = useMemo(
+    () => (open ? passHomeSummary(managerPass, isPro(monetization), new Date(observeClock())).claimable : 0),
+    [open, managerPass, monetization],
+  );
   const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
   const hasPendingLeagueCupMatch = leagueCup?.ties?.some(t => !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
 
@@ -376,6 +387,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                       hasPendingCupMatch={hasPendingCupMatch}
                       hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
                       nationalTeamOffer={nationalTeamOffer}
+                      passClaimable={passClaimable}
                     />
                   ))}
                 </div>
@@ -415,6 +427,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                         hasPendingCupMatch={hasPendingCupMatch}
                         hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
                         nationalTeamOffer={nationalTeamOffer}
+                        passClaimable={passClaimable}
                       />
                     ))}
                   </div>
@@ -486,6 +499,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                             hasPendingCupMatch={hasPendingCupMatch}
                             hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
                             nationalTeamOffer={nationalTeamOffer}
+                            passClaimable={passClaimable}
                           />
                         ))}
                       </div>
@@ -502,7 +516,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
 }
 
 // Extracted as a proper component for clean key handling and potential memoization
-function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch, hasPendingLeagueCupMatch, nationalTeamOffer }: {
+function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch, hasPendingLeagueCupMatch, nationalTeamOffer, passClaimable = 0 }: {
   item: DrawerItem;
   currentScreen: GameScreen;
   onNav: (screen: GameScreen) => void;
@@ -510,6 +524,8 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
   hasPendingCupMatch: boolean | undefined;
   hasPendingLeagueCupMatch: boolean | undefined;
   nationalTeamOffer: { status: string } | null | undefined;
+  /** Manager Pass rewards collectable now (badge on the Pass row). */
+  passClaimable?: number;
 }) {
   const { screen, label, icon: Icon, description, gold } = item;
   const isActive = currentScreen === screen;
@@ -545,6 +561,7 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
           {screen === 'inbox' && <CountBadge count={unread} pulse cap={99} />}
+          {screen === 'manager-pass' && <CountBadge count={passClaimable} tone="primary" cap={99} />}
           {screen === 'competitions' && (hasPendingCupMatch || hasPendingLeagueCupMatch) && (
             <span
               className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"

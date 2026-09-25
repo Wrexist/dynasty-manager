@@ -69,6 +69,9 @@ const PRO_FEATURE_BULLETS: { title: string; description: string }[] = [
   { title: 'Expanded Press Conferences', description: 'More tones, deeper questions, dynamic fan reactions.' },
   { title: 'Historical Record Book', description: 'Every signing, season, and cup run preserved.' },
   { title: 'Pro Manager Badge', description: 'Premium gold ring on your avatar across the app.' },
+  // Cosmetic only — `manager_pass_pro` in PRO_FEATURES. Never word this as a
+  // gameplay advantage: the Pro row pays titles, celebrations and banners.
+  { title: 'Manager Pass Pro Track', description: '30 Pro-only rewards: titles, celebrations and banners.' },
 ];
 
 interface PlanRow {

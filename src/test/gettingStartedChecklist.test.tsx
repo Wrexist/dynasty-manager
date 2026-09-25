@@ -14,6 +14,7 @@ import { getFlag, removeFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { selectChecklistStage } from '@/utils/dashboardSelectors';
 import { COACH_CHECKLIST_MAX_SEASON } from '@/config/gameBalance';
+import { en } from '@/i18n/locales/en';
 
 const CLUB_ID = 'celtic';
 
@@ -54,6 +55,14 @@ describe('selectChecklistStage', () => {
   it('one dismissal hides both stages', () => {
     expect(selectChecklistStage({ ...stageBase, hideOnboarding: true })).toBeNull();
     expect(selectChecklistStage({ ...stageBase, week: 5, hideOnboarding: true })).toBeNull();
+  });
+
+  it('the Settings toggle describes the same span the checklist runs for', () => {
+    // Settings → New-career walkthrough used to say "week 1 of a new career"
+    // after the checklist started running through season 2.
+    const words: Record<number, string> = { 1: 'first season', 2: 'first two seasons', 3: 'first three seasons' };
+    expect(selectChecklistStage({ ...stageBase, week: 5, season: COACH_CHECKLIST_MAX_SEASON })).toBe('coach');
+    expect(en['settingsPage.showTheGettingStartedChecklist']).toContain(words[COACH_CHECKLIST_MAX_SEASON]);
   });
 });
 

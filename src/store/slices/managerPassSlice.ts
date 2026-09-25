@@ -1,10 +1,12 @@
 /**
  * Manager Pass slice — the store face of the device-global Pass record.
  *
- * `managerPass` is a RENDER CACHE of the record in localStorage, not the source
- * of truth: every action loads the stored record, rolls it into the current
+ * `managerPass` is a RENDER CACHE of the stored record, not the source of
+ * truth: every action loads the stored record, rolls it into the current
  * season, applies its change and writes it back, so a stale in-memory copy can
- * never overwrite newer progress. It is deliberately absent from the save
+ * never overwrite newer progress. Storage is localStorage with a write-through
+ * IndexedDB copy, reconciled at start-up (`hydratePassStorage`) before the
+ * first write-through. It is deliberately absent from the save
  * payload — the pass belongs to the device, not to a slot (see
  * `config/managerPass.ts`) — so there is no save-schema change.
  *
@@ -24,8 +26,12 @@ import {
   applyPassEvents,
   applyPassClaim,
   claimablePassRewards,
+  carriedProRewards,
+  applyCarriedProClaim,
   passRewardId,
   isEarnedCosmeticOwned,
+  hydratePassStorage,
+  onPassStorageRestored,
 } from '@/utils/managerPass';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -48,10 +54,16 @@ export function createManagerPassSlice(_set: Set, _get: Get) {
 
   /** Persist and publish. Always writes: a roll alone is a change worth keeping. */
   const commit = (record: ManagerPassRecord): ManagerPassRecord => {
-    savePassRecord(record);
-    _set({ managerPass: record });
-    return record;
+    const saved = savePassRecord(record);
+    _set({ managerPass: saved });
+    return saved;
   };
+
+  // Reconcile the localStorage and IndexedDB copies once per session (retried
+  // by the next save if IndexedDB does not answer). Only a restore (IndexedDB
+  // was newer) changes what the render cache should show.
+  onPassStorageRestored(() => _set({ managerPass: loadPassRecord(getManagerPassSeason(passNow())) }));
+  void hydratePassStorage();
 
   return {
     // Storage reads never throw (persistence swallows availability errors).
@@ -81,14 +93,17 @@ export function createManagerPassSlice(_set: Set, _get: Get) {
       return next === record ? null : itemById(passRewardId(tier, track));
     },
 
-    /** Collect everything collectable. Returns what was collected. */
+    /** Collect everything collectable, including last season's carried Pro
+     *  rewards once Pro is confirmed. Returns what was collected. */
     claimAllManagerPassRewards: (): CosmeticItem[] => {
       const { record } = current();
       const pro = isPro(_get().monetization);
       const claims = claimablePassRewards(record, pro);
-      const next = claims.reduce((r, c) => applyPassClaim(r, c.tier, c.track, pro), record);
-      commit(next);
-      return claims.map(c => itemById(passRewardId(c.tier, c.track))).filter(Boolean) as CosmeticItem[];
+      const claimed = claims.reduce((r, c) => applyPassClaim(r, c.tier, c.track, pro), record);
+      const carried = carriedProRewards(claimed, pro);
+      commit(applyCarriedProClaim(claimed, pro));
+      return [...claims.map(c => passRewardId(c.tier, c.track)), ...carried]
+        .map(itemById).filter(Boolean) as CosmeticItem[];
     },
 
     /** Apply observed game events (see `attachManagerPassObserver`). Returns

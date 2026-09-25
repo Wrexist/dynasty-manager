@@ -25,6 +25,8 @@ import {
   passRewardId,
   canCheckInPass,
   claimablePassRewards,
+  carriedProRewards,
+  passClaimableCount,
   ownedEarnedCosmetics,
   type PassClaimStatus,
 } from '@/utils/managerPass';
@@ -126,8 +128,11 @@ function ManagerPassPage() {
   const daysLeft = getPassSeasonDaysRemaining(season, now);
   const progress = passTierProgress(record.xp);
   const canCheckIn = canCheckInPass(record, now);
-  const claimable = claimablePassRewards(record, pro);
-  const proWaiting = pro ? 0 : claimablePassRewards(record, true).filter(c => c.track === 'pro').length;
+  const claimableCount = passClaimableCount(record, pro);
+  // Last season's Pro rewards (reached while the device read not-Pro):
+  // collectable once Pro is confirmed, until this season ends.
+  const carried = carriedProRewards(record, true).map(id => itemById.get(id)).filter(Boolean) as CosmeticItem[];
+  const proWaiting = pro ? 0 : claimablePassRewards(record, true).filter(c => c.track === 'pro').length + carried.length;
   const bannerId = getActiveCosmetic(monetization, 'profile_banner');
 
   // Owned earned cosmetics, grouped by category for the locker. Recomputed
@@ -257,14 +262,14 @@ function ManagerPassPage() {
           <CalendarCheck className="w-4 h-4" />
           {canCheckIn ? t('managerPass.checkIn', { xp: MANAGER_PASS_XP.dailyCheckIn }) : t('managerPass.checkedIn')}
         </button>
-        {claimable.length > 0 && (
+        {claimableCount > 0 && (
           <button
             type="button"
             onClick={onCollectAll}
             className="w-full min-h-[44px] px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold text-primary bg-primary/10 border border-primary/40 transition-colors hover:bg-primary/15"
           >
             <Gift className="w-4 h-4" />
-            {t('managerPass.collectAll', { n: claimable.length })}
+            {t('managerPass.collectAll', { n: claimableCount })}
           </button>
         )}
         {!pro && (
@@ -273,6 +278,26 @@ function ManagerPassPage() {
           />
         )}
       </div>
+
+      {/* Last season's Pro rewards (carry-over) */}
+      {carried.length > 0 && (
+        <GlassPanel className="p-4" aria-label={t('managerPass.carry.title', { n: carried.length })}>
+          <p className="text-micro uppercase tracking-[0.16em] text-primary/80 font-semibold mb-1 inline-flex items-center gap-1">
+            <Crown className="w-3 h-3" />{t('managerPass.carry.title', { n: carried.length })}
+          </p>
+          <p className="text-xs text-muted-foreground mb-2">
+            {pro ? t('managerPass.carry.readyBody') : t('managerPass.carry.lockedBody')}
+          </p>
+          <ul className="flex flex-wrap gap-1.5">
+            {carried.map(item => (
+              <li key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-white/10 bg-white/[0.03] text-xs text-foreground">
+                <EarnedCategoryIcon category={item.category} className={cn('w-3.5 h-3.5', pro ? 'text-primary' : 'text-muted-foreground')} />
+                {item.name}
+              </li>
+            ))}
+          </ul>
+        </GlassPanel>
+      )}
 
       {/* Track */}
       <GlassPanel className="p-4">

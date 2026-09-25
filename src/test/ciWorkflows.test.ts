@@ -65,6 +65,32 @@ describe('android-build.yml', () => {
   it('caches npm', () => {
     expect(block(src, 'with')).toMatch(/cache:\s*npm/);
   });
+
+  it('seals and stamps What\'s New like the iOS workflow, before the web build', () => {
+    // Without the seal an AAB shipped the previous release's notes in-app.
+    const sealAt = src.indexOf('npm run whats-new:seal');
+    const checkAt = src.search(/node scripts\/check-whats-new\.mjs --inject-build \$\{\{ inputs\.version_code \}\}/);
+    const buildAt = src.indexOf('run: npm run build');
+    expect(sealAt, 'no whats-new:seal').toBeGreaterThan(-1);
+    expect(checkAt, 'no check-whats-new --inject-build <version_code>').toBeGreaterThan(-1);
+    expect(src.indexOf('check-marketing-version.mjs')).toBeLessThan(sealAt);
+    expect(sealAt).toBeLessThan(checkAt);
+    expect(checkAt).toBeLessThan(buildAt);
+    // Runner-only, as on iOS: nothing is committed or pushed back.
+    expect(src).not.toMatch(/git (commit|push)/);
+  });
+});
+
+describe('the release builds pass the optional redeem-code secret to the web build only', () => {
+  for (const file of ['.github/workflows/android-build.yml', '.github/workflows/ios-testflight.yml']) {
+    it(file, () => {
+      const src = workflow(file);
+      const buildAt = src.indexOf('run: npm run build');
+      const buildStep = src.slice(src.lastIndexOf('- name:', buildAt), buildAt);
+      expect(buildStep).toMatch(/VITE_REDEEM_SECRET:\s*\$\{\{\s*secrets\.VITE_REDEEM_SECRET\s*\}\}/);
+      expect(src.match(/VITE_REDEEM_SECRET:/g)).toHaveLength(1);
+    });
+  }
 });
 
 describe('release.yml', () => {

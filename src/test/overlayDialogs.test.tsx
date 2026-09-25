@@ -40,6 +40,7 @@ import { OptimizeResultModal } from '@/components/game/OptimizeResultModal';
 import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 import { NotifPermissionModal } from '@/components/game/NotifPermissionModal';
 import { FreeAgentSigningModal } from '@/components/transfer/FreeAgentSigningModal';
+import { FREE_AGENT_MIN_WAGE_RATIO, FREE_AGENT_MAX_WAGE_RATIO } from '@/config/transfers';
 
 const CLUB_ID = 'manchester-city';
 
@@ -222,5 +223,18 @@ describe('FreeAgentSigningModal', () => {
     expect(two).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: '1 year' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByLabelText('Weekly Wage')).toHaveAttribute('type', 'range');
+  });
+
+  it('the wage slider is a 44pt touch target with a painted rail (the ListForSaleModal pattern)', () => {
+    const p = ownPlayer();
+    const min = Math.round(p.wage * FREE_AGENT_MIN_WAGE_RATIO);
+    const max = Math.round(p.wage * FREE_AGENT_MAX_WAGE_RATIO);
+    render(ui({ offerWage: Math.round((min + max) / 2) }));
+    const slider = screen.getByLabelText('Weekly Wage');
+    expect(slider).toHaveClass('range-touch');
+    const grabArea = slider.parentElement!;
+    expect(grabArea).toHaveClass('h-11');
+    const fill = grabArea.querySelector('[aria-hidden] > div') as HTMLElement;
+    expect(parseFloat(fill.style.width)).toBeCloseTo(50, 0);
   });
 });
