@@ -69,7 +69,7 @@ import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 import { usePresentationOverflow } from '@/hooks/usePresentationQueue';
 import { digestNote, gemNote, farewellNotes, celebrationNote, achievementNote, midSeasonNote } from '@/utils/overlayInbox';
 import {
-  isSeasonOver, getRaceMode, getSeasonStage, selectPrimaryAction, selectAttentionItems, selectNextFixture,
+  isSeasonOver, getRaceMode, getSeasonStage, getFirstLeagueWeek, selectPrimaryAction, selectAttentionItems, selectNextFixture,
   effectiveObjectiveXp, countClaimableObjectives, type SeasonStage, type AttentionId, type AttentionItem,
 } from '@/utils/dashboardSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
@@ -142,6 +142,8 @@ const Dashboard = () => {
     youthAcademy: s.youthAcademy, pendingAchievementIds: s.pendingAchievementIds,
   })));
   const tw = getTransferWindows(totalWeeks);
+  // Pre-season ends at the club's first league fixture, not the window's close (R2).
+  const firstLeagueWeek = useMemo(() => getFirstLeagueWeek(fixtures, playerClubId), [fixtures, playerClubId]);
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
   const loadMatchForReview = useGameStore(s => s.loadMatchForReview);
@@ -556,7 +558,7 @@ const Dashboard = () => {
           <div className="min-w-0">
             <h1 className="text-lg font-bold font-display text-foreground truncate">{club.name}</h1>
             <p className="text-[11px] text-muted-foreground">
-              {t('dashboard.header.seasonWeek', { season, week })} · {t(SEASON_STAGE_KEY[getSeasonStage(week, tw)])}
+              {t('dashboard.header.seasonWeek', { season, week })} · {t(SEASON_STAGE_KEY[getSeasonStage(week, tw, firstLeagueWeek)])}
             </p>
           </div>
           {pos > 0 && (
