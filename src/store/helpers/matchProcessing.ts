@@ -27,6 +27,8 @@ import {
   extractFinalMatchFitness,
   getYellowAccumulationBanWeek,
   nextMatchForm,
+  suspensionEndWeek,
+  buildFixtureWeeksByClub,
 } from '@/store/slices/orchestration/helpers';
 import { DEMAND_MORALE_WIN_BONUS, DEMAND_MORALE_LOSS_PENALTY, MOTIVATE_FATIGUE_MULTIPLIER, CALM_FATIGUE_MULTIPLIER, DEMAND_FATIGUE_MULTIPLIER } from '@/config/teamTalk';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
@@ -75,6 +77,11 @@ export function processMatchResult(
     };
   }
 
+  // Both clubs' upcoming fixtures, so a card ban counts MATCHES missed rather
+  // than calendar weeks (see `suspensionEndWeek`).
+  const banWeek = getWeek() || 1;
+  const fixtureWeeksByClub = buildFixtureWeeksByClub(state, banWeek, new Set([match.homeClubId, match.awayClubId]));
+
   // Process events: goals, assists, injuries, cards
   result.events.forEach(ev => {
     const isGoalEv = (GOAL_EVENT_TYPES as readonly string[]).includes(ev.type);
@@ -94,7 +101,8 @@ export function processMatchResult(
       const nextYellows = prevYellows + 1;
       // Yellow-card accumulation ban (5/10/15 by default) — yellows used to be
       // counted and then ignored entirely.
-      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, getWeek() || 1);
+      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, banWeek,
+        fixtureWeeksByClub[newPlayers[ev.playerId].clubId]);
       newPlayers[ev.playerId] = {
         ...newPlayers[ev.playerId],
         yellowCards: nextYellows,
@@ -105,7 +113,14 @@ export function processMatchResult(
       };
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: (getWeek() || 1) + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
+      const banMatches = RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE);
+      const banUntil = suspensionEndWeek(banWeek, banMatches, fixtureWeeksByClub[newPlayers[ev.playerId].clubId]);
+      newPlayers[ev.playerId] = {
+        ...newPlayers[ev.playerId],
+        redCards: newPlayers[ev.playerId].redCards + 1,
+        // Never shorten a longer ban already in force.
+        suspendedUntilWeek: Math.max(newPlayers[ev.playerId].suspendedUntilWeek ?? 0, banUntil),
+      };
     }
   });
 
