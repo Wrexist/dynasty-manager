@@ -319,7 +319,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 4.1.11 + jsdom + Testing Library** — 317 test files in `src/test/`
+- **Vitest 4.1.11 + jsdom + Testing Library** — 323 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -374,7 +374,7 @@ src/
 │                          useSwipeGesture, useKeyboardInset, useFocusTrap,
 │                          useReducedMotionPref (the single source of truth for
 │                          "should this animate?"), …
-├── pages/               → 70 pages: Dashboard (828 LOC), MatchDay, GameShell,
+├── pages/               → 70 pages: Dashboard (841 LOC), MatchDay, GameShell,
 │                          SquadPage, TacticsPage, TransferPage, TrainingPage,
 │                          StaffPage, ScoutingPage, YouthAcademy, FacilitiesPage,
 │                          FinancePage, MerchandisePage, BoardPage, CupPage,
@@ -396,7 +396,7 @@ src/
 │   │                        worldCupMatchActions.ts, communityPackRuntime.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
 │                          development.ts, rosterOps.ts
-├── types/game.ts        → ALL types (3,864 LOC): Player, Club, Match, LeagueInfo,
+├── types/game.ts        → ALL types (3,877 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 60 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
 ├── utils/               → 106 files + `sunday/` (18): playerGen, saveMigration (v93),
@@ -405,7 +405,7 @@ src/
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 317 test files incl. longevity/stress suites, adversarial
+├── test/                → 323 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode,
@@ -416,7 +416,7 @@ src/
 ## Critical Files (read these first)
 1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,179 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
 2. **`src/store/storeTypes.ts`** — complete `GameState` interface (744 LOC).
-3. **`src/types/game.ts`** — all types (3,864 LOC). Single source of truth.
+3. **`src/types/game.ts`** — all types (3,877 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
 5. **`src/engine/match.ts`** — match simulation (2269 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
@@ -809,7 +809,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (317 test files)
+npm run test         # Vitest (323 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
@@ -935,7 +935,7 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   release on this count, and do not advertise Swedish (or any) localisation
   in store copy or release notes until a future release explicitly commits to
   finishing the migration.
-- `orchestration/weekAdvance.ts` (3,179 LOC) and `pages/Dashboard.tsx` (828 LOC) are the new oversized files — use `/refactor` for guided extraction.
+- `orchestration/weekAdvance.ts` (3,179 LOC) and `pages/Dashboard.tsx` (841 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~380K vs ~170K LOC) — keep it lazily imported; `size:check` is the guard.
 - framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.
