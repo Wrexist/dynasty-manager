@@ -61,12 +61,17 @@ describe('Match Balance', () => {
     }
 
     const avgGoals = totalGoals / SAMPLE_SIZE;
-    // Real top-flight football is 2.6-2.9 goals/match; this cell measures 2.68
-    // for equal 70-rated teams. The old 1.0-3.5 band was so wide that the
-    // engine's real output of 1.54 passed green — see matchRealism.test.ts for
-    // the full profile (0-0 rate, draw rate, margin distribution).
+    // This cell measures 3.07 (2.83 before the S6 real-save calibration). It is
+    // two freshly generated sides at kickoff form (45-85, mean 65) with no AI
+    // manager, i.e. both `balanced` — the most open matchup the engine has. A
+    // running league settles at form ~50 with mostly cautious AI managers and
+    // scores ~2.7 (real football 2.6-2.9); that target is asserted on real
+    // saves in matchCalibration / matchCalibrationSmoke, which is why the
+    // ceiling here sits above the real-football band. The old 1.0-3.5 band was
+    // so wide that the engine's real output of 1.54 passed green — see
+    // matchRealism.test.ts for the full profile.
     expect(avgGoals).toBeGreaterThanOrEqual(2.2);
-    expect(avgGoals).toBeLessThanOrEqual(3.3);
+    expect(avgGoals).toBeLessThanOrEqual(3.6);
   });
 
   it('elite vs weak team produces expected scoreline distribution', () => {
@@ -96,7 +101,8 @@ describe('Match Balance', () => {
     // luck of the fixed RNG stream, so ANY engine change that perturbed
     // random-call ordering re-rolled it. Assert dominance (wins comfortably
     // exceeding losses) plus a sane win floor instead.
-    // Measured: 64 elite wins to 14 weak wins over 100 matches. The old
+    // Measured: 92 elite wins to 2 weak wins over 100 matches (64 to 14 before
+    // the S6 calibration — more goals make a 30-point gap tell). The old
     // `>= 35 wins` floor was met even when penalties were being awarded
     // BACKWARDS (fouls followed the event team, so the stronger side conceded
     // most of the spot-kicks and 64% of the weak side's goals came from them).
@@ -118,7 +124,8 @@ describe('Match Balance', () => {
     }
 
     const drawRate = draws / SAMPLE_SIZE;
-    // Real football draw rate is ~25%; this cell measures 23.5%. The old
+    // Real football draw rate is ~25%; this cell measures 29% (unchanged by
+    // the S6 calibration on this seed). The old
     // 10-45% band passed the pre-fix engine's 40% draw rate (a symptom of the
     // goal rate being far too low), which is the regression this now catches.
     expect(drawRate).toBeGreaterThanOrEqual(0.18);
@@ -139,9 +146,12 @@ describe('Match Balance', () => {
     }
 
     const csRate = cleanSheets / SAMPLE_SIZE;
-    // At least one side keeps a clean sheet in ~48-50% of real matches; this
-    // cell measures 54%. The old 5-75% band could not fail.
-    expect(csRate).toBeGreaterThanOrEqual(0.38);
+    // At least one side keeps a clean sheet in ~48-50% of real matches. This
+    // cell measures 39.5% (47% before the S6 calibration): it scores ~3.1, above
+    // a real league by construction (see the goals test above), and a higher
+    // scoring rate means fewer clean sheets — so the floor sits below the
+    // real-football figure. The old 5-75% band could not fail.
+    expect(csRate).toBeGreaterThanOrEqual(0.33);
     expect(csRate).toBeLessThanOrEqual(0.68);
   });
 
@@ -160,9 +170,11 @@ describe('Match Balance', () => {
       else if (result.awayGoals > result.homeGoals) awayWins++;
     }
 
-    // Measured 196 home wins to 174 away over 500. HOME_ADVANTAGE only feeds
-    // event share (a ~53.5/46.5 split), so the win-rate edge is modest — kept
-    // as a loose one-sided check rather than a tight band.
-    expect(homeWins).toBeGreaterThanOrEqual(awayWins * 0.95);
+    // Measured 203 home wins to 161 away over 500. Before the S6 calibration
+    // (HOME_ADVANTAGE 1.15) it was 179 to 175 — and the old `>= away * 0.95`
+    // check passed a home side that won LESS than the away side. Real league
+    // football is ~45% home to ~28% away; tightened so a barely-there edge
+    // fails.
+    expect(homeWins).toBeGreaterThanOrEqual(awayWins * 1.15);
   });
 });

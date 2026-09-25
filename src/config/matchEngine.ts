@@ -175,7 +175,15 @@ export const EMERGENCY_KEEPER_SAVE_MULT = 0.55;
 export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.012;
 
 // ── Home Advantage ──
-export const HOME_ADVANTAGE = 1.15;
+/** Multiplier on the home side's event share (and on the catch-up resolver's
+ *  strength share). MEASURED on real saves (matchCalibration harness, three
+ *  seasons, eight divisions): 1.15 produced ~37% home wins against ~31% away —
+ *  barely an edge — where real league football runs ~44-46% home and ~27-30%
+ *  away. 1.35 lands 44-45% home and ~30-31% away. Once the weather tax was
+ *  fixed (see WEATHER_CONVERSION_MIN) no other change was needed for it.
+ *  NB: there is no neutral-venue flag, so cup finals and tournament games give
+ *  the side listed at home this edge too. */
+export const HOME_ADVANTAGE = 1.35;
 
 // ── Event Generation ──
 // Raised 0.35 → 0.50 so the event stream can carry a realistic FOUL count
@@ -604,6 +612,13 @@ export const WEATHER_PACE_MOD: Record<string, number> = { clear: 0, rain: -0.04,
 export const WEATHER_FOUL_MOD: Record<string, number> = { clear: 0, rain: 0.04, snow: 0.06, wind: 0.02 };
 export const PITCH_SHOT_MOD: Record<string, number> = { excellent: 0.02, good: 0, poor: -0.04, waterlogged: -0.08 };
 export const WEATHER_GK_ERROR_MOD: Record<string, number> = { clear: 0, rain: 0.004, snow: 0.006, wind: 0.002 };
+// ── simcal: weather as a relative conversion tax ──
+// WEATHER_PASSING_MOD + WEATHER_PACE_MOD are now read as a FRACTION of the
+// per-shot conversion (rain -12%, snow -22%, wind -8%), not as absolute
+// probability. PITCH_SHOT_MOD is still absolute — see the goal-chance note in
+// match.ts. Floor on the combined weather multiplier so a future harsher entry
+// can never zero out a match's scoring.
+export const WEATHER_CONVERSION_MIN = 0.5;
 
 // ── New Event Type Chances ──
 export const FREE_KICK_GOAL_CHANCE = 0.08;

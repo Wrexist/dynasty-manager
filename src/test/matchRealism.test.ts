@@ -153,21 +153,32 @@ describe('Match Realism', () => {
   it('scoring profile matches real football', () => {
     const s = runCell({ n: 500, seed: 0x11A7C4 });
 
-    // Real top-flight football: 2.6-2.9 goals/match. Measured across three
-    // independent squad draws: 2.65 / 2.74 / 2.90.
-    expect(s.goals / s.n).toBeGreaterThanOrEqual(2.2);
-    expect(s.goals / s.n).toBeLessThanOrEqual(3.3);
+    // Real league football: 2.6-2.9 goals/match. This cell measures 3.28
+    // (3.15-3.57 across three squad draws at n=600); 2.82 before the S6
+    // real-save calibration. The cell is two freshly generated sides at
+    // kickoff form (45-85, mean 65), both `balanced` — the most open matchup
+    // the engine has. A running league settles at form ~50 with mostly
+    // cautious AI managers and scores ~2.7: that real-football target is
+    // asserted on real saves in matchCalibration / matchCalibrationSmoke, so
+    // this band is where a balanced/fresh cell should sit, not the league's.
+    // What the calibration changed: weather is a relative tax (rain used to
+    // take ~57% of every chance and snow nearly all of it) and home advantage
+    // is 1.35.
+    expect(s.goals / s.n).toBeGreaterThanOrEqual(2.6);
+    expect(s.goals / s.n).toBeLessThanOrEqual(3.8);
 
-    // Real ~7-8% of matches finish 0-0. Measured 8.0-12.2% (the engine is
-    // slightly over-dispersed vs Poisson because momentum autocorrelates).
-    // The band's job is to catch the old engine, which produced 25.5%.
+    // Real ~7-8% of matches finish 0-0. Measured 3.8% here (8.4% before the
+    // calibration — the weather tax made whole matches near-scoreless); real
+    // saves measure 7-9%. The band's job is to catch the old engine, which
+    // produced 25.5%.
     expect(s.nils / s.n).toBeLessThanOrEqual(0.17);
 
-    // Real ~25% draws. Measured 27-29%. Old engine: 40%.
+    // Real ~25% draws. Measured 26.2% (22.8% before). Old engine: 40%.
     expect(s.draws / s.n).toBeGreaterThanOrEqual(0.19);
     expect(s.draws / s.n).toBeLessThanOrEqual(0.35);
 
-    // Real ~4-5% of matches are won by 4+. Measured 3.4-5.1%. Old engine: 1.5%
+    // Real ~4-5% of matches are won by 4+. Measured 6.0% (a higher-scoring
+    // cell, see above; 7.6% before the calibration on this seed). Old engine: 1.5%
     // — the goal distribution was far too compressed to produce thrashings.
     expect(s.bigMargins / s.n).toBeGreaterThanOrEqual(0.015);
     expect(s.bigMargins / s.n).toBeLessThanOrEqual(0.10);
@@ -257,6 +268,13 @@ describe('Match Realism', () => {
 
   it('defensive line and pressing are neither dominant nor traps', () => {
     const N = 260;
+    // Pressing runs at a larger sample for the same reason the mentality case
+    // above does. After the S6 calibration its TRUE spread (n=1500/cell) is
+    // 0.17 — 1.53 / 1.62 / 1.70, monotonic: more goals make the territory a
+    // high press buys worth a little more, and its costs (fitness, cards) are
+    // paid over a season, not inside one match. At n=260 sampling noise alone
+    // put this cell at 0.346 against the 0.35 ceiling.
+    const PRESS_N = 900;
     const lines = (['deep', 'normal', 'high'] as const).map((defensiveLine, i) =>
       pointsPerGame(runCell({ n: N, seed: 0x66F109 + i * 11, homeTactics: tactics({ defensiveLine }) }), 'home'));
     // Measured (n=1500/cell): deep 1.46 / normal 1.51 / high 1.46. Before the
@@ -265,8 +283,9 @@ describe('Match Realism', () => {
     expect(Math.max(...lines) - Math.min(...lines)).toBeLessThanOrEqual(0.35);
 
     const press = [25, 50, 75].map((pressingIntensity, i) =>
-      pointsPerGame(runCell({ n: N, seed: 0x77A20B + i * 13, homeTactics: tactics({ pressingIntensity }) }), 'home'));
-    // Measured: 1.41 / 1.42 / 1.50. Before, pressing was cost-only (1.40 → 1.32).
+      pointsPerGame(runCell({ n: PRESS_N, seed: 0x77A20B + i * 13, homeTactics: tactics({ pressingIntensity }) }), 'home'));
+    // Measured 1.53 / 1.62 / 1.70 at n=1500 (1.41 / 1.42 / 1.50 before the S6
+    // calibration). Before that, pressing was cost-only (1.40 → 1.32).
     expect(Math.max(...press) - Math.min(...press)).toBeLessThanOrEqual(0.35);
   });
 
@@ -286,7 +305,7 @@ describe('Match Realism', () => {
 
     const vsWeak = weak.homeGoals / weak.n;
     const vsElite = elite.homeGoals / elite.n;
-    // Measured 1.84 vs 1.29 — a 30% swing. The save roll used to resolve AFTER
+    // Measured 2.39 vs 1.47 (1.93 vs 1.29 before the S6 calibration). The save roll used to resolve AFTER
     // the goal roll, so `oppGKSave` only relabelled an already-decided non-goal
     // as saved vs missed and the same 67-point attribute swing bought under 20%.
     expect(vsElite).toBeLessThan(vsWeak);

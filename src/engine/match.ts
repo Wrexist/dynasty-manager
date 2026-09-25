@@ -47,7 +47,7 @@ import {
   AI_SUB_CHECK_MINUTES, AI_SUB_FITNESS_THRESHOLD, AI_TACTICAL_SUB_CHANCE,
   TACTICAL_INSIGHT_MIN_BONUS, FITNESS_SNAPSHOT_INTERVAL,
   WEATHER_WEIGHTS, PITCH_WEIGHTS, WEATHER_PASSING_MOD, WEATHER_PACE_MOD, WEATHER_FOUL_MOD,
-  PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
+  PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD, WEATHER_CONVERSION_MIN,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
   HEADER_GOAL_CHANCE, SOLO_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, GK_ERROR_QUALITY_REDUCTION,
   VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
@@ -334,6 +334,16 @@ export function simulateHalf(
   // Weather & pitch modifiers
   const weatherMod = matchWeather ? WEATHER_PASSING_MOD[matchWeather.weather] || 0 : 0;
   const weatherPaceMod = matchWeather ? WEATHER_PACE_MOD[matchWeather.weather] || 0 : 0;
+  // The weather's passing/pace penalty is a FRACTION of conversion (rain costs
+  // 12% of every chance), applied as a multiplier. It used to be ADDED to the
+  // raw per-shot chance, whose whole value is only ~0.2 — so rain's -0.12 took
+  // ~57% of the scoring and snow's -0.22 took essentially all of it, clamping
+  // the chance to GOAL_CHANCE_MIN. Across the WEATHER_WEIGHTS mix that was a
+  // ~30% tax on every professional match and, worse, a huge spread of
+  // expected goals between matches: the excess 0-0s and draws of audit S6
+  // (measured on real squads: 15.6% 0-0 and 32% draws with the tax, 6.1% and
+  // 24% without; real football ~7% and ~25%). See WEATHER_CONVERSION_MIN.
+  const weatherConversionMult = Math.max(WEATHER_CONVERSION_MIN, 1 + weatherMod + weatherPaceMod);
   const weatherFoulMod = matchWeather ? WEATHER_FOUL_MOD[matchWeather.weather] || 0 : 0;
   const pitchShotMod = matchWeather ? PITCH_SHOT_MOD[matchWeather.pitch] || 0 : 0;
   const weatherGKErrorMod = matchWeather ? WEATHER_GK_ERROR_MOD[matchWeather.weather] || 0 : 0;
@@ -1340,16 +1350,21 @@ export function simulateHalf(
       const moraleMod = (scorer.morale - MORALE_BASELINE) / 100 * MORALE_PERFORMANCE_WEIGHT;
 
       // Goal chance: attacker quality vs opponent defense, modified by tactics
-      // and weather. The MENTALITY term is symmetric — your own aggression
+      // and conditions. The MENTALITY term is symmetric — your own aggression
       // lifts your conversion (+attackMod) and the opponent's caution suppresses
       // it (-oppMods.defenseMod) — so mentality trades goals-for against
       // goals-against. It used to be one-sided AND double-counted in team
       // strength; see the note in computeStrengths.
-      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT)
+      //
+      // The PITCH stays an additive term on purpose: Sunday League is built on
+      // it (a poor pitch is a flat tax the manager can spend his way out of —
+      // see `pitchConditionFor` in utils/sunday/match.ts). The WEATHER is a
+      // relative one — see weatherConversionMult above.
+      const goalChance = ((shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT)
         + (atkMods.attackMod - oppMods.defenseMod) * GOAL_CHANCE_ATTACK_MOD_SCALE
         + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE
         + tempoQualityMod
-        - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod + weatherMod;
+        - lowFitPenalty + moraleMod + pitchShotMod) * weatherConversionMult;
 
       // Uniform scale so the added shot volume does not inflate the goal total.
       // Multiplicative and applied to the whole expression on purpose — see

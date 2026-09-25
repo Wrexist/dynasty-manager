@@ -46,6 +46,10 @@ const SLOW_SUITES = [
   // `sundayPersonas` (9s), `sundayStress` (12s) and `sundayStoryQuality` (13s),
   // all of which stayed fast.
   "src/test/sundayCampaign.test.ts",
+  // ── simcal: real-save match calibration ──
+  // Three full seasons of the real loop with the community pack (~60s). The
+  // per-commit gate keeps `matchCalibrationSmoke.test.ts` (~10s) instead.
+  "src/test/matchCalibration.test.ts",
 ];
 
 export default defineConfig({

@@ -44,9 +44,13 @@ import {
   CATCH_UP_EXPECTED_GOALS,
   YELLOW_ACCUMULATION_THRESHOLDS,
   YELLOW_ACCUMULATION_BAN_WEEKS,
-  RATING_MORALE_BASELINE,
   FORM_PER_RATING_POINT,
   FORM_RATING_ADJ_CAP,
+  FORM_NEUTRAL,
+  FORM_MEAN_REVERSION,
+  FORM_RATING_BASELINE,
+  FORM_MIN,
+  FORM_MAX,
   REPLACEMENT_QUALITY_REP_MULTIPLIER,
   REPLACEMENT_QUALITY_BASE,
   REPLACEMENT_QUALITY_VARIANCE,
@@ -151,20 +155,142 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
  * red) can cross a threshold from below, so we test for *crossing* rather than
  * equality.
  *
- * Returns the week the player is suspended until, or `null` for no ban.
- * `suspendedUntilWeek > week` is the "is suspended" test used everywhere, so
- * `week + 1 + banWeeks` makes him miss exactly `banWeeks` following weeks.
+ * Returns the week the player is suspended until, or `null` for no ban. The
+ * ban is YELLOW_ACCUMULATION_BAN_WEEKS MATCHES — see `suspensionEndWeek`.
  */
 export function getYellowAccumulationBanWeek(
   previousYellows: number,
   newYellows: number,
   week: number,
+  /** The club's upcoming fixture weeks (`buildFixtureWeeksByClub`). Omitted,
+   *  the ban assumes one match a week. */
+  upcomingFixtureWeeks?: readonly number[],
 ): number | null {
   const crossed = YELLOW_ACCUMULATION_THRESHOLDS.some(
     t => previousYellows < t && newYellows >= t,
   );
   if (!crossed) return null;
-  return week + 1 + YELLOW_ACCUMULATION_BAN_WEEKS;
+  return suspensionEndWeek(week, YELLOW_ACCUMULATION_BAN_WEEKS, upcomingFixtureWeeks);
+}
+
+/**
+ * The `suspendedUntilWeek` that makes a player miss `matches` of his club's
+ * MATCHES — not weeks.
+ *
+ * Bans used to be `week + 1 + n`, i.e. n calendar weeks. `suspendedUntilWeek >
+ * week` is the "is suspended" test everywhere, so a week in which the club had
+ * no fixture silently served a match of the ban. In today's calendars that is
+ * an odd-sized league's bye round (every club in the 19-team Süper Lig and the
+ * 13-team A-League Men sits one out per half) and the weeks after a league's
+ * last round, before the cup and continental finals. League fixtures do NOT
+ * pause for the INTERNATIONAL_BREAK_WEEKS, so those never served a ban; the
+ * rule is calendar-agnostic, so a future break or postponement is covered
+ * without another change. Now the ban runs through the week of the n-th
+ * upcoming fixture, so it ends the week after he has sat out n real matches.
+ * Persisted shape is unchanged: this only chooses the number.
+ *
+ * `upcomingFixtureWeeks` is the club's fixture calendar from
+ * `buildFixtureWeeksByClub` (weeks at or before `week` are ignored). Fixtures it
+ * cannot see yet — an undrawn cup round, anything past the end of the season —
+ * are assumed to be one a week after the last known one, which is also the
+ * whole rule when no calendar is passed (the old behaviour).
+ */
+export function suspensionEndWeek(
+  week: number,
+  matches: number,
+  upcomingFixtureWeeks?: readonly number[],
+): number {
+  const ahead = [...new Set((upcomingFixtureWeeks ?? []).filter(w => w > week))].sort((a, b) => a - b);
+  if (matches <= 0) return week + 1;
+  if (ahead.length >= matches) return ahead[matches - 1] + 1;
+  const lastKnown = ahead.length > 0 ? ahead[ahead.length - 1] : week;
+  return lastKnown + 1 + (matches - ahead.length);
+}
+
+/** Everything `buildFixtureWeeksByClub` reads — a structural subset of
+ *  GameState, so a pure caller can hand over just the calendar. */
+export interface FixtureCalendarSource {
+  fixtures?: readonly Match[];
+  divisionFixtures?: Record<string, readonly Match[]>;
+  cup?: CupState | null;
+  leagueCup?: LeagueCupState | null;
+  championsCup?: ContinentalTournamentState | null;
+  shieldCup?: ContinentalTournamentState | null;
+  conferenceCup?: ContinentalTournamentState | null;
+}
+
+/**
+ * Each club's unplayed competitive fixture weeks after `afterWeek`, sorted and
+ * de-duplicated: league (every initialised division), the domestic cup and
+ * League Cup ties drawn so far, and continental group games and knockout legs.
+ * Friendlies do not count — a ban is not served in a friendly.
+ *
+ * `onlyClubIds` restricts the scan's output to the clubs a caller needs.
+ */
+export function buildFixtureWeeksByClub(
+  src: FixtureCalendarSource,
+  afterWeek: number,
+  onlyClubIds?: ReadonlySet<string>,
+): Record<string, number[]> {
+  const weeks: Record<string, Set<number>> = {};
+  const add = (clubId: string, week: number) => {
+    if (week <= afterWeek) return;
+    if (onlyClubIds && !onlyClubIds.has(clubId)) return;
+    (weeks[clubId] ??= new Set()).add(week);
+  };
+  const addMatch = (m: { homeClubId: string; awayClubId: string; week: number; played: boolean }) => {
+    if (m.played) return;
+    add(m.homeClubId, m.week);
+    add(m.awayClubId, m.week);
+  };
+  for (const m of src.fixtures ?? []) addMatch(m);
+  for (const list of Object.values(src.divisionFixtures ?? {})) for (const m of list ?? []) addMatch(m);
+  for (const t of src.cup?.ties ?? []) addMatch(t);
+  for (const t of src.leagueCup?.ties ?? []) addMatch(t);
+  for (const comp of [src.championsCup, src.shieldCup, src.conferenceCup]) {
+    if (!comp) continue;
+    for (const g of comp.groups ?? []) for (const m of g.matches ?? []) addMatch(m);
+    for (const kt of comp.knockoutTies ?? []) {
+      if (kt.winnerId) continue;
+      if (!kt.leg1Played) { add(kt.homeClubId, kt.week1); add(kt.awayClubId, kt.week1); }
+      if (kt.round !== 'F' && !kt.leg2Played) { add(kt.homeClubId, kt.week2); add(kt.awayClubId, kt.week2); }
+    }
+  }
+  const out: Record<string, number[]> = {};
+  for (const [clubId, set] of Object.entries(weeks)) out[clubId] = [...set].sort((a, b) => a - b);
+  return out;
+}
+
+/**
+ * A player's form after a match he took part in (or, for the player's own club,
+ * a match his side played — the whole squad feels the result).
+ *
+ * ONE rule for the player's club (`processMatchResult`) and every AI club
+ * (`applyAIMatchEvents`), so the two can never drift apart again.
+ *
+ * Three terms: the team result (symmetric, so a league's wins and defeats
+ * cancel), the individual rating around the measured league-mean rating, and a
+ * pull back toward FORM_NEUTRAL. Without the pull form was a one-way ratchet:
+ * measured on a real save (matchCalibration harness), AI form started at ~65
+ * and stood at 25 / 22 / 19 at the end of seasons one to three, while the
+ * player's title-chasing squad sat at 84-100. With it AI form holds 47-51. A
+ * side that wins ~85% of its matches still sits in the 90s: the win floor below
+ * outweighs the pull there, so form keeps saying who is flying.
+ *
+ * The team result stays dominant: a win never lowers form and a defeat never
+ * raises it, however far from neutral the player starts or however well he
+ * played. The pull only decides how MUCH.
+ */
+export function nextMatchForm(form: number, won: boolean, lost: boolean, rating?: number | null): number {
+  let change = won ? FORM_WIN_CHANGE : lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
+  if (rating != null) {
+    change += Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
+      (rating - FORM_RATING_BASELINE) * FORM_PER_RATING_POINT));
+  }
+  change += (FORM_NEUTRAL - form) * FORM_MEAN_REVERSION;
+  if (won) change = Math.max(1, change);
+  else if (lost) change = Math.min(-1, change);
+  return Math.min(FORM_MAX, Math.max(FORM_MIN, Math.round(form + change)));
 }
 
 /**
@@ -284,6 +410,9 @@ export function applyAIMatchEvents(
   rankings?: Record<string, number>,
   homeClubId?: string,
   awayClubId?: string,
+  /** Each club's upcoming fixture weeks (`buildFixtureWeeksByClub`), so a ban
+   *  counts matches rather than weeks. Omitted, bans assume one match a week. */
+  fixtureWeeksByClub?: Record<string, readonly number[]>,
 ) {
   // Track per-player goal/assist counts from events for synthetic rating
   const playerGoalCounts: Record<string, number> = {};
@@ -307,7 +436,8 @@ export function applyAIMatchEvents(
     if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
       const prevYellows = newPlayers[ev.playerId].yellowCards;
       const nextYellows = prevYellows + 1;
-      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, week);
+      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, week,
+        fixtureWeeksByClub?.[newPlayers[ev.playerId].clubId]);
       newPlayers[ev.playerId] = {
         ...newPlayers[ev.playerId],
         yellowCards: nextYellows,
@@ -318,7 +448,14 @@ export function applyAIMatchEvents(
       };
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
+      const banMatches = RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE);
+      const banUntil = suspensionEndWeek(week, banMatches, fixtureWeeksByClub?.[newPlayers[ev.playerId].clubId]);
+      newPlayers[ev.playerId] = {
+        ...newPlayers[ev.playerId],
+        redCards: newPlayers[ev.playerId].redCards + 1,
+        // Never shorten a longer ban already in force.
+        suspendedUntilWeek: Math.max(newPlayers[ev.playerId].suspendedUntilWeek ?? 0, banUntil),
+      };
     }
   }
 
@@ -353,15 +490,12 @@ export function applyAIMatchEvents(
         rating = Math.max(3, Math.min(10, Math.round(rating * 10) / 10));
 
         const prev = newPlayers[p.id];
-        // Team result stays dominant; the rating only softens or sharpens it.
-        const formChange = (side.won ? FORM_WIN_CHANGE : side.lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE)
-          + Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
-            (rating - RATING_MORALE_BASELINE) * FORM_PER_RATING_POINT));
         newPlayers[p.id] = {
           ...prev,
           appearances: prev.appearances + 1,
           minutesPlayed: (prev.minutesPlayed || 0) + (minutes[p.id] ?? 0),
-          form: Math.min(100, Math.max(10, prev.form + Math.round(formChange))),
+          // Same rule as the player's club — see `nextMatchForm`.
+          form: nextMatchForm(prev.form, side.won, side.lost, rating),
           seasonRatingTotal: (prev.seasonRatingTotal || 0) + rating,
           seasonRatedMatches: (prev.seasonRatedMatches || 0) + 1,
         };
