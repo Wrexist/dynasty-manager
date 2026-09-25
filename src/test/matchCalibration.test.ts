@@ -20,7 +20,10 @@
  *           AI form 25 / 22 / 19, the player's squad 100 / 91 / 99
  *   after   goals ~2.70-2.80 a season, draws ~24-25%, home ~43-46%, 0-0 ~7-9%,
  *           AI form ~47-51 — the table this prints has the exact run.
- * Every case below fails on the old code.
+ * The first three cases fail on the old code. The fourth (the player's matches
+ * vs the AI's title contenders) is a sanity bound, not a regression detector:
+ * with ~110 player matches its noise is ~0.2 goals, and the old code measured
+ * anywhere from 0.38 to 0.9 goals apart, so it can pass there too.
  *
  * What moved it, in order of size: the weather tax (rain took ~57% of every
  * chance, snow nearly all of it — now a relative multiplier), form ratcheting

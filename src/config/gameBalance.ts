@@ -196,10 +196,11 @@ export const NARRATIVE_MORALE_LOSS_REDUCTION_CAP = 6;
 // Form moves SYMMETRICALLY with the result. It used to be +5 / -2 / -8, which
 // across any league (wins and defeats are equal in number) is a net -1.6 per
 // match — before the rating term's own -1.4 bias below. Nothing pulled it back,
-// so AI form ratcheted down from ~65 at kickoff to ~40 by the end of season 1,
-// ~25 in season 2 and ~15 in season 3, and every AI side's conversion fell with
-// it (form is 15% of shot quality in the engine). That was most of the
-// season-on-season scoring decline measured on real saves (audit S6). See
+// so AI form ratcheted down from ~65 at kickoff to 25 / 22 / 19 at the end of
+// seasons one to three (matchCalibration harness), and every AI side's
+// conversion fell with it (form is 15% of shot quality in the engine). That was
+// most of the season-on-season scoring decline measured on real saves (audit
+// S6). See
 // `nextMatchForm` in orchestration/helpers.ts for the reversion that holds the
 // league mean at FORM_NEUTRAL.
 export const FORM_WIN_CHANGE = 5;
@@ -227,8 +228,9 @@ export const FORM_RATING_ADJ_CAP = 4;
 export const FORM_NEUTRAL = 50;
 /** Fraction of the gap to FORM_NEUTRAL closed on every match played, so form
  *  reads roughly the last ten games. A side that wins 60% and loses 20% settles
- *  near 70, one that loses 60% near 30 — form stays a signal, it no longer
- *  saturates at 100 for the champions or bottoms out at 10 for everyone else. */
+ *  near 70, one that loses 60% near 30 — form stays a signal and the league no
+ *  longer bottoms out at 10. A side winning ~85% still sits in the 90s: a win
+ *  always adds at least 1 (`nextMatchForm`), which outweighs the pull there. */
 export const FORM_MEAN_REVERSION = 0.1;
 /** Match rating that moves form neither way. This is the MEASURED league-mean
  *  rating (the same number development centres on), not RATING_MORALE_BASELINE's

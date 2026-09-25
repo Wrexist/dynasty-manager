@@ -5,9 +5,10 @@
  * win / draw / defeat — net -1.6 per match across any league, where wins and
  * defeats are equal in number — plus a rating term centred on 7.0 against a
  * measured league-mean rating of 6.3, another -1.4. Nothing pulled it back. On a
- * real save AI form fell 65 -> 40 -> 25 -> 15 over three seasons, the champions'
- * squad sat pinned at 100, and because form is 15% of shot quality in the engine
- * the whole world's scoring declined season on season (audit S6).
+ * real save AI form fell from ~65 at kickoff to 25 / 22 / 19 at the end of
+ * seasons one to three (matchCalibration harness), and because form is 15% of
+ * shot quality in the engine the whole world's scoring declined season on
+ * season (audit S6).
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { nextMatchForm, applyAIMatchEvents } from '@/store/slices/orchestration/helpers';

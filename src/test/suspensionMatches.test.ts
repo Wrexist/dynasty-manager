@@ -3,9 +3,11 @@
  *
  * A ban used to be `suspendedUntilWeek = week + 1 + n`. `suspendedUntilWeek >
  * week` is the "is suspended" test everywhere, so any week the club had no
- * fixture — an international break, a cup week it was not in, the gaps a
- * 38-match league leaves in a 46-week season — silently served a match of the
- * ban. The ban now runs through the week of the club's n-th upcoming fixture.
+ * fixture silently served a match of the ban — today an odd-sized league's bye
+ * round and the weeks between a league's last round and the cup and
+ * continental finals (league fixtures do not pause for international breaks).
+ * The cases below also use hypothetical breaks: the rule is calendar-agnostic.
+ * The ban now runs through the week of the club's n-th upcoming fixture.
  * No persisted field changes: only the number written into
  * `suspendedUntilWeek` does.
  */

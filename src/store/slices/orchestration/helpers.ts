@@ -179,11 +179,15 @@ export function getYellowAccumulationBanWeek(
  *
  * Bans used to be `week + 1 + n`, i.e. n calendar weeks. `suspendedUntilWeek >
  * week` is the "is suspended" test everywhere, so a week in which the club had
- * no fixture — an international break, a cup week it was not in, the gaps a
- * 38-match league leaves in a 46-week season — silently served a match of the
- * ban. Now the ban runs through the week of the n-th upcoming fixture, so it
- * ends the week after he has sat out n real matches. Persisted shape is
- * unchanged: this only chooses the number.
+ * no fixture silently served a match of the ban. In today's calendars that is
+ * an odd-sized league's bye round (every club in the 19-team Süper Lig and the
+ * 13-team A-League Men sits one out per half) and the weeks after a league's
+ * last round, before the cup and continental finals. League fixtures do NOT
+ * pause for the INTERNATIONAL_BREAK_WEEKS, so those never served a ban; the
+ * rule is calendar-agnostic, so a future break or postponement is covered
+ * without another change. Now the ban runs through the week of the n-th
+ * upcoming fixture, so it ends the week after he has sat out n real matches.
+ * Persisted shape is unchanged: this only chooses the number.
  *
  * `upcomingFixtureWeeks` is the club's fixture calendar from
  * `buildFixtureWeeksByClub` (weeks at or before `week` are ignored). Fixtures it
@@ -267,8 +271,11 @@ export function buildFixtureWeeksByClub(
  * Three terms: the team result (symmetric, so a league's wins and defeats
  * cancel), the individual rating around the measured league-mean rating, and a
  * pull back toward FORM_NEUTRAL. Without the pull form was a one-way ratchet:
- * measured on a real save, AI form fell 65 -> 40 -> 25 -> 15 over three seasons
- * while the champions' squad sat pinned at 100.
+ * measured on a real save (matchCalibration harness), AI form started at ~65
+ * and stood at 25 / 22 / 19 at the end of seasons one to three, while the
+ * player's title-chasing squad sat at 84-100. With it AI form holds 47-51. A
+ * side that wins ~85% of its matches still sits in the 90s: the win floor below
+ * outweighs the pull there, so form keeps saying who is flying.
  *
  * The team result stays dominant: a win never lowers form and a defeat never
  * raises it, however far from neutral the player starts or however well he
