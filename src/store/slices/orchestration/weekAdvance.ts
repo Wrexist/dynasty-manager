@@ -2776,8 +2776,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           const attrKeys = Object.keys(attrs) as (keyof PlayerAttributes)[];
           const attr = attrKeys[Math.floor(Math.random() * attrKeys.length)];
           attrs[attr] = Math.min(99, attrs[attr] + 1);
+          // Move overall by what the formula says changed, never to the
+          // formula's absolute answer — real players are rated above it (see
+          // `applyPlayerDevelopment`), so recomputing demoted a loanee on the
+          // very tick he improved.
+          const overallDelta = calculateOverall(attrs, lp.position) - calculateOverall(lp.attributes, lp.position);
           lp.attributes = attrs;
-          lp.overall = calculateOverall(attrs, lp.position);
+          lp.overall = Math.max(1, Math.min(99, lp.overall + overallDelta));
           // Shared helper — same pricing model as training and development.
           recomputePlayerValueOnly(lp);
         }
