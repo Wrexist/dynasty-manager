@@ -6,33 +6,26 @@ globs: ["**/*.test.*", "**/*.spec.*"]
 # Testing Rules
 
 ## Setup
-- Vitest + jsdom + React Testing Library
-- Config: `vitest.config.ts` with `@/` alias and jsdom environment
-- Setup file: `src/test/setup.ts` (includes jest-dom matchers + matchMedia mock)
-- Globals: `describe`/`it`/`expect` available without imports (`globals: true` in vitest config, `vitest/globals` in tsconfig types)
-- Test files go next to source: `Component.test.tsx` beside `Component.tsx`
+- Vitest + jsdom + React Testing Library; config in `vitest.config.ts`.
+- Tests live in `src/test/` (not beside the source), named `*.test.ts(x)`.
+- `src/test/setup.ts` primes the generated player data and jest-dom matchers.
+- Globals (`describe`/`it`/`expect`) are enabled, but existing files import them
+  from `vitest` explicitly — follow that.
+- `npm run test:fast` skips the long season/longevity suites listed in
+  `SLOW_SUITES` (`vitest.config.ts`); `npm run test` runs everything (CI).
+  Run a single file with `npx vitest run src/test/<file>`.
 
-## What to Test (Priority Order)
-1. **Store actions** — `gameStore.ts` actions are the most critical. Test state transitions.
-2. **Match engine** — `simulateMatch()` should produce valid Match objects with correct event structure.
-3. **Player generation** — `generatePlayer()`, `calculateOverallExport()`, `selectBestLineup()` should produce valid data.
-4. **League utilities** — `generateFixtures()` should create correct number of matches, `buildLeagueTable()` should sort correctly.
-5. **Components** — test user interactions, not implementation details.
-
-## Patterns
-```ts
-import { describe, it, expect } from 'vitest';
-
-// For store testing, create fresh store per test:
-// Don't import the singleton — test the logic functions directly
-
-// For components:
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-```
+## What to test
+- Every behaviour change gets a test that FAILS without the change.
+- Slice actions and pure utils first; components for user-visible behaviour.
+- Seed or stub randomness (`withSeededRandom` in `src/test/helpers/seasonFixtures.ts`,
+  or `vi.spyOn(Math, 'random')`) so a test cannot pass by luck.
+- Build fixtures with `src/test/helpers/seasonFixtures.ts` rather than
+  hand-rolling clubs and players.
+- Long loops that `await` must yield to the timer phase — see
+  `src/test/helpers/eventLoop.ts`.
 
 ## Don'ts
-- Don't test shadcn/ui components — they're third-party
-- Don't snapshot test — they're brittle for this project
-- Don't mock the store unless testing component isolation
-- Don't test CSS classes — test behavior and content
+- Don't test `src/components/ui/` — third-party primitives.
+- No snapshot tests.
+- Don't assert on CSS classes; assert behaviour and content.

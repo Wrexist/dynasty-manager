@@ -33,3 +33,7 @@ logs/
 
 # OS
 Thumbs.db
+
+# Portrait working files and raw player datasets (large; not source)
+artifacts/
+*.csv

@@ -6,27 +6,22 @@ globs: ["**/*.tsx", "**/*.css"]
 # Design System
 
 ## Theme
-- Dark theme ONLY. No light mode. All colors via HSL CSS variables in `src/index.css`.
-- Primary/Gold: `hsl(43 96% 46%)` — CTAs, active states, accents, ratings
-- Background: `hsl(222 30% 7%)` — deep navy
-- Card: `hsl(222 25% 11%)` — panels, elevated surfaces
-- Muted: `hsl(222 20% 15%)` — disabled states, borders
-- Destructive: `hsl(0 72% 51%)` — errors, losses, injuries
+- Dark theme ONLY. Colors are HSL CSS variables in `src/index.css` (including the
+  `--pack-<tier>-*` palettes). Don't change the variable system.
+- Primary/Gold `43 96% 46%` · Background `222 30% 7%` · Accent `215 60% 50%`.
 
-## Glass Morphism Pattern
-Use the `<GlassPanel>` component for all card-like containers:
-```tsx
-<GlassPanel className="p-4">content</GlassPanel>
-```
-Underlying classes: `bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl`
+## Glass
+Use `<GlassPanel>` for card-like containers. Underlying classes:
+`bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl`.
+Performance mode (`perf-mode` root class) strips `.glass-surface`; a bare
+`backdrop-blur-*` utility is NOT stripped.
 
 ## Typography
-- Headings: `font-display` class (Oswald font)
-- Body: default sans (DM Sans)
-- Tiny labels: `text-[10px] text-muted-foreground uppercase tracking-wider`
-- Stat numbers: `font-mono font-black`
+- Headings `font-display` (Oswald), body DM Sans.
+- Type floor is 11px: use `text-micro` (11px) for the smallest copy, not
+  `text-[10px]` or smaller.
 
-## Rating Colors (used everywhere)
+## Rating colors
 ```
 ≥80 → text-emerald-400
 ≥70 → text-primary (gold)
@@ -35,24 +30,19 @@ Underlying classes: `bg-card/60 backdrop-blur-xl border border-border/50 rounded
 ```
 
 ## Layout
-- Mobile-first: `max-w-lg mx-auto px-4`
-- Top bar: `h-14`, fixed, blur background
-- Bottom nav: `h-16`, fixed, 5 tabs
-- Content area: `pt-14 pb-20` (clears top/bottom bars)
-- Safe area: `safe-area-bottom` utility class
+- Mobile-first, test at 375px: `max-w-lg mx-auto`, safe-area padding.
+- Tap targets are at least 44px.
+- Inline `style={{ backgroundColor }}` only for club colors or computed values.
 
-## Spacing
-- Page sections: `space-y-4`
-- Inside panels: `p-4` standard, `p-3` compact, `p-5` hero sections
-- Grid gaps: `gap-3` for cards, `gap-2` for compact lists
+## Player cards
+- Card art is 2:3 (1024x1536) and its alpha is the card's edge: `md`/`lg`/`xl`
+  render `aspect-[2/3]` with no rounded box. `xs`/`sm` chips keep
+  `aspect-[3/4]` with a rounded box.
 
-## Animations
-- Page transitions: Framer Motion `opacity + y` (see GameShell.tsx)
-- Match events: `AnimatePresence` with slide-in
-- Buttons: `active:scale-[0.98]` on interactive panels
+## Motion
+- framer-motion honours reduced motion via `MotionConfig`; CSS `transition-*`
+  utilities do not — gate them on `useReducedMotionPref()`.
 
 ## Don'ts
-- Don't use raw hex colors — always use CSS variables or Tailwind color classes
-- Don't use `px-*` values larger than `px-6` on mobile
-- Don't add shadows beyond `shadow-lg` — the glass effect handles depth
-- Don't use `dark:` prefix — we're always dark mode
+- No raw hex colors outside club colors — use CSS variables or Tailwind classes.
+- No `dark:` prefix — the app is always dark.
