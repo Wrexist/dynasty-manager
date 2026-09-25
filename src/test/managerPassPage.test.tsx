@@ -13,6 +13,7 @@ import { useGameStore } from '@/store/gameStore';
 import { freshPassRecord, getManagerPassSeason, savePassRecord } from '@/utils/managerPass';
 import { saveToHall, type HallEntry } from '@/utils/hallOfManagers';
 import { MANAGER_PASS_XP, LEGACY_TIER_UNLOCKS } from '@/config/managerPass';
+import { observeClock, reanchorClock } from '@/store/helpers/persistence';
 import type { MonetizationState } from '@/types/game';
 
 const NOT_PRO: MonetizationState = {
@@ -46,6 +47,20 @@ describe('ManagerPassPage', () => {
     fireEvent.click(checkIn);
     expect(useGameStore.getState().managerPass.xp).toBe(MANAGER_PASS_XP.dailyCheckIn);
     expect(screen.getByRole('button', { name: /Checked in today/ })).toBeDisabled();
+  });
+
+  it('judges the check-in on the same clock as the action (device clock behind its high-water mark)', async () => {
+    // The device once saw tomorrow (clock set forward, then back). The action
+    // stamps the check-in with that furthest-seen day; the button must agree
+    // rather than offer a check-in whose tap does nothing.
+    observeClock(Date.now() + 24 * 60 * 60 * 1000);
+    try {
+      expect(useGameStore.getState().checkInManagerPass()).toBe(MANAGER_PASS_XP.dailyCheckIn);
+      await renderPage(<ManagerPassPage />);
+      expect(screen.getByRole('button', { name: /Checked in today/ })).toBeDisabled();
+    } finally {
+      reanchorClock(Date.now());
+    }
   });
 
   it('lets a free player collect the free row, gates the Pro row and names what is waiting', async () => {

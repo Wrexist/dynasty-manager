@@ -16,6 +16,7 @@ import { ProUpsell } from '@/components/game/ProUpsell';
 import { ProfileBannerLayer, EarnedCosmeticRow, EarnedCategoryIcon } from '@/components/game/EarnedCosmetics';
 import { useGameStore } from '@/store/gameStore';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
+import { observeClock } from '@/store/helpers/persistence';
 import {
   passSeasonFromOrdinal,
   getPassSeasonDaysRemaining,
@@ -116,11 +117,15 @@ function ManagerPassPage() {
   useEffect(() => { refreshManagerPass(); }, [refreshManagerPass]);
 
   const pro = isPro(monetization);
+  // Judge "today" on the same clock the slice's actions use (the furthest
+  // time this device has seen), or a clock behind that mark would draw an
+  // enabled check-in button whose tap does nothing.
+  const now = new Date(observeClock());
   const season = passSeasonFromOrdinal(record.seasonOrdinal);
   const theme = MANAGER_PASS_SEASON_THEMES[season.themeIndex];
-  const daysLeft = getPassSeasonDaysRemaining(season);
+  const daysLeft = getPassSeasonDaysRemaining(season, now);
   const progress = passTierProgress(record.xp);
-  const canCheckIn = canCheckInPass(record);
+  const canCheckIn = canCheckInPass(record, now);
   const claimable = claimablePassRewards(record, pro);
   const proWaiting = pro ? 0 : claimablePassRewards(record, true).filter(c => c.track === 'pro').length;
   const bannerId = getActiveCosmetic(monetization, 'profile_banner');
