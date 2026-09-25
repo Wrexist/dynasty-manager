@@ -635,7 +635,7 @@ export const en = {
   'settingsPage.performanceMode': "Performance mode",
   'settingsPage.minimizeAnimationsThroughoutTheApp': "Minimize animations throughout the app",
   'settingsPage.reducedMotion': "Reduced motion",
-  'settingsPage.showTheGettingStartedChecklist': "Show the Getting Started checklist on Dashboard in week 1 of a new career",
+  'settingsPage.showTheGettingStartedChecklist': "Show the Getting Started checklist on the Dashboard during your first two seasons",
   'settingsPage.newCareerWalkthrough': "New-career walkthrough",
   'settingsPage.showTipsWhenVisitingPages': "Show tips when visiting pages for the first time",
   'settingsPage.pageHints': "Page hints",

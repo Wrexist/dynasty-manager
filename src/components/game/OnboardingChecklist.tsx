@@ -120,7 +120,7 @@ function buildFirstSessionItems({ hasMatchThisWeek, gamePlanTaskDone, sponsorTas
       screen: 'match-prep',
       whyItMatters: 'This is the job. Match Prep shows you what the opposition are good at, and your plan is how you answer it — shackle their danger man, target a weak flank, or sit deep and frustrate them. Every plan trades something away, so there is no free right answer. After the match, your debrief tells you whether the plan worked, so you learn something either way.',
       steps: [
-        { text: 'Tap "Take me there" below, or tap the match card at the top of your Dashboard.' },
+        { text: 'Tap "Take me there" below, or the "Match Prep" button at the top of your Dashboard.' },
         { text: 'Read the opposition panel first — it shows their form, their shape, and their danger man.' },
         { text: 'Scroll to "Game Plan". You get four choices, including "No Special Plan".' },
         { text: 'Tap the one that answers what you just read. Each card names what it costs you as well as what it gives.' },
@@ -209,7 +209,7 @@ function buildFirstSessionItems({ hasMatchThisWeek, gamePlanTaskDone, sponsorTas
       { text: 'Review your squad, then tap "Kick Off".' },
       { text: 'Play your Week 1 match, then advance. Any pre-season friendlies are scheduled on free weeks, so you never face two matches in one week.' },
     ],
-    successCue: 'Once advanced, this whole checklist disappears — you\'re inside the weekly loop now.',
+    successCue: 'Once you advance, this walkthrough hands over to your coach\'s checklist — you\'re inside the weekly loop now.',
   });
   return items;
 }

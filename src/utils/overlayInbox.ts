@@ -32,7 +32,7 @@ export function digestNote(digest: Digest, week: number): InboxNote {
   if (digest.contractWarnings.length > 0) lines.push(`Contracts running down: ${listNames(digest.contractWarnings)}.`);
   if (digest.scoutReportsCompleted > 0) lines.push(`${digest.scoutReportsCompleted} scout report${digest.scoutReportsCompleted === 1 ? '' : 's'} ready.`);
   const completed = digest.objectiveProgress.filter(o => o.completed).map(o => o.title);
-  if (completed.length > 0) lines.push(`Objectives complete: ${listNames(completed)} — claim the XP on your Dashboard.`);
+  if (completed.length > 0) lines.push(`Objectives complete: ${listNames(completed)} — claim the XP under More on your Dashboard.`);
   if (digest.moraleChange !== 0) lines.push(`Squad morale ${digest.moraleChange > 0 ? 'up' : 'down'} ${Math.abs(digest.moraleChange)}.`);
   return { type: 'general', title: `Week ${week} summary`, body: lines.join('\n') };
 }
