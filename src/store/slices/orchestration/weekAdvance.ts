@@ -706,6 +706,18 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     return;
   }
 
+  // International phase: separate flow. This MUST run before the unemployed
+  // branch below: `resignFromClub` / `sackManagerMidSeason` keep the national
+  // team job, and a season that ends while the manager is out of work still
+  // schedules the tournament (deferring the post-season tail to its end). With
+  // the unemployed branch first, the tournament never advanced — `seasonPhase`
+  // stuck at 'international', next season's league simulated underneath it,
+  // and the deferred tail (ageing, contracts) never ran.
+  if (state.seasonPhase === 'international') {
+    advanceInternationalWeekImpl(set, get);
+    return;
+  }
+
   // Career mode: unemployed managers skip gameplay, only process job market
   if (state.gameMode === 'career' && state.careerManager && !state.careerManager.contract) {
     const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
@@ -896,11 +908,6 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     return;
   }
 
-  // International phase: separate flow
-  if (state.seasonPhase === 'international') {
-    advanceInternationalWeekImpl(set, get);
-    return;
-  }
   const { week, season, fixtures, clubs, players, playerClubId, training, staff, scouting, facilities, messages, boardConfidence } = state;
 
   // Defensive guard: if playerClubId points at a missing club (corrupted save,
