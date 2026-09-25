@@ -973,6 +973,14 @@ export const PACK_ANIM = {
   spring: { stiffness: 260, damping: 22 },
 } as const;
 
+/** Paid tiers a bonus-card deal may land on. Same rule as the weekly bonus
+ *  (`weeklyEligible`), because it is the same distortion at up to three times
+ *  the size: +3 cards on the one-card Legends pack was four 88+ cards for the
+ *  price of one. */
+export const PACK_DEAL_TIERS: PackTierKey[] = PAID_PACK_TIERS.filter(
+  k => PACK_TIER_MAP[k].weeklyEligible,
+);
+
 /** Real, epoch-aligned windows; reopening the store never resets a deal. */
 export const PACK_DEAL_SLOTS = [
   { id: 'flash', windowMs: 4 * 3600_000, bonusCards: 3 },

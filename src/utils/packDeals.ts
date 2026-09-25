@@ -1,4 +1,4 @@
-import { PACK_DEAL_SLOTS, PAID_PACK_TIERS } from '@/config/packs';
+import { PACK_DEAL_SLOTS, PACK_DEAL_TIERS } from '@/config/packs';
 import type { PackTierKey } from '@/types/game';
 import { observeClock } from '@/store/helpers/persistence';
 
@@ -15,8 +15,10 @@ export interface ActivePackDeal {
 export function getActiveDeals(now = observeClock()): ActivePackDeal[] {
   return PACK_DEAL_SLOTS.map((slot, index) => {
     const cycle = Math.floor(now / slot.windowMs);
-    const pick = (cycle * 3 + index) % PAID_PACK_TIERS.length;
-    const tierKey = PAID_PACK_TIERS[pick];
+    // `cycle + index`, not `cycle * 3 + index`: with three eligible tiers a
+    // multiplier of 3 cancels the cycle and freezes every slot on one tier.
+    const pick = (cycle + index) % PACK_DEAL_TIERS.length;
+    const tierKey = PACK_DEAL_TIERS[pick];
     const endsAt = (cycle + 1) * slot.windowMs;
     return { slotId: slot.id, tierKey, bonusCards: slot.bonusCards, endsAt, remainingMs: endsAt - now };
   });
