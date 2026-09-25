@@ -376,6 +376,12 @@ export interface Player {
    * progression stays intact.
    */
   ballonDOrTop10BoostDeltas?: Partial<PlayerAttributes>;
+  /**
+   * The change the active Ballon d'Or top-10 boost made to `overall`, so the
+   * revert takes back exactly that. Absent on boosts from older saves — the
+   * revert then falls back to the formula's view of the attribute deltas.
+   */
+  ballonDOrTop10OverallDelta?: number;
 }
 
 export interface PlayerAppearance {
