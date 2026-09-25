@@ -149,7 +149,10 @@
    see CSS classes — so every trigger is handled here: the OS reduced-motion
    preference, and the root `.reduce-motion` class App.tsx sets from the
    in-app Reduced Motion setting (and from Performance mode, which implies it).
-   `.perf-mode` keeps its own rules so the CSS holds even before App mounts.
+   App.tsx sets `.perf-mode` and `.reduce-motion` in the same commit, so
+   the `.perf-mode` loop selectors below are redundant with the
+   `.reduce-motion` ones; they are kept only so the perf-mode rules read on
+   their own.
 
    Beyond the loops, reduced motion also collapses every CSS `transition` and
    any other keyframe animation to a single ~0 ms step. Durations are
