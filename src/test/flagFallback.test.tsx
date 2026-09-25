@@ -9,6 +9,7 @@
  * square. Offline, no request is made.
  */
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
+import { useLayoutEffect, useRef } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import {
@@ -63,6 +64,35 @@ describe('FlagIcon fallback', () => {
     fireEvent.load(img);
     expect(flag.textContent).toBe('');
     expect(container.querySelector('img')!.className).not.toContain('opacity-0');
+  });
+
+  it('a cached flag whose load fires before passive effects run stays shown', () => {
+    // A memory-cached image fires `load` as soon as React sets `src`; in a
+    // non-sync render that can land after the commit but before passive
+    // effects. A parent layout effect is exactly that window. The outcome used
+    // to be reset by an effect on the URL, which re-hid the loaded flag.
+    __setFlagEmojiSupportForTests(false);
+    function LoadsBeforeEffects() {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        ref.current!.querySelector('img')!.dispatchEvent(new Event('load'));
+      }, []);
+      return <div ref={ref}><FlagIcon nationality="Germany" size={28} /></div>;
+    }
+    const { container } = render(<LoadsBeforeEffects />);
+    expect(container.querySelector('img')!.className).not.toContain('opacity-0');
+    expect(screen.getByRole('img', { name: 'Germany' }).textContent).toBe('');
+  });
+
+  it('a row recycled for another nation starts over: fallback until the new flag loads', () => {
+    __setFlagEmojiSupportForTests(false);
+    const { container, rerender } = render(<FlagIcon nationality="Germany" size={28} />);
+    fireEvent.load(container.querySelector('img')!);
+    rerender(<FlagIcon nationality="France" size={28} />);
+    expect(screen.getByRole('img', { name: 'France' }).textContent).toBe('FRA');
+    expect(container.querySelector('img')!.className).toContain('opacity-0');
+    fireEvent.load(container.querySelector('img')!);
+    expect(screen.getByRole('img', { name: 'France' }).textContent).toBe('');
   });
 
   it('offline: no request at all, straight to the fallback', () => {

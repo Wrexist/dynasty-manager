@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   getFlagUrl, getFlag, getFlagFallbackCode, supportsFlagEmoji, hasFlagUrlFailed, markFlagUrlFailed,
 } from '@/utils/nationality';
@@ -73,17 +73,20 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
   // Request 2x resolution for retina displays
   const cdnWidth = fill ? 160 : size <= 20 ? 40 : size <= 40 ? 80 : 160;
   const url = getFlagUrl(nationality, cdnWidth);
-  const initialState = (): LoadState => (!url || hasFlagUrlFailed(url) || isOffline() ? 'failed' : 'pending');
-
-  const [state, setState] = useState<LoadState>(initialState);
-  // Reset if the component is reused for a different nationality (list rows
-  // recycle by index).
-  useEffect(() => {
-    setState(!url || hasFlagUrlFailed(url) || isOffline() ? 'failed' : 'pending');
-  }, [url]);
+  // The load outcome is stored WITH the URL it belongs to and only read back
+  // for that URL, so a row recycled for another nationality starts over
+  // without an effect. It used to be reset by `useEffect([url])`, which raced
+  // the image: a cached flag fires `load` as soon as React sets `src`, and
+  // when that landed before passive effects ran, the reset re-hid a loaded
+  // flag behind its fallback for good.
+  const [outcome, setOutcome] = useState<{ url: string; state: Exclude<LoadState, 'pending'> } | null>(null);
+  const state: LoadState = outcome && outcome.url === url
+    ? outcome.state
+    : !url || hasFlagUrlFailed(url) || isOffline() ? 'failed' : 'pending';
+  const onLoad = () => setOutcome({ url, state: 'loaded' });
   const onError = () => {
     if (url) markFlagUrlFailed(url);
-    setState('failed');
+    setOutcome({ url, state: 'failed' });
   };
 
   const height = Math.round(size * 0.667); // 3:2 aspect ratio
@@ -96,7 +99,7 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
       width={fill ? undefined : size}
       height={fill ? undefined : height}
       className={cn('absolute inset-0 w-full h-full object-cover', state !== 'loaded' && 'opacity-0')}
-      onLoad={() => setState('loaded')}
+      onLoad={onLoad}
       onError={onError}
     />
   );
