@@ -659,6 +659,10 @@ export const en = {
   // ── iap: purchase outcomes, trials, redeem ──
   'iap.pendingTitle': 'Waiting for approval',
   'iap.pendingBody': "It unlocks automatically once the purchase is approved. You're only charged if it is.",
+  'iap.trialTerms': 'Free for {days} days, then {price}. Cancel anytime.',
+  'iap.trialCta': 'Start {days}-Day Free Trial',
+  'iap.trialStartedTitle': '{days}-Day Free Trial Started!',
+  'iap.trialStartedBody': "Pro is unlocked. You'll be charged {price} after the trial unless you cancel.",
 } as const;
 
 export default en;

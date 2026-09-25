@@ -29,6 +29,7 @@ import {
 } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
+import { resetTrialOfferProbe } from '@/utils/trialOffer';
 import type { ProductId, SubscriptionInfo } from '@/types/game';
 
 export interface StoreSyncResult {
@@ -163,6 +164,10 @@ export async function purchaseAndSync(
         extra: { productId },
       });
     }
+
+    // The intro offer is spent: forget the cached "trial available" answer so
+    // no surface advertises it again this session.
+    if (product?.type === 'subscription') resetTrialOfferProbe();
 
     const sub = useGameStore.getState().monetization.subscription;
     const isTrial = product?.type === 'subscription' && sub?.productId === productId

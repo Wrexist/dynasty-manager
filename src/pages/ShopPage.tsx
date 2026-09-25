@@ -6,12 +6,13 @@ import { PurchaseModal } from '@/components/game/PurchaseModal';
 import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
-import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, hasRecurringSubscription, formatPerPeriodPrice } from '@/utils/monetization';
+import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, hasRecurringSubscription, formatPerPeriodPrice, getFreeTrialDaysRemaining } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
 import { openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
 import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
+import { probePaywallTrials } from '@/utils/trialOffer';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
@@ -117,6 +118,19 @@ const ShopPage = () => {
   // guessed.
   const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
   const [storeCurrency, setStoreCurrency] = useState<string | undefined>(undefined);
+  // Free trial per subscription plan, ONLY where the store confirms both the
+  // intro offer and this Apple ID's eligibility — the paywall's own rule. The
+  // Shop used to sell both plans without ever naming the free week each one
+  // carries, so a player who came here instead of the paywall bought blind.
+  // A subscription record on this install means the offer is spent: no probe.
+  const locallyTrialEligible = monetization.subscription == null;
+  const [trials, setTrials] = useState<Partial<Record<ProductId, number>>>({});
+  useEffect(() => {
+    if (!locallyTrialEligible) { setTrials({}); return; }
+    let cancelled = false;
+    probePaywallTrials().then(found => { if (!cancelled) setTrials(found); });
+    return () => { cancelled = true; };
+  }, [locallyTrialEligible]);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,7 +224,8 @@ const ShopPage = () => {
       // a throw re-read the store before calling it a failure — the SDK can
       // throw after the charge, and this page used to report exactly that
       // case as "could not be confirmed" even when the re-sync found it.
-      const outcome = await purchaseAndSync(productId);
+      const trialDays = trials[productId];
+      const outcome = await purchaseAndSync(productId, { trialDays });
       if (outcome.status === 'cancelled') {
         track('purchase_cancelled', { productId, surface: 'shop' });
         infoToast('Purchase Cancelled', 'No charge was made.');
@@ -235,7 +250,17 @@ const ShopPage = () => {
       }
       hapticMedium();
       track('purchase_completed', { productId, surface: 'shop' });
-      successToast('Purchase complete!');
+      if (outcome.isTrial) {
+        // What the store recorded, not what the card advertised.
+        track('trial_started', { productId, surface: 'shop' });
+        const product = PRODUCTS[productId];
+        successToast(
+          t('iap.trialStartedTitle', { days: trialDays ?? getFreeTrialDaysRemaining(useGameStore.getState().monetization) }),
+          t('iap.trialStartedBody', { price: `${priceFor(productId)}${product.billingPeriod || ''}` }),
+        );
+      } else {
+        successToast('Purchase complete!');
+      }
       setPurchaseProduct(null);
     } finally {
       setPurchasing(false);
@@ -510,6 +535,14 @@ const ShopPage = () => {
                     {isLifetime && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
                     )}
+                    {trials[productId] != null && (
+                      <p className="text-[11px] font-semibold text-emerald-300 mb-2">
+                        {t('iap.trialTerms', {
+                          days: trials[productId]!,
+                          price: `${priceFor(productId)}${product.billingPeriod || ''}`,
+                        })}
+                      </p>
+                    )}
                     <button
                       onClick={() => handlePurchase(productId)}
                       className={cn(
@@ -761,6 +794,7 @@ const ShopPage = () => {
         <PurchaseModal
           productId={purchaseProduct}
           storePrice={storePrices[purchaseProduct]}
+          trialDays={trials[purchaseProduct]}
           onConfirm={handleConfirmPurchase}
           onCancel={() => {
             // An abandoned confirm modal is a funnel exit — record it or every

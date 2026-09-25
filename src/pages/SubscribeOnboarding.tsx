@@ -367,9 +367,9 @@ const SubscribeOnboarding = () => {
       const product = PRODUCTS[selected];
       const shownTrialDays = trialDays ?? getFreeTrialDaysRemaining(useGameStore.getState().monetization);
       successToast(
-        isTrial ? `${shownTrialDays}-Day Free Trial Started!` : 'Welcome to Dynasty Pro!',
+        isTrial ? t('iap.trialStartedTitle', { days: shownTrialDays }) : 'Welcome to Dynasty Pro!',
         isTrial
-          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}${product.billingPeriod || ''} after the trial unless you cancel.`
+          ? t('iap.trialStartedBody', { price: `${priceFor(selected)}${product.billingPeriod || ''}` })
           : `${product.name} is now active.`,
       );
       finish();
