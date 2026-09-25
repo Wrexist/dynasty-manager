@@ -251,6 +251,11 @@ export interface GameState {
     scoutReportsCompleted: number;
     contractWarnings: string[];
     objectiveProgress: { title: string; completed: boolean; xpEarned: number }[];
+    // ── econ: realised gate for the week (R1) ──
+    /** Gate receipts actually paid this week: 2x the weekly average on a home
+     *  week, 0 on an away week. Lets the Digest say why the net swings.
+     *  Absent on digests written before v1.6.2. */
+    matchdayIncome?: number;
   } | null;
 
   /**
