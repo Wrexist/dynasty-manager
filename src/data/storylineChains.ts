@@ -759,11 +759,11 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
       },
       {
         weekOffset: 2,
-        title: 'Lost in Translation',
-        body: 'Communication on the pitch has been a problem. {playerName} keeps missing instructions, and a teammate lost his temper with him in training.',
+        title: 'Not on the Same Page',
+        body: 'Communication on the pitch has been a problem. {playerName} keeps drifting out of the shape, and a teammate lost his temper with him in training.',
         icon: 'book-open',
         options: [
-          { label: 'Book language lessons', text: 'You arrange a tutor so {playerName} can talk to his teammates.', effects: { morale: 2, boardConfidence: 2, playerMorale: 4 } },
+          { label: 'Extra video sessions', text: 'You set up one-to-one video work so {playerName} learns the system faster.', effects: { morale: 2, boardConfidence: 2, playerMorale: 4 } },
           { label: 'Simplify his role', text: 'You give {playerName} one clear, simple job until he settles.', effects: { morale: 1, boardConfidence: 3, playerMorale: 2 } },
           { label: 'Fine the teammate', text: 'You fine the player who lost his temper — {playerName} is one of us now.', effects: { morale: -4, playerMorale: 8 } },
         ],
