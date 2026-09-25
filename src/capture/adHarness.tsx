@@ -104,6 +104,10 @@ const CTA = params.get('cta') || '';
 const HOOK_UNTIL = Number(params.get('hookUntil') || 3.4);
 const MID_FROM = Number(params.get('midFrom') || 6.5);
 const MID_UNTIL = Number(params.get('midUntil') || 9.5);
+/** Where the mid caption sits. `top` (default) shares the hook's band, which is
+ *  exactly where a walkout card's OVR lands; `mid` drops it onto the card's
+ *  lower frame, above the player's name, so the rating stays readable. */
+const MID_POS = (params.get('midPos') === 'mid' ? 'mid' : 'top') as 'top' | 'mid';
 const CTA_FROM = Number(params.get('ctaFrom') || 13);
 
 /**
@@ -133,19 +137,19 @@ function useClock() {
   return t;
 }
 
-function Caption({ text, position }: { text: string; position: 'top' | 'bottom' }) {
+function Caption({ text, position }: { text: string; position: 'top' | 'mid' | 'bottom' }) {
   return (
     <div
       // Safe band, not the frame edge. Two things eat the edges: the 9:19.5
       // capture is centre-cropped to 9:16, and TikTok's own chrome (username,
       // caption, action rail) covers roughly the bottom fifth and right edge.
       // A hook clipped by either is a dead ad.
-      className={`pointer-events-none fixed inset-x-0 z-[200] px-7 py-5 ${position === 'top' ? 'top-[18%]' : 'bottom-[12%]'}`}
+      className={`pointer-events-none fixed inset-x-0 z-[200] px-7 py-5 ${position === 'top' ? 'top-[18%]' : position === 'mid' ? 'top-[60%]' : 'bottom-[12%]'}`}
       style={{
         // A scrim, because a caption sitting over the card grid was competing
         // with gold artwork and losing. Feathered rather than a hard band so
         // it reads as lighting, not as a text box.
-        background: position === 'top'
+        background: position !== 'bottom'
           ? 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.72) 22%, rgba(0,0,0,0.72) 78%, rgba(0,0,0,0) 100%)'
           : 'linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.78) 22%, rgba(0,0,0,0.78) 78%, rgba(0,0,0,0) 100%)',
       }}
@@ -437,7 +441,7 @@ function Harness() {
     <>
       <PackOpeningOverlay tier={TIER} players={players} onClose={() => {}} onKeepAll={() => {}} hideShare />
       {HOOK && t < HOOK_UNTIL && <Caption text={HOOK} position="top" />}
-      {MID && t >= MID_FROM && t < MID_UNTIL && <Caption text={MID} position="top" />}
+      {MID && t >= MID_FROM && t < MID_UNTIL && <Caption text={MID} position={MID_POS} />}
       {CTA && t >= CTA_FROM && <Caption text={CTA} position="bottom" />}
     </>
   );
