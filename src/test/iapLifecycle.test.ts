@@ -52,9 +52,9 @@ vi.mock('@sentry/react', () => ({
 import * as Sentry from '@sentry/react';
 import { useGameStore } from '@/store/gameStore';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
-import { isPro, isSubscriptionActive } from '@/utils/monetization';
+import { isPro, isSubscriptionActive, mergeDeviceMonetization } from '@/utils/monetization';
 import { purchaseAndSync, restoreAndSync, syncStoreState } from '@/utils/purchaseSync';
-import { purchaseProduct, purchaseConsumable, isPaymentPendingError } from '@/utils/purchases';
+import { purchaseProduct, purchaseConsumable, isPaymentPendingError, extractSubscriptionInfo } from '@/utils/purchases';
 import { __resetClockHighWaterCache } from '@/store/helpers/persistence';
 import type { ProductId } from '@/types/game';
 
@@ -306,5 +306,93 @@ describe('Ask to Buy (payment pending) is waiting, not failing', () => {
 
     expect(isPaymentPendingError(err)).toBe(true);
     expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+});
+
+describe('a refunded, revoked or lapsed subscription ends when the store says so', () => {
+  const activeYearly = () => useGameStore.getState().updateSubscription({
+    tier: 'annual', productId: YEARLY, expiresAt: iso(Date.now() + 300 * DAY),
+    grantedAt: iso(Date.now() - 60 * DAY), isInGracePeriod: false, willRenew: true, isTrial: false,
+  });
+
+  it('a refund mid-period removes Pro at the next sync instead of a year later', async () => {
+    activeYearly();
+    expect(isPro(monetization())).toBe(true);
+    // RevenueCat after an Apple refund: no active entitlement, `all.pro`
+    // inactive with the expiry moved to the refund date.
+    storeRecord(customer({ active: {}, all: { pro: proEntitlement(YEARLY, { isActive: false, expiresInDays: -1 }) } }));
+
+    const { proActive } = await syncStoreState();
+
+    expect(proActive).toBe(false);
+    expect(isPro(monetization())).toBe(false);
+    expect(monetization().subscription).toMatchObject({ productId: YEARLY, willRenew: false });
+  });
+
+  it('an inactive verdict ends it even if the payload kept the original future expiry', () => {
+    const sub = extractSubscriptionInfo(customer({
+      active: {}, all: { pro: proEntitlement(MONTHLY, { isActive: false, expiresInDays: 20 }) },
+    }) as never)!;
+    expect(new Date(sub.expiresAt!).getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('a lapsed free trial is recorded as a lapsed trial', () => {
+    const sub = extractSubscriptionInfo(customer({
+      active: {}, all: { pro: proEntitlement(MONTHLY, { isActive: false, expiresInDays: -2, periodType: 'TRIAL' }) },
+    }) as never)!;
+    expect(sub).toMatchObject({ tier: 'trial', productId: MONTHLY, isTrial: true });
+  });
+
+  it('an inactive one-time product is not a subscription lapse (refunds of those are pruned by reconcile)', () => {
+    expect(extractSubscriptionInfo(customer({
+      active: {}, all: { pro: proEntitlement(LIFETIME, { isActive: false, expiresInDays: null }) },
+    }) as never)).toBeNull();
+  });
+
+  it('a lapsed subscription loses Pro while Lifetime or the bundle keeps it', () => {
+    const lapsed = {
+      tier: 'monthly' as const, productId: MONTHLY, expiresAt: iso(Date.now() - DAY),
+      isInGracePeriod: false, willRenew: false, isTrial: false,
+    };
+    useGameStore.getState().updateSubscription(lapsed);
+    expect(isPro(monetization())).toBe(false);
+
+    useGameStore.getState().grantEntitlement(LIFETIME);
+    expect(isPro(monetization())).toBe(true);
+
+    useGameStore.setState(st => ({ monetization: { ...st.monetization, entitlements: [] } }));
+    useGameStore.getState().grantEntitlement(BUNDLE);
+    expect(isPro(monetization())).toBe(true);
+    expect(isSubscriptionActive(monetization())).toBe(false);
+  });
+
+  it('loading a save written before the refund does not hand the subscription back', () => {
+    const beforeRefund = {
+      tier: 'annual' as const, productId: YEARLY, expiresAt: iso(Date.now() + 300 * DAY),
+      grantedAt: iso(Date.now() - 60 * DAY), isInGracePeriod: false, willRenew: true, isTrial: false,
+    };
+    const observedLapse = extractSubscriptionInfo(customer({
+      active: {}, all: { pro: proEntitlement(YEARLY, { isActive: false, expiresInDays: -1 }) },
+    }) as never)!;
+
+    const merged = mergeDeviceMonetization(
+      { entitlements: [], subscription: beforeRefund, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: observedLapse, firstLaunchTimestamp: 0 },
+    );
+
+    expect(merged.subscription).toEqual(observedLapse);
+    expect(isPro({ ...DEFAULT_MONETIZATION_STATE, ...merged })).toBe(false);
+  });
+
+  it('an ordinary expired record (no observation stamp) still loses to an active one', () => {
+    const active = {
+      tier: 'annual' as const, productId: YEARLY, expiresAt: iso(Date.now() + 300 * DAY),
+      isInGracePeriod: false, willRenew: true, isTrial: false,
+    };
+    const expired = { ...active, expiresAt: iso(Date.now() - DAY) };
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: active, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: expired, firstLaunchTimestamp: 0 },
+    ).subscription).toEqual(active);
   });
 });

@@ -738,22 +738,69 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
   return Array.from(purchased).filter((id): id is ProductId => validIds.includes(id as ProductId));
 }
 
+/** RevenueCat entitlement identifiers that convey Dynasty Pro. The dashboard
+ *  entitlement is `pro`; `dynasty_pro` is honoured as a legacy alias. If the
+ *  dashboard entitlement is ever renamed, EVERY subscription purchase resolves
+ *  to null here → the user pays but never gets Pro. Verify against the live RC
+ *  dashboard config before shipping any pricing change. */
+const PRO_ENTITLEMENT_IDS = ['pro', 'dynasty_pro'] as const;
+
+/**
+ * A subscription the store DEFINITIVELY reports as over — refunded, revoked
+ * (Family Sharing removed), or lapsed out of billing retry — as a record whose
+ * expiry is in the past.
+ *
+ * Without this, nothing could end a subscription early: every sync site writes
+ * only non-null records, so a refunded Yearly kept Pro locally until its
+ * original `expiresAt`, up to a year later. Only `entitlements.all` with
+ * `isActive === false` counts — RevenueCat computes that against its own
+ * request date, not the device clock. A payload with no `pro` entitlement at
+ * all (the transient-glitch shape) still returns null and changes nothing.
+ * One-time Pro SKUs are never read here: their refunds are pruned by
+ * `reconcileEntitlements` from a definitive entitlement read.
+ */
+function extractConfirmedLapse(customerInfo: CustomerInfo | null | undefined): SubscriptionInfo | null {
+  const all = customerInfo?.entitlements?.all;
+  if (!all || typeof all !== 'object') return null;
+  const ent = PRO_ENTITLEMENT_IDS.map(id => all[id]).find(Boolean);
+  if (!ent || ent.isActive !== false) return null;
+  const productId = ent.productIdentifier as ProductId;
+  const product = PRODUCTS[productId];
+  if (!product || product.type !== 'subscription') return null;
+  const now = Date.now();
+  // RevenueCat moves the expiry to the refund date; if a payload keeps the
+  // original (future) date, `isActive: false` is still the store's verdict.
+  const storeExpiry = ent.expirationDate ? new Date(ent.expirationDate).getTime() : NaN;
+  const endedAt = Number.isFinite(storeExpiry) ? Math.min(storeExpiry, now) : now;
+  const isTrial = ent.periodType === 'TRIAL' || ent.periodType === 'INTRO';
+  return {
+    tier: isTrial ? 'trial' : product.subscriptionTier!,
+    productId,
+    expiresAt: new Date(endedAt).toISOString(),
+    // Written after its own expiry — that shape is how mergeDeviceMonetization
+    // recognises an observed lapse and lets it beat an older active record.
+    grantedAt: new Date(now).toISOString(),
+    isInGracePeriod: false,
+    willRenew: false,
+    isTrial,
+  };
+}
+
 /**
  * Extract subscription info from RevenueCat CustomerInfo.
- * Returns null if no active subscription is found.
+ *
+ * Returns the active Pro subscription (or lifetime) record; failing that, a
+ * store-confirmed lapse (see `extractConfirmedLapse`), whose `expiresAt` is in
+ * the past so `isPro()` reads it as ended; otherwise null. Callers write only a
+ * non-null result — null means "the store told us nothing", never "revoke".
  */
 export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | undefined): SubscriptionInfo | null {
   try {
     const activeEntitlements = customerInfo?.entitlements?.active;
     if (!activeEntitlements || typeof activeEntitlements !== 'object') return null;
 
-    // Look for a 'pro' or 'dynasty_pro' entitlement. NOTE: these identifiers
-    // must match the entitlement name configured in the RevenueCat dashboard.
-    // If the dashboard entitlement is named anything else, EVERY subscription
-    // purchase resolves to null here → the user pays but never gets Pro. Verify
-    // against the live RC dashboard config before shipping any pricing change.
-    const proEntitlement = activeEntitlements['pro'] || activeEntitlements['dynasty_pro'];
-    if (!proEntitlement) return null;
+    const proEntitlement = PRO_ENTITLEMENT_IDS.map(id => activeEntitlements[id]).find(Boolean);
+    if (!proEntitlement) return extractConfirmedLapse(customerInfo);
 
     const productId = proEntitlement.productIdentifier as ProductId;
     const product = PRODUCTS[productId];

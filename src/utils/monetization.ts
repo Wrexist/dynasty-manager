@@ -105,6 +105,26 @@ export function isPersistableEntitlement(productId: ProductId): boolean {
   return true;
 }
 
+/** Milliseconds for an ISO date, NaN when absent or unparseable. */
+const isoMs = (iso: string | null | undefined): number => (iso ? new Date(iso).getTime() : NaN);
+
+/**
+ * Is `candidate` a store-observed lapse written after `other`?
+ *
+ * A record written after its own expiry (`expiresAt <= grantedAt`) is by
+ * construction the store saying "this subscription ended":
+ * `extractSubscriptionInfo` produces exactly that shape for a refund,
+ * revocation or lapse, and an active record never has it. Newer means a
+ * later `grantedAt` than the other record, or the other record has none.
+ */
+function isNewerObservedLapse(candidate: SubscriptionInfo, other: SubscriptionInfo): boolean {
+  const expires = isoMs(candidate.expiresAt);
+  const observed = isoMs(candidate.grantedAt);
+  if (!Number.isFinite(expires) || !Number.isFinite(observed) || expires > observed) return false;
+  const otherObserved = isoMs(other.grantedAt);
+  return !Number.isFinite(otherObserved) || observed > otherObserved;
+}
+
 /**
  * Merge the device-scoped purchase fields of two monetization records, keeping
  * whichever side actually proves a purchase.
@@ -138,12 +158,17 @@ export function mergeDeviceMonetization(
   ).filter(isPersistableEntitlement);
 
   // Prefer an unexpired record over an expired one; if both agree, prefer live,
-  // which is the one a RevenueCat sync can have refreshed.
+  // which is the one a RevenueCat sync can have refreshed. The exception is a
+  // lapse the store reported AFTER the other record was written (a refund or
+  // revocation): the newer verdict wins, or loading a save from before the
+  // refund would hand the refunded subscription back.
   const savedSub = saved.subscription ?? null;
   const liveSub = live.subscription ?? null;
   let subscription: SubscriptionInfo | null;
   if (!savedSub) subscription = liveSub;
   else if (!liveSub) subscription = savedSub;
+  else if (isNewerObservedLapse(liveSub, savedSub)) subscription = liveSub;
+  else if (isNewerObservedLapse(savedSub, liveSub)) subscription = savedSub;
   else {
     const liveActive = !isSubscriptionExpired(liveSub);
     const savedActive = !isSubscriptionExpired(savedSub);
