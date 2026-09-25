@@ -3,7 +3,7 @@
 Everything is synthesised here from oscillators and noise, so the audio is
 owned outright: no sample licence, no music-library claim, safe for paid use.
 
-usage: python3 marketing/postproduction/score-ad.py <style> <cue> <duration> <out.wav>
+usage: python3 marketing/postproduction/score-ad.py <style> <cue> <duration> <out.wav> [drop-seconds]
 needs: pip install numpy scipy
 styles: anthem | phonk | cinematic | preview
 """
@@ -381,7 +381,16 @@ CUES = {
 
 if __name__ == '__main__':
     style, cue, dur, out = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
-    audio = score(style, CUES[cue], dur)
+    cues = dict(CUES[cue])
+    if len(sys.argv) > 5:
+        # Re-rolled takes land the rating a few frames apart (the count-up
+        # length depends on the card). Shift every beat after the flips by
+        # the difference so the downbeat still hits the reveal.
+        shift = float(sys.argv[5]) - cues['drop']
+        cues['build'] += shift
+        cues['drop'] += shift
+        cues['whoosh'] = [w + shift for w in cues.get('whoosh', [])]
+    audio = score(style, cues, dur)
     import wave
     pcm = (audio * 32767).astype('<i2')
     with wave.open(out, 'wb') as w:
