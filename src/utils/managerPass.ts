@@ -290,9 +290,15 @@ export function rollPassSeason(record: ManagerPassRecord, season: ManagerPassSea
 
 let memoRaw: string | null | undefined;
 let memoRecord: ManagerPassRecord | null = null;
+/** Set when storage refused the last write (WKWebView's ~5MB localStorage is
+ *  shared with the save mirror). Memory then holds the newer record for the
+ *  rest of the session — otherwise the next read would re-parse the older
+ *  stored string and a reward collected a moment ago would vanish. */
+let unpersisted = false;
 
 /** The stored record, parsed once per distinct stored string. Null when none. */
 function storedPassRecord(): ManagerPassRecord | null {
+  if (unpersisted) return memoRecord;
   const raw = readManagerPassData();
   if (raw !== memoRaw) {
     memoRaw = raw;
@@ -309,7 +315,7 @@ export function loadPassRecord(season: ManagerPassSeason): ManagerPassRecord {
 
 export function savePassRecord(record: ManagerPassRecord): void {
   const json = JSON.stringify(record);
-  writeManagerPassData(json);
+  unpersisted = !writeManagerPassData(json);
   memoRaw = json;
   memoRecord = record;
 }

@@ -4,7 +4,7 @@
  * observer. Pure functions take an injected `now`; the store tests go through
  * the real slice and the real localStorage record.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   getManagerPassSeason,
   getPassSeasonDaysRemaining,
@@ -407,6 +407,33 @@ describe('Manager Pass — store slice', () => {
 
     setMonetization(NOT_PRO);
     expect(hasCosmetic(NOT_PRO, item!.id)).toBe(true);
+  });
+
+  it('keeps progress for the session when storage refuses the write (quota)', () => {
+    // WKWebView caps localStorage at ~5MB and the save mirror shares it. A
+    // refused write used to be forgotten on the very next read (the memo was
+    // keyed on the stored string), so a collected reward vanished at once.
+    const season = getManagerPassSeason(new Date());
+    savePassRecord({ ...freshPassRecord(season), xp: 300 });
+    const realSetItem = Storage.prototype.setItem;
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === STORAGE_KEYS.MANAGER_PASS) throw new DOMException('full', 'QuotaExceededError');
+      return realSetItem.call(this, key, value);
+    });
+    try {
+      const item = useGameStore.getState().claimManagerPassReward(3, 'free');
+      expect(item?.id).toBe(MANAGER_PASS_TRACK[2].free);
+      expect(isEarnedCosmeticOwned(item!)).toBe(true);
+      expect(useGameStore.getState().equipEarnedCosmetic(item!.id)).toBe(true);
+      useGameStore.getState().recordManagerPassEvents([match('m:quota:1')]);
+      const r = useGameStore.getState().managerPass;
+      expect(r.claimedFree).toEqual([3]);
+      expect(r.xp).toBe(300 + matchPassXp('win'));
+    } finally {
+      spy.mockRestore();
+      // Storage accepts again: this write also clears the in-memory override.
+      savePassRecord(freshPassRecord(season));
+    }
   });
 
   it('equips an earned cosmetic only once it is owned, and it then renders', () => {

@@ -714,9 +714,11 @@ export function readManagerPassData(): string | null {
   catch { return null; }
 }
 
-export function writeManagerPassData(json: string): void {
-  try { localStorage.setItem(STORAGE_KEYS.MANAGER_PASS, json); }
-  catch { /* storage unavailable — non-fatal; progress stays in memory */ }
+/** False when storage refused the write (quota / unavailable). The caller
+ *  (`savePassRecord`) then keeps the record in memory for the session. */
+export function writeManagerPassData(json: string): boolean {
+  try { localStorage.setItem(STORAGE_KEYS.MANAGER_PASS, json); return true; }
+  catch { return false; }
 }
 
 // ── Completed Challenges (device-global) ──
