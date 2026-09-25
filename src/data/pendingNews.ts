@@ -47,6 +47,7 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
     'Fix/limited deal covers.',
+    'Document pack tier restructure: Bronze/Silver restored.',
   ],
   fixed: [],
   headline: null,
