@@ -50,10 +50,12 @@ export function PageHint({ screen, title, body }: PageHintProps) {
             <p className="text-xs font-semibold text-primary mb-0.5">{title}</p>
             <p className="text-[11px] text-primary/70 leading-relaxed">{body}</p>
           </div>
+          {/* 44px hit area; the negative margin keeps the 14px glyph where it
+              was. It rendered 14x14 on every screen that shows a guide. */}
           <button
             type="button"
             onClick={dismiss}
-            className="text-primary/40 hover:text-primary/70 transition-colors shrink-0"
+            className="flex items-center justify-center min-w-[44px] min-h-[44px] -m-3 text-primary/40 hover:text-primary/70 transition-colors shrink-0"
             aria-label={t('pageHint.dismissHint')}
           >
             <X className="w-3.5 h-3.5" />
