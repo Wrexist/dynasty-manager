@@ -273,7 +273,9 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
   },
   matchPrep: {
     title: 'Match Prep Guide',
-    body: 'Review opponent formation, key threats, and form. Rotate tired players before kick-off. Tap "Edit Lineup" to make changes.',
+    // Match Prep edits the XI on its own pitch — there is no "Edit Lineup"
+    // button here (that one lives on the Squad screen).
+    body: 'Review opponent formation, key threats, and form. Rotate tired players before kick-off: tap a player on the pitch, then the one to swap in.',
   },
   matchDay: {
     title: 'Match Day Guide',
