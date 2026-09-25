@@ -620,13 +620,14 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       });
     } else {
       // Different league: must reinitialize game for the new league.
-      // Preserve the season number for career continuity. Seasons keep
-      // advancing during unemployment, so clamp to the CURRENT season
-      // (captured before initGame resets it to 1) — `endSeason + 1` alone
-      // would move the game clock backwards for a manager who sat out a
-      // season or more, corrupting history ordering and contract endSeasons.
-      const lastEntry = updatedHistory[updatedHistory.length - 1];
-      const continuedSeason = Math.max((lastEntry?.endSeason || 0) + 1, state.season);
+      // Preserve the season number for career continuity: the new stint
+      // starts in the CURRENT season (captured before initGame resets it to
+      // 1), exactly as the same-league branch does. This used to be
+      // `max(lastEntry.endSeason + 1, season)` — but the entry just closed
+      // above is stamped `endSeason: season`, so every move by an employed
+      // manager (and by one sacked earlier the same season) jumped to
+      // season + 1, a season nobody played.
+      const continuedSeason = state.season || 1;
 
       // Career league change re-inits the game. Thread the Community Pack flag
       // through: without it the whole world was regenerated procedurally while
