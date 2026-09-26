@@ -45,6 +45,16 @@ describe('planPresentation — the cap', () => {
     expect(plan).toEqual({ active: 'celebration', overflow: [] });
   });
 
+  it('never suppresses the one-time first-win notification ask', () => {
+    // The first win registers the achievement modal and usually the digest,
+    // which spend the budget. The ask's pending flag lives in memory and the
+    // trigger (totalWins === 1) never repeats, so deferring it could lose it.
+    const ledger = { shown: new Set(['achievement', 'weeklyDigest']), suppressed: new Set<string>() };
+    const plan = planPresentation(['notifPrompt'], ledger, CAP, canFileAll);
+    expect(plan.active).toBe('notifPrompt');
+    expect(plan.overflow).toEqual([]);
+  });
+
   it('files the third informational popup instead of showing it', () => {
     const ledger = { shown: new Set(['weeklyDigest', 'celebration']), suppressed: new Set<string>() };
     const plan = planPresentation(['achievement', 'farewell'], ledger, CAP, canFileAll);
