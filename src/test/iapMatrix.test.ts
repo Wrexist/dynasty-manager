@@ -369,6 +369,17 @@ describe('catalogue invariants (CLAUDE.md → Entitlement invariants)', () => {
     expect(PAID_PACK_TIERS.map(k => PACK_TIER_MAP[k].productId).sort()).toEqual([...CONSUMABLE_PRODUCT_IDS].sort());
   });
 
+  it('each paid pack product is named exactly as the card that sells it', () => {
+    // The catalogue name is what App Store Connect's display name must match
+    // (docs/iap-verification.md C10). It drifted once: the card said "Gold
+    // Pack" while the catalogue still said "Champions Pack".
+    for (const k of PAID_PACK_TIERS) {
+      const tier = PACK_TIER_MAP[k];
+      expect(PRODUCTS[tier.productId].name).toBe(tier.label);
+    }
+    expect(PRODUCTS['com.dynastymanager.pack.legends'].name).toBe('Dynasty Legacy Pack');
+  });
+
   it('both subscriptions carry the trial and share one trial target', () => {
     expect([...SUB_TRIAL_PRODUCT_IDS].sort()).toEqual([MONTHLY, YEARLY].sort());
     expect(SUB_TRIAL_PRODUCT_IDS).toContain(TRIAL_TARGET_PRODUCT_ID);
