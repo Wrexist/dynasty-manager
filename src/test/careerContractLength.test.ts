@@ -147,4 +147,29 @@ describe('cross-league move — continues the current season', () => {
     expect(open.clubId).toBe('manchester-city');
     expect(open.startSeason).toBe(2);
   });
+
+  it('the new world\'s contracts run from the continued season, not from season 1', () => {
+    useGameStore.setState({
+      gameMode: 'career',
+      careerManager: careerManagerWithContract(6),
+      season: 5,
+      week: 12,
+    });
+
+    useGameStore.getState().moveToNewClub('manchester-city', {
+      id: 'offer-y', clubId: 'manchester-city', clubName: 'Manchester City', divisionId: 'eng',
+      salary: 20000, contractLength: 2, bonuses: [],
+    } as unknown as JobOffer);
+
+    const s = useGameStore.getState();
+    expect(s.season).toBe(5);
+    const contracted = Object.values(s.players).filter(p => p.clubId);
+    expect(contracted.length).toBeGreaterThan(0);
+    const expired = contracted.filter(p => p.contractEnd <= s.season);
+    expect(expired.length, `${expired.length}/${contracted.length} contracts already expired`).toBe(0);
+    for (const id of s.clubs['manchester-city'].playerIds) {
+      const p = s.players[id];
+      if (p && typeof p.joinedSeason === 'number') expect(p.joinedSeason).toBeLessThanOrEqual(5);
+    }
+  });
 });
