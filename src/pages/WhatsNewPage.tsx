@@ -136,10 +136,6 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
           <p className="text-xs text-muted-foreground">No release notes yet.</p>
         </GlassPanel>
       )}
-
-      <p className="text-micro text-muted-foreground/50 text-center pt-1 pb-3">
-        Updates ship via the App Store · restart to pull latest TestFlight build.
-      </p>
     </div>
   );
 
