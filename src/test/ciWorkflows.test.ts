@@ -93,6 +93,19 @@ describe('the release builds pass the optional redeem-code secret to the web bui
   }
 });
 
+describe('the release builds turn Sentry on only when SENTRY_ENABLED says so', () => {
+  for (const file of ['.github/workflows/android-build.yml', '.github/workflows/ios-testflight.yml']) {
+    it(file, () => {
+      const src = workflow(file);
+      const buildAt = src.indexOf('run: npm run build');
+      const buildStep = src.slice(src.lastIndexOf('- name:', buildAt), buildAt);
+      expect(buildStep).toMatch(
+        /VITE_SENTRY_DSN:\s*\$\{\{\s*vars\.SENTRY_ENABLED\s*==\s*'true'\s*&&\s*secrets\.VITE_SENTRY_DSN\s*\|\|\s*''\s*\}\}/,
+      );
+    });
+  }
+});
+
 describe('release.yml', () => {
   const src = workflow('.github/workflows/release.yml');
 
