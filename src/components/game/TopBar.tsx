@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
@@ -302,7 +303,7 @@ export function TopBar() {
             </div>
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
-              <div className="w-5 h-5 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
+              <ClubCrest club={club} size="xs" />
               {hasPlayedMatches && <FormGuide form={recentForm} size="sm" />}
               {hasPlayedMatches && pos !== '-' && league && (
                 <span className={cn(

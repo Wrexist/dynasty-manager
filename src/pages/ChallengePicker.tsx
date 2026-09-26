@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import * as Sentry from '@sentry/react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
@@ -294,12 +295,7 @@ const ChallengePicker = () => {
                                       loading && 'opacity-50 pointer-events-none',
                                     )}
                                   >
-                                    <div
-                                      className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center text-micro font-bold shadow-sm"
-                                      style={{ backgroundColor: club.color, color: club.secondaryColor }}
-                                    >
-                                      {club.shortName}
-                                    </div>
+                                    <ClubCrest club={club} size="sm" />
                                     <div className="flex-1 min-w-0 text-left">
                                       <p className="text-sm font-medium text-foreground truncate">{club.name}</p>
                                       <div className="flex items-center gap-1.5 mt-0.5">

@@ -10,7 +10,8 @@
  *
  *   1. FIRST SESSION — season 1, week 1 of a first career. The walkthrough
  *      rows below, plus the welcome line and the optional 6-panel tour that
- *      used to be the welcome modal. Finishing the three tickable rows pays
+ *      used to be the welcome modal (plus an "open your free pack" row while
+ *      a free open is available). Finishing the tickable rows pays
  *      `ONBOARDING_COMPLETION_XP` (idempotent in the store) and hands over to
  *      stage 2.
  *   2. COACH — afterwards, through `COACH_CHECKLIST_MAX_SEASON`: the claimable
@@ -63,8 +64,8 @@ import { toast } from 'sonner';
 import { useGameStore } from '@/store/gameStore';
 import { ONBOARDING_COMPLETION_XP, COACH_ALL_TASKS_BONUS_XP } from '@/config/gameBalance';
 import { useShallow } from 'zustand/react/shallow';
-import { Banknote, Search, Calendar, UserPlus, ClipboardList, Check, X, ChevronRight, ArrowRight } from 'lucide-react';
-import type { GameScreen } from '@/types/game';
+import { Banknote, Search, Calendar, UserPlus, ClipboardList, Gift, Check, X, ChevronRight, ArrowRight } from 'lucide-react';
+import type { GameScreen, PackTierKey } from '@/types/game';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { readSessionJson, writeSessionJson, getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
@@ -82,6 +83,10 @@ import { cn } from '@/lib/utils';
 
 /** Session flag: the first-session rows were completed this session. */
 const FIRST_SESSION_DONE_KEY = STORAGE_KEYS.ONBOARDING_CHECKLIST_DISMISSED;
+
+/** Free tiers the first-pack row can point at. Any one of them being openable
+ *  for free right now keeps the row tickable. */
+const ONBOARDING_FREE_PACK_TIERS: PackTierKey[] = ['daily', 'bronze', 'silver'];
 
 interface WalkthroughStep {
   text: string;
@@ -106,12 +111,14 @@ interface FirstSessionInput {
   gamePlanTaskDone: boolean;
   sponsorTaskDone: boolean;
   scouting: { maxAssignments: number; assignments: unknown[] };
+  /** The "open your free pack" row, while a free open is available (or once done). */
+  packRow: ChecklistItem | null;
 }
 
 /** The first-session rows. The scout row swaps to a "hire a scout from Staff"
  *  row when the user has no scout on payroll, so the checklist never has an
  *  un-tickable orphan row. */
-function buildFirstSessionItems({ hasMatchThisWeek, firstMatchPlayed, gamePlanTaskDone, sponsorTaskDone, scouting }: FirstSessionInput): ChecklistItem[] {
+function buildFirstSessionItems({ hasMatchThisWeek, firstMatchPlayed, gamePlanTaskDone, sponsorTaskDone, scouting, packRow }: FirstSessionInput): ChecklistItem[] {
   const items: ChecklistItem[] = [];
 
   // FIRST, and deliberately so. The other two rows are administration — they
@@ -145,6 +152,8 @@ function buildFirstSessionItems({ hasMatchThisWeek, firstMatchPlayed, gamePlanTa
       successCue: 'Your chosen plan stays highlighted and this row ticks. After the final whistle, the post-match summary adds a line telling you how the plan played out.',
     });
   }
+
+  if (packRow) items.push(packRow);
 
   items.push({
     id: 'sponsor',
@@ -238,7 +247,7 @@ export function OnboardingChecklist() {
   const {
     week, season, totalWeeks, seasonPhase, sponsorOffers, scouting, prestigeLevel, hideOnboarding, matchGamePlan,
     hasMatchThisWeek, firstMatchPlayed, club, fixtures, playerClubId, players, weeklyObjectives, transferWindowOpen, shortlistCount,
-    completedCoachTaskIds,
+    completedCoachTaskIds, packsOpened,
   } = useGameStore(
     useShallow(s => ({
       week: s.week,
@@ -269,8 +278,10 @@ export function OnboardingChecklist() {
       transferWindowOpen: s.transferWindowOpen,
       shortlistCount: s.shortlist.length,
       completedCoachTaskIds: s.completedCoachTaskIds,
+      packsOpened: (s.openedPacks || []).length,
     })),
   );
+  const canOpenPack = useGameStore(s => s.canOpenPack);
   const unread = useUnreadCount();
   const setScreen = useGameStore(s => s.setScreen);
   const updateSettings = useGameStore(s => s.updateSettings);
@@ -296,7 +307,16 @@ export function OnboardingChecklist() {
   // Setting a plan is the one task that changes how the team plays, so it
   // gates completion alongside the two admin rows.
   const gamePlanTaskDone = !hasMatchThisWeek || matchGamePlan !== 'none';
-  const allFirstSessionDone = gamePlanTaskDone && sponsorTaskDone && scoutTaskDone;
+  // The first pack is the moment the store page and the ads promise, so the
+  // first session delivers it. Offered only while a free open is actually
+  // available (the daily allowance is device-wide, so a second career on the
+  // same day may have spent it) — never an un-tickable row.
+  const packTaskDone = packsOpened > 0;
+  const freePackReady = !packTaskDone
+    && ONBOARDING_FREE_PACK_TIERS.some(k => canOpenPack(k, 'free').ok);
+  const showPackRow = packTaskDone || freePackReady;
+  const allFirstSessionDone = gamePlanTaskDone && sponsorTaskDone && scoutTaskDone
+    && (!showPackRow || packTaskDone);
 
   // ── Stage 2: coach tasks ──
   const coachTasks = useMemo(() => {
@@ -393,7 +413,25 @@ export function OnboardingChecklist() {
   if (!stage) return tour;
 
   const firstSessionItems = isFirstSession
-    ? buildFirstSessionItems({ hasMatchThisWeek, firstMatchPlayed, gamePlanTaskDone, sponsorTaskDone, scouting })
+    ? buildFirstSessionItems({
+      hasMatchThisWeek, firstMatchPlayed, gamePlanTaskDone, sponsorTaskDone, scouting,
+      packRow: showPackRow ? {
+        id: 'free-pack',
+        label: t('onboardingChecklist.freePack.label'),
+        description: t('onboardingChecklist.freePack.description'),
+        icon: Gift,
+        done: packTaskDone,
+        screen: 'packs',
+        whyItMatters: t('onboardingChecklist.freePack.why'),
+        steps: [
+          { text: t('onboardingChecklist.freePack.step1') },
+          { text: t('onboardingChecklist.freePack.step2') },
+          { text: t('onboardingChecklist.freePack.step3') },
+          { text: t('onboardingChecklist.freePack.step4') },
+        ],
+        successCue: t('onboardingChecklist.freePack.success'),
+      } : null,
+    })
     : [];
   // The counter counts ticked rows, including coach steps that are done
   // whether or not their XP has been collected (it read 0/7 after the first

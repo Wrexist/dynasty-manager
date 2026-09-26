@@ -26,6 +26,7 @@
  * the inbox.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -716,23 +717,13 @@ const Dashboard = () => {
               </div>
               <div className="flex items-center justify-between">
                 <div className="text-center flex-1">
-                  <div
-                    className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                    style={{ backgroundColor: club.color, color: club.secondaryColor }}
-                  >
-                    {club.shortName}
-                  </div>
+                  <ClubCrest club={club} size="lg" className="mx-auto mb-2" />
                   <p className="text-sm font-bold text-foreground">{club.shortName}</p>
                   <p className="text-[11px] text-muted-foreground">{isHome ? t('dashboard.match.home') : t('dashboard.match.away')}</p>
                 </div>
                 <p className="px-4 text-2xl font-black text-muted-foreground">{t('dashboard.match.vs')}</p>
                 <div className="text-center flex-1">
-                  <div
-                    className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                    style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
-                  >
-                    {opponent.shortName}
-                  </div>
+                  <ClubCrest club={opponent} size="lg" className="mx-auto mb-2" />
                   <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
                   <p className="text-[11px] text-muted-foreground">{isHome ? t('dashboard.match.away') : t('dashboard.match.home')}</p>
                 </div>
@@ -772,12 +763,7 @@ const Dashboard = () => {
                 </p>
               </div>
               {nextFixtureOpponent && (
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0"
-                  style={{ backgroundColor: nextFixtureOpponent.color, color: nextFixtureOpponent.secondaryColor }}
-                >
-                  {nextFixtureOpponent.shortName}
-                </div>
+                <ClubCrest club={nextFixtureOpponent} size="md" className="shrink-0" />
               )}
             </div>
           )}

@@ -65,6 +65,9 @@ export const PENDING_NEWS: PendingRelease = {
     'A cleaner inbox: routine news arrives read and AI transfers come as one weekly round-up.',
     'Finance and the Weekly Digest now show the same numbers.',
     'Text is easier to read, and buttons are easier to tap across the game.',
+    'Share your best pack pull as a story card.',
+    'New managers are guided to open their free pack in the first session.',
+    'Shared best-pull cards now show the player\'s portrait.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',

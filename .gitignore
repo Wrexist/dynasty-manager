@@ -85,3 +85,6 @@ artifacts/**/*.png
 artifacts/**/*.jpg
 artifacts/**/*.jpeg
 artifacts/**/*.webp
+
+# Full-resolution crest sources remain local; runtime SVG assets and manifests ship.
+artifacts/team-crest-rollout/sources/

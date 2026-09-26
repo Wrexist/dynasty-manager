@@ -1,0 +1,19 @@
+﻿{
+  "status": "Complete: all catalog teams integrated as vectors and validated locally",
+  "total": 756,
+  "integrated": 756,
+  "divisions": 45,
+  "runtimeBytes": 874716,
+  "checks": {
+    "coverage": "passed: 756/756, names and colors unchanged",
+    "gallery": "all 756 SVGs browser-decoded; 32 contact sheets produced",
+    "ui": "passed: 375px and 1024px, matrix and club selection, no broken images or overflow",
+    "unitTests": "4 passed",
+    "typecheck": "passed",
+    "targetedLint": "passed",
+    "productionBuild": "passed",
+    "bundleSize": "passed"
+  },
+  "deployment": "not performed",
+  "rightsStatus": "No legal clearance claimed"
+}

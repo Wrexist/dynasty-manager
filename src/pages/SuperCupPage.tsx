@@ -1,9 +1,10 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { motion } from 'framer-motion';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
-import { Shield, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import type { Club, SuperCupMatch, VirtualClub } from '@/types/game';
@@ -46,10 +47,7 @@ function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: 
         <div className="flex items-center gap-3">
           {/* Home */}
           <div className="flex-1 text-center">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-1.5"
-              style={{ backgroundColor: home?.color || '#888' }}>
-              <Shield className="w-5 h-5 text-white" />
-            </div>
+            <ClubCrest club={home} clubId={match.homeClubId} size="md" className="mx-auto mb-1.5" />
             <p className={cn('text-sm font-medium truncate', match.homeClubId === playerClubId && 'text-primary')}>
               {home?.shortName || '???'}
             </p>
@@ -84,10 +82,7 @@ function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: 
 
           {/* Away */}
           <div className="flex-1 text-center">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-1.5"
-              style={{ backgroundColor: away?.color || '#888' }}>
-              <Shield className="w-5 h-5 text-white" />
-            </div>
+            <ClubCrest club={away} clubId={match.awayClubId} size="md" className="mx-auto mb-1.5" />
             <p className={cn('text-sm font-medium truncate', match.awayClubId === playerClubId && 'text-primary')}>
               {away?.shortName || '???'}
             </p>

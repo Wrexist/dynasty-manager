@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
@@ -634,7 +635,7 @@ const CalendarView = () => {
 
         {/* Opponent */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: opp?.color }} />
+          <ClubCrest club={opp} size="xs" />
           <span className={cn('text-sm truncate', isCurrent ? 'text-foreground font-bold' : 'text-foreground/80')}>
             {opp?.shortName || '?'}
           </span>
@@ -729,7 +730,7 @@ const CalendarView = () => {
 
         {/* Opponent + round name */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: opp?.color }} />
+          <ClubCrest club={opp} size="xs" />
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
               <span className={cn('text-sm truncate', isCurrent ? 'text-foreground font-bold' : 'text-foreground/80')}>

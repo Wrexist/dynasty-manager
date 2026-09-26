@@ -49,6 +49,7 @@ early relative to the animations they bracket.
 | `realOnly` | `1` | Reject any pack containing an invented player (see below) |
 | `minHero` | `0` | Re-roll until the best card reaches this OVR |
 | `hook` / `mid` / `cta` | — | Caption text (URL-encoded) |
+| `midPos` | `top` | `mid` moves the mid caption onto the walkout card's lower frame, so it no longer covers the rating |
 | `hookUntil` / `midFrom` / `midUntil` / `ctaFrom` | 3.4 / 6.5 / 9.5 / 13 | Caption timing, in seconds **from the start of the take** — the rig zeroes the harness clock via `window.__adClockStart`, so these match the finished file rather than running ahead of it |
 
 Captions are rendered in the DOM, not burned by ffmpeg — the bundled Playwright
@@ -131,3 +132,35 @@ on the crop line.
   in `capture-ad.mjs` and their own harness route.
 - Audio is not captured. Add music in-platform (TikTok's Commercial Music
   Library keeps the asset licensed for paid use).
+
+## Sound — `score-ad.py`
+
+`encode-ad.mjs` produces silent ad files. `score-ad.py` writes their
+soundtrack: music (styles `anthem`, `phonk`, `cinematic`, `preview`) plus card
+flips, a riser into the walkout, a sub impact and a stadium crowd on the reveal,
+a whoosh into the summary, and a hit on the CTA. Every sound is synthesised
+from oscillators and noise, so the audio is owned outright. No sample licence
+and no music-library claim, so it is safe for paid use.
+
+```bash
+pip install numpy scipy
+python3 marketing/postproduction/score-ad.py anthem pack5 13.28 /tmp/a.wav
+.cache/ffmpeg -i /tmp/a.wav -af loudnorm=I=-14:TP=-1:LRA=9 -ar 48000 /tmp/a-norm.wav
+.cache/ffmpeg -i ad.mp4 -i /tmp/a-norm.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest out.mp4
+```
+
+The cue sheets (`pack5`, `icon`, `preview` in `CUES`) hold the beat times of
+each capture plan. The drop is the moment the walkout rating lands, and the beat
+grid is anchored to it, so the downbeat always hits the reveal. If a plan's
+timing changes, update its cue sheet. Read the new times off a frame strip
+(`ffmpeg -vf fps=2,drawtext=...,tile`).
+
+Re-rolled takes land the rating a few frames apart. Pass the observed time as a
+fifth argument (`... /tmp/a.wav 5.9`) and every beat from the build onward moves
+with it.
+
+Loudness targets are -14 LUFS for TikTok/Reels/Shorts and -16 LUFS for the App
+Preview. Nobody has listened to the mix on a phone yet. The balance was set by
+band-energy measurement, keeping the 150–2000 Hz band at 30–50%, because a
+phone speaker plays almost nothing below 150 Hz. An on-device listen is the
+check still owed.

@@ -14,7 +14,9 @@ import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
 import { PackStadium } from './PackStadium';
 import { WalkoutReveal } from './WalkoutReveal';
-import { tierForOvr } from './packHelpers';
+import { pickBestPull, tierForOvr } from './packHelpers';
+import { ShareMomentButton } from '@/components/game/ShareMomentButton';
+import { buildPackPullCardData } from '@/utils/shareCard';
 import { cn } from '@/lib/utils';
 
 // Quick-sell pricing comes from config so the button can never promise a
@@ -70,6 +72,9 @@ interface PackOpeningOverlayProps {
    *  on key presence alone. Computed by the parent (which has the squad in
    *  state) and passed in. */
   improvement?: Record<string, { delta: number; currentBestOvr: number }>;
+  /** Hide the best-pull Share action (ad capture renders this overlay and must
+   *  not grow a button in its footage). */
+  hideShare?: boolean;
 }
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -92,7 +97,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeepAll, onSellSelected, placement, improvement }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeepAll, onSellSelected, placement, improvement, hideShare }: PackOpeningOverlayProps) {
   const { t } = useTranslation();
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotionPref();
@@ -208,6 +213,18 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // (the OVR tier every 90+ pull shares) throws away the one thing that made
   // this open different, on the screen the player lingers on.
   const hasLegendPull = useMemo(() => players.some(p => p.legendId), [players]);
+  // Share card for the best pull (growth playbook P1). Built from the card's
+  // face only — OVR, position, art — never the player's name or portrait.
+  // Hall-first, like the chip's label, so the card shared is the one named.
+  const bestPullShare = useMemo(() => {
+    const best = pickBestPull(players);
+    if (!best) return null;
+    return buildPackPullCardData(best, {
+      packLabel: tierDef.label,
+      pulledLabel: t('packOpeningOverlay.sharePulledIn'),
+      shareMessage: t('packOpeningOverlay.shareMessage', { pack: tierDef.label }),
+    });
+  }, [players, tierDef.label, t]);
   const confettiCount = topOvr >= 90
     ? PACK_ANIM.confetti.icon
     : topOvr >= 84 ? PACK_ANIM.confetti.legendary
@@ -1542,22 +1559,33 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               {/* Best-pull rarity chip — tints the results header with the
                   top card's tier so the headline rarity of the pack reads at
                   a glance, echoing the same tier palette the cards' auras use. */}
-              {topOvr > 0 && (
-                <motion.div
-                  className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-display font-bold uppercase tracking-[0.22em] text-white"
-                  style={{
-                    background: `linear-gradient(135deg, ${topTier.gradientFrom}33, ${topTier.gradientTo}1f)`,
-                    border: `1px solid ${topTier.gradientVia}66`,
-                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px -10px ${topTier.gradientVia}99`,
-                  }}
-                  initial={{ opacity: 0, scale: 0.9, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.14 }}
-                >
-                  <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>{hasLegendPull ? '♛' : '★'}</span>
-                  <span>Best pull · {hasLegendPull ? 'Hall of Legends' : topTier.label}</span>
-                </motion.div>
-              )}
+              <div className="mt-2 flex items-center justify-center gap-2">
+                {topOvr > 0 && (
+                  <motion.div
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-display font-bold uppercase tracking-[0.22em] text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${topTier.gradientFrom}33, ${topTier.gradientTo}1f)`,
+                      border: `1px solid ${topTier.gradientVia}66`,
+                      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px -10px ${topTier.gradientVia}99`,
+                    }}
+                    initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.14 }}
+                  >
+                    <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>{hasLegendPull ? '♛' : '★'}</span>
+                    <span>Best pull · {hasLegendPull ? 'Hall of Legends' : topTier.label}</span>
+                  </motion.div>
+                )}
+                {!hideShare && bestPullShare && (
+                  <ShareMomentButton
+                    data={bestPullShare}
+                    label={t('packOpeningOverlay.shareBestPull')}
+                    // 44px tap target; a pill beside the chip, not the default
+                    // full-width block, so the results header barely grows.
+                    className="w-auto h-11 px-4 rounded-full text-xs text-white bg-white/10 border-white/25"
+                  />
+                )}
+              </div>
               {/* Soft gradient rule — visually separates the header from the
                   scrolling grid below. Fades to transparent at the edges so
                   it doesn't feel like a hard divider on the dark backdrop. */}

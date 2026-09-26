@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import * as Sentry from '@sentry/react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useMemo, memo, useRef, useEffect } from 'react';
@@ -649,12 +650,7 @@ const ClubSelection = () => {
                       >
                         <div className="flex items-center gap-3">
                           {/* Club badge */}
-                          <div
-                            className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.5)]"
-                            style={{ backgroundColor: club.color, color: club.secondaryColor }}
-                          >
-                            {club.shortName}
-                          </div>
+                          <ClubCrest club={club} size="lg" />
 
                           {/* Club info */}
                           <div className="flex-1 min-w-0">
@@ -706,12 +702,7 @@ const ClubSelection = () => {
             <div className="relative max-w-lg mx-auto p-4 space-y-3">
               {/* Club header */}
               <div className="flex items-center gap-3">
-                <div
-                  className="w-11 h-11 rounded-lg flex items-center justify-center text-micro font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_12px_-2px_rgba(0,0,0,0.55)]"
-                  style={{ backgroundColor: selectedClub.color, color: selectedClub.secondaryColor }}
-                >
-                  {selectedClub.shortName}
-                </div>
+                <ClubCrest club={selectedClub} size="lg" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground text-base leading-tight">{selectedClub.name}</p>
                   <div className="flex items-center gap-2 mt-1">

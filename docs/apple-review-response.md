@@ -1,5 +1,22 @@
 # Apple App Review Response — Guideline 2.1 (Information Needed)
 
+> ⚠️ **Corrected 2026-09-25 — read before pasting anything below.**
+> The original reply (written for the 92-fictional-club build) told App Review
+> that every club, league and player was fictional, that the app used no
+> real-world brands, and that its randomised packs were purely cosmetic. None
+> of that is true of the current build: it ships 756 real clubs, real
+> footballers' names and ratings, real-player portrait art, and paid
+> randomised **player** packs that add players to the squad. Re-sending the
+> old text would be a misrepresentation to Apple (Guidelines 2.3 / 5.2), which
+> is an account-level risk, not just an app-level one.
+>
+> The sections below are rewritten to describe the current build factually.
+> **Open decision for the owner:** Apple may ask for documentation of rights
+> to third-party names and likenesses (Guideline 5.2.1). The developer does not
+> hold such a licence today. Decide how to answer that — ideally with legal
+> advice — *before* the next submission, not during it. See
+> `marketing/PLAYBOOK.md` §4.
+
 > Paste the section below into the **App Review Information → Notes** field
 > in App Store Connect, and reply to the message thread with the same text.
 > The screen recording goes in the message thread as a separate attachment.
@@ -21,7 +38,7 @@ is attached to this reply. It begins with a cold launch and walks through:
 
 - **App launch** → splash → title screen → "What's New" tile.
 - **Manager creation** (no account / no login required — see §4 below).
-- **Club selection** from one of 92 fictional clubs across 4 divisions.
+- **Club selection** from 756 real-world clubs across 45 leagues in 37 countries.
 - **Main game loop:** Dashboard → Squad → Tactics → Match Day (live
   match simulation) → Match Review → Inbox.
 - **Transfers:** opening the Transfer Market, making an offer, responding
@@ -60,8 +77,8 @@ All builds distributed to internal testers via TestFlight before submission.
 ### 3. App purpose, target audience, and value
 
 **Dynasty Manager** is an offline, single-player football (soccer) management
-simulation. The player takes charge of one of 92 fictional clubs across 4
-fictional divisions and builds a multi-season "dynasty" — managing the
+simulation. The player takes charge of one of 756 real-world clubs across
+45 leagues and builds a multi-season "dynasty" — managing the
 squad, setting tactics, simulating matches, handling transfers and loans,
 developing youth players, and progressing through promotion / relegation,
 cup competitions, and end-of-season awards.
@@ -70,9 +87,9 @@ cup competitions, and end-of-season awards.
   either watered-down ports of desktop titles or shallow tap-to-win
   freemium experiences. Dynasty Manager delivers a deep, premium
   management simulation designed mobile-first — playable in short
-  sessions on a phone, with no ads and no pay-to-win mechanics.
+  sessions on a phone, with no ads and no energy timers.
 - **Value provided:** A complete career-mode football experience —
-  92 clubs, 4 divisions, 7 formations, an event-based minute-by-minute
+  756 clubs, 45 leagues, 10 formations, an event-based minute-by-minute
   match engine, youth development, scouting, staff, finances, manager
   perks, and a Hall of Managers — entirely offline, with no required
   account.
@@ -92,7 +109,7 @@ core flow:
 1. **Title screen** → tap **Play**.
 2. **Manager creation** → enter a manager name and choose an avatar
    (purely local — no account, no server call).
-3. **Club selection** → pick any of 92 clubs across 4 divisions.
+3. **Club selection** → pick any of 756 clubs across 45 leagues.
 4. **Main game** lands on the **Dashboard**. Bottom navigation exposes
    the five primary screens: Dashboard, Squad, Tactics, Match Day,
    More (Transfer / Training / Staff / Scouting / Youth / Facilities /
@@ -124,13 +141,15 @@ The app is offline-first. The only external services used are:
 The app does **not** use:
 - Third-party authentication services (no Google / Apple / Facebook sign-in).
 - Third-party data providers (all player, club, league, and fixture data
-  is bundled and procedurally generated locally).
+  is bundled with the app; there is no runtime data feed).
 - AI services or LLM APIs.
 - Advertising SDKs (no AdMob, no Meta Audience Network, no IDFA / ATT).
 - Any analytics service other than Sentry's anonymous crash reports.
 
-All league, club, player, and competition names are **fictional** and
-authored in-house — no third-party sports data licence is required.
+Club and player names refer to real-world football clubs and footballers.
+Continental and international competitions use the app's own names. Player
+data is bundled at build time; no third-party data service is called at
+runtime.
 
 ---
 
@@ -149,20 +168,22 @@ features, and gameplay are identical worldwide.
 
 ### 7. Regulated industry / third-party material
 
-Dynasty Manager does not operate in a regulated industry and uses no
-protected third-party material:
+Dynasty Manager does not operate in a regulated industry.
 
-- **No real clubs, leagues, players, or tournaments.** All 92 clubs,
-  4 divisions, and continental / international competitions are
-  fictional and original to this app.
-- **No real-world brands or trademarks.**
-- **No gambling, betting, or wagering** with real currency or real-world
-  outcomes. Paid cosmetic packs (avatars, badges, stadium themes) are
-  randomised but:
-  - Are purely cosmetic — they cannot affect match outcomes, player
-    ratings, training, transfers, or any core simulation parameter.
-  - Display drop rates prominently on the purchase screen, in
-    compliance with App Review Guideline 3.1.1.
+- **Third-party names and likenesses.** The app uses the names of real
+  football clubs and footballers, and shows portrait artwork of real
+  players on player cards. Competition names are the app's own. *(See the
+  open decision at the top of this file before submitting.)*
+- **No gambling, betting, or wagering** on real-world outcomes, and nothing
+  obtained in the app can be cashed out or traded for money.
+- **Randomised paid items.** Player packs are consumable in-app purchases
+  that add randomly selected players to the user's squad, and those players
+  play in the simulation. Cosmetic packs (manager identity, stadium
+  atmosphere) are non-consumable and do not affect the simulation.
+  - Every pack shows its full drop-rate table before purchase
+    (Guideline 3.1.1), generated from the same configuration the pack
+    generator uses.
+  - Free packs are available daily without purchase.
 - **No regulated financial, medical, legal, or health content.**
 - **No user-generated content** of any kind — no chat, comments,
   uploads, profiles, or social features. There is nothing to report
@@ -181,8 +202,9 @@ protected third-party material:
 5. ✅ External services: RevenueCat, Apple StoreKit, Sentry. No others.
 6. ✅ Consistent across regions; English only; standard Apple pricing
    tiers.
-7. ✅ No regulated industry; no protected third-party material; all
-   content is original and fictional.
+7. ✅ No regulated industry. Real club and player names and player
+   portrait artwork are used (see the note at the top). Randomised paid
+   player packs disclose odds before purchase.
 
 Happy to provide additional clarification or a second recording on any
 specific flow. Thanks again for the review.

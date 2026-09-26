@@ -1315,6 +1315,7 @@ const MatchDayInner = () => {
             <ErrorBoundary fallback={() => null}>
               <Suspense fallback={null}>
                 <PitchView
+                  worldCup={isWorldCup}
                   match={match}
                   homeClub={homeClub}
                   awayClub={awayClub}
@@ -2026,6 +2027,7 @@ const MatchDayInner = () => {
             <ErrorBoundary fallback={() => null}>
               <Suspense fallback={<div className="w-full rounded-xl bg-black/20 border border-border/40" style={{ aspectRatio: '68 / 104' }} />}>
                 <PitchView
+                  worldCup={isWorldCup}
                   match={match}
                   homeClub={homeClub}
                   awayClub={awayClub}

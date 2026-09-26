@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -122,7 +123,7 @@ function TeamSide({ club, dots, isNation, align }: {
   if (!club) return <span />;
   const crest = isNation
     ? <span className="text-sm leading-none shrink-0">{getFlag(club.id)}</span>
-    : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: club.color }} />;
+    : <ClubCrest club={club} size="xs" />;
   const dotRow = (
     <span className="flex items-center gap-[3px]">
       {dots.map((d, i) => (

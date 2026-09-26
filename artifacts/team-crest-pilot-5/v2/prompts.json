@@ -1,0 +1,36 @@
+{
+  "mode": "built-in image_gen editing",
+  "status": "concept revisions; not integrated or legally cleared",
+  "teams": [
+    {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "prompt": "Use case: logo-brand. Edit the attached original concept crest to make it feel closer to a traditional English football club badge and more immediately identifiable, while retaining its invented central symbol. Change the hexagon to a traditional broad shield with gently curved shoulders and a pointed bottom. Add exact text \"ARSENAL\" across the upper panel in original clean slab-serif lettering. Keep the three rising beams as the central motif, arranged below the text. No cannon. Preserve palette strictly #EF0107 red and #FFFFFF white. Team name must be spelled exactly as requested; create your own lettering, do not copy an official wordmark. Polished flat vector-like design, crisp solid colors, strong silhouette, balanced spacing, no gradient, texture, shadows or bevel. Center one complete emblem with 10 percent padding on a genuinely transparent square background. Do not recreate an official club crest. No extra text or mockup.",
+      "path": "C:/Users/IsacC/dynasty-manager/artifacts/team-crest-pilot-5/arsenal.png"
+    },
+    {
+      "id": "chelsea",
+      "name": "Chelsea",
+      "prompt": "Use case: logo-brand. Edit the attached original concept crest to make it feel closer to a traditional English football club badge and more immediately identifiable, while retaining its invented central symbol. Change the tall badge into a round football crest with a generous outer ring. Add exact text \"CHELSEA\" around the top and \"FOOTBALL CLUB\" around the bottom in clean original lettering. Keep the original compass spark large in the center and add two tiny simple diamond separators at the sides. No lion or staff. Preserve palette strictly #034694 royal blue and #FFFFFF white. Team name must be spelled exactly as requested; create your own lettering, do not copy an official wordmark. Polished flat vector-like design, crisp solid colors, strong silhouette, balanced spacing, no gradient, texture, shadows or bevel. Center one complete emblem with 10 percent padding on a genuinely transparent square background. Do not recreate an official club crest. No extra text or mockup.",
+      "path": "C:/Users/IsacC/dynasty-manager/artifacts/team-crest-pilot-5/chelsea.png"
+    },
+    {
+      "id": "liverpool",
+      "name": "Liverpool",
+      "prompt": "Use case: logo-brand. Edit the attached original concept crest to make it feel closer to a traditional English football club badge and more immediately identifiable, while retaining its invented central symbol. Change the diamond to an elegant tall shield with a gently scalloped top and tapered point, with a simple integrated top panel reading exactly \"LIVERPOOL\" and small bottom text \"FC\". Keep the flowing bands as the central motif, clean up their ragged inner edge and make them symmetrical. No bird, flames or gates. Preserve palette strictly #C8102E red and #FFFFFF white. Team name must be spelled exactly as requested; create your own lettering, do not copy an official wordmark. Polished flat vector-like design, crisp solid colors, strong silhouette, balanced spacing, no gradient, texture, shadows or bevel. Center one complete emblem with 10 percent padding on a genuinely transparent square background. Do not recreate an official club crest. No extra text or mockup.",
+      "path": "C:/Users/IsacC/dynasty-manager/artifacts/team-crest-pilot-5/liverpool.png"
+    },
+    {
+      "id": "manchester-city",
+      "name": "Manchester City",
+      "prompt": "Use case: logo-brand. Edit the attached original concept crest to make it feel closer to a traditional English football club badge and more immediately identifiable, while retaining its invented central symbol. Change the stepped badge into a round football crest with an outer name ring reading exactly \"MANCHESTER\" on the top arc and \"CITY\" on the bottom arc. Put the sunrise and three pillars inside a small distinctive flat-bottomed central shield. No ship, rose, eagle or dates. Preserve palette strictly #6CABDD sky blue and #FFFFFF white. Team name must be spelled exactly as requested; create your own lettering, do not copy an official wordmark. Polished flat vector-like design, crisp solid colors, strong silhouette, balanced spacing, no gradient, texture, shadows or bevel. Center one complete emblem with 10 percent padding on a genuinely transparent square background. Do not recreate an official club crest. No extra text or mockup.",
+      "path": "C:/Users/IsacC/dynasty-manager/artifacts/team-crest-pilot-5/manchester-city.png"
+    },
+    {
+      "id": "manchester-united",
+      "name": "Manchester United",
+      "prompt": "Use case: logo-brand. Edit the attached original concept crest to make it feel closer to a traditional English football club badge and more immediately identifiable, while retaining its invented central symbol. Change the octagonal badge to a compact broad shield with a separate simple straight-edged top nameplate reading exactly \"MANCHESTER\" and a bottom nameplate reading exactly \"UNITED\". Keep a simplified interlocking geometric star at center. Keep the composition compact and unified, no decorative side footballs. No devil, trident or ship. Preserve palette strictly #DA291C red and #FBE122 yellow. Team name must be spelled exactly as requested; create your own lettering, do not copy an official wordmark. Polished flat vector-like design, crisp solid colors, strong silhouette, balanced spacing, no gradient, texture, shadows or bevel. Center one complete emblem with 10 percent padding on a genuinely transparent square background. Do not recreate an official club crest. No extra text or mockup.",
+      "path": "C:/Users/IsacC/dynasty-manager/artifacts/team-crest-pilot-5/manchester-united.png"
+    }
+  ]
+}

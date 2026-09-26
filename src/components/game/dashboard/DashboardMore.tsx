@@ -12,6 +12,7 @@
  * previews, manager tips, record chases, achievement progress — cost nothing
  * for a player who never opens it.
  */
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -716,7 +717,7 @@ export function DashboardMore({ seasonOver, inPlayoffs }: DashboardMoreProps) {
                 )}>
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 text-right tabular-nums">{team.position}</span>
-                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
+                    <ClubCrest club={team} clubId={team.clubId} size="xs" />
                     <span className="truncate max-w-[60px]">{team.shortName}</span>
                   </div>
                   <span className="font-semibold tabular-nums">{team.points}pts</span>

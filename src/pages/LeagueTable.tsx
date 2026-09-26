@@ -1,3 +1,4 @@
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
@@ -492,7 +493,7 @@ const LeagueTable = () => {
                       </td>
                       <td className="px-1 py-2">
                         <div className="flex items-center gap-1 min-w-0">
-                          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
+                          <ClubCrest club={club} size="xs" />
                           <span className={cn('text-xs font-medium truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
                             {club?.name || '?'}{/* full name — the CSS `truncate` above ellipsizes cleanly; getClubDisplayName's 7-char hard slice produced "Bournem" */}
                           </span>
@@ -630,7 +631,7 @@ const LeagueTable = () => {
                         )}>
                           {getClubDisplayName(homeClub?.name || '?')}
                         </span>
-                        <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: homeClub?.color }} />
+                        <ClubCrest club={homeClub} size="xs" />
                       </div>
                       <div className="w-16 text-center shrink-0">
                         {match.played ? (
@@ -649,7 +650,7 @@ const LeagueTable = () => {
                         className="flex-1 flex items-center gap-2 cursor-pointer active:opacity-70 focus-visible:outline-none focus-visible:opacity-70"
                         onClick={() => handleSelectClub(match.awayClubId)}
                       >
-                        <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: awayClub?.color }} />
+                        <ClubCrest club={awayClub} size="xs" />
                         <span className={cn(
                           'text-xs font-medium truncate',
                           match.awayClubId === playerClubId ? 'text-primary font-bold' : 'text-foreground'
@@ -688,7 +689,7 @@ const LeagueTable = () => {
                       onClick={() => selectPlayer(p.id)}
                     >
                       <span className={cn('w-5 text-xs font-bold text-center', i === 0 ? 'text-primary' : 'text-muted-foreground')}>{i + 1}</span>
-                      <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: pClub?.color }} />
+                      <ClubCrest club={pClub} size="xs" />
                       <div className="flex-1 min-w-0">
                         <p className={cn('text-sm font-medium truncate', p.clubId === playerClubId ? 'text-primary' : 'text-foreground')}>
                           {p.firstName[0]}. {p.lastName}
@@ -722,7 +723,7 @@ const LeagueTable = () => {
                       onClick={() => selectPlayer(p.id)}
                     >
                       <span className={cn('w-5 text-xs font-bold text-center', i === 0 ? 'text-primary' : 'text-muted-foreground')}>{i + 1}</span>
-                      <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: pClub?.color }} />
+                      <ClubCrest club={pClub} size="xs" />
                       <div className="flex-1 min-w-0">
                         <p className={cn('text-sm font-medium truncate', p.clubId === playerClubId ? 'text-primary' : 'text-foreground')}>
                           {p.firstName[0]}. {p.lastName}
