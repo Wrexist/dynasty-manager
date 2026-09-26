@@ -625,7 +625,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
     training: {
       schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
-      intensity: 'medium', individualPlans: [], tacticalFamiliarity: STARTING_TACTICAL_FAMILIARITY,
+      intensity: 'medium', individualPlans: [], positionPlans: [], tacticalFamiliarity: STARTING_TACTICAL_FAMILIARITY,
     },
     staff: { members: initialStaff, availableHires },
     scouting: { maxAssignments: scoutCount, assignments: [], reports: [], discoveredPlayers: [] },
