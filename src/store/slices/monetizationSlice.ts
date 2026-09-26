@@ -3,7 +3,7 @@ import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from
 import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, SUB_TRIAL_PRODUCT_IDS } from '@/config/monetization';
 // Single source of truth for the entitlement boundary — shared with
 // mergeDeviceMonetization so every writer of `entitlements` enforces it.
-import { isPersistableEntitlement } from '@/utils/monetization';
+import { isPersistableEntitlement, isStaleLapseOver } from '@/utils/monetization';
 import { withPromptShown, withWatchCompleted, withPromptDismissed } from '@/utils/adPacing';
 import { writeDeviceEntitlements } from '@/store/helpers/persistence';
 
@@ -294,6 +294,9 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
 
     /** Update subscription info from RevenueCat */
     updateSubscription: (info: SubscriptionInfo | null) => {
+      // A store-confirmed lapse of a subscription that ended before the active
+      // local record was written is old news — see `isStaleLapseOver`.
+      if (isStaleLapseOver(info, _get().monetization.subscription)) return;
       _set((s) => ({
         monetization: {
           ...s.monetization,

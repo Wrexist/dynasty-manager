@@ -80,6 +80,7 @@ describe('extractSubscriptionInfo — RevenueCat promotional grants', () => {
 
   it('a bounded comp whose expiry has passed does not convey Pro', () => {
     const past = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    useGameStore.setState(st => ({ monetization: { ...st.monetization, subscription: null } }));
     applySyncGuard(promo('rc_promo_pro_monthly', past));
     expect(isPro(useGameStore.getState().monetization)).toBe(false);
   });
