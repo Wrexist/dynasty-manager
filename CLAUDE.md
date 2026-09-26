@@ -391,8 +391,8 @@ src/
 │   │                      nationalTeam, career, packs, sunday, managerPass
 │   │   ├── orchestrationSlice.ts (1,551 LOC — façade) delegating to:
 │   │   └── orchestration/ → weekAdvance.ts (3,205 LOC — THE game loop),
-│   │                        seasonEnd.ts (2,276 LOC), matchActions.ts (2,243 LOC),
-│   │                        initGame.ts (755 LOC), tournaments.ts, playoff.ts,
+│   │                        seasonEnd.ts (2,277 LOC), matchActions.ts (2,243 LOC),
+│   │                        initGame.ts (756 LOC), tournaments.ts, playoff.ts,
 │   │                        worldCupMatchActions.ts, communityPackRuntime.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
 │                          development.ts, rosterOps.ts
