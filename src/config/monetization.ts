@@ -155,19 +155,20 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
   // Google Play, and as non-restoring products in RevenueCat.
   // ⚠ IN-APP DISPLAY NAMES CHANGED (Market redesign), PRODUCT IDS DID NOT.
   //
-  // The four consumable packs are now presented as Champions / Elite / World
-  // Class / Legends. The IDs below are frozen forever — Apple does not allow a
+  // The four consumable packs are presented as Gold / Elite / World Class /
+  // Legends (Gold is back from the interim "Champions", which survives only as
+  // a card frame). The IDs below are frozen forever — Apple does not allow a
   // product identifier to be renamed and StoreKit matches by exact string.
   //
   // ACTION REQUIRED IN APP STORE CONNECT (and Google Play): update each
   // product's *display name* to match the `name` fields here. The display name
   // IS editable; only the ID is not. Until that is done, the StoreKit purchase
-  // sheet says "Gold Pack" while the card that opened it says "Champions Pack",
+  // sheet says "Premium Gold Pack" while the card that opened it says "Elite Pack",
   // which reads as the wrong item being charged for and is a refund request
   // waiting to happen.
   'com.dynastymanager.pack.gold': {
     id: 'com.dynastymanager.pack.gold',
-    name: 'Champions Pack',
+    name: 'Gold Pack',
     description: '5 players with at least one 78+ rated player. Consumable — buy each open.',
     priceUsd: 2.99,
     type: 'one_time',
@@ -189,7 +190,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
   'com.dynastymanager.pack.icon': {
     id: 'com.dynastymanager.pack.icon',
     name: 'Legends Pack',
-    description: '1 guaranteed 88+ Icon player with a walkout reveal. Consumable — buy each open.',
+    description: '1 player rated 88+ with a guaranteed walkout reveal and a 1-in-4 chance of a Hall of Legends icon. Consumable — buy each open.',
     priceUsd: 9.99,
     type: 'one_time',
   },
