@@ -320,7 +320,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 4.1.11 + jsdom + Testing Library** — 332 test files in `src/test/`
+- **Vitest 4.1.11 + jsdom + Testing Library** — 334 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -390,8 +390,8 @@ src/
 │   ├── slices/          → core, club, transfer, match, systems, orchestration,
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs, sunday, managerPass
-│   │   ├── orchestrationSlice.ts (1,551 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3,205 LOC — THE game loop),
+│   │   ├── orchestrationSlice.ts (1,557 LOC — façade) delegating to:
+│   │   └── orchestration/ → weekAdvance.ts (3,213 LOC — THE game loop),
 │   │                        seasonEnd.ts (2,277 LOC), matchActions.ts (2,243 LOC),
 │   │                        initGame.ts (756 LOC), tournaments.ts, playoff.ts,
 │   │                        worldCupMatchActions.ts, communityPackRuntime.ts, helpers.ts
@@ -406,7 +406,7 @@ src/
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 332 test files incl. longevity/stress suites, adversarial
+├── test/                → 334 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode,
@@ -415,7 +415,7 @@ src/
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,205 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
+1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,213 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
 2. **`src/store/storeTypes.ts`** — complete `GameState` interface (749 LOC).
 3. **`src/types/game.ts`** — all types (3,885 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
@@ -810,7 +810,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (332 test files)
+npm run test         # Vitest (334 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
@@ -936,7 +936,7 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   release on this count, and do not advertise Swedish (or any) localisation
   in store copy or release notes until a future release explicitly commits to
   finishing the migration.
-- `orchestration/weekAdvance.ts` (3,205 LOC) and `pages/Dashboard.tsx` (843 LOC) are the new oversized files — use `/refactor` for guided extraction.
+- `orchestration/weekAdvance.ts` (3,213 LOC) and `pages/Dashboard.tsx` (843 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~380K vs ~170K LOC) — keep it lazily imported; `size:check` is the guard.
 - framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.
