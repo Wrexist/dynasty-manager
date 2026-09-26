@@ -69,6 +69,7 @@ export const PENDING_NEWS: PendingRelease = {
     'New managers are guided to open their free pack in the first session.',
     'Shared best-pull cards now show the player\'s portrait.',
     'Release unconfirmed purchase markers instead of locking the Market.',
+    'Name pack.gold "Gold Pack" to match its card; pin catalogue names to pack labels.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
