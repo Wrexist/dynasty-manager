@@ -257,7 +257,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                       </p>
                       <div className="flex gap-1.5 mt-2">
                         {top3.map(attr => (
-                          <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
+                          <span key={attr.label} className="text-micro font-mono bg-muted/70 px-1.5 py-0.5 rounded">
                             <span className="text-muted-foreground">{attr.label}</span>{' '}
                             <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
                           </span>
@@ -333,7 +333,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                         className="range-touch relative z-10"
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+                    <div className="flex justify-between text-micro text-muted-foreground tabular-nums">
                       <span>{formatMoney(minFee)}</span>
                       <span className={cn('font-semibold',
                         feeRatio <= 1.1 ? 'text-emerald-400' : feeRatio <= 1.3 ? 'text-amber-400' : 'text-red-400'
@@ -379,7 +379,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                       <div className="bg-muted/20 rounded-lg p-2.5 flex items-center gap-2">
                         <Banknote className="w-4 h-4 text-muted-foreground shrink-0" />
                         <div>
-                          <p className="text-[10px] text-muted-foreground">Budget After</p>
+                          <p className="text-micro text-muted-foreground">Budget After</p>
                           <p className="text-xs font-bold text-emerald-400 tabular-nums">
                             {formatMoney(evaluation.budgetAfter)}
                           </p>
@@ -388,7 +388,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                       <div className="bg-muted/20 rounded-lg p-2.5 flex items-center gap-2">
                         <Users className="w-4 h-4 text-muted-foreground shrink-0" />
                         <div>
-                          <p className="text-[10px] text-muted-foreground">Squad After</p>
+                          <p className="text-micro text-muted-foreground">Squad After</p>
                           <p className="text-xs font-bold text-foreground">
                             {evaluation.squadSizeAfter}
                           </p>
@@ -397,7 +397,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                       <div className="bg-muted/20 rounded-lg p-2.5 flex items-center gap-2">
                         <Shield className="w-4 h-4 text-muted-foreground shrink-0" />
                         <div>
-                          <p className="text-[10px] text-muted-foreground">{player.position}s Left</p>
+                          <p className="text-micro text-muted-foreground">{player.position}s Left</p>
                           <p className={cn('text-xs font-bold', evaluation.positionCountAfter <= 1 ? 'text-red-400' : 'text-foreground')}>
                             {evaluation.positionCountAfter}
                           </p>
@@ -572,7 +572,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   transition={{ delay: 0.28 }}
                 >
                   <StrikeIndicator strikes={strikeCount} latestOutcome="rejected" />
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     Strike {strikeCount}/{NEGOTIATION_MAX_STRIKES}
                   </p>
                 </motion.div>
@@ -655,16 +655,16 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                 >
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-muted/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-muted-foreground mb-1">You Asked</p>
+                      <p className="text-micro text-muted-foreground mb-1">You Asked</p>
                       <p className="text-sm font-bold text-muted-foreground line-through tabular-nums">{formatMoney(counterFee)}</p>
                     </div>
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-amber-400 mb-1">They Offer</p>
+                      <p className="text-micro text-amber-400 mb-1">They Offer</p>
                       <p className="text-sm font-black text-amber-400 tabular-nums">{buyerCounterFee ? formatMoney(buyerCounterFee) : '£?'}</p>
                     </div>
                   </div>
                   {buyerCounterFee && (
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
+                    <div className="flex items-center justify-between text-micro text-muted-foreground px-1">
                       <span>Budget after: {formatMoney((sellerClub.budget + buyerCounterFee))}</span>
                       <span className="text-emerald-400 font-semibold">
                         +{formatMoney((buyerCounterFee - offer.fee))} vs original

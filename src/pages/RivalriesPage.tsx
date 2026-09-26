@@ -70,11 +70,11 @@ function RivalCard({ rival }: { rival: RivalSummary }) {
           <div className="bg-destructive/70 h-full" style={{ width: `${100 - winPct}%` }} />
         </div>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-micro text-muted-foreground">
             {rival.wins + rival.losses > 0 ? `${winPct}% dominance` : 'Not yet met'}
           </span>
           {rival.nextMeetingWeek != null && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary">
+            <span className="inline-flex items-center gap-1 text-micro font-medium text-primary">
               <Calendar className="w-3 h-3" /> Next: Week {rival.nextMeetingWeek}
             </span>
           )}

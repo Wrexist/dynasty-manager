@@ -174,6 +174,11 @@ export const YOUNG_POTENTIAL_AGE_THRESHOLD = 21;
 export const EFFECTIVE_RATING_OVERALL_WEIGHT = 0.6;
 export const EFFECTIVE_RATING_FORM_WEIGHT = 10;
 export const EFFECTIVE_RATING_FITNESS_WEIGHT = 5;
+/** Overall points a player gives up, when the manager's starting XI is picked
+ *  at game start, for playing a slot that is not his own position
+ *  (`selectBestLineup` with `preferNaturalPositions`). A striker only starts
+ *  on the wing over a real winger when he is at least this much better (R5). */
+export const STARTING_XI_OUT_OF_POSITION_PENALTY = 8;
 export const MAX_SUBS = 7;
 
 // ── Nationality Distribution by League ──

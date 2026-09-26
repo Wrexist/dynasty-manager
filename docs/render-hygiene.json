@@ -1,36 +1,36 @@
 {
-  "generatedAt": "2026-04-22T19:16:50.054Z",
+  "generatedAt": "2026-09-25T15:27:02.896Z",
   "node": "v22.22.2",
   "clubId": "manchester-city",
-  "weeks": 46,
+  "weeks": 38,
   "perProbe": [
     {
       "name": "Dashboard",
-      "total": 201,
-      "mean": 4.369565217391305,
+      "total": 172,
+      "mean": 4.526315789473684,
       "maxPerWeek": 6
     },
     {
       "name": "LeagueTable",
-      "total": 201,
-      "mean": 4.369565217391305,
+      "total": 172,
+      "mean": 4.526315789473684,
       "maxPerWeek": 6
     },
     {
       "name": "SquadPage",
-      "total": 201,
-      "mean": 4.369565217391305,
+      "total": 172,
+      "mean": 4.526315789473684,
       "maxPerWeek": 6
     },
     {
       "name": "usePlayerClub (scalar)",
-      "total": 46,
-      "mean": 1,
-      "maxPerWeek": 1
+      "total": 42,
+      "mean": 1.105263157894737,
+      "maxPerWeek": 2
     },
     {
       "name": "week (scalar)",
-      "total": 46,
+      "total": 38,
       "mean": 1,
       "maxPerWeek": 1
     }

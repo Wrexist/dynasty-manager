@@ -11,7 +11,8 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, SUNDAY_SCREEN_GROUPS, SUNDAY_TEAM_GROUP, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { useHardwareBack } from '@/hooks/useHardwareBack';
+import { MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, SUNDAY_SCREEN_GROUPS, SUNDAY_TEAM_GROUP, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { MARKET_SUB_NAV, SQUAD_SUB_NAV, SUNDAY_TEAM_SUB_NAV, SUNDAY_CLUB_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
@@ -22,6 +23,8 @@ import { AdOfferHost } from '@/components/game/AdOfferHost';
 import { REWARDED_ADS_USABLE } from '@/utils/ads';
 import { getEntitlementsDefinitive, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 import { reconcilePendingPackCreditAtLaunch } from '@/utils/packCreditRecovery';
+// ── legacy: Manager Pass ──
+import { attachManagerPassObserver } from '@/utils/managerPassObserver';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -70,6 +73,7 @@ const CareerOverview = lazy(() => import('./CareerOverview'));
 const BallonDor = lazy(() => import('./BallonDor'));
 const FestivalHub = lazy(() => import('./FestivalHub'));
 const DynastyLegacy = lazy(() => import('./DynastyLegacy'));
+const ManagerPassPage = lazy(() => import('./ManagerPassPage'));
 const WorldCupResult = lazy(() => import('./WorldCupResult'));
 const WorldCupDraw = lazy(() => import('./WorldCupDraw'));
 const WorldCupDashboard = lazy(() => import('./WorldCupDashboard'));
@@ -147,6 +151,7 @@ const screens: Record<string, React.ComponentType> = {
   'ballon-dor': BallonDor,
   'festival': FestivalHub,
   'dynasty-legacy': DynastyLegacy,
+  'manager-pass': ManagerPassPage,
   'world-cup-draw': WorldCupDraw,
   'world-cup-result': WorldCupResult,
   'rivalries': RivalriesPage,
@@ -194,6 +199,7 @@ const GameShell = () => {
     gameMode: s.gameMode,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const goBack = useGameStore(s => s.goBack);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const isRetired = useCareerRetired();
@@ -277,6 +283,13 @@ const GameShell = () => {
   useEffect(() => {
     reconcilePendingPackCreditAtLaunch();
   }, []);
+
+  // legacy: Manager Pass XP from play — matches, monthly objectives and
+  // completed seasons, read as career counters (see attachManagerPassObserver).
+  // Baselines on mount, so opening a save never pays for what it already holds.
+  useEffect(() => attachManagerPassObserver(useGameStore, events => {
+    useGameStore.getState().recordManagerPassEvents(events);
+  }), []);
 
   // Sync monetization state on game load
   useEffect(() => {
@@ -364,17 +377,18 @@ const GameShell = () => {
       setScreen(activeTabs[idx - 1]);
       return;
     }
-    // Swipe-back on detail screens
-    if (!activeTabs.includes(currentScreen)) {
-      const backTarget = BACK_TARGET[currentScreen] || (isUnemployed ? 'job-market' : 'dashboard');
-      setScreen(backTarget);
-    }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeGroups, activeTabs]);
+    // Swipe-back on detail screens — same resolution as the TopBar back button
+    // (where you came from, else BACK_TARGET).
+    if (!activeTabs.includes(currentScreen)) goBack();
+  }, [currentScreen, setScreen, goBack, matchLocked, useSubGroups, activeGroups, activeTabs]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,
     onSwipeRight: handleSwipeRight,
   });
+
+  // Android hardware back: close an open overlay, else the same in-game back.
+  useHardwareBack({ matchLocked, onTab: activeTabs.includes(currentScreen), onBack: goBack });
 
   if (import.meta.env.DEV && !screens[currentScreen]) {
     console.warn(`[GameShell] Unrecognized screen: "${currentScreen}", falling back to Dashboard`);

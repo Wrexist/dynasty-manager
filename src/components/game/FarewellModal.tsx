@@ -65,12 +65,12 @@ export function FarewellModal() {
               {current.stats.map((stat) => (
                 <div key={stat.label} className="text-center">
                   <p className="text-lg font-black text-foreground tabular-nums">{stat.value}</p>
-                  <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                  <p className="text-micro text-muted-foreground">{stat.label}</p>
                 </div>
               ))}
             </div>
 
-            <p className="text-[10px] text-center text-muted-foreground mb-3">
+            <p className="text-micro text-center text-muted-foreground mb-3">
               Thank you for the memories. Good luck in the future.
             </p>
 

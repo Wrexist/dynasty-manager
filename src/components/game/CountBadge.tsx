@@ -53,7 +53,7 @@ export function CountBadge({
       className={cn(
         'inline-flex items-center justify-center font-bold tabular-nums leading-none text-white',
         'min-w-[16px] h-4 px-1 rounded-full',
-        'text-[10px]',
+        'text-micro',
         pulse && 'animate-pulse',
         className,
       )}

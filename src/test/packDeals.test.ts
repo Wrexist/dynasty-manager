@@ -42,6 +42,19 @@ describe('pack deals', () => {
       expect(getDealForTier('daily', now)).toBeNull();
     }
   });
+  it('never puts bonus cards on a single-card pack (Legends), but still reaches every eligible tier', () => {
+    // +3 cards on the 1-card Legends pack was four 88+ cards for $9.99 — the
+    // exact distortion Legends is kept out of the weekly bonus for.
+    const seen = new Set<string>();
+    for (let hour = 0; hour < 24 * 31; hour++) {
+      for (const deal of getActiveDeals(hour * 3600_000)) {
+        expect(PACK_TIER_MAP[deal.tierKey].cards, `${deal.slotId} landed on ${deal.tierKey}`).toBeGreaterThan(1);
+        seen.add(deal.tierKey);
+      }
+      expect(getDealForTier('icon', hour * 3600_000)).toBeNull();
+    }
+    expect([...seen].sort()).toEqual(['gold', 'premium', 'rare']);
+  });
   it('does not restore expired offers after clock rollback', () => {
     vi.useFakeTimers();
     try {

@@ -134,7 +134,7 @@ const ScoutingPage = () => {
                     </div>
                     <button
                       onClick={() => { hapticLight(); cancelAssignment(a.id); infoToast('Assignment Cancelled'); }}
-                      className="text-[10px] text-destructive hover:text-destructive/80 font-semibold shrink-0"
+                      className="text-micro text-destructive hover:text-destructive/80 font-semibold shrink-0"
                     >
                       Cancel
                     </button>
@@ -152,14 +152,14 @@ const ScoutingPage = () => {
         {scouting.reports.length === 0 && scouting.assignments.length > 0 && (
           <GlassPanel className="p-8 text-center">
             <p className="text-sm text-muted-foreground">No scout reports yet</p>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">Your scouts are working — reports will arrive soon</p>
+            <p className="text-micro text-muted-foreground/60 mt-1">Your scouts are working — reports will arrive soon</p>
           </GlassPanel>
         )}
         {scouting.reports.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-foreground">
               Scout Reports
-              <span className="ml-1.5 text-[10px] font-normal text-muted-foreground/60">
+              <span className="ml-1.5 text-micro font-normal text-muted-foreground/60">
                 showing {shownReports.length} of {sortedReports.length}
               </span>
             </h3>
@@ -172,7 +172,7 @@ const ScoutingPage = () => {
                     key={s.id}
                     onClick={() => { hapticLight(); setReportSort(s.id); }}
                     className={cn(
-                      'flex-1 text-[10px] font-semibold py-1 rounded-md transition-colors',
+                      'flex-1 text-micro font-semibold py-1 rounded-md transition-colors',
                       reportSort === s.id ? 'bg-primary/80 text-primary-foreground' : 'text-muted-foreground'
                     )}
                   >
@@ -183,7 +183,7 @@ const ScoutingPage = () => {
               <button
                 onClick={() => { hapticLight(); setSignOnly(v => !v); }}
                 className={cn(
-                  'text-[10px] font-semibold px-2 py-1.5 rounded-md border transition-colors shrink-0',
+                  'text-micro font-semibold px-2 py-1.5 rounded-md border transition-colors shrink-0',
                   signOnly
                     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                     : 'text-muted-foreground border-border/50'
@@ -245,7 +245,7 @@ const ScoutingPage = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col items-end gap-1">
-                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold',
+                        <span className={cn('text-micro px-1.5 py-0.5 rounded font-semibold',
                           report.recommendation === 'sign' ? 'bg-emerald-500/20 text-emerald-400'
                           : report.recommendation === 'monitor' ? 'bg-amber-500/20 text-amber-400'
                           : 'bg-destructive/20 text-destructive'
@@ -254,7 +254,7 @@ const ScoutingPage = () => {
                         </span>
                         <div className="flex items-center gap-0.5">
                           <Eye className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">{report.knowledgeLevel}%</span>
+                          <span className="text-micro text-muted-foreground">{report.knowledgeLevel}%</span>
                         </div>
                       </div>
                       <button
@@ -275,11 +275,11 @@ const ScoutingPage = () => {
                       {showOverall && (
                         <div className="flex items-center gap-1">
                           <Banknote className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">{formatMoney(player.value)}</span>
+                          <span className="text-micro text-muted-foreground">{formatMoney(player.value)}</span>
                         </div>
                       )}
                       {listing && showOverall && (
-                        <span className="text-[10px] text-primary font-medium">Ask: {formatMoney(listing.askingPrice)}</span>
+                        <span className="text-micro text-primary font-medium">Ask: {formatMoney(listing.askingPrice)}</span>
                       )}
                     </div>
                     {listing ? (
@@ -287,7 +287,7 @@ const ScoutingPage = () => {
                         onClick={() => setNegotiatingListing(listing)}
                         disabled={!transferWindowOpen && !listing.scoutedPlayer}
                         className={cn(
-                          'flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md transition-all',
+                          'flex items-center gap-1 text-micro font-semibold px-2.5 py-1 rounded-md transition-all',
                           !transferWindowOpen && !listing.scoutedPlayer
                             ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
                             : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97]'
@@ -299,7 +299,7 @@ const ScoutingPage = () => {
                       </button>
                     ) : showOverall ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-muted-foreground/60 italic">Not currently listed</span>
+                        <span className="text-micro text-muted-foreground/60 italic">Not currently listed</span>
                         <button
                           type="button"
                           onClick={() => dismissScoutReport(report.id)}
@@ -353,12 +353,12 @@ const ScoutingPage = () => {
                     <MapPin className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">{label}</p>
-                      <p className="text-[10px] text-muted-foreground">{description}</p>
+                      <p className="text-micro text-muted-foreground">{description}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-xs text-muted-foreground">{weeks}w</span>
-                    <p className="text-[10px] text-muted-foreground/60">{formatMoney(SCOUTING_COST_PER_ASSIGNMENT)}/wk</p>
+                    <p className="text-micro text-muted-foreground/60">{formatMoney(SCOUTING_COST_PER_ASSIGNMENT)}/wk</p>
                   </div>
                 </div>
               </GlassPanel>
@@ -444,11 +444,11 @@ const ScoutingPage = () => {
                         {showOverall && (
                           <div className="flex items-center gap-1">
                             <Banknote className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-[10px] text-muted-foreground">{formatMoney(player.value)}</span>
+                            <span className="text-micro text-muted-foreground">{formatMoney(player.value)}</span>
                           </div>
                         )}
                         {listing && showOverall && (
-                          <span className="text-[10px] text-primary font-medium">Ask: {formatMoney(listing.askingPrice)}</span>
+                          <span className="text-micro text-primary font-medium">Ask: {formatMoney(listing.askingPrice)}</span>
                         )}
                       </div>
                       {listing ? (
@@ -456,7 +456,7 @@ const ScoutingPage = () => {
                           onClick={() => setNegotiatingListing(listing)}
                           disabled={!transferWindowOpen && !listing.scoutedPlayer}
                           className={cn(
-                            'flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md transition-all',
+                            'flex items-center gap-1 text-micro font-semibold px-2.5 py-1 rounded-md transition-all',
                             !transferWindowOpen && !listing.scoutedPlayer
                               ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
                               : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97]'
@@ -467,7 +467,7 @@ const ScoutingPage = () => {
                           {!transferWindowOpen && !listing.scoutedPlayer ? 'Window Closed' : 'Sign'}
                         </button>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground/60 italic">Not currently listed</span>
+                        <span className="text-micro text-muted-foreground/60 italic">Not currently listed</span>
                       )}
                     </div>
                   </GlassPanel>

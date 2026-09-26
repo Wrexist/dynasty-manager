@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus, LeagueTableEntry } from '@/types/game';
+import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus, LeagueTableEntry, NationalTeamState, Player } from '@/types/game';
 import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract, generateUnemployedOffer } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, FACILITY_MAX_LEVEL, STADIUM_LEVEL_DIVISOR, clubMedicalLevel, clubRecoveryLevel } from '@/config/gameBalance';
@@ -12,6 +12,7 @@ import { getDefaultMerchState } from '@/utils/merchandise';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import { guardAsync } from '@/utils/asyncGuard';
 import { createEmptyRecords } from '@/utils/records';
+import { generateNationalTeamPool, autoSelectNationalSquad } from '@/utils/international';
 
 /** Inject live league position/form data into vacancies from divisionTables. */
 function enrichVacanciesWithLeagueData(
@@ -31,6 +32,68 @@ function enrichVacanciesWithLeagueData(
       matchesPlayed: table[idx].played,
     };
   });
+}
+
+/**
+ * Carry the national-team job across a world re-init (cross-league move).
+ *
+ * `initGame` rebuilds `players` from scratch, so every club player the squad
+ * pointed at is gone. The clubless pool players are the NT's own and move with
+ * it (skipping any whose name the new world already has); the pool is then
+ * topped up against the new world and the squad re-picked, exactly as
+ * `finalizeSeason` does before a tournament. History (results, caps, goals,
+ * formation, ranking) is kept as-is.
+ */
+/**
+ * Move a freshly initialised world (built as season 1) to `offset` seasons
+ * later: every player's `contractEnd` and `joinedSeason` shift with it, so a
+ * contract generated to run "2 to 5 seasons from now" still does.
+ */
+function rebaseWorldSeason(players: Record<string, Player>, offset: number): Record<string, Player> {
+  if (!(offset > 0)) return players;
+  const out: Record<string, Player> = {};
+  for (const [id, p] of Object.entries(players)) {
+    out[id] = {
+      ...p,
+      contractEnd: p.contractEnd + offset,
+      ...(typeof p.joinedSeason === 'number' && { joinedSeason: p.joinedSeason + offset }),
+    };
+  }
+  return out;
+}
+
+function carryNationalTeam(
+  nt: NationalTeamState,
+  oldPlayers: Record<string, Player>,
+  newPlayers: Record<string, Player>,
+  season: number,
+  week: number,
+  communityPackEnabled: boolean,
+): { nationalTeam: NationalTeamState; players: Record<string, Player> } {
+  const nameKey = (p: Player) => `${p.firstName.toLowerCase()}|${p.lastName.toLowerCase()}`;
+  const taken = new Set(Object.values(newPlayers).map(nameKey));
+  const players = { ...newPlayers };
+  const carriedIds: string[] = [];
+  for (const id of nt.poolPlayerIds) {
+    const p = oldPlayers[id];
+    if (!p || p.clubId || players[id] || taken.has(nameKey(p))) continue;
+    players[id] = p;
+    carriedIds.push(id);
+  }
+  const topUp = generateNationalTeamPool(nt.nationality, players, season, { communityPackEnabled });
+  Object.assign(players, topUp);
+  const poolPlayerIds = [...carriedIds, ...Object.keys(topUp)];
+
+  const squad = autoSelectNationalSquad(nt.nationality, players, week);
+  const squadPlayers = squad.map(id => players[id]).filter(Boolean);
+  let lineup: string[] = [];
+  let subs: string[] = [];
+  if (squadPlayers.length >= 7) {
+    const best = selectBestLineup(squadPlayers, nt.formation);
+    lineup = best.lineup.map(p => p.id);
+    subs = best.subs.map(p => p.id).slice(0, 7);
+  }
+  return { nationalTeam: { ...nt, squad, lineup, subs, poolPlayerIds }, players };
 }
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -175,7 +238,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           divisionId: vacancy.divisionId,
           salary: vacancy.salary,
           contractLength: vacancy.contractLength,
-          bonuses: generateDefaultBonuses(qualityTier as 1 | 2 | 3 | 4),
+          bonuses: generateDefaultBonuses(qualityTier as 1 | 2 | 3 | 4, league),
           boardExpectations: vacancy.boardExpectations,
           expiresWeek: vacancy.expiresWeek,
           expiresSeason: vacancy.expiresSeason,
@@ -497,10 +560,12 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       // rebuilding `players` — without it they'd remain promotable orphans).
       const playersAfterMove = { ...state.players };
       for (const pr of state.youthAcademy.prospects) delete playersAfterMove[pr.playerId];
+      const newClubSquad = (targetClub.playerIds || []).map(id => state.players[id]).filter(Boolean);
       const { prospects: newProspects, players: newYouthPlayers } = generateYouthProspects(
         clubId, targetClub.youthRating, getStaffBonus(newInitialStaff, 'youth-coach'),
         state.season, 3 + Math.floor(Math.random() * 2),
         CLUBS_DATA.find(c => c.id === clubId)?.squadQuality,
+        { squad: newClubSquad },
       );
       newYouthPlayers.forEach(p => { playersAfterMove[p.id] = p; });
 
@@ -560,7 +625,15 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           recoveryLevel: clubRecoveryLevel(targetClub.facilities),
           upgradeInProgress: null,
         },
-        youthAcademy: { prospects: newProspects, nextIntakePreview: generateIntakePreview(targetClub.youthRating), youthPreviewEnhanced: false },
+        youthAcademy: {
+          prospects: newProspects,
+          nextIntakePreview: generateIntakePreview(targetClub.youthRating, {
+            youthCoachQuality: getStaffBonus(newInitialStaff, 'youth-coach'),
+            clubSquadQuality: CLUBS_DATA.find(c => c.id === clubId)?.squadQuality,
+            squad: [...newClubSquad, ...newYouthPlayers],
+          }),
+          youthPreviewEnhanced: false,
+        },
         financeHistory: [],
         tacticalPresets: [],
         // Club records belong to the CLUB, not the manager. Omitting these from
@@ -575,13 +648,14 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       });
     } else {
       // Different league: must reinitialize game for the new league.
-      // Preserve the season number for career continuity. Seasons keep
-      // advancing during unemployment, so clamp to the CURRENT season
-      // (captured before initGame resets it to 1) — `endSeason + 1` alone
-      // would move the game clock backwards for a manager who sat out a
-      // season or more, corrupting history ordering and contract endSeasons.
-      const lastEntry = updatedHistory[updatedHistory.length - 1];
-      const continuedSeason = Math.max((lastEntry?.endSeason || 0) + 1, state.season);
+      // Preserve the season number for career continuity: the new stint
+      // starts in the CURRENT season (captured before initGame resets it to
+      // 1), exactly as the same-league branch does. This used to be
+      // `max(lastEntry.endSeason + 1, season)` — but the entry just closed
+      // above is stamped `endSeason: season`, so every move by an employed
+      // manager (and by one sacked earlier the same season) jumped to
+      // season + 1, a season nobody played.
+      const continuedSeason = state.season || 1;
 
       // Career league change re-inits the game. Thread the Community Pack flag
       // through: without it the whole world was regenerated procedurally while
@@ -594,9 +668,29 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       // writes any state, so the contract work below has to run in the same
       // continuation — reading `get()` straight after would see the OLD world.
       const cpEnabled = state.communityPackEnabled;
+      // The manager's nationality and national-team job are the MANAGER's, not
+      // the league's — but `initGame` nulls them as part of building a new
+      // world. Snapshot them now and restore them after the re-init; without
+      // this a league change deleted the NT career for good (the nationality
+      // is only ever picked once).
+      const ntCarry = {
+        managerNationality: state.managerNationality,
+        nationalTeamOffer: state.nationalTeamOffer,
+        showNationalTeamOffer: state.showNationalTeamOffer,
+        nationalTeam: state.nationalTeam,
+        players: state.players,
+      };
       const applyNewClub = () => {
       const newState = get();
       const club = newState.clubs[clubId];
+      // initGame builds the new world as season 1 (contracts end in 2..5), but
+      // the career continues at `continuedSeason`. Without moving the world's
+      // season stamps along, a move at season 5 put every contract in the new
+      // world at or past expiry: the whole world walked at the next season end.
+      const worldPlayers = rebaseWorldSeason(newState.players, continuedSeason - 1);
+      const carried = ntCarry.nationalTeam
+        ? carryNationalTeam(ntCarry.nationalTeam, ntCarry.players, worldPlayers, continuedSeason, newState.week, !!cpEnabled)
+        : null;
 
       const contract = {
         clubId,
@@ -635,6 +729,11 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         // the old club's deadline and target position to the new one.
         boardUltimatum: null,
         currentScreen: 'dashboard',
+        managerNationality: ntCarry.managerNationality,
+        nationalTeamOffer: ntCarry.nationalTeamOffer,
+        showNationalTeamOffer: ntCarry.showNationalTeamOffer,
+        players: carried ? carried.players : worldPlayers,
+        ...(carried && { nationalTeam: carried.nationalTeam }),
       });
       };
 

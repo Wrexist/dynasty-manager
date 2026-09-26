@@ -258,7 +258,7 @@ const NationalSquadPicker = () => {
               <FlagIcon nationality={managerNationality} size={48} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em]">Squad Selection</p>
+              <p className="text-micro text-primary font-bold uppercase tracking-[0.2em]">Squad Selection</p>
               <h1 className="text-xl font-bold text-foreground font-display truncate">{managerNationality}</h1>
               <p className="text-xs text-muted-foreground">World Ranking #{ranking}</p>
             </div>
@@ -266,19 +266,19 @@ const NationalSquadPicker = () => {
 
           <div className="grid grid-cols-2 gap-2.5">
             <div className="bg-muted/20 rounded-xl p-3 border border-border/30">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+              <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
                 <Trophy className="w-3 h-3" /> Tournament
               </p>
               <p className="text-sm font-semibold text-foreground leading-tight">{tournament.name}</p>
             </div>
             <div className="bg-muted/20 rounded-xl p-3 border border-border/30">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+              <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
                 <Calendar className="w-3 h-3" /> Kick-off
               </p>
               <p className="text-sm font-semibold text-foreground leading-tight">
                 Week {tournament.currentWeek}, Season {tournament.season}
               </p>
-              <p className="text-[10px] text-muted-foreground">First match next week</p>
+              <p className="text-micro text-muted-foreground">First match next week</p>
             </div>
           </div>
 
@@ -323,7 +323,7 @@ const NationalSquadPicker = () => {
                         : 'bg-amber-500/10 border-amber-500/30 text-amber-300',
                     )}
                   >
-                    <p className="text-[9px] uppercase tracking-wider">{key}</p>
+                    <p className="text-micro uppercase tracking-wider">{key}</p>
                     <p className="text-sm font-mono font-bold">{c}</p>
                   </div>
                 );
@@ -362,8 +362,8 @@ const NationalSquadPicker = () => {
           return (
             <div key={group.key} className="space-y-1.5">
               <div className="flex items-center justify-between px-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">{group.label}</p>
-                <p className="text-[10px] text-muted-foreground font-mono">
+                <p className="text-micro text-muted-foreground uppercase tracking-[0.2em]">{group.label}</p>
+                <p className="text-micro text-muted-foreground font-mono">
                   {counts[group.key as keyof typeof counts]} picked
                 </p>
               </div>
@@ -402,7 +402,7 @@ const NationalSquadPicker = () => {
                           <p className="text-sm font-semibold text-foreground truncate">
                             {player.firstName} {player.lastName}
                           </p>
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="text-micro text-muted-foreground truncate">
                             {player.position} · Age {player.age}
                             {club ? ` · ${club.shortName}` : ' · External'}
                             {(player.internationalCaps ?? 0) > 0 && ` · ${player.internationalCaps} caps`}

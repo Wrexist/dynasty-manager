@@ -717,8 +717,8 @@ describe('a squad shaped for a tactic plays better in it', () => {
   });
 
   it('takes more points in the shape it was built for, both ways round', () => {
-    // MANY CHEAP MATCHES, not a few expensive careers. The shared engine is
-    // unseeded, so this is a sample: 120 matches per arm, the same eleven and
+    // MANY CHEAP MATCHES, not a few expensive careers. A sample of 120
+    // matches per arm (seeded below), the same eleven and
     // the same opposition in both arms, only the tactic changing. The two XIs
     // have the same attribute mean and differ only in DISTRIBUTION, so what is
     // being measured is shape, not quality.
@@ -734,21 +734,36 @@ describe('a squad shaped for a tactic plays better in it', () => {
     // sample lands low.
     const MATCHES = 120;
     const MIN_GAP = 0.15;
-    const opposition = shapedXI('opp', [], [], 'them');
+    // The shared engine underneath draws from Math.random, so the sample used to
+    // differ run to run; one run in CI landed at a 0.14 gap against a typical
+    // 0.44-0.78. Seed it so the gate measures the lever, not the dice.
+    const realRandom = Math.random;
+    let t = 0x5eed5a1d >>> 0;
+    Math.random = () => {
+      t = (t + 0x6d2b79f5) >>> 0;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+    try {
+      const opposition = shapedXI('opp', [], [], 'them');
 
-    const grafters = shapedXI('graft', ['physical', 'shooting'], ['passing', 'mental'], 'us');
-    const graftInShape = playN(grafters, 'route-one', opposition, MATCHES);
-    const graftOutOfShape = playN(grafters, 'proper-football', opposition, MATCHES);
-    expect(graftInShape - graftOutOfShape,
-      `grafters: route-one=${graftInShape.toFixed(2)} proper-football=${graftOutOfShape.toFixed(2)}`)
-      .toBeGreaterThan(MIN_GAP);
+      const grafters = shapedXI('graft', ['physical', 'shooting'], ['passing', 'mental'], 'us');
+      const graftInShape = playN(grafters, 'route-one', opposition, MATCHES);
+      const graftOutOfShape = playN(grafters, 'proper-football', opposition, MATCHES);
+      expect(graftInShape - graftOutOfShape,
+        `grafters: route-one=${graftInShape.toFixed(2)} proper-football=${graftOutOfShape.toFixed(2)}`)
+        .toBeGreaterThan(MIN_GAP);
 
-    const passers = shapedXI('pass', ['mental', 'pace'], ['physical', 'defending'], 'us');
-    const passInShape = playN(passers, 'proper-football', opposition, MATCHES);
-    const passOutOfShape = playN(passers, 'route-one', opposition, MATCHES);
-    expect(passInShape - passOutOfShape,
-      `passers: proper-football=${passInShape.toFixed(2)} route-one=${passOutOfShape.toFixed(2)}`)
-      .toBeGreaterThan(MIN_GAP);
+      const passers = shapedXI('pass', ['mental', 'pace'], ['physical', 'defending'], 'us');
+      const passInShape = playN(passers, 'proper-football', opposition, MATCHES);
+      const passOutOfShape = playN(passers, 'route-one', opposition, MATCHES);
+      expect(passInShape - passOutOfShape,
+        `passers: proper-football=${passInShape.toFixed(2)} route-one=${passOutOfShape.toFixed(2)}`)
+        .toBeGreaterThan(MIN_GAP);
+    } finally {
+      Math.random = realRandom;
+    }
   }, 120_000);
 });
 

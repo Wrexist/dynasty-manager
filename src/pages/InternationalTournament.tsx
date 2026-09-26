@@ -110,7 +110,7 @@ const InternationalTournament = () => {
                 <Trophy className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em]">Coming Up</p>
+                <p className="text-micro text-primary font-bold uppercase tracking-[0.2em]">Coming Up</p>
                 <h1 className="text-lg font-bold text-foreground font-display truncate">{upcoming.name}</h1>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
@@ -123,15 +123,15 @@ const InternationalTournament = () => {
 
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-muted/20 rounded-lg p-2 border border-border/30 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Format</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider">Format</p>
                 <p className="text-xs font-bold text-foreground">{groupCount} groups</p>
               </div>
               <div className="bg-muted/20 rounded-lg p-2 border border-border/30 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Teams</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider">Teams</p>
                 <p className="text-xs font-bold text-foreground">{teamsTotal}</p>
               </div>
               <div className="bg-muted/20 rounded-lg p-2 border border-border/30 text-center">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Knockout</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider">Knockout</p>
                 <p className="text-xs font-bold text-foreground inline-flex items-center justify-center gap-1">
                   <span>{isWorldCup ? 'R16' : 'QF'}</span>
                   <ArrowRight className="w-3 h-3 text-primary/70 shrink-0" aria-hidden />
@@ -173,10 +173,10 @@ const InternationalTournament = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">{n.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{n.confederation} · #{n.baseRanking}</p>
+                  <p className="text-micro text-muted-foreground">{n.confederation} · #{n.baseRanking}</p>
                 </div>
                 {n.name === managerNationality && (
-                  <span className="text-[10px] text-primary font-bold uppercase tracking-wider">You</span>
+                  <span className="text-micro text-primary font-bold uppercase tracking-wider">You</span>
                 )}
               </motion.div>
             ))}
@@ -238,7 +238,7 @@ const InternationalTournament = () => {
                     i === phaseIndex && tournament.phase !== 'complete' && 'animate-pulse'
                   )} />
                   <span className={cn(
-                    'text-[9px] mt-1 font-medium',
+                    'text-micro mt-1 font-medium',
                     i <= phaseIndex ? 'text-primary' : 'text-muted-foreground/50'
                   )}>
                     {step.label}
@@ -294,7 +294,7 @@ const InternationalTournament = () => {
 
               {/* Table */}
               <div className="px-4 py-2">
-                <div className="grid grid-cols-[1fr_24px_24px_24px_24px_40px_32px] gap-1 text-[10px] text-muted-foreground mb-1">
+                <div className="grid grid-cols-[1fr_24px_24px_24px_24px_40px_32px] gap-1 text-micro text-muted-foreground mb-1">
                   <span>{t('internationalTournament.team')}</span>
                   <span className="text-center">P</span>
                   <span className="text-center">W</span>
@@ -326,7 +326,7 @@ const InternationalTournament = () => {
                         </span>
                         {allPlayed && (
                           <span className={cn(
-                            'text-[8px] font-bold px-1 py-0.5 rounded shrink-0',
+                            'text-micro font-bold px-1 py-0.5 rounded shrink-0',
                             qualifies ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
                           )}>
                             {qualifies ? 'Q' : 'E'}
@@ -398,7 +398,7 @@ const InternationalTournament = () => {
                 <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center gap-2">
                   <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">{roundLabel}</h3>
                   {tournament.currentRound === round && tournament.phase !== 'complete' && (
-                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Current</span>
+                    <span className="text-micro bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Current</span>
                   )}
                 </div>
                 <div className="px-4 py-2 space-y-2">

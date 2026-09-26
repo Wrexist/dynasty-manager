@@ -16,6 +16,8 @@ import { createNationalTeamSlice } from './slices/nationalTeamSlice';
 import { createCareerSlice } from './slices/careerSlice';
 import { createPacksSlice } from './slices/packsSlice';
 import { createSundaySlice } from './slices/sundaySlice';
+// ── legacy: Manager Pass ──
+import { createManagerPassSlice } from './slices/managerPassSlice';
 
 export type { GameState } from './storeTypes';
 
@@ -36,4 +38,5 @@ export const useGameStore = create<GameState>((set, get) => ({
   ...createCareerSlice(set, get),
   ...createPacksSlice(set, get),
   ...createSundaySlice(set, get),
+  ...createManagerPassSlice(set, get),
 }));

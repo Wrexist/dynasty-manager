@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getNation, getNationRanking } from '@/data/nations';
-import { getUpcomingTournament } from '@/utils/international';
+import { getUpcomingTournament, nationalTeamOfferReputation } from '@/utils/international';
 import { cn } from '@/lib/utils';
 import { Globe, Users, Trophy, ChevronRight, ChevronDown, CheckCircle, XCircle, Calendar, TrendingUp, Shuffle, Flag, X, Check } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -211,7 +211,11 @@ const NationalTeamPage = () => {
     // Career mode without national team: show progress toward being offered the job
     const isCareer = gameMode === 'career';
     const reputation = careerManager?.reputationScore ?? 0;
-    const progress = isCareer ? Math.min(Math.round((reputation / NT_JOB_MIN_REPUTATION) * 100), 100) : 0;
+    // The requirement depends on the nation's standing (R7), not one global bar.
+    const requiredReputation = managerNationality ? nationalTeamOfferReputation(managerNationality) : NT_JOB_MIN_REPUTATION;
+    const progress = isCareer
+      ? (requiredReputation <= 0 ? 100 : Math.min(Math.round((reputation / requiredReputation) * 100), 100))
+      : 0;
 
     return (
       <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-4">
@@ -225,7 +229,7 @@ const NationalTeamPage = () => {
             <div className="max-w-xs mx-auto space-y-1.5">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Reputation</span>
-                <span>{reputation} / {NT_JOB_MIN_REPUTATION}</span>
+                <span>{reputation} / {requiredReputation}</span>
               </div>
               <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
                 <motion.div

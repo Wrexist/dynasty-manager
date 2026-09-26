@@ -116,10 +116,14 @@ function generateMarketPlayer(
     player.potential = player.overall + Math.floor(Math.random() * 2);
   }
 
-  // Contract: external players have short contracts (buyer inherits)
+  // No club holds this contract; the negotiation treats him as a free agent
+  // with no current deal, and executeTransfer signs him on fresh terms (R9).
+  // The field is kept in the future so the season-end expiry pass does not
+  // route an unsigned listing into the free-agent pool as well.
   player.contractEnd = season + 1 + Math.floor(Math.random() * 3);
 
-  // Asking price: value * markup with some variance
+  // Price: an unattached player's signing-on fee (paid to him; no club is
+  // credited). Value * markup with some variance, as the asking fee was.
   const markup = 1.1 + Math.random() * 0.4; // 1.1x to 1.5x value
   const askingPrice = Math.max(50_000, Math.round(player.value * markup));
 

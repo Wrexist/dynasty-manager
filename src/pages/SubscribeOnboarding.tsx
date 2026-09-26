@@ -18,24 +18,18 @@ import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import {
-  purchaseProduct,
-  restorePurchases,
-  getEntitlements,
-  getCustomerInfo,
-  extractSubscriptionInfo,
   getStoreAvailability,
-  isEligibleForIntroOffer,
+  checkIntroOfferEligibility,
 } from '@/utils/purchases';
+import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
 import {
-  FREE_TRIAL_DAYS,
   PRODUCTS,
   SUB_TRIAL_PRODUCT_IDS,
-  TRIAL_TARGET_PRODUCT_ID,
 } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
-import { isPro } from '@/utils/monetization';
+import { resolvePaywallTrials, preferredPaywallPlan, formatPerPeriodPrice, getFreeTrialDaysRemaining } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { PRIVACY_URL, termsUrlFor, subscriptionSettingsPathFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
 import { track } from '@/utils/analytics';
@@ -75,6 +69,9 @@ const PRO_FEATURE_BULLETS: { title: string; description: string }[] = [
   { title: 'Expanded Press Conferences', description: 'More tones, deeper questions, dynamic fan reactions.' },
   { title: 'Historical Record Book', description: 'Every signing, season, and cup run preserved.' },
   { title: 'Pro Manager Badge', description: 'Premium gold ring on your avatar across the app.' },
+  // Cosmetic only — `manager_pass_pro` in PRO_FEATURES. Never word this as a
+  // gameplay advantage: the Pro row pays titles, celebrations and banners.
+  { title: 'Manager Pass Pro Track', description: '30 Pro-only rewards: titles, celebrations and banners.' },
 ];
 
 interface PlanRow {
@@ -83,8 +80,6 @@ interface PlanRow {
   title: string;
   /** Length of subscription, shown plainly to satisfy Apple 3.1.2(c). */
   lengthLabel: string;
-  /** Optional small caption shown ABOVE the price (subordinate). */
-  trialCaption?: string;
   /** Optional badge displayed at the right (e.g. "BEST VALUE", "POPULAR"). */
   badge?: string;
 }
@@ -94,7 +89,6 @@ const PLAN_ROWS: PlanRow[] = [
     productId: 'com.dynastymanager.pro.yearly',
     title: 'Pro Yearly',
     lengthLabel: '12 months · auto-renews yearly',
-    trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
     badge: 'BEST VALUE',
   },
   {
@@ -106,7 +100,6 @@ const PLAN_ROWS: PlanRow[] = [
     productId: 'com.dynastymanager.pro.monthly',
     title: 'Pro Monthly',
     lengthLabel: 'Auto-renews monthly',
-    trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
   },
 ];
 
@@ -115,10 +108,6 @@ const SubscribeOnboarding = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const reduceMotion = useReducedMotionPref();
-  const grantEntitlement = useGameStore(s => s.grantEntitlement);
-  const startFreeTrial = useGameStore(s => s.startFreeTrial);
-  const restoreEntitlementsAction = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const monetization = useGameStore(s => s.monetization);
   // Trial framing requires BOTH a clean local record and, where the store can
   // tell us, the store's confirmation.
@@ -129,31 +118,19 @@ const SubscribeOnboarding = () => {
   // was shown "7 days free" on a purchase the store charges immediately. That
   // is a false claim, a 3.1.2(c) exposure and a refund request.
   //
-  // `storeTrialEligible` is null until the probe answers (and stays null
-  // off-device), in which case we fall back to the local heuristic so web/dev
-  // testing still shows the trial flow. A definite `false` from the store
-  // always wins.
+  // Eligibility and the offer itself are asked per product: the store decides
+  // which plan carries a free trial and for how long, and an unknown answer
+  // never qualifies on device (see `resolvePaywallTrials`). Off-device the
+  // local heuristic drives the mocked flow so web/dev testing still shows it.
   const locallyTrialEligible = monetization.subscription == null;
-  const [storeTrialEligible, setStoreTrialEligible] = useState<boolean | null>(null);
+  const [storeEligibility, setStoreEligibility] = useState<Partial<Record<ProductId, boolean | null>>>({});
   useEffect(() => {
     let cancelled = false;
-    isEligibleForIntroOffer(TRIAL_TARGET_PRODUCT_ID)
-      .then(v => { if (!cancelled) setStoreTrialEligible(v); })
-      .catch(() => { if (!cancelled) setStoreTrialEligible(null); });
+    checkIntroOfferEligibility(SUB_TRIAL_PRODUCT_IDS)
+      .then(v => { if (!cancelled) setStoreEligibility(v); })
+      .catch(() => { if (!cancelled) setStoreEligibility({}); });
     return () => { cancelled = true; };
   }, []);
-  // On device, "unknown" must NOT be treated as eligible. The probe returns
-  // null whenever it throws — the common offline case — and
-  // `locallyTrialEligible` is true on any fresh install, so a lapsed subscriber
-  // reinstalling with a flaky connection was shown "Try 7 Days Free" and "Free
-  // for 7 days, then ..." on a purchase Apple charges immediately. That is the
-  // false-claim class (Guideline 3.1.2(c)) this probe exists to prevent; a
-  // definite `false` winning is not enough if `null` loses to a local guess.
-  // Off-device the purchase is mocked anyway, so the local value still drives
-  // the flow there and keeps it testable.
-  const trialEligible = storeTrialEligible === null
-    ? (Capacitor.isNativePlatform() ? false : locallyTrialEligible)
-    : storeTrialEligible && locallyTrialEligible;
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
   // A webview reload / deep link on #/subscribe loses nav state. Without a slot
@@ -184,12 +161,17 @@ const SubscribeOnboarding = () => {
   const [storeStatus, setStoreStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   // Localised store prices. Empty on web/dev — falls back to the USD config price.
   const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
+  // Free intro-offer length per product, read from the store — the trial the
+  // paywall advertises is the one App Store Connect actually configured.
+  const [storeTrialDays, setStoreTrialDays] = useState<Partial<Record<ProductId, number>>>({});
   // Numeric prices in the storefront's own currency. Every comparative claim
   // on this screen ("SAVE 58%", the per-month line) is computed from these and
   // NOT from `priceUsd` — Apple's price tiers do not preserve the USD ratios,
   // so a percentage derived from config is wrong in most storefronts even
   // before the currency symbol is. Same convention as ShopPage.
   const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
+  // ISO currency of the storefront those amounts are in, for Intl formatting.
+  const [storeCurrency, setStoreCurrency] = useState<string | undefined>(undefined);
   const [availableIds, setAvailableIds] = useState<ProductId[] | null>(null);
   const [probeNonce, setProbeNonce] = useState(0);
 
@@ -197,10 +179,12 @@ const SubscribeOnboarding = () => {
     let cancelled = false;
     setStoreStatus('loading');
     getStoreAvailability(PLAN_ROWS.map(r => r.productId))
-      .then(({ supported, available, prices, amounts }) => {
+      .then(({ supported, available, prices, amounts, currencyCode, freeTrialDays }) => {
         if (cancelled) return;
         setStorePrices(prices);
+        setStoreTrialDays(freeTrialDays || {});
         setStoreAmounts(amounts || {});
+        setStoreCurrency(currencyCode);
         // Off-device (web/dev) purchases are mocked — every plan stays live so
         // the flow remains testable in the browser.
         if (!supported) {
@@ -237,13 +221,31 @@ const SubscribeOnboarding = () => {
     [availableIds],
   );
 
-  // Keep the selection on a row that is actually purchasable — if the default
-  // (Yearly) didn't come back from the store, fall through to the first row
-  // that did rather than leaving a dead CTA selected.
+  // Plans that may be sold with a free trial right now, with the store's length.
+  const trials = useMemo(() => resolvePaywallTrials({
+    planIds: visibleRows.map(r => r.productId),
+    native: Capacitor.isNativePlatform(),
+    locallyEligible: locallyTrialEligible,
+    eligibility: storeEligibility,
+    storeTrialDays,
+  }), [visibleRows, locallyTrialEligible, storeEligibility, storeTrialDays]);
+  const trialEligible = Object.keys(trials).length > 0;
+
+  // Keep the selection on a row that is actually purchasable, and until the
+  // player picks one themselves, on the plan that carries the free trial — if
+  // Yearly didn't come back from the store or has no trial, fall through
+  // rather than leaving a dead CTA or a trial-less plan selected.
+  const userPickedRef = useRef(false);
   useEffect(() => {
     if (visibleRows.length === 0) return;
-    if (!visibleRows.some(r => r.productId === selected)) setSelected(visibleRows[0].productId);
-  }, [visibleRows, selected]);
+    const ids = visibleRows.map(r => r.productId);
+    if (!userPickedRef.current) {
+      const preferred = preferredPaywallPlan(ids, trials);
+      if (preferred && preferred !== selected) setSelected(preferred);
+      return;
+    }
+    if (!ids.includes(selected)) setSelected(ids[0]);
+  }, [visibleRows, selected, trials]);
 
   // ── Paywall funnel instrumentation ──
   const paywallMountedAtRef = useRef(Date.now());
@@ -284,17 +286,18 @@ const SubscribeOnboarding = () => {
     return pct > 0 ? pct : null;
   })();
 
-  /** Yearly expressed per month, in the storefront's own formatting. Rebuilds
-   *  the number inside the store's localized string so symbol, placement and
-   *  separators stay correct. Null when there is nothing to model. */
-  const annualPerMonth = (() => {
-    if (annualAmount == null) return null;
-    const value = annualAmount / 12;
-    const localized = storePrices['com.dynastymanager.pro.yearly'];
-    if (!localized) return `$${value.toFixed(2)}`;
-    const numeric = localized.match(/[\d.,]+/);
-    return numeric ? localized.replace(numeric[0], value.toFixed(2)) : null;
-  })();
+  /** Yearly expressed per month in the storefront's currency. Same fallback
+   *  rule as `amountFor`: USD only when the store has not answered at all
+   *  (web/dev); on device, no currency code means no line. Written in the
+   *  shape of the yearly price it sits beside ("$24.99" → "$2.08", never
+   *  "US$2.08" because the device locale is en-GB). */
+  const annualPerMonth = formatPerPeriodPrice(
+    annualAmount,
+    12,
+    storeCurrency ?? (storeAnswered ? undefined : 'USD'),
+    undefined,
+    priceFor('com.dynastymanager.pro.yearly'),
+  );
 
   const finish = () => {
     // Every exit path funnels through here (skip, purchase success, restore
@@ -308,18 +311,6 @@ const SubscribeOnboarding = () => {
     navigate(returnTo, { state: { slot, communityPackEnabled } });
   };
 
-  /** Returns true when the store gave us a real subscription record. */
-  const syncAfterPurchase = async (): Promise<boolean> => {
-    const ids = await getEntitlements();
-    if (ids.length > 0) restoreEntitlementsAction(ids);
-    const info = await getCustomerInfo();
-    // Only write a confirmed, non-null sub — a transient/empty customerInfo
-    // must not clear an active subscription (expiry handled via expiresAt).
-    const sub = extractSubscriptionInfo(info);
-    if (sub) updateSubscription(sub);
-    return !!sub;
-  };
-
   const handleSubscribe = async () => {
     if (purchasing || storeStatus !== 'ready') return;
     hapticMedium();
@@ -327,71 +318,68 @@ const SubscribeOnboarding = () => {
     track('purchase_initiated', { productId: selected, surface: 'onboarding' });
     addGameBreadcrumb('purchase', 'subscribe initiated', { surface: 'onboarding', productId: selected });
     try {
-      const result = await purchaseProduct(selected);
-      if (result.cancelled) {
-        // User cancelled the StoreKit dialog. (Only `cancelled` means no
-        // charge — a completed subscription purchase legitimately returns
-        // an empty `granted` list, since sub status flows through
-        // subscription.expiresAt, not entitlements.)
+      // The trial length this row advertised. The store's own record wins
+      // wherever it answers; this only seeds the local fallback record when
+      // the customer record has not caught up with a completed purchase.
+      const trialDays = trials[selected];
+      const outcome = await purchaseAndSync(selected, { trialDays });
+
+      if (outcome.status === 'cancelled') {
+        // User cancelled the StoreKit dialog — the only outcome that means
+        // "no charge". (A completed subscription legitimately grants no
+        // entitlement ID; its status lives in subscription.expiresAt.)
         track('purchase_cancelled', { productId: selected, surface: 'onboarding' });
         infoToast('Purchase Cancelled', 'No charge was made.');
         return;
       }
 
-      result.granted.forEach(id => grantEntitlement(id));
+      if (outcome.status === 'pending') {
+        // Ask to Buy: not a failure, and nothing is charged yet. Pro arrives
+        // through the customer-info listener if it is approved, so let the
+        // player carry on into the game instead of parking them here.
+        infoToast(t('iap.pendingTitle'), t('iap.pendingBody'));
+        finish();
+        return;
+      }
 
-      // If the user picked a trial-bearing plan, the App Store Connect
-      // introductory offer grants the free trial automatically — mirror it
-      // locally so gated features unlock immediately.
-      //
-      // The store's own answer wins where we can get it: this used to write a
-      // 7-day local record BEFORE the sync, and `syncAfterPurchase` only
-      // overwrites when `extractSubscriptionInfo` returns non-null. A network
-      // blip right after an ANNUAL purchase therefore left a 7-day record on a
-      // 12-month subscription, and Pro vanished at day 7 until the next
-      // successful sync. Sync first, and only mint the local record if the
-      // store gave us nothing.
-      const isTrial = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
-      const syncedSub = await syncAfterPurchase();
-      if (isTrial && !syncedSub) startFreeTrial(selected);
-      // `trial_started` is the authoritative trial signal — the
-      // `trialEligible` flag on paywall_viewed is advisory only.
-      if (isTrial) track('trial_started', { productId: selected, surface: 'onboarding' });
-      track('purchase_completed', { productId: selected, surface: 'onboarding' });
+      if (outcome.status === 'failed') {
+        track('purchase_failed', { productId: selected, surface: 'onboarding' });
+        addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });
+        Sentry.captureException(outcome.error, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
+        errorToast(
+          'Purchase Could Not Complete',
+          'If you were charged, tap Restore Purchases below to unlock Pro. Otherwise you can try again from Settings later.',
+        );
+        // Re-probe: if the store itself is unreachable, the screen switches to
+        // its retry state instead of leaving a CTA that keeps failing.
+        setProbeNonce(n => n + 1);
+        return;
+      }
 
-      const product = PRODUCTS[selected];
-      successToast(
-        isTrial ? `${FREE_TRIAL_DAYS}-Day Free Trial Started!` : 'Welcome to Dynasty Pro!',
-        isTrial
-          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}${product.billingPeriod || ''} after the trial unless you cancel.`
-          : `${product.name} is now active.`,
-      );
-      finish();
-    } catch (err) {
-      track('purchase_failed', { productId: selected, surface: 'onboarding' });
-      addGameBreadcrumb('purchase', 'subscribe threw', { surface: 'onboarding', productId: selected });
-      Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
-      // The throw can arrive AFTER the App Store charge — RevenueCat doesn't
-      // distinguish a receipt-validation/network failure from a pre-charge
-      // error, so the user may already be a paying customer. Mirror ShopPage:
-      // attempt a best-effort re-sync that re-reads entitlements + customerInfo,
-      // and if Pro is now active, treat it as the success it actually was
-      // instead of telling a charged user "something went wrong".
-      try { await syncAfterPurchase(); } catch { /* best-effort recovery */ }
-      if (isPro(useGameStore.getState().monetization)) {
-        addGameBreadcrumb('purchase', 'subscribe recovered after throw', { surface: 'onboarding', productId: selected });
+      if (outcome.recovered) {
+        // The SDK threw AFTER the charge; the re-sync proved it landed.
+        track('purchase_completed', { productId: selected, surface: 'onboarding' });
         successToast('Welcome to Dynasty Pro!', 'Your purchase was confirmed.');
         finish();
         return;
       }
-      addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });
-      errorToast(
-        'Purchase Could Not Complete',
-        'If you were charged, tap Restore Purchases below to unlock Pro. Otherwise you can try again from Settings later.',
+
+      // `trial_started` is the authoritative trial signal — the
+      // `trialEligible` flag on paywall_viewed is advisory only. It follows
+      // what the store actually recorded, not what the row advertised.
+      const isTrial = outcome.isTrial === true;
+      if (isTrial) track('trial_started', { productId: selected, surface: 'onboarding' });
+      track('purchase_completed', { productId: selected, surface: 'onboarding' });
+
+      const product = PRODUCTS[selected];
+      const shownTrialDays = trialDays ?? getFreeTrialDaysRemaining(useGameStore.getState().monetization);
+      successToast(
+        isTrial ? t('iap.trialStartedTitle', { days: shownTrialDays }) : 'Welcome to Dynasty Pro!',
+        isTrial
+          ? t('iap.trialStartedBody', { price: `${priceFor(selected)}${product.billingPeriod || ''}` })
+          : `${product.name} is now active.`,
       );
-      // Re-probe: if the store itself is unreachable, the screen switches to
-      // its retry state instead of leaving a CTA that keeps failing.
-      setProbeNonce(n => n + 1);
+      finish();
     } finally {
       setPurchasing(false);
     }
@@ -403,23 +391,16 @@ const SubscribeOnboarding = () => {
     setRestoring(true);
     track('restore_clicked', {});
     try {
-      const granted = await restorePurchases();
-      if (granted.length > 0) restoreEntitlementsAction(granted);
-      // Always re-sync, even when `granted` is empty. A subscription-only
-      // customer's restore returns [] (sub SKUs are deliberately excluded from
-      // mapEntitlements — they'd outlive the sub in entitlements), so their
-      // active subscription is ONLY recoverable through
-      // extractSubscriptionInfo → updateSubscription inside syncAfterPurchase.
-      // Gating this behind `granted.length > 0` made this screen's own Restore
-      // button silently no-op for the default (subscription) plans.
-      await syncAfterPurchase();
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0 || proActive) {
-        const detail = granted.length > 0
-          ? `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`
+      // Always syncs, even when nothing non-consumable came back — a
+      // subscription-only customer's Pro is recoverable only through the
+      // subscription record (see restoreAndSync).
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0 || proActive) {
+        const detail = restored.length > 0
+          ? `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`
           : 'Your Pro subscription is active.';
         successToast('Purchases Restored', detail);
-        track('restore_completed', { restoredCount: granted.length });
+        track('restore_completed', { restoredCount: restored.length });
         finish();
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
@@ -439,17 +420,21 @@ const SubscribeOnboarding = () => {
     finish();
   };
 
+  // Store-specific copy: a Play subscriber has no Apple ID menu, and Apple's
+  // EULA does not govern a Google Play purchase.
+  const platform = Capacitor.getPlatform();
   const openLegal = (url: string) => () => {
     hapticLight();
     void openExternalUrl(url);
   };
 
   const selectedProduct = PRODUCTS[selected];
-  const isTrialPlan = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
+  const selectedTrialDays = trials[selected];
+  const isTrialPlan = selectedTrialDays != null;
   const billingSummary = useMemo(() => {
     if (isTrialPlan) {
       const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
-      return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per ${period}. Auto-renews until cancelled.`;
+      return `Free for ${selectedTrialDays} days, then ${priceFor(selected)} per ${period}. Auto-renews until cancelled.`;
     }
     if (selectedProduct.type === 'subscription') {
       const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
@@ -458,7 +443,7 @@ const SubscribeOnboarding = () => {
     return `${priceFor(selected)} one-time payment. No subscription, no renewal.`;
     // priceFor is recomputed every render — depending on storePrices captures it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, storePrices, isTrialPlan, selectedProduct]);
+  }, [selected, storePrices, isTrialPlan, selectedTrialDays, selectedProduct]);
 
   // Redirecting to the title (no slot / no in-app context) — render nothing.
   // Placed after all hooks to satisfy the Rules of Hooks.
@@ -514,7 +499,7 @@ const SubscribeOnboarding = () => {
             Unlock Dynasty Pro
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Full toolkit. Cancel anytime in Settings → Apple ID → Subscriptions.
+            Full toolkit. Cancel anytime in {subscriptionSettingsPathFor(platform)}.
           </p>
         </motion.div>
 
@@ -527,7 +512,7 @@ const SubscribeOnboarding = () => {
               </span>
               <div className="min-w-0 leading-snug">
                 <p className="text-[12px] font-semibold text-foreground leading-tight">{title}</p>
-                <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{description}</p>
+                <p className="text-micro text-muted-foreground leading-snug mt-0.5">{description}</p>
               </div>
             </li>
           ))}
@@ -594,7 +579,7 @@ const SubscribeOnboarding = () => {
               <button
                 key={row.productId}
                 type="button"
-                onClick={() => { hapticLight(); setSelected(row.productId); }}
+                onClick={() => { hapticLight(); userPickedRef.current = true; setSelected(row.productId); }}
                 disabled={purchasing}
                 aria-pressed={isSelected}
                 className={cn(
@@ -622,7 +607,7 @@ const SubscribeOnboarding = () => {
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[13px] font-bold text-foreground truncate">{row.title}</span>
                     {badgeText && (
-                      <span className="text-[9px] font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
+                      <span className="text-micro font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
                         {badgeText}
                       </span>
                     )}
@@ -636,13 +621,13 @@ const SubscribeOnboarding = () => {
                       prominent pricing element, and the cadence is spelled out
                       in full by `lengthLabel` directly above. */}
                   {isAnnualBest && annualPerMonth && (
-                    <p className="text-[10px] text-muted-foreground/70 leading-snug mt-0.5">
+                    <p className="text-micro text-muted-foreground/70 leading-snug mt-0.5">
                       Works out at {annualPerMonth}/month
                     </p>
                   )}
-                  {row.trialCaption && trialEligible && (
-                    <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
-                      {row.trialCaption}
+                  {trials[row.productId] != null && (
+                    <p className="text-micro text-muted-foreground/80 leading-snug mt-0.5">
+                      {trials[row.productId]}-day free trial included
                     </p>
                   )}
                 </div>
@@ -706,7 +691,7 @@ const SubscribeOnboarding = () => {
               <>
                 <Sparkles className="w-5 h-5" />
                 {isTrialPlan
-                  ? `Try ${FREE_TRIAL_DAYS} Days Free`
+                  ? `Try ${selectedTrialDays} Days Free`
                   : `Continue — ${priceFor(selected)}${selectedProduct.billingPeriod || ''}`}
               </>
             )}
@@ -724,13 +709,16 @@ const SubscribeOnboarding = () => {
           </>
         )}
 
-        {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c). */}
-        <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-semibold">
+        {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c).
+            Each link is a full 44px-tall target (they measured 17px) while the
+            type stays small and muted: the height is padding, not visual
+            weight, so the links do not compete with the purchase button. */}
+        <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold">
           <button
             type="button"
             onClick={handleRestore}
             disabled={restoring || purchasing}
-            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            className="min-h-11 px-1 flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
             <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
             {restoring ? 'Restoring…' : 'Restore Purchases'}
@@ -738,8 +726,8 @@ const SubscribeOnboarding = () => {
           <span aria-hidden className="text-muted-foreground/40">·</span>
           <button
             type="button"
-            onClick={openLegal(TERMS_URL)}
-            className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+            onClick={openLegal(termsUrlFor(platform))}
+            className="min-h-11 px-1 text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
           >
             Terms of Use
           </button>
@@ -747,15 +735,15 @@ const SubscribeOnboarding = () => {
           <button
             type="button"
             onClick={openLegal(PRIVACY_URL)}
-            className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+            className="min-h-11 px-1 text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
           >
             Privacy Policy
           </button>
         </div>
 
-        <p className="mt-1.5 text-center text-[10px] text-muted-foreground/70 leading-snug px-2">
+        <p className="mt-0.5 text-center text-micro text-muted-foreground/70 leading-snug px-2">
           Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
-          Manage or cancel anytime in Settings → Apple ID → Subscriptions.
+          Manage or cancel anytime in {subscriptionSettingsPathFor(platform)}.
         </p>
       </div>
     </div>

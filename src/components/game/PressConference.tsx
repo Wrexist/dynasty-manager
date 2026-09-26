@@ -41,7 +41,7 @@ export function PressConference() {
           </div>
           <div>
             <p className="text-xs font-bold text-primary uppercase tracking-wide">Press Conference</p>
-            <p className="text-[10px] text-muted-foreground">Post-match interview</p>
+            <p className="text-micro text-muted-foreground">Post-match interview</p>
           </div>
         </div>
         <button
@@ -86,11 +86,11 @@ export function PressConference() {
                   <p className="text-xs text-muted-foreground leading-relaxed">"{option.text}"</p>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
-                  {option.effects.morale > 0 && <span className="text-[9px] text-emerald-400">Morale +{option.effects.morale}</span>}
-                  {option.effects.morale < 0 && <span className="text-[9px] text-destructive">Morale {option.effects.morale}</span>}
-                  {option.effects.boardConfidence > 0 && <span className="text-[9px] text-primary">Board +{option.effects.boardConfidence}</span>}
-                  {option.effects.boardConfidence < 0 && <span className="text-[9px] text-destructive">Board {option.effects.boardConfidence}</span>}
-                  {option.effects.fanMood > 3 && <span className="text-[9px] text-amber-400">Fans +{option.effects.fanMood}</span>}
+                  {option.effects.morale > 0 && <span className="text-micro text-emerald-400">Morale +{option.effects.morale}</span>}
+                  {option.effects.morale < 0 && <span className="text-micro text-destructive">Morale {option.effects.morale}</span>}
+                  {option.effects.boardConfidence > 0 && <span className="text-micro text-primary">Board +{option.effects.boardConfidence}</span>}
+                  {option.effects.boardConfidence < 0 && <span className="text-micro text-destructive">Board {option.effects.boardConfidence}</span>}
+                  {option.effects.fanMood > 3 && <span className="text-micro text-amber-400">Fans +{option.effects.fanMood}</span>}
                 </div>
               </div>
             </button>

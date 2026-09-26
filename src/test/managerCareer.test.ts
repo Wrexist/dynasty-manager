@@ -27,6 +27,7 @@ import {
   BOARD_TOLERANCE_DECAY_PER_ROUND,
 } from '@/config/managerCareer';
 import type { JobOffer, CompetingCandidate } from '@/types/game';
+import { LEAGUES, CLUBS_DATA } from '@/data/league';
 
 describe('Manager Career Mode', () => {
   describe('createDefaultManager', () => {
@@ -318,6 +319,56 @@ describe('Manager Career Mode', () => {
     it('should not include promotion bonus for top-tier clubs', () => {
       const bonuses = generateDefaultBonuses(1);
       expect(bonuses.some(b => b.condition === 'promotion')).toBe(false);
+    });
+
+    // R8: FCSB (Liga 1) and Keflavík (Úrvalsdeild) listed "Promotion: £25K"
+    // — single-tier leagues keyed as quality tier 3-4 got the lower-division
+    // package. What is on offer now follows what the league makes earnable.
+    const leagueById = (id: string) => LEAGUES.find(l => l.id === id)!;
+    const conditions = (id: string) =>
+      generateDefaultBonuses(leagueById(id).qualityTier as 1 | 2 | 3 | 4, leagueById(id)).map(b => b.condition);
+
+    it('never lists promotion in a league with nothing to be promoted to', () => {
+      for (const league of LEAGUES) {
+        const canPromote = league.promotionSpots > 0 || league.playoffSpots > 0;
+        const c = generateDefaultBonuses(league.qualityTier as 1 | 2 | 3 | 4, league).map(b => b.condition);
+        expect(c.includes('promotion'), `${league.id}`).toBe(canPromote);
+        // The title is the goal wherever promotion is not.
+        expect(c.includes('title'), `${league.id}`).toBe(!canPromote);
+      }
+    });
+
+    it('never lists avoiding relegation where nobody goes down', () => {
+      for (const league of LEAGUES) {
+        const relegates = league.relegationSpots > 0 || league.replacedSlots > 0;
+        const c = generateDefaultBonuses(league.qualityTier as 1 | 2 | 3 | 4, league).map(b => b.condition);
+        expect(c.includes('avoid_relegation'), `${league.id}`).toBe(relegates);
+      }
+    });
+
+    it('offers the title, not promotion, at a single-tier club', () => {
+      const iceland = leagueById('isl');
+      expect(iceland.tier).toBe(1);
+      expect(iceland.qualityTier).toBeGreaterThan(1);
+      expect(conditions('isl')).toEqual(['title', 'top_half', 'cup_win']);
+      expect(conditions('eng-2')).toContain('promotion');
+      expect(conditions('eng')).toEqual(['title', 'top_half', 'avoid_relegation', 'cup_win']);
+    });
+
+    it('lists only earnable bonuses on every generated starting offer', () => {
+      // Real single-tier clubs, the case the playthrough hit.
+      const clubs = Object.fromEntries(CLUBS_DATA
+        .filter(c => c.divisionId === 'isl' || c.divisionId === 'rou')
+        .map(c => [c.id, { id: c.id, name: c.name, divisionId: c.divisionId!, reputation: c.reputation }]));
+      for (let i = 0; i < 10; i++) {
+        const offers = generateStartingOffers(clubs, 0);
+        expect(offers.length).toBeGreaterThan(0);
+        for (const offer of offers) {
+          const league = leagueById(offer.divisionId);
+          const canPromote = league.promotionSpots > 0 || league.playoffSpots > 0;
+          if (!canPromote) expect(offer.bonuses.some(b => b.condition === 'promotion'), offer.clubName).toBe(false);
+        }
+      }
     });
   });
 

@@ -20,6 +20,8 @@ import {
 import { useGameStore } from '@/store/gameStore';
 import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight } from '@/utils/packCreditRecovery';
 import * as purchases from '@/utils/purchases';
+import * as persistence from '@/store/helpers/persistence';
+import { PACK_DEFERRED_SETTLE_MS, PACK_UNCONFIRMED_SETTLE_MS, PACK_UNVERIFIABLE_MARKER_MS } from '@/config/monetization';
 
 const CLUB = 'manchester-city';
 const originalOpenPack = useGameStore.getState().openPack;
@@ -247,5 +249,116 @@ describe('launch-time pack credit reconciliation', async () => {
 
     expect(squadSize()).toBe(before);
     expect(readPendingPackCredit()).not.toBeNull();
+  });
+  // ── Releasing markers the store never confirmed ──
+  // The Market refuses a purchase while ANY marker exists, so a marker that can
+  // never resolve locks the device out of pack purchases for good.
+
+  const GOLD = 'com.dynastymanager.pack.gold';
+  const otherSlot = () => (useGameStore.getState().activeSlot === 1 ? 2 : 1);
+
+  it('releases a settled unconfirmed marker when the store shows no new transaction', async () => {
+    const before = squadSize();
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: Date.now() - PACK_UNCONFIRMED_SETTLE_MS - 1000,
+      slot: useGameStore.getState().activeSlot, charged: false, customerId: 'customer', priorTransactionIds: ['old'] });
+    vi.spyOn(purchases, 'readConsumableHistory').mockResolvedValue({ customerId: 'customer', transactionIds: ['old'] });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
+  it.each(['offline', 'other-customer', 'ambiguous'])('never releases a settled marker on %s', async reason => {
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: Date.now() - PACK_DEFERRED_SETTLE_MS - 1000,
+      slot: useGameStore.getState().activeSlot, charged: false, customerId: 'customer', priorTransactionIds: ['old'] });
+    const probe = vi.spyOn(purchases, 'readConsumableHistory');
+    if (reason === 'offline') probe.mockRejectedValue(new Error('offline'));
+    else probe.mockResolvedValue({ customerId: reason === 'other-customer' ? 'other' : 'customer',
+      transactionIds: reason === 'ambiguous' ? ['old', 'new1', 'new2'] : ['old'] });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(readPendingPackCredit()?.charged).toBe(false);
+  });
+
+  it('gives a deferred (Ask to Buy) payment the long window before release', async () => {
+    vi.spyOn(purchases, 'readConsumableHistory').mockResolvedValue({ customerId: 'customer', transactionIds: [] });
+    const marker = { productId: GOLD, tierKey: 'gold', slot: useGameStore.getState().activeSlot, charged: false,
+      customerId: 'customer', priorTransactionIds: [], deferred: true };
+    writePendingPackCredit({ ...marker, timestamp: Date.now() - PACK_UNCONFIRMED_SETTLE_MS - 1000 });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(readPendingPackCredit()?.deferred).toBe(true);
+
+    writePendingPackCredit({ ...marker, timestamp: Date.now() - PACK_DEFERRED_SETTLE_MS - 1000 });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
+  it('delivers an approved deferred payment instead of releasing it', async () => {
+    const before = squadSize();
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: Date.now() - PACK_DEFERRED_SETTLE_MS - 1000,
+      slot: useGameStore.getState().activeSlot, charged: false, customerId: 'customer', priorTransactionIds: [], deferred: true });
+    vi.spyOn(purchases, 'readConsumableHistory').mockResolvedValue({ customerId: 'customer', transactionIds: ['approved'] });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBeGreaterThan(before);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
+  it('releases an unverifiable legacy marker only after its expiry', async () => {
+    const probe = vi.spyOn(purchases, 'readConsumableHistory');
+    const marker = { productId: GOLD, tierKey: 'gold', slot: useGameStore.getState().activeSlot, charged: false };
+    writePendingPackCredit({ ...marker, timestamp: Date.now() - PACK_DEFERRED_SETTLE_MS });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(readPendingPackCredit()?.charged).toBe(false);
+
+    writePendingPackCredit({ ...marker, timestamp: Date.now() - PACK_UNVERIFIABLE_MARKER_MS - 1000 });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(readPendingPackCredit()).toBeNull();
+    expect(probe).not.toHaveBeenCalled();
+  });
+
+  it('verifies an unconfirmed marker from another save without granting it here', async () => {
+    const before = squadSize();
+    const slot = otherSlot();
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: Date.now() - PACK_UNCONFIRMED_SETTLE_MS - 1000,
+      slot, charged: false, customerId: 'customer', priorTransactionIds: [] });
+    vi.spyOn(purchases, 'readConsumableHistory').mockResolvedValue({ customerId: 'customer', transactionIds: ['paid'] });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before);
+    expect(readPendingPackCredit()).toMatchObject({ slot, charged: true, transactionId: 'paid' });
+  });
+
+  it('releases a settled unconfirmed marker that another save wrote', async () => {
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: Date.now() - PACK_UNCONFIRMED_SETTLE_MS - 1000,
+      slot: otherSlot(), charged: false, customerId: 'customer', priorTransactionIds: [] });
+    vi.spyOn(purchases, 'readConsumableHistory').mockResolvedValue({ customerId: 'customer', transactionIds: [] });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
+  it('delivers a confirmed payment whose save was deleted into the current career', async () => {
+    const before = squadSize();
+    const slot = otherSlot();
+    vi.spyOn(persistence, 'isSlotHydrated').mockImplementation(s => s === slot);
+    vi.spyOn(persistence, 'readSaveSlot').mockImplementation(s => (s === slot ? null : '{}'));
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: Date.now(), slot, charged: true });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBeGreaterThan(before);
+    expect(readPendingPackCredit()).toBeNull();
+  });
+
+  it('keeps a confirmed payment for another save while that save is not yet read from disk', async () => {
+    const before = squadSize();
+    const slot = otherSlot();
+    vi.spyOn(persistence, 'isSlotHydrated').mockReturnValue(false);
+    vi.spyOn(persistence, 'readSaveSlot').mockReturnValue(null);
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: Date.now(), slot, charged: true });
+    await reconcilePendingPackCreditAtLaunch(false);
+    expect(squadSize()).toBe(before);
+    expect(readPendingPackCredit()?.slot).toBe(slot);
+  });
+
+  it('parses the deferred flag and drops non-boolean values', () => {
+    writePendingPackCredit({ productId: GOLD, tierKey: 'gold', timestamp: 1, slot: 1, charged: false, deferred: true });
+    expect(readPendingPackCredit()?.deferred).toBe(true);
+    localStorage.setItem('dynasty-pending-pack-credit', JSON.stringify({ productId: GOLD, tierKey: 'gold', deferred: 'yes' }));
+    expect(readPendingPackCredit()?.deferred).toBeUndefined();
   });
 });

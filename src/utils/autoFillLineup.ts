@@ -139,6 +139,7 @@ import {
   SHOT_QUALITY_WEIGHTS,
 } from '@/config/matchEngine';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
+import { isAwayOnLoan } from '@/utils/helpers';
 
 interface AutoFillResult {
   lineup: Player[];
@@ -784,10 +785,11 @@ export function autoFillBestTeam(
     return { lineup: [], subs: [], chemistryBonus: 0, chemistryLabel: 'Low' };
   }
 
-  // Filter available players: not injured, not suspended, not on loan
+  // Filter available players: not injured, not suspended, not out on loan
+  // (a player loaned IN is in this squad and available — see isAwayOnLoan)
   const available = players.filter(
     p => !p.injured &&
-      !p.onLoan &&
+      !isAwayOnLoan(p) &&
       !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek)
   );
 

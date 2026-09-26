@@ -51,7 +51,7 @@ export function DevelopmentHeatmap({ players, maxRows = 10 }: DevelopmentHeatmap
 
   if (withGrowth.length === 0) {
     return (
-      <p className="text-[10px] text-muted-foreground text-center py-4">
+      <p className="text-micro text-muted-foreground text-center py-4">
         No development data yet. Advance a week to see player growth.
       </p>
     );
@@ -62,9 +62,9 @@ export function DevelopmentHeatmap({ players, maxRows = 10 }: DevelopmentHeatmap
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <th className="text-[9px] text-muted-foreground text-left font-normal py-1 pr-2 sticky left-0 bg-card">Player</th>
+            <th className="text-micro text-muted-foreground text-left font-normal py-1 pr-2 sticky left-0 bg-card">Player</th>
             {ATTRS.map(attr => (
-              <th key={attr} className="text-[9px] text-muted-foreground text-center font-normal py-1 px-0.5 w-8">
+              <th key={attr} className="text-micro text-muted-foreground text-center font-normal py-1 px-0.5 w-8">
                 {ATTR_LABELS[attr]}
               </th>
             ))}
@@ -73,9 +73,9 @@ export function DevelopmentHeatmap({ players, maxRows = 10 }: DevelopmentHeatmap
         <tbody>
           {withGrowth.map(({ player, gains }) => (
             <tr key={player.id} className="border-t border-border/20">
-              <td className="text-[10px] text-foreground py-1 pr-2 sticky left-0 bg-card truncate max-w-[80px]">
+              <td className="text-micro text-foreground py-1 pr-2 sticky left-0 bg-card truncate max-w-[80px]">
                 {player.lastName}
-                <span className="text-muted-foreground ml-1 text-[8px]">{player.position}</span>
+                <span className="text-muted-foreground ml-1 text-micro">{player.position}</span>
               </td>
               {ATTRS.map(attr => {
                 const delta = gains[attr] || 0;
@@ -86,7 +86,7 @@ export function DevelopmentHeatmap({ players, maxRows = 10 }: DevelopmentHeatmap
                       getGrowthColor(delta),
                     )}>
                       <span className={cn(
-                        'text-[8px] font-mono tabular-nums',
+                        'text-micro font-mono tabular-nums',
                         delta > 0 ? 'text-white' : delta < 0 ? 'text-red-200' : 'text-muted-foreground/50'
                       )}>
                         {getGrowthText(delta)}

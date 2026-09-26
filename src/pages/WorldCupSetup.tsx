@@ -75,12 +75,14 @@ const WorldCupSetup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    // safe-area-top like Mode Select / Sunday setup: without it the back
+    // button sat under the status bar on a notched iPhone (viewport-fit=cover).
+    <div className="min-h-screen bg-background flex flex-col safe-area-top">
       <div className="max-w-lg mx-auto w-full px-4 pt-4 pb-28 flex-1">
         <button
           type="button"
           onClick={() => navigate('/mode-select', { state: { slot } })}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          className="flex items-center gap-1.5 min-h-[44px] -my-3 pr-3 text-sm text-muted-foreground hover:text-foreground transition-colors mb-1"
         >
           <ArrowLeft className="w-4 h-4" /> Modes
         </button>
@@ -131,7 +133,7 @@ const WorldCupSetup = () => {
                 <span className="text-2xl leading-none shrink-0">{getFlag(n.name)}</span>
                 <div className="min-w-0">
                   <p className={cn('text-sm font-semibold truncate', isSel ? 'text-amber-300' : 'text-foreground')}>{n.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{CONFED_LABEL[n.confederation] ?? n.confederation}</p>
+                  <p className="text-micro text-muted-foreground truncate">{CONFED_LABEL[n.confederation] ?? n.confederation}</p>
                 </div>
               </motion.button>
             );

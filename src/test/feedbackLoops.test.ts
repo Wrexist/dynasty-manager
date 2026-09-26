@@ -39,6 +39,10 @@ import {
   MORALE_LOSS_CHANGE,
   FORM_RATING_ADJ_CAP,
   FORM_LOSS_CHANGE,
+  FORM_NEUTRAL,
+  FORM_MEAN_REVERSION,
+  FORM_PER_RATING_POINT,
+  FORM_RATING_BASELINE,
 } from '@/config/gameBalance';
 
 const ATTRS: PlayerAttributes = {
@@ -275,7 +279,8 @@ describe('post-match integration (real store, real engine)', () => {
   interface Played {
     minutes: number[];
     drains: number[];
-    byRating: { rating: number; morale: number; form: number; formClamped: boolean }[];
+    byRating: { rating: number; morale: number; form: number; formBefore: number; formClamped: boolean }[];
+    won: boolean;
     lost: boolean;
   }
 
@@ -313,6 +318,9 @@ describe('post-match integration (real store, real engine)', () => {
         lost: fixture ? (fixture.homeClubId === pre.playerClubId
           ? fixture.homeGoals < fixture.awayGoals
           : fixture.awayGoals < fixture.homeGoals) : false,
+        won: fixture ? (fixture.homeClubId === pre.playerClubId
+          ? fixture.homeGoals > fixture.awayGoals
+          : fixture.awayGoals > fixture.homeGoals) : false,
         byRating: ours
           .map(r => {
             const b = before[r.playerId]; const a = after.players[r.playerId];
@@ -320,6 +328,7 @@ describe('post-match integration (real store, real engine)', () => {
               rating: r.rating,
               morale: a.morale - b.morale,
               form: a.form - b.form,
+              formBefore: b.form,
               // Bounds are enforced at 10..100 in processMatchResult.
               formClamped: a.form >= 100 || a.form <= 10 || b.form >= 100 || b.form <= 10,
             };
@@ -352,21 +361,28 @@ describe('post-match integration (real store, real engine)', () => {
 
   it('moves form with the individual rating, not just the result', async () => {
     const matches = await playMatches(8);
-    // Form is the clean signal: unlike morale it has no personality-stability
-    // multiplier, so for two players in the SAME match the delta is a pure
-    // function of (shared team result + individual rating). Only unclamped
-    // players are comparable — form saturates at 100 for a dominant side, and a
-    // clamped delta says nothing about the term under test.
+    // Form has no personality multiplier, so within ONE match a player's delta
+    // is the shared result + his rating term + a pull toward FORM_NEUTRAL that
+    // depends on where HIS form started (nextMatchForm). Take the pull out and
+    // what is left differs between two players only by the rating term (plus
+    // rounding, at most 1). Excluded, because they say nothing about that term:
+    // clamped players (form saturates at 10/100), and deltas pinned at the
+    // result floor (a win is at least +1, a defeat at most -1).
+    const ratingTerm = (rating: number) => Math.max(-FORM_RATING_ADJ_CAP,
+      Math.min(FORM_RATING_ADJ_CAP, (rating - FORM_RATING_BASELINE) * FORM_PER_RATING_POINT));
     let compared = 0;
     for (const m of matches) {
-      const open = m.byRating.filter(x => !x.formClamped);
+      const open = m.byRating.filter(x => !x.formClamped
+        && !(m.won && x.form === 1) && !(m.lost && x.form === -1));
       if (open.length < 2) continue;
       const worst = open[0];
       const best = open[open.length - 1];
-      if (best.rating - worst.rating < 1.0) continue;
+      // Only pairs whose rating terms differ by more than the rounding can.
+      if (ratingTerm(best.rating) - ratingTerm(worst.rating) <= 1) continue;
       compared++;
+      const residual = (x: typeof worst) => x.form - (FORM_NEUTRAL - x.formBefore) * FORM_MEAN_REVERSION;
       // Under the old pure win/draw/loss rule these two would be identical.
-      expect(best.form).toBeGreaterThan(worst.form);
+      expect(residual(best)).toBeGreaterThan(residual(worst));
     }
     expect(compared).toBeGreaterThan(0);
   });

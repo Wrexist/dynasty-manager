@@ -102,7 +102,7 @@ no punctuation gymnastics. Film nothing else — the text carries it.
   footage, 5 text swaps = 5 hooks, and hook spread is 40-60% on identical
   bodies.
 - Rides the live 2026 World Cup window flagged as the #1 leverage item in
-  `ROADMAP.md` §4.
+  `docs/archive/ROADMAP.md` §4.
 
 ## Test plan
 

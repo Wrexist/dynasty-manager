@@ -86,7 +86,11 @@ export function BottomNav() {
   const activeTabs = isSunday ? sundayTabs : isWorldCup ? worldCupTabs : isUnemployed ? unemployedTabs : tabs;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
+    // z-40, one layer BELOW the full-screen overlays (z-50 and up). GameShell
+    // renders this after <main>, so at an equal z-50 the nav painted over every
+    // in-page modal (negotiations, celebrations, Match Prep) and stayed
+    // tappable mid-negotiation. Pinned by overlayLayering.test.ts.
+    <div className="fixed bottom-0 left-0 right-0 z-40 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
       <nav
         role="navigation"
         aria-label={t('bottomNav.mainNavigation')}
@@ -175,7 +179,7 @@ export function BottomNav() {
                     />
                   )}
                 </span>
-                <span className="text-[10px] font-medium">{text}</span>
+                <span className="text-micro font-medium">{text}</span>
               </span>
             </button>
           );

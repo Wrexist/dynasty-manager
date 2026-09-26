@@ -6,7 +6,12 @@
  * the local-day helpers from the daily-streak module — both features share the
  * same "is it a new local day?" semantics.
  */
-import { SPECIAL_EVENTS, generateMonthlyEvent, MATCH_WIN_POINTS_DAILY_CAP, type LiveEvent, type LiveEventTier } from '@/config/liveEvents';
+import {
+  SPECIAL_EVENTS, generateMonthlyEvent, MATCH_WIN_POINTS_DAILY_CAP,
+  GOAL_POINTS_MAX_PER_MATCH, ACADEMY_APPEARANCES_MAX_PER_MATCH, SIGNING_POINTS_DAILY_CAP,
+  MATCH_BONUS_POINTS_DAILY_CAP,
+  type LiveEvent, type LiveEventTier,
+} from '@/config/liveEvents';
 import { localDateKey, daysBetween } from '@/utils/dailyStreak';
 import { readLiveEventProgress, writeLiveEventProgress, type LiveEventProgress } from '@/store/helpers/persistence';
 
@@ -90,36 +95,166 @@ export function applyCheckIn(
   };
 }
 
-/** Progress after a won match, honouring the per-day cap. No-op (returns the
- *  same record) once the day's cap is hit. Pure. */
-export function applyMatchWin(
-  progress: LiveEventProgress,
-  event: LiveEvent,
-  now: Date = new Date(),
-): LiveEventProgress {
+/** Points a won match is worth in `event` — `derbyWinMultiplier` applies
+ *  only to derby wins, and only in events that declare one. */
+export function matchWinPointsFor(event: LiveEvent, isDerby: boolean): number {
+  const mult = isDerby ? (event.derbyWinMultiplier ?? 1) : 1;
+  return event.matchWinPoints * mult;
+}
+
+/** Add `points` as one of the day's MATCH_WIN_POINTS_DAILY_CAP win awards.
+ *  No-op (same record) for zero points or once the cap is hit. */
+function awardMatchPoints(progress: LiveEventProgress, points: number, now: Date): LiveEventProgress {
+  if (points <= 0) return progress;
   const today = localDateKey(now);
   const count = progress.matchWinDate === today ? (progress.matchWinCount ?? 0) : 0;
   if (count >= MATCH_WIN_POINTS_DAILY_CAP) return progress;
   return {
     ...progress,
-    points: progress.points + event.matchWinPoints,
+    points: progress.points + points,
     matchWinDate: today,
     matchWinCount: count + 1,
   };
 }
 
-/** Side-effecting: award Festival Points for a player win, if an event is live.
- *  Safe to call from the match flow — no-op when no event is running, when the
- *  match wasn't won, or on any storage error. Never throws. */
-export function awardFestivalMatchWin(won: boolean, now: Date = new Date()): void {
+/** Progress after a won match, honouring the per-day cap. No-op (returns the
+ *  same record) once the day's cap is hit. Pure. Win points only — the full
+ *  match (draws, clean sheets, goals, academy) goes through `applyMatchResult`. */
+export function applyMatchWin(
+  progress: LiveEventProgress,
+  event: LiveEvent,
+  now: Date = new Date(),
+  isDerby = false,
+): LiveEventProgress {
+  return awardMatchPoints(progress, matchWinPointsFor(event, isDerby), now);
+}
+
+// ── content: event mechanics ──
+
+/** What happened in the player's match, as far as a live event cares. */
+export interface FestivalMatchOutcome {
+  won: boolean;
+  drawn: boolean;
+  isDerby?: boolean;
+  goalsFor: number;
+  goalsAgainst: number;
+  /** The player's academy graduates (`isFromYouthAcademy`) who took part. */
+  academyAppearances?: number;
+}
+
+/** The bonus part of a match — whichever mechanics the event declares
+ *  (draws, clean sheets, goals, academy graduates), without the win. Pure. */
+export function matchBonusPointsFor(event: LiveEvent, o: FestivalMatchOutcome): number {
+  let points = 0;
+  if (o.drawn) points += event.drawPoints ?? 0;
+  if (o.goalsAgainst === 0) points += event.cleanSheetPoints ?? 0;
+  points += (event.goalPoints ?? 0) * Math.min(Math.max(0, o.goalsFor), GOAL_POINTS_MAX_PER_MATCH);
+  points += (event.academyAppearancePoints ?? 0) * Math.min(Math.max(0, o.academyAppearances ?? 0), ACADEMY_APPEARANCES_MAX_PER_MATCH);
+  return points;
+}
+
+/** Festival Points one match is worth in `event` before daily caps: the win
+ *  (with any derby multiplier) plus the event's bonus mechanics. Pure. */
+export function matchPointsFor(event: LiveEvent, o: FestivalMatchOutcome): number {
+  return (o.won ? matchWinPointsFor(event, !!o.isDerby) : 0) + matchBonusPointsFor(event, o);
+}
+
+/** Add bonus `points` as one of the day's MATCH_BONUS_POINTS_DAILY_CAP bonus
+ *  awards. No-op (same record) for zero points or once that cap is hit. */
+function awardBonusPoints(progress: LiveEventProgress, points: number, now: Date): LiveEventProgress {
+  if (points <= 0) return progress;
+  const today = localDateKey(now);
+  const count = progress.matchBonusDate === today ? (progress.matchBonusCount ?? 0) : 0;
+  if (count >= MATCH_BONUS_POINTS_DAILY_CAP) return progress;
+  return {
+    ...progress,
+    points: progress.points + points,
+    matchBonusDate: today,
+    matchBonusCount: count + 1,
+  };
+}
+
+/** Progress after a match. The win pays exactly as `applyMatchWin` always has
+ *  (one of the day's MATCH_WIN_POINTS_DAILY_CAP win awards); the bonus pays
+ *  through its own MATCH_BONUS_POINTS_DAILY_CAP awards, so a bonus-earning
+ *  loss or draw never uses up a win. A match that earns nothing uses neither.
+ *  Pure. */
+export function applyMatchResult(
+  progress: LiveEventProgress,
+  event: LiveEvent,
+  outcome: FestivalMatchOutcome,
+  now: Date = new Date(),
+): LiveEventProgress {
+  const afterWin = outcome.won ? applyMatchWin(progress, event, now, !!outcome.isDerby) : progress;
+  return awardBonusPoints(afterWin, matchBonusPointsFor(event, outcome), now);
+}
+
+/** Progress after a completed signing, capped at SIGNING_POINTS_DAILY_CAP a
+ *  day. No-op for events without `signingPoints`. Pure. */
+export function applySigning(progress: LiveEventProgress, event: LiveEvent, now: Date = new Date()): LiveEventProgress {
+  const points = event.signingPoints ?? 0;
+  if (points <= 0) return progress;
+  const today = localDateKey(now);
+  const count = progress.signingDate === today ? (progress.signingCount ?? 0) : 0;
+  if (count >= SIGNING_POINTS_DAILY_CAP) return progress;
+  return { ...progress, points: progress.points + points, signingDate: today, signingCount: count + 1 };
+}
+
+/** The bonus mechanics `event` declares, for the Festival hub to list. */
+export type EventBonus =
+  | { kind: 'derby'; points: number }
+  | { kind: 'draw'; points: number }
+  | { kind: 'cleanSheet'; points: number }
+  | { kind: 'goal'; points: number; cap: number }
+  | { kind: 'academy'; points: number; cap: number }
+  | { kind: 'signing'; points: number; cap: number };
+
+export function getEventBonuses(event: LiveEvent): EventBonus[] {
+  const out: EventBonus[] = [];
+  if ((event.derbyWinMultiplier ?? 1) > 1) out.push({ kind: 'derby', points: matchWinPointsFor(event, true) });
+  if (event.drawPoints) out.push({ kind: 'draw', points: event.drawPoints });
+  if (event.cleanSheetPoints) out.push({ kind: 'cleanSheet', points: event.cleanSheetPoints });
+  if (event.goalPoints) out.push({ kind: 'goal', points: event.goalPoints, cap: GOAL_POINTS_MAX_PER_MATCH });
+  if (event.academyAppearancePoints) out.push({ kind: 'academy', points: event.academyAppearancePoints, cap: ACADEMY_APPEARANCES_MAX_PER_MATCH });
+  if (event.signingPoints) out.push({ kind: 'signing', points: event.signingPoints, cap: SIGNING_POINTS_DAILY_CAP });
+  return out;
+}
+
+/** Side-effecting: award Festival Points for the player's match, if an event
+ *  is live. Safe to call from the match flow — no-op when no event is running,
+ *  when the match earns nothing, or on any storage error. Never throws. */
+export function awardFestivalMatchResult(outcome: FestivalMatchOutcome, now: Date = new Date()): void {
+  try {
+    const event = getActiveLiveEvent(now);
+    if (!event) return;
+    const progress = readActiveFestivalProgress(event);
+    const next = applyMatchResult(progress, event, outcome, now);
+    if (next.points !== progress.points) writeLiveEventProgress(next);
+  } catch { /* festival points are best-effort — never break a match */ }
+}
+
+/** Win-only wrapper kept for callers that know nothing but the result. */
+export function awardFestivalMatchWin(won: boolean, isDerby = false, now: Date = new Date()): void {
   if (!won) return;
   try {
     const event = getActiveLiveEvent(now);
     if (!event) return;
     const progress = readActiveFestivalProgress(event);
-    const next = applyMatchWin(progress, event, now);
+    const next = applyMatchWin(progress, event, now, isDerby);
     if (next.points !== progress.points) writeLiveEventProgress(next);
   } catch { /* festival points are best-effort — never break a match */ }
+}
+
+/** Side-effecting: award Festival Points for a completed signing, if the live
+ *  event pays for signings. Never throws. */
+export function awardFestivalSigning(now: Date = new Date()): void {
+  try {
+    const event = getActiveLiveEvent(now);
+    if (!event?.signingPoints) return;
+    const progress = readActiveFestivalProgress(event);
+    const next = applySigning(progress, event, now);
+    if (next.points !== progress.points) writeLiveEventProgress(next);
+  } catch { /* best-effort — never break a transfer */ }
 }
 
 export interface TierStatus {

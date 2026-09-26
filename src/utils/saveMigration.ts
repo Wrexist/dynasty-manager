@@ -12,11 +12,51 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 92;
+const CURRENT_VERSION = 94;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v93 -> v94: `SeasonHistory.managed` — was the manager in charge when the
+  // season ended? Every title count (achievements, prestige, Hall of Managers,
+  // Trophy Cabinet, Manager Profile, Manager Pass) now reads it, so a league
+  // an ex-club won while a career manager was out of work stops counting as
+  // theirs. Rows already in a save are marked managed: that is what every
+  // one of them was treated as, and a past season cannot be re-judged (the
+  // week the manager left is not stored on the row).
+  93: (data) => {
+    const history = (data as { seasonHistory?: unknown }).seasonHistory;
+    return {
+      ...data,
+      seasonHistory: Array.isArray(history)
+        ? history.map(row => (row && typeof row === 'object'
+          ? { ...(row as Record<string, unknown>), managed: typeof (row as { managed?: unknown }).managed === 'boolean' ? (row as { managed: boolean }).managed : true }
+          : row))
+        : history,
+      version: 94,
+    };
+  },
+
+  // v92 -> v93: per-career Hall of Managers key (`careerId`). Deliberately NOT
+  // minted here: a save that predates the field is a career whose hall row is
+  // already stored under the legacy `slot-N` key, and `hallEntryId` falls back
+  // to exactly that key while `careerId` is null — so the continuing career
+  // keeps updating its own row. Only careers started by `initGame` from v93
+  // on get a fresh id.
+  // Same version also adds optional `Player.ballonDOrTop10OverallDelta` (the
+  // exact overall the Ballon d'Or top-10 boost applied). Absent on older saves
+  // by design: `revertBallonDorTop10Boost` falls back to the formula delta.
+  // And optional `Match.neutral` (neutral-venue finals, Super Cups, the playoff
+  // final, international tournament matches). Absent on older saves by design:
+  // absent reads as a home-venue match, which is what every saved match was.
+  92: (data) => ({
+    ...data,
+    careerId: typeof (data as { careerId?: unknown }).careerId === 'string'
+      ? (data as { careerId: string }).careerId
+      : null,
+    version: 93,
+  }),
+
   // v91 -> v92: Hall of Legends. `retiredLegends` starts empty — a loaded save
   // has archived nobody, and the seasons already played cannot be re-judged
   // (their retirees were deleted at the time, per the old behaviour). The two

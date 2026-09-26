@@ -2,12 +2,27 @@
 
 > The execution list. Authored 2026-07-09 against **v1.2.0, save schema v72**, from a
 > full-app audit (10 domain passes + competitive benchmark, every claim verified at
-> file:line in live code). This file **supersedes** the open items in `ROADMAP.md`,
-> `IDEAS.md`, and the `AUDIT*`/`UX_POLISH` reports — when they disagree, this file wins.
+> file:line in live code). This file **supersedes** the open items in the archived
+> `ROADMAP.md`, `IDEAS.md`, and `AUDIT*`/`UX_POLISH` reports (all in `docs/archive/`)
+> — when they disagree, this file wins.
 > Work the goals **in order**. When a goal ships, mark it done here; don't let this
 > file rot.
 >
 > Run `/goals` in a Claude session to pick up the next goal.
+
+## Current execution list — `docs/audit-2026-09-25.md`
+
+G1–G7 below have all shipped. The live list is the **2026-09-25 full-game audit**,
+[`docs/audit-2026-09-25.md`](docs/audit-2026-09-25.md) (against v1.6.0; ✔ marks
+findings the lead re-verified in code). Work it in its own order:
+
+1. **§1 Fix now** (patch 1.6.2) — revenue, data loss, trust; then **§1b** simulation.
+2. **§0** "0 active trials" — the device/dashboard checks it lists, then the ranked
+   conversion work.
+3. **§4 Engineering hygiene**, **§2 UX rework**, **§3 v1.7 "Dynasty Legacy"**.
+
+§5 records what has shipped and what is still open; mark items there, not here.
+The G-sections below stay as the record of the July plan — don't re-plan them.
 
 ## Where the app actually stands
 

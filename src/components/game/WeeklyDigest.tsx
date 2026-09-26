@@ -15,6 +15,7 @@ import {
   ChevronDown, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatMoney } from '@/utils/helpers';
 import { } from '@/utils/uiHelpers';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -320,13 +321,21 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                     >
                       <DollarSign className={cn('w-3.5 h-3.5', netIncome >= 0 ? 'text-emerald-400' : 'text-red-400')} />
                     </motion.div>
-                    <span className="text-micro text-muted-foreground">Net Income</span>
+                    <span className="text-micro text-muted-foreground">{t('econ.digest.netThisWeek')}</span>
                   </div>
                   <AnimatedNumber
                     value={Math.abs(netIncome) / 1e3}
                     formatFn={(n) => `${netIncome >= 0 ? '+' : '-'}£${n.toFixed(0)}K`}
                     className={cn('text-base font-bold tabular-nums', netIncome >= 0 ? 'text-emerald-400' : 'text-destructive')}
                   />
+                  {/* Why the net swings: the gate is paid on home weeks only. */}
+                  {digest.matchdayIncome !== undefined && (
+                    <p className="text-micro text-muted-foreground mt-0.5">
+                      {digest.matchdayIncome > 0
+                        ? t('econ.digest.homeGate', { amount: formatMoney(digest.matchdayIncome) })
+                        : t('econ.digest.awayWeek')}
+                    </p>
+                  )}
                 </div>
 
                 {/* Morale */}

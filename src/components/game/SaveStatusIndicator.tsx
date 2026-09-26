@@ -101,7 +101,7 @@ export function SaveStatusIndicator() {
           <p className={cn('text-sm leading-tight', saveStatus === 'failed' ? 'text-destructive' : 'text-foreground')}>
             {label}
           </p>
-          <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{detail}</p>
+          <p className="text-micro text-muted-foreground leading-snug mt-0.5">{detail}</p>
         </div>
       </div>
       <button

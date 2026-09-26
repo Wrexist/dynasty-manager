@@ -13,7 +13,7 @@ import { CountBadge } from '@/components/game/CountBadge';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { LEAGUES } from '@/data/league';
 import { getSundayDivision } from '@/config/sundayLeague';
-import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
+import { DETAIL_SCREENS, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
@@ -26,17 +26,20 @@ export function TopBar() {
   const { t: tr } = useTranslation();
   const {
     playerClubId, clubs, leagueTable, playerDivision, fixtures,
-    currentScreen, previousScreen, managerProgression, gameMode, careerManager,
+    currentScreen, managerProgression, gameMode, careerManager,
     messages, managerNationality, internationalTournament, sunday, week,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
     playerDivision: s.playerDivision, fixtures: s.fixtures,
-    currentScreen: s.currentScreen, previousScreen: s.previousScreen,
+    currentScreen: s.currentScreen,
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
     messages: s.messages, managerNationality: s.managerNationality, internationalTournament: s.internationalTournament,
     sunday: s.sunday, week: s.week,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  // Every back button here goes through the store's goBack: the screen you
+  // came from first, the BACK_TARGET table second (utils/backNavigation).
+  const goBack = useGameStore(s => s.goBack);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const club = clubs[playerClubId];
@@ -87,14 +90,14 @@ export function TopBar() {
             <div className="flex items-center gap-2.5 min-w-0">
               <div
                 aria-hidden
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ring-1 ring-inset ring-white/10"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ring-1 ring-inset ring-white/10" // type-floor: graphic — crest monogram
                 style={{ backgroundColor: sunday.identity.color, color: sunday.identity.secondaryColor }}
               >
                 {sunday.identity.shortName.slice(0, 3).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground truncate">{sunday.identity.name}</p>
-                <p className="text-[10px] text-lime-400 truncate font-medium">
+                <p className="text-micro text-lime-400 truncate font-medium">
                   {getSundayDivision(sunday.divisionId).shortName} · {tr('sunday.hub.week', { week })}
                 </p>
               </div>
@@ -102,7 +105,7 @@ export function TopBar() {
           ) : (
             <div className="flex items-center gap-2 min-w-0">
               <button
-                onClick={() => { setScreen(BACK_TARGET[currentScreen] || 'sunday-hub'); hapticMedium(); }}
+                onClick={() => { goBack(); hapticMedium(); }}
                 aria-label={tr('common.goBack')}
                 className="shrink-0 w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-foreground/90 hover:text-foreground bg-white/[0.06] border border-white/20 active:scale-95 transition-transform"
               >
@@ -157,13 +160,13 @@ export function TopBar() {
             {managerNationality && <FlagIcon nationality={managerNationality} size={26} className="rounded-sm shrink-0" />}
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{managerNationality || 'World Cup'}</p>
-              <p className="text-[10px] text-amber-400 truncate font-medium">World Cup · {roundLabel}</p>
+              <p className="text-micro text-amber-400 truncate font-medium">World Cup · {roundLabel}</p>
             </div>
           </div>
           ) : (
           <div className="flex items-center gap-2 min-w-0">
             <button
-              onClick={() => { setScreen(BACK_TARGET[currentScreen] || 'dashboard'); hapticMedium(); }}
+              onClick={() => { goBack(); hapticMedium(); }}
               aria-label={tr('common.goBack')}
               className="shrink-0 w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-foreground/90 hover:text-foreground bg-white/[0.06] border border-white/20 active:scale-95 transition-transform"
             >
@@ -212,17 +215,6 @@ export function TopBar() {
     ? UNEMPLOYED_MAIN_TABS.includes(currentScreen)
     : !DETAIL_SCREENS.includes(currentScreen);
   const showBack = !matchLocked && !isMainTab;
-  // Context-aware back: when a detail screen was opened *from another detail
-  // screen* (e.g. team-detail → player-detail), honour that trail rather than
-  // the static BACK_TARGET fallback, so the round back button returns the user
-  // to where they actually came from.
-  const rawBack = (currentScreen === 'player-detail' && previousScreen === 'team-detail')
-    ? 'team-detail'
-    : (BACK_TARGET[currentScreen] || previousScreen || 'dashboard');
-  // When unemployed, redirect any back target that would hit a club screen to job-market
-  const backTarget = isUnemployed
-    ? (rawBack === 'dashboard' || rawBack === 'squad' ? 'job-market' : rawBack)
-    : rawBack;
 
   return (
     // `transform-gpu` (translateZ(0)) pins the bar to its own compositor
@@ -252,7 +244,7 @@ export function TopBar() {
         <div className="flex items-center gap-2.5 min-w-0">
           {showBack && (
             <button
-              onClick={() => { setScreen(backTarget); hapticMedium(); }}
+              onClick={() => { goBack(); hapticMedium(); }}
               aria-label={tr('common.goBack')}
               className={cn(
                 // Round Liquid Glass back button — translucent, outlined, sees
@@ -294,7 +286,7 @@ export function TopBar() {
             showBack && SCREEN_TITLES[currentScreen] ? (
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
-                <p className="text-[10px] text-muted-foreground truncate">Between Jobs</p>
+                <p className="text-micro text-muted-foreground truncate">Between Jobs</p>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 min-w-0">
@@ -307,7 +299,7 @@ export function TopBar() {
           ) : showBack && SCREEN_TITLES[currentScreen] ? (
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
-              <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club?.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
+              <p className={cn('text-micro text-muted-foreground truncate', posFlash)}>{club?.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
@@ -315,7 +307,7 @@ export function TopBar() {
               {hasPlayedMatches && <FormGuide form={recentForm} size="sm" />}
               {hasPlayedMatches && pos !== '-' && league && (
                 <span className={cn(
-                  'text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0',
+                  'text-micro font-bold px-1.5 py-0.5 rounded-full shrink-0',
                   Number(pos) <= league.replacedSlots ? 'bg-emerald-500/20 text-emerald-400' :
                   Number(pos) <= league.replacedSlots + 4 ? 'bg-primary/20 text-primary' :
                   Number(pos) > league.teamCount - league.replacedSlots ? 'bg-destructive/20 text-destructive' :
@@ -355,7 +347,7 @@ export function TopBar() {
             <button
               disabled={matchLocked}
               onClick={() => setScreen('career-overview')}
-              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+              className="min-h-11 min-w-11 px-1 flex items-center justify-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               title={`${getReputationTierLabel(reputationTier)} (${Math.round(careerManager.reputationScore)})`}
             >
               <Star className="w-3 h-3 fill-primary" />
@@ -365,7 +357,7 @@ export function TopBar() {
             <button
               disabled={matchLocked}
               onClick={() => setScreen('perks')}
-              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+              className="min-h-11 min-w-11 px-1 flex items-center justify-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               title={`Level ${managerProgression.level} — ${xpProgress.current}/${xpProgress.needed} XP`}
             >
               <Star className="w-3 h-3 fill-primary" />

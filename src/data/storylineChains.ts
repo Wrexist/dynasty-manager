@@ -1,4 +1,12 @@
-import { StorylineChainDef } from '@/types/game';
+import type { Club, HeadToHeadRecord, Player, StorylineChainDef, StorylineChainTarget } from '@/types/game';
+import { deriveRivals } from '@/utils/rivalries';
+import { RIVAL_MIN_GRUDGE } from '@/config/ui';
+import {
+  STORYLINE_STAR_MIN_OVERALL, STORYLINE_WONDERKID_MAX_AGE, STORYLINE_WONDERKID_MIN_POTENTIAL,
+  STORYLINE_COMEBACK_MIN_INJURY_WEEKS, STORYLINE_DROUGHT_MIN_APPS, STORYLINE_DROUGHT_MAX_GOALS,
+  STORYLINE_DROUGHT_MIN_OVERALL, STORYLINE_TITLE_RACE_TOP_N, STORYLINE_TITLE_RACE_MIN_TEAMS,
+  STORYLINE_RELEGATION_MARGIN,
+} from '@/config/playoffs';
 
 /**
  * Multi-week storyline chain definitions.
@@ -49,6 +57,7 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
   {
     id: 'star-player-transfer-saga',
     name: 'Star Player Transfer Saga',
+    target: 'star',
     steps: [
       {
         weekOffset: 0,
@@ -506,7 +515,7 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
         weekOffset: 3,
         title: 'Construction Begins',
         body: 'Building work has started on the new stand. The noise and reduced capacity are affecting the matchday atmosphere. Some fans are unhappy about the disruption.',
-        icon: 'hard-hat',
+        icon: 'wrench',
         options: [
           { label: 'Rally the fans', text: 'You ask supporters to be patient and paint a picture of the future.', effects: { morale: 2, boardConfidence: 4, fanMood: 5 } },
           { label: 'Focus on away form', text: 'You tell the squad to treat the next few months as a chance to build a fearsome away record.', effects: { morale: 6, boardConfidence: 3, fanMood: 2 } },
@@ -545,7 +554,7 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
         weekOffset: 1,
         title: 'Media Circus',
         body: 'The build-up has been enormous. National media are requesting interviews, former players are sharing memories of past upsets, and the atmosphere around the club is electric.',
-        icon: 'tv',
+        icon: 'megaphone',
         options: [
           { label: 'Ride the wave', text: 'You let the excitement build naturally and feed off the energy.', effects: { morale: 6, boardConfidence: 2, fanMood: 8 } },
           { label: 'Limit distractions', text: 'You close the training ground and focus purely on the tactical plan.', effects: { morale: 3, boardConfidence: 5, fanMood: 0 } },
@@ -604,6 +613,448 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
       },
     ],
   },
+  // ── content: chains added for multi-season variety ──
+  // A season starts 6-8 chains and a completed chain sits out
+  // STORYLINE_CHAIN_COOLDOWN_SEASONS, so 15 chains recycled every ~2 seasons.
+  // These eleven are tied to things the save actually knows (a real rival, a
+  // real injured player, a real goal drought, the table) so they read as
+  // *this* club's story rather than a generic one.
+  {
+    // The rival is a real derby (many of which span two cities: El Clásico,
+    // Der Klassiker) or an earned grudge from anywhere, so the copy never
+    // claims a shared city.
+    id: 'derby-build-up',
+    name: 'Derby Week',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Derby Week',
+        body: 'It\'s derby week. {rivalName} are next, both sets of fans have been counting the days, and every newspaper wants a quote from you.',
+        icon: 'swords',
+        options: [
+          { label: 'Promise the fans a win', text: 'You tell the supporters {clubName} will have the bragging rights again this weekend.', effects: { morale: 4, boardConfidence: -1, fanMood: 7 } },
+          { label: 'Keep it low-key', text: 'You call it three points like any other and refuse to feed the headlines.', effects: { morale: 2, boardConfidence: 3, fanMood: -1 } },
+          { label: 'Talk up the rivals', text: 'You praise {rivalName} publicly and let the pressure settle on their shoulders.', effects: { morale: 3, boardConfidence: 2, fanMood: 2 } },
+        ],
+      },
+      {
+        weekOffset: 1,
+        title: 'Bragging Rights',
+        body: 'The derby is done, but the argument never ends. Social media is ablaze and {rivalName} supporters have been winding up your players all week.',
+        icon: 'megaphone',
+        options: [
+          { label: 'Ban social media for a week', text: 'You tell the squad to log off until the noise dies down.', effects: { morale: -2, boardConfidence: 3 } },
+          { label: 'Let the players enjoy it', text: 'You let the squad have their fun with the fans — within reason.', effects: { morale: 5, boardConfidence: -2, fanMood: 5 } },
+          { label: 'Refocus on the league', text: 'You remind everyone that derby points count the same as any others.', effects: { morale: 2, boardConfidence: 4, fanMood: 1 } },
+        ],
+      },
+      {
+        weekOffset: 3,
+        title: 'Common Ground',
+        body: 'A charity has asked both clubs to play a joint fundraising match. {rivalName} have already said yes, so the ball is in your court.',
+        icon: 'handshake',
+        options: [
+          { label: 'Accept gladly', text: 'You send senior players alongside the academy to show {clubName} is bigger than the rivalry.', effects: { morale: 3, boardConfidence: 5, fanMood: 4 } },
+          { label: 'Send the academy', text: 'You protect the first team and let the youngsters represent the club.', effects: { morale: 1, boardConfidence: 3, fanMood: 1 } },
+          { label: 'Decline politely', text: 'The fixture list is too packed. Some supporters think you missed an open goal.', effects: { morale: 2, boardConfidence: -2, fanMood: -3 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'wonderkid-hype',
+    name: 'Wonderkid Hype',
+    target: 'youth',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'The Next Big Thing',
+        body: '{playerName} is all over the back pages. Pundits are calling him the most exciting young talent in the country, and the hype grows louder by the day.',
+        icon: 'star',
+        options: [
+          { label: 'Embrace the hype', text: 'You tell the press {playerName} can become one of the best in the world.', effects: { morale: -1, boardConfidence: 1, fanMood: 6, playerMorale: 6 } },
+          { label: 'Protect him', text: 'You ask the media to let {playerName} develop in peace.', effects: { morale: 1, boardConfidence: 3, playerMorale: 3 } },
+          { label: 'Keep his feet on the ground', text: 'You remind {playerName} that he has not won anything yet.', effects: { morale: 2, boardConfidence: 2, playerMorale: -4 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Boots and Billboards',
+        body: 'A global sportswear brand wants {playerName} as the face of its new campaign. His agent is thrilled; his coaches are nervous.',
+        icon: 'badge-dollar',
+        options: [
+          { label: 'Sign off on the deal', text: 'The exposure is too good to turn down, and {playerName} is delighted.', effects: { morale: -2, boardConfidence: 3, fanMood: 4, playerMorale: 8 } },
+          { label: 'Cap his media days', text: 'You allow the deal, but training comes first for {playerName}.', effects: { morale: 1, boardConfidence: 4, playerMorale: 3 } },
+          { label: 'Block it for now', text: 'You tell {playerName} the football has to come first — for now.', effects: { morale: 2, boardConfidence: 2, playerMorale: -8 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Superclub Circling',
+        body: 'Scouts from one of Europe\'s giants were in the stands again. The rumour mill says they are ready to test your resolve over {playerName}.',
+        icon: 'eye',
+        options: [
+          { label: 'Offer a long-term deal', text: 'You make {playerName} one of the best-paid youngsters in the club\'s history.', effects: { boardConfidence: -2, fanMood: 6, playerMorale: 10 } },
+          { label: 'Name a huge price', text: 'You let it be known that {playerName} would cost a record fee for a player his age.', effects: { boardConfidence: 4, fanMood: 3, playerMorale: -2 } },
+          { label: 'Say nothing', text: 'You refuse to be drawn and let the rumours burn out on their own.', effects: { morale: 1, boardConfidence: 1, playerMorale: -3 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'injury-comeback',
+    name: 'The Long Road Back',
+    target: 'injured',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Weeks on the Sidelines',
+        body: '{playerName} faces a long spell out. The medical team has a rehab plan, but he is frustrated and keeps asking how he can help the team.',
+        icon: 'heart-pulse',
+        options: [
+          { label: 'Keep him around the squad', text: 'You ask {playerName} to stay involved at training and on match days.', effects: { morale: 3, playerMorale: 6 } },
+          { label: 'Specialist rehab abroad', text: 'You pay for world-class treatment away from the club for {playerName}.', effects: { boardConfidence: -1, fanMood: 2, playerMorale: 4 } },
+          { label: 'Give him space', text: 'You let {playerName} recover quietly with his family.', effects: { boardConfidence: 1, playerMorale: 2 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'A Setback in Rehab',
+        body: '{playerName} felt a twinge in his first full session. The physios say it is minor, but he is worried the injury will define his season.',
+        icon: 'alert-triangle',
+        options: [
+          { label: 'Slow everything down', text: 'You tell the physios there is no deadline. {playerName} returns when he is ready.', effects: { boardConfidence: 2, playerMorale: 5 } },
+          { label: 'Trust the timeline', text: 'You back the medical staff\'s plan and keep the target date.', effects: { morale: 1, boardConfidence: 3, playerMorale: -2 } },
+          { label: 'Find him a mentor', text: 'You ask a senior pro who beat a long injury to guide {playerName} through it.', effects: { morale: 3, playerMorale: 6 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Back in Contention',
+        body: '{playerName} is close to a return. The fans cannot wait to see him, but match sharpness is another matter.',
+        icon: 'award',
+        options: [
+          { label: 'Straight back in', text: 'You show total faith in {playerName} the moment he is passed fit.', effects: { boardConfidence: -1, fanMood: 6, playerMorale: 10 } },
+          { label: 'A cameo from the bench', text: 'You plan a careful twenty minutes to ease {playerName} back in.', effects: { boardConfidence: 3, fanMood: 3, playerMorale: 4 } },
+          { label: 'Build up his minutes', text: 'You want {playerName} fully match-fit before he steps back onto the big stage.', effects: { boardConfidence: 4, playerMorale: -3 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'new-signing-settling',
+    name: 'Settling In',
+    target: 'new-signing',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Struggling to Settle',
+        body: '{playerName} has not found it easy since arriving. Staff say he is quiet in training and spends most evenings alone in a hotel room.',
+        icon: 'plane',
+        options: [
+          { label: 'Find him a home', text: 'The player-care team finds {playerName} a house and helps his family move over.', effects: { boardConfidence: -1, playerMorale: 8 } },
+          { label: 'Pair him with a senior pro', text: 'You ask an experienced player to take {playerName} under his wing.', effects: { morale: 2, playerMorale: 5 } },
+          { label: 'He has to adapt', text: 'You tell {playerName} everyone goes through it and he needs to toughen up.', effects: { boardConfidence: 2, playerMorale: -6 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Not on the Same Page',
+        body: 'Communication on the pitch has been a problem. {playerName} keeps drifting out of the shape, and a teammate lost his temper with him in training.',
+        icon: 'book-open',
+        options: [
+          { label: 'Extra video sessions', text: 'You set up one-to-one video work so {playerName} learns the system faster.', effects: { morale: 2, boardConfidence: 2, playerMorale: 4 } },
+          { label: 'Simplify his role', text: 'You give {playerName} one clear, simple job until he settles.', effects: { morale: 1, boardConfidence: 3, playerMorale: 2 } },
+          { label: 'Fine the teammate', text: 'You fine the player who lost his temper — {playerName} is one of us now.', effects: { morale: -4, playerMorale: 8 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Turning the Corner',
+        body: '{playerName} finally looks at home. He was the loudest voice at the squad dinner and the fans have started singing his name.',
+        icon: 'trending-up',
+        options: [
+          { label: 'Praise him publicly', text: 'You tell the press {playerName} is showing exactly why you signed him.', effects: { morale: 1, fanMood: 5, playerMorale: 8 } },
+          { label: 'Keep expectations level', text: 'You say there is more to come from {playerName} and leave it there.', effects: { boardConfidence: 3, playerMorale: 3 } },
+          { label: 'Credit the dressing room', text: 'You thank the squad for making {playerName} feel welcome.', effects: { morale: 5, boardConfidence: 1, playerMorale: 3 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'striker-goal-drought',
+    name: 'Goal Drought',
+    target: 'striker',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Where Have the Goals Gone?',
+        body: 'The goals have dried up for {playerName}. Pundits are counting the minutes since he last scored and the questions are getting personal.',
+        icon: 'target',
+        options: [
+          { label: 'Back him publicly', text: 'You tell the press {playerName} is your number one striker, full stop.', effects: { morale: 2, fanMood: -1, playerMorale: 8 } },
+          { label: 'Extra finishing drills', text: 'You put {playerName} through extra shooting sessions after training.', effects: { morale: 1, boardConfidence: 2, playerMorale: 2 } },
+          { label: 'Rest him', text: 'You leave {playerName} on the bench to take the pressure off.', effects: { boardConfidence: 2, fanMood: 2, playerMorale: -8 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Head Games',
+        body: 'A sports psychologist has offered to work with {playerName}. Some senior players think it is exactly what he needs; others call it a distraction.',
+        icon: 'brain',
+        options: [
+          { label: 'Bring in the psychologist', text: 'You give {playerName} every tool to rebuild his confidence.', effects: { morale: 1, boardConfidence: -1, playerMorale: 6 } },
+          { label: 'Old-school approach', text: 'You tell {playerName} the only cure is hard work on the training ground.', effects: { morale: 2, boardConfidence: 2, playerMorale: -3 } },
+          { label: 'Change the system', text: 'You tweak the shape so {playerName} gets more service in the box.', effects: { morale: 3, playerMorale: 5 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'The Board Asks Questions',
+        body: 'The drought has become the story of your season. The board wants to know whether you plan to look for another striker.',
+        icon: 'clipboard',
+        options: [
+          { label: 'Keep faith', text: 'You tell the board {playerName} will come good and the goals will follow.', effects: { boardConfidence: -3, fanMood: 1, playerMorale: 10 } },
+          { label: 'Ask for a new striker', text: 'You ask for funds to bring in competition for {playerName}.', effects: { morale: -2, boardConfidence: 2, playerMorale: -8 } },
+          { label: 'Share the load', text: 'You say the goals must come from all over the pitch, not just {playerName}.', effects: { morale: 3, boardConfidence: 2, playerMorale: 2 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'manager-linked-elsewhere',
+    name: 'Linked With the Big Job',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Top of Their Shortlist',
+        body: 'Your fine run has not gone unnoticed. A national paper claims a much bigger club has put you at the top of its shortlist.',
+        icon: 'newspaper',
+        options: [
+          { label: 'Rule it out', text: 'You tell the press you are fully committed to {clubName}.', effects: { morale: 3, boardConfidence: 5, fanMood: 6 } },
+          { label: 'Never say never', text: 'You call it flattering and say ambition is no crime.', effects: { morale: -3, boardConfidence: -4, fanMood: -5 } },
+          { label: 'No comment', text: 'You refuse to discuss speculation and change the subject.', effects: { morale: 1, boardConfidence: 1, fanMood: -1 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'The Chairman Calls',
+        body: 'The chairman has asked for a private meeting. He wants to know where your head is — and what it would take to keep you.',
+        icon: 'building',
+        options: [
+          { label: 'Pitch a long-term project', text: 'You lay out a three-year plan and ask for the board\'s backing.', effects: { morale: 2, boardConfidence: 6 } },
+          { label: 'Ask for more funds', text: 'You make it clear that ambition has to be matched with investment.', effects: { morale: 3, boardConfidence: -3, fanMood: 2 } },
+          { label: 'Shake his hand', text: 'You tell him there is nothing to discuss. You are going nowhere.', effects: { boardConfidence: 4, fanMood: 2 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'The Rumours Fade',
+        body: 'The other club has appointed someone else. The story is dead, but the dressing room noticed how you handled it.',
+        icon: 'handshake',
+        options: [
+          { label: 'Laugh it off', text: 'You joke to the squad that they are stuck with you. The mood lifts instantly.', effects: { morale: 6, fanMood: 2 } },
+          { label: 'Use it as fuel', text: 'You tell the players that success here gets noticed everywhere.', effects: { morale: 5, boardConfidence: 2 } },
+          { label: 'Never mention it', text: 'You move on without a word. Some players read it as cold.', effects: { morale: -1, boardConfidence: 2 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'controversial-sponsor',
+    name: 'Controversial Sponsor',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'A Deal Too Far?',
+        body: 'The commercial team has agreed a lucrative shirt deal with a betting company. Supporters\' groups are furious and want to hear from you.',
+        icon: 'badge-dollar',
+        options: [
+          { label: 'Back the deal', text: 'You say the money will go straight into the squad.', effects: { boardConfidence: 5, fanMood: -6 } },
+          { label: 'Voice concern', text: 'You admit you understand why supporters are unhappy.', effects: { boardConfidence: -4, fanMood: 6 } },
+          { label: 'Stay out of it', text: 'You say commercial deals are a matter for the board.', effects: { boardConfidence: 1, fanMood: -2 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Shirt Boycott',
+        body: 'Fans have announced a boycott of the new shirt. Sales have stalled and your players are being asked about it in every interview.',
+        icon: 'shopping-cart',
+        options: [
+          { label: 'Let players speak freely', text: 'You let the squad give honest answers.', effects: { morale: 3, boardConfidence: -3, fanMood: 4 } },
+          { label: 'Media blackout', text: 'Players are told to decline every question about the sponsor.', effects: { morale: -2, boardConfidence: 3, fanMood: -2 } },
+          { label: 'Broker a meeting', text: 'You set up talks between fan groups and the commercial director.', effects: { boardConfidence: 2, fanMood: 4 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'A Compromise',
+        body: 'The sponsor has offered to fund a community programme if the protest ends. Everyone wants to know whether you will front it.',
+        icon: 'scale',
+        options: [
+          { label: 'Front the programme', text: 'You become the face of the new community scheme.', effects: { morale: 1, boardConfidence: 4, fanMood: 6 } },
+          { label: 'Send the players', text: 'The squad visits schools and grassroots clubs across the region.', effects: { morale: 3, boardConfidence: 2, fanMood: 5 } },
+          { label: 'Keep your distance', text: 'You leave it to the commercial team, and the protest fizzles out slowly.', effects: { boardConfidence: 1, fanMood: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'winter-training-camp',
+    name: 'Warm-Weather Camp',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Sun and Double Sessions',
+        body: 'The board has offered to fund a short warm-weather camp during a gap in the fixtures. The sports scientists love it; some players would rather stay at home.',
+        icon: 'plane',
+        options: [
+          { label: 'Book the camp', text: 'Good grass, sunshine and double sessions. The squad flies out on Monday.', effects: { morale: 3, boardConfidence: 3 } },
+          { label: 'Make it a bonding trip', text: 'You turn the camp into team-building as much as training.', effects: { morale: 6, boardConfidence: -1 } },
+          { label: 'Stay at home', text: 'You say the routine matters more than the weather.', effects: { morale: -2, boardConfidence: 2 } },
+        ],
+      },
+      {
+        weekOffset: 1,
+        title: 'Curfew Broken',
+        body: 'Three players were spotted in town long after curfew. The story has not reached the press yet, but the rest of the squad knows.',
+        icon: 'clock',
+        options: [
+          { label: 'Fine them', text: 'You fine all three and move on.', effects: { morale: -2, boardConfidence: 4 } },
+          { label: 'Send them home', text: 'You send them back early to make an example of them.', effects: { morale: -5, boardConfidence: 5, fanMood: 2 } },
+          { label: 'Deal with it privately', text: 'A quiet word and a final warning. It stays inside the camp.', effects: { morale: 3, boardConfidence: -2 } },
+        ],
+      },
+      {
+        weekOffset: 3,
+        title: 'Back to Business',
+        body: 'The squad is home and the fitness staff are pleased with the data. The question is how you carry the camp spirit into the second half of the season.',
+        icon: 'dumbbell',
+        options: [
+          { label: 'Keep the intensity', text: 'You keep training at camp levels for another month.', effects: { morale: -2, boardConfidence: 4, fanMood: 2 } },
+          { label: 'Ease off and recover', text: 'You lighten the load so legs are fresh for the matches.', effects: { morale: 4, boardConfidence: 2 } },
+          { label: 'A squad day out', text: 'You take the players go-karting to keep the bond alive.', effects: { morale: 6, boardConfidence: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'ticket-price-row',
+    name: 'Ticket Price Row',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Season Tickets Go Up',
+        body: 'The board has announced a steep rise in season-ticket prices. Supporters have jammed the phone-ins all week asking where you stand.',
+        icon: 'dollar-sign',
+        options: [
+          { label: 'Back the board', text: 'You explain the club needs the revenue to compete.', effects: { boardConfidence: 5, fanMood: -6 } },
+          { label: 'Side with the fans', text: 'You say football should be affordable for the people who fill the stands.', effects: { boardConfidence: -4, fanMood: 8 } },
+          { label: 'Stay neutral', text: 'You say ticket pricing is above your pay grade.', effects: { boardConfidence: 1, fanMood: -2 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Empty Seats Protest',
+        body: 'Supporters\' groups have called on fans to leave their seats empty for twenty minutes at the next home game. The players are worried about the atmosphere.',
+        icon: 'users',
+        options: [
+          { label: 'Ask the fans to wait', text: 'You plead for the protest to wait until after the final whistle.', effects: { morale: 2, boardConfidence: 2, fanMood: -2 } },
+          { label: 'Support the protest', text: 'You say the fans have every right to be heard.', effects: { morale: -1, boardConfidence: -4, fanMood: 6 } },
+          { label: 'Block it out', text: 'You tell the players to perform as if the stadium were full.', effects: { morale: 4, boardConfidence: 1 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Price Freeze Talks',
+        body: 'Under pressure, the board is considering a price freeze for under-18s and pensioners. They want your view before announcing anything.',
+        icon: 'scale',
+        options: [
+          { label: 'Push for the freeze', text: 'You tell the board it would be a huge gesture to the community.', effects: { boardConfidence: 2, fanMood: 7 } },
+          { label: 'Suggest smaller rises', text: 'You propose a smaller increase across the board instead.', effects: { boardConfidence: 4, fanMood: 4 } },
+          { label: 'Leave it to them', text: 'You stay out of it and focus on the football.', effects: { morale: 1, boardConfidence: 2, fanMood: -1 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'title-race-nerves',
+    name: 'Title Race',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'In the Race',
+        body: '{clubName} are in the thick of the title race. Every result elsewhere is picked apart on TV and the pressure grows by the day.',
+        icon: 'trophy',
+        options: [
+          { label: 'Talk about the title', text: 'You say {clubName} are going for it and fear nobody.', effects: { morale: 6, boardConfidence: -2, fanMood: 8 } },
+          { label: 'Play the underdog', text: 'You insist all the pressure is on the others.', effects: { morale: 5, boardConfidence: 3, fanMood: 2 } },
+          { label: 'One game at a time', text: 'You refuse to even look at the table.', effects: { morale: 3, boardConfidence: 4 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'The Mind Games Begin',
+        body: 'A manager in the race has claimed that referees are favouring {clubName}. The quote is on every back page.',
+        icon: 'mic',
+        options: [
+          { label: 'Hit back hard', text: 'You tell him to worry about his own team.', effects: { morale: 4, boardConfidence: -3, fanMood: 6 } },
+          { label: 'Laugh it off', text: 'You say he must be feeling the pressure.', effects: { morale: 5, boardConfidence: 2, fanMood: 3 } },
+          { label: 'Ignore him', text: 'You refuse to take the bait.', effects: { morale: 2, boardConfidence: 4 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Final Stretch',
+        body: 'The run-in is here. The players are tense in training, and the staff want to know how you will handle the last few weeks.',
+        icon: 'flame',
+        options: [
+          { label: 'Keep the routine', text: 'Same training, same hotel, same pre-match meal. Nothing changes.', effects: { morale: 4, boardConfidence: 4 } },
+          { label: 'Lighten the mood', text: 'You book a comedian for a surprise squad night.', effects: { morale: 8, boardConfidence: -1 } },
+          { label: 'Visit the trophy room', text: 'You walk the squad past the club\'s silverware and remind them what is at stake.', effects: { morale: 6, boardConfidence: 1, fanMood: 4 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'relegation-dogfight',
+    name: 'Relegation Dogfight',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Staring at the Drop',
+        body: '{clubName} are in a relegation fight. The mood around the club is grim and the board wants to know how you will keep the team up.',
+        icon: 'alert-triangle',
+        options: [
+          { label: 'Promise survival', text: 'You guarantee {clubName} will stay up.', effects: { morale: 4, boardConfidence: -2, fanMood: 5 } },
+          { label: 'Back to basics', text: 'You simplify everything: defend deep, win the second balls.', effects: { morale: 2, boardConfidence: 4 } },
+          { label: 'Blame the fixture list', text: 'You point to the brutal run of games you have faced.', effects: { morale: -1, boardConfidence: -3, fanMood: -3 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Six-Pointer',
+        body: 'A huge match against another struggling side is coming up. The fans are planning a special welcome for the team bus.',
+        icon: 'swords',
+        options: [
+          { label: 'Rally the fans', text: 'You ask the supporters to make it the loudest night of the season.', effects: { morale: 5, fanMood: 6 } },
+          { label: 'Close the training ground', text: 'You shut out every distraction and drill the game plan.', effects: { morale: 3, boardConfidence: 4 } },
+          { label: 'Take the squad away', text: 'A few days at a quiet hotel to bond before the big game.', effects: { morale: 6, boardConfidence: -1 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Fight to the End',
+        body: 'The run-in will decide your fate. The senior players have asked to address the squad before the final stretch.',
+        icon: 'shield',
+        options: [
+          { label: 'Let the leaders speak', text: 'You hand the floor to the dressing-room leaders.', effects: { morale: 7, boardConfidence: 2 } },
+          { label: 'Do it yourself', text: 'You deliver the speech of your career.', effects: { morale: 5, boardConfidence: 3, fanMood: 2 } },
+          { label: 'Keep it tactical', text: 'You skip the speeches and go through the set pieces one more time.', effects: { morale: 2, boardConfidence: 4 } },
+        ],
+      },
+    ],
+  },
 ];
 
 /** Check if a chain should trigger based on game context */
@@ -618,6 +1069,15 @@ export function shouldTriggerChain(
     hasYouthProspect: boolean;
     budget: number;
     averageBudget: number;
+    // ── content: table / fixture context for the newer chains (optional so
+    // older callers and tests that predate them still type-check) ──
+    /** 1-based league position; undefined when unknown. */
+    leaguePosition?: number;
+    totalTeams?: number;
+    /** Relegation places in the club's league (0 = no drop, e.g. single-tier). */
+    relegationSpots?: number;
+    /** The club's fixture THIS week is against its top rival (`topRivalId`). */
+    derbyThisWeek?: boolean;
   },
 ): boolean {
   switch (chainId) {
@@ -651,7 +1111,120 @@ export function shouldTriggerChain(
       return ctx.week >= 5 && ctx.week <= 35;
     case 'captain-retirement':
       return ctx.week >= 25 && ctx.hasStarPlayer;
+    // ── content: newer chains. Targeted ones (see `target`) are additionally
+    // gated on `pickChainTarget` finding a player, so these only bound timing. ──
+    case 'derby-build-up':
+      return !!ctx.derbyThisWeek;
+    case 'wonderkid-hype':
+      return ctx.week >= 6 && ctx.week <= 30;
+    case 'injury-comeback':
+      return ctx.week <= 34;
+    case 'new-signing-settling':
+      return ctx.week <= 30;
+    case 'striker-goal-drought':
+      return ctx.week >= 8 && ctx.week <= 32;
+    case 'manager-linked-elsewhere':
+      return ctx.recentWins >= 3 && ctx.boardConfidence >= 60 && ctx.week >= 10;
+    case 'controversial-sponsor':
+      return ctx.week >= 6 && ctx.week <= 30;
+    case 'winter-training-camp':
+      return ctx.week >= 16 && ctx.week <= 26;
+    case 'ticket-price-row':
+      return ctx.week >= 8 && ctx.week <= 32;
+    case 'title-race-nerves':
+      return ctx.week >= 24
+        && ctx.leaguePosition !== undefined && ctx.leaguePosition >= 1
+        && ctx.leaguePosition <= STORYLINE_TITLE_RACE_TOP_N
+        && (ctx.totalTeams ?? 0) >= STORYLINE_TITLE_RACE_MIN_TEAMS;
+    case 'relegation-dogfight': {
+      const spots = ctx.relegationSpots ?? 0;
+      if (spots <= 0 || ctx.leaguePosition === undefined || !ctx.totalTeams || ctx.week < 20) return false;
+      // In the drop zone, or within STORYLINE_RELEGATION_MARGIN places above it.
+      return ctx.leaguePosition > ctx.totalTeams - spots - STORYLINE_RELEGATION_MARGIN;
+    }
     default:
       return false;
   }
+}
+
+// ── content: chain targets + text interpolation ──
+
+/**
+ * The squad player a targeted chain is about, or null when nobody fits — in
+ * which case the chain must not start (it would otherwise print a literal
+ * `{playerName}` or talk about a player who does not exist).
+ *
+ * Every rule is a fact the save can verify, because the chain text states it:
+ * "the goals have dried up" is only ever said about a striker who genuinely has
+ * `STORYLINE_DROUGHT_MAX_GOALS` or fewer in `STORYLINE_DROUGHT_MIN_APPS`+ games.
+ * Ties break on the strongest candidate so the story lands on someone who matters.
+ */
+export function pickChainTarget(
+  target: StorylineChainTarget,
+  squad: Player[],
+  opts: { recentSigningNames?: string[] } = {},
+): Player | null {
+  const available = squad.filter(p => p && !p.onLoan);
+  let pool: Player[];
+  switch (target) {
+    case 'star':
+      pool = available.filter(p => p.overall >= STORYLINE_STAR_MIN_OVERALL && !p.injured && !p.wantsToLeave && !p.listedForSale);
+      break;
+    case 'youth':
+      pool = available.filter(p => p.age <= STORYLINE_WONDERKID_MAX_AGE && p.potential >= STORYLINE_WONDERKID_MIN_POTENTIAL && !p.listedForSale);
+      return pool.sort((a, b) => b.potential - a.potential || b.overall - a.overall)[0] ?? null;
+    case 'injured':
+      pool = available.filter(p => p.injured && p.injuryWeeks >= STORYLINE_COMEBACK_MIN_INJURY_WEEKS);
+      break;
+    case 'new-signing': {
+      // `seasonTransfersBought` records names only; a bought player is the one
+      // whose full name is on this season's list.
+      const names = new Set(opts.recentSigningNames ?? []);
+      pool = available.filter(p => names.has(`${p.firstName} ${p.lastName}`) && !p.listedForSale);
+      break;
+    }
+    case 'striker':
+      pool = available.filter(p => p.position === 'ST' && !p.injured
+        && p.overall >= STORYLINE_DROUGHT_MIN_OVERALL
+        && (p.appearances ?? 0) >= STORYLINE_DROUGHT_MIN_APPS
+        && (p.goals ?? 0) <= STORYLINE_DROUGHT_MAX_GOALS);
+      break;
+    default:
+      return null;
+  }
+  return pool.sort((a, b) => b.overall - a.overall)[0] ?? null;
+}
+
+/**
+ * The club's headline rival for `{rivalName}`: a real derby opponent in the
+ * same division first, then an earned grudge (see `deriveRivals`). A club that
+ * is merely met often is NOT a rival here — the derby chain promises a derby.
+ */
+export function topRivalId(
+  playerClubId: string,
+  clubs: Record<string, Club>,
+  rivalries: Record<string, HeadToHeadRecord> | undefined,
+): string | null {
+  const rivals = deriveRivals({ playerClubId, clubs, rivalries: rivalries || {}, fixtures: [], currentWeek: 0 });
+  const real = rivals.find(r => r.derbyIntensity > 0 || r.grudgeLevel >= RIVAL_MIN_GRUDGE);
+  return real?.clubId ?? null;
+}
+
+/** Values substituted into chain text. Missing values fall back to a neutral
+ *  phrase, so a stale save can never surface a raw `{placeholder}`. */
+export interface ChainTextVars {
+  playerName?: string;
+  clubName?: string;
+  rivalName?: string;
+}
+
+/** Placeholders the chain text may use. Only `body` and option `text` are
+ *  interpolated — titles and labels are shown verbatim. */
+export const CHAIN_PLACEHOLDERS = ['playerName', 'clubName', 'rivalName'] as const;
+
+export function interpolateChainText(text: string, vars: ChainTextVars): string {
+  return text
+    .replace(/\{playerName\}/g, vars.playerName || 'your star player')
+    .replace(/\{clubName\}/g, vars.clubName || 'the club')
+    .replace(/\{rivalName\}/g, vars.rivalName || 'your rivals');
 }

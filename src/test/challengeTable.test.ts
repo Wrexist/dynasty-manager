@@ -16,8 +16,8 @@
  * plus that the completion flag is idempotent so a reward cannot be paid twice.
  */
 import { describe, it, expect } from 'vitest';
-import { CHALLENGES, checkChallengeComplete, checkChallengeFailed } from '@/data/challenges';
-import { LEAGUES } from '@/data/league';
+import { CHALLENGES, checkChallengeComplete, checkChallengeFailed, getChallengeStartClubId, leagueHasRelegation } from '@/data/challenges';
+import { LEAGUES, CLUBS_DATA } from '@/data/league';
 
 interface Scenario {
   leaguePosition: number;
@@ -44,8 +44,8 @@ const CASES: Record<string, { win: Scenario; lose: Scenario }> = {
     lose: { leaguePosition: 4, cupWinner: false, seasonHistory: [], hasLost: true },
   },
   'youth-revolution': {
-    win: { leaguePosition: 3, cupWinner: false, seasonHistory: [], hasLost: true },
-    lose: { leaguePosition: 14, cupWinner: false, seasonHistory: [], hasLost: true },
+    win: { leaguePosition: 3, cupWinner: false, seasonHistory: [], hasLost: true, extraData: { seasonDivisionId: TIER1.id } },
+    lose: { leaguePosition: 14, cupWinner: false, seasonHistory: [], hasLost: true, extraData: { seasonDivisionId: TIER1.id } },
   },
   'penny-pincher': {
     win: { leaguePosition: 1, cupWinner: false, seasonHistory: [], hasLost: true },
@@ -139,5 +139,51 @@ describe('challenge table — reward is paid once', () => {
         `${c.id} should not instant-fail on a defeat`,
       ).toBe(false);
     }
+  });
+});
+
+describe('challenge table — no auto-wins from the league you start in', () => {
+  const clubLeague = (clubId: string) => {
+    const club = CLUBS_DATA.find(c => c.id === clubId)!;
+    return LEAGUES.find(l => l.id === club.divisionId)!;
+  };
+
+  it('The Great Escape starts in a league that can relegate you', () => {
+    const scenario = CHALLENGES.find(c => c.id === 'great-escape')!;
+    const clubId = getChallengeStartClubId(scenario)!;
+    expect(clubId).toBeTruthy();
+    const league = clubLeague(clubId);
+    expect(leagueHasRelegation(league), `${clubId} is in ${league.id}, which has no relegation`).toBe(true);
+    // ...and a bottom finish there really does fail it.
+    expect(run('great-escape', { leaguePosition: league.teamCount, cupWinner: false, seasonHistory: [], hasLost: true, extraData: { seasonDivisionId: league.id } })).toBe(false);
+  });
+
+  it('The Great Escape is never won in a league without relegation', () => {
+    const noDrop = LEAGUES.filter(l => !leagueHasRelegation(l));
+    expect(noDrop.length).toBeGreaterThan(0);
+    for (const l of noDrop) {
+      expect(run('great-escape', { leaguePosition: l.teamCount, cupWinner: false, seasonHistory: [], hasLost: true, extraData: { seasonDivisionId: l.id } }), l.id).toBe(false);
+    }
+  });
+
+  it('Giant Killer still takes the lowest-reputation club in the game', () => {
+    const scenario = CHALLENGES.find(c => c.id === 'giant-killer')!;
+    const lowest = [...CLUBS_DATA].sort((a, b) => a.reputation - b.reputation)[0];
+    expect(getChallengeStartClubId(scenario)).toBe(lowest.id);
+  });
+
+  it('Youth Revolution needs the top half of the table in every league size', () => {
+    for (const l of LEAGUES) {
+      const half = Math.floor(l.teamCount / 2);
+      const at = (pos: number) => run('youth-revolution', { leaguePosition: pos, cupWinner: false, seasonHistory: [], hasLost: true, extraData: { seasonDivisionId: l.id } });
+      expect(at(half), `${l.id} P${half}`).toBe(true);
+      expect(at(half + 1), `${l.id} P${half + 1}`).toBe(false);
+    }
+  });
+
+  it('Youth Revolution copy promises only what is enforced', () => {
+    const yr = CHALLENGES.find(c => c.id === 'youth-revolution')!;
+    const copy = [yr.description, yr.winCondition, ...yr.constraints].join(' ');
+    expect(copy).not.toMatch(/£5M|under 21|starting lineup/i);
   });
 });

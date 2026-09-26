@@ -22,6 +22,9 @@ import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { getPostMatchPressContext } from '@/data/pressConferences';
 import { useGameStore } from '@/store/gameStore';
 import { UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { loadHall } from '@/utils/hallOfManagers';
+import { computeManagerLegacy } from '@/utils/managerLegacy';
+import type { SeasonHistory } from '@/types/game';
 
 const realRandom = Math.random;
 afterAll(() => { Math.random = realRandom; });
@@ -82,6 +85,31 @@ describe('prestige is unavailable in career mode', () => {
 
   it('is not reachable from the unemployed-career screen whitelist', () => {
     expect([...UNEMPLOYED_ALLOWED_SCREENS]).not.toContain('prestige');
+  });
+
+  it('a history-preserving prestige keeps one Hall row, so carried trophies are not counted twice', { timeout: 60_000 }, async () => {
+    const title: SeasonHistory = {
+      season: 1, position: 1, points: 90, won: 28, drawn: 6, lost: 4, goalsFor: 90, goalsAgainst: 30,
+      topScorer: { name: 'A', goals: 25 }, boardVerdict: 'excellent', managed: true,
+    } as SeasonHistory;
+    useGameStore.setState({ seasonHistory: [title, { ...title, season: 2 }] });
+    const careerId = useGameStore.getState().careerId;
+
+    useGameStore.getState().startPrestige('rival');
+    await vi.waitFor(() => {
+      expect(useGameStore.getState().managerProgression.prestigeLevel).toBe(1);
+    });
+    expect(useGameStore.getState().careerId).toBe(careerId);
+    expect(computeManagerLegacy(loadHall()).totalTitles).toBe(2);
+
+    // A trophyless season at the new club: bottom of the table.
+    const s = useGameStore.getState();
+    const leagueTable = [...s.leagueTable].sort((a, b) =>
+      (a.clubId === s.playerClubId ? 1 : 0) - (b.clubId === s.playerClubId ? 1 : 0));
+    useGameStore.setState({ leagueTable });
+    useGameStore.getState().endSeason();
+
+    expect(computeManagerLegacy(loadHall()).totalTitles).toBe(2);
   });
 
   it('still works in sandbox', async () => {

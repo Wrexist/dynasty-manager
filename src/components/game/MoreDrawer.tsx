@@ -1,23 +1,27 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
-  Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal, Swords,
-  Dumbbell, UserCog, Sprout, Users, Package, ArrowLeftRight
+  Mail, Trophy, Target, DollarSign, Building2, Calendar, Shield, Landmark, Shirt, ListOrdered, Flag,
+  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, Crown, HelpCircle, Briefcase, Search, Medal, Swords,
+  Dumbbell, UserCog, Sprout, Users, Package, ArrowLeftRight, TrendingUp, Zap, History, Ticket,
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_SCREENS, DRAWER_GROUPS, CAREER_MODE_DRAWER_SCREENS, type DrawerGroupId } from '@/config/navigation';
+import type { TranslationKey } from '@/i18n';
 import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD, SQUAD_SUB_NAV, MARKET_SUB_NAV } from '@/config/ui';
 import { getSuffix } from '@/utils/helpers';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { CountBadge } from '@/components/game/CountBadge';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { isPro } from '@/utils/monetization';
+import { passHomeSummary } from '@/utils/managerPass';
+import { observeClock } from '@/store/helpers/persistence';
 
 // Liquid-glass tile shared by pinned quick-actions and drawer rows. Mirrors
 // the GlassPanel treatment (gradient + thick-rim inset shadow + specular top
@@ -42,76 +46,68 @@ interface DrawerItem {
 }
 
 interface DrawerSection {
-  title: string;
+  id: DrawerGroupId;
   items: DrawerItem[];
 }
 
-const drawerSections: DrawerSection[] = [
-  {
-    title: 'Competition',
-    items: [
-      { screen: 'inbox', label: 'Inbox', icon: Mail, description: 'Messages & news' },
-      { screen: 'league-table', label: 'League', icon: Trophy, description: 'Standings & results' },
-      { screen: 'rivalries', label: 'Rivalries', icon: Swords, description: 'Derbies & grudge matches' },
-      { screen: 'competitions', label: 'Competitions', icon: Award, description: 'League, cups & continental' },
-      { screen: 'national-team', label: 'National Team', icon: Globe, description: 'International management' },
-      { screen: 'calendar', label: 'Calendar', icon: Calendar, description: 'Season schedule' },
-    ],
-  },
-  {
-    // Training and Staff had NO drawer entry at all — their only real entry
-    // point was a horizontally-scrolling pill on the Squad tab, which made them
-    // effectively undiscoverable (and the onboarding checklist pointed players
-    // at a "More → Staff" row that never existed).
-    title: 'Squad',
-    items: [
-      { screen: 'training', label: 'Training', icon: Dumbbell, description: 'Weekly schedule & intensity' },
-      { screen: 'staff', label: 'Staff', icon: UserCog, description: 'Coaches, scouts & physios' },
-      { screen: 'youth-academy', label: 'Youth Academy', icon: Sprout, description: 'Prospects & promotions' },
-    ],
-  },
-  {
-    title: 'Management',
-    items: [
-      { screen: 'club', label: 'Club', icon: Home, description: 'Club overview & squad info' },
-      { screen: 'board', label: 'Board', icon: Target, description: 'Your objectives & job security' },
-      { screen: 'finance', label: 'Finance', icon: DollarSign, description: 'Budget, wages & revenue' },
-      { screen: 'merchandise', label: 'Merchandise', icon: ShoppingBag, description: 'Products, pricing & campaigns' },
-      { screen: 'facilities', label: 'Facilities', icon: Building2, description: 'Stadium & training upgrades' },
-    ],
-  },
-  {
-    title: 'Career',
-    items: [
-      { screen: 'manager-profile', label: 'Profile', icon: User, description: 'Your career history' },
-      { screen: 'trophy-cabinet', label: 'Trophies', icon: Trophy, description: 'Your honours & achievements' },
-      { screen: 'ballon-dor', label: "Ballon d'Or", icon: Award, description: 'Top 25 players each season' },
-      { screen: 'perks', label: 'Perks', icon: Star, description: 'Earn XP & unlock bonuses' },
-      { screen: 'comparison', label: 'Compare', icon: GitCompare, description: 'Side-by-side player stats' },
-      { screen: 'dynasty-legacy', label: 'Legacy', icon: Medal, description: 'Your lifetime record across all saves' },
-      { screen: 'hall-of-managers', label: 'Hall of Fame', icon: Trophy, description: 'Cross-save leaderboard' },
-      { screen: 'shop', label: 'Shop', icon: Crown, description: 'Dynasty Pro & cosmetics', gold: true },
-      { screen: 'help', label: 'Game Guide', icon: HelpCircle, description: 'How to play & glossary' },
-      { screen: 'settings', label: 'Settings', icon: Settings, description: 'Save, load & preferences' },
-    ],
-  },
-];
+const GROUP_TITLE_KEY: Record<DrawerGroupId, TranslationKey> = {
+  club: 'moreDrawer.group.club',
+  competitions: 'moreDrawer.group.competitions',
+  me: 'moreDrawer.group.me',
+  app: 'moreDrawer.group.app',
+};
 
-// Career mode items to prepend to the Career section
-const CAREER_MODE_ITEMS: DrawerItem[] = [
-  { screen: 'career-overview', label: 'Career Overview', icon: Briefcase, description: 'Your stats, traits & reputation' },
-  { screen: 'job-market', label: 'Job Market', icon: Globe, description: 'Browse vacancies & offers' },
-];
+// One icon per destination. Trophy used to mean League, Trophies AND Hall of
+// Fame, and Globe both National Team and Job Market, so the icon column could
+// not be scanned — every row had to be read. `moreDrawer.test.tsx` pins that no
+// two rows (drawer or search-only) share an icon.
+const DRAWER_ITEM_META: Partial<Record<GameScreen, Omit<DrawerItem, 'screen'>>> = {
+  // Club
+  inbox: { label: 'Inbox', icon: Mail, description: 'Messages & news' },
+  club: { label: 'Club', icon: Shield, description: 'Club overview & squad info' },
+  board: { label: 'Board', icon: Landmark, description: 'Your objectives & job security' },
+  finance: { label: 'Finance', icon: DollarSign, description: 'Budget, wages & revenue' },
+  merchandise: { label: 'Merchandise', icon: Shirt, description: 'Products, pricing & campaigns' },
+  facilities: { label: 'Facilities', icon: Building2, description: 'Stadium & training upgrades' },
+  comparison: { label: 'Compare', icon: GitCompare, description: 'Side-by-side player stats' },
+  // Competitions
+  'league-table': { label: 'League', icon: ListOrdered, description: 'Standings & results' },
+  competitions: { label: 'Competitions', icon: Trophy, description: 'League, cups & continental' },
+  calendar: { label: 'Calendar', icon: Calendar, description: 'Season schedule' },
+  rivalries: { label: 'Rivalries', icon: Swords, description: 'Derbies & grudge matches' },
+  'national-team': { label: 'National Team', icon: Flag, description: 'International management' },
+  'ballon-dor': { label: "Ballon d'Or", icon: Award, description: 'Top 25 players each season' },
+  // Me
+  'career-overview': { label: 'Career Overview', icon: TrendingUp, description: 'Your stats, traits & reputation' },
+  'job-market': { label: 'Job Market', icon: Briefcase, description: 'Browse vacancies & offers' },
+  'manager-profile': { label: 'Profile', icon: User, description: 'Your career history' },
+  'trophy-cabinet': { label: 'Trophies', icon: Medal, description: 'Your honours & achievements' },
+  perks: { label: 'Perks', icon: Zap, description: 'Earn XP & unlock bonuses' },
+  'dynasty-legacy': { label: 'Legacy', icon: History, description: 'Your lifetime record across all saves' },
+  'manager-pass': { label: 'Manager Pass', icon: Ticket, description: 'Season rewards: free + Pro track' },
+  'hall-of-managers': { label: 'Hall of Fame', icon: Star, description: 'Cross-save leaderboard' },
+  // App
+  shop: { label: 'Shop', icon: Crown, description: 'Dynasty Pro & cosmetics', gold: true },
+  help: { label: 'Game Guide', icon: HelpCircle, description: 'How to play & glossary' },
+  settings: { label: 'Settings', icon: Settings, description: 'Save, load & preferences' },
+};
 
-// The search box promises "Search all features" but only ever filtered
-// `drawerSections`, so typing "tactics", "transfers", "scouting" or "packs"
-// returned nothing — those screens live on the bottom nav and its sub-navs
-// (SQUAD_SUB_NAV / MARKET_SUB_NAV in config/ui.ts), not in the drawer. They get
-// a search-only "Jump to" section so the promise holds. Screens already listed
-// in `drawerSections` above (Training, Staff, Youth) are excluded to avoid
-// duplicate hits.
+const drawerSections: DrawerSection[] = DRAWER_GROUPS.map(group => ({
+  id: group.id,
+  items: group.screens
+    .map(screen => (DRAWER_ITEM_META[screen] ? { screen, ...DRAWER_ITEM_META[screen] } : null))
+    .filter(Boolean) as DrawerItem[],
+}));
+
+// The search box promises "Search all features", so every screen that lives on
+// the bottom nav or a sub-nav (SQUAD_SUB_NAV / MARKET_SUB_NAV in config/ui.ts)
+// gets a search-only "Jump to" row — including Training, Staff and Youth, which
+// no longer have drawer rows of their own because their sub-nav is their home.
 const SUB_NAV_SEARCH_META: Partial<Record<GameScreen, { icon: React.ElementType; description: string }>> = {
   squad: { icon: Users, description: 'Your players, filters & depth' },
+  training: { icon: Dumbbell, description: 'Weekly schedule & intensity' },
+  staff: { icon: UserCog, description: 'Coaches, scouts & physios' },
+  'youth-academy': { icon: Sprout, description: 'Prospects & promotions' },
   tactics: { icon: Target, description: 'Formation, lineup & instructions' },
   transfers: { icon: ArrowLeftRight, description: 'Market, free agents & offers' },
   scouting: { icon: Search, description: 'Send scouts & read reports' },
@@ -121,7 +117,11 @@ const SUB_NAV_SEARCH_META: Partial<Record<GameScreen, { icon: React.ElementType;
 // Build a lookup for pinned items from drawer sections (preserves icon/label/description)
 const ALL_ITEMS: DrawerItem[] = drawerSections.flatMap(s => s.items);
 
-const SUB_NAV_SEARCH_ITEMS: DrawerItem[] = [...SQUAD_SUB_NAV, ...MARKET_SUB_NAV]
+const SUB_NAV_SEARCH_ITEMS: DrawerItem[] = [
+  { screen: 'tactics' as GameScreen, label: 'Tactics' },
+  ...SQUAD_SUB_NAV,
+  ...MARKET_SUB_NAV,
+]
   .filter(entry => !ALL_ITEMS.some(i => i.screen === entry.screen))
   .map(entry => {
     const meta = SUB_NAV_SEARCH_META[entry.screen];
@@ -135,11 +135,11 @@ const SUB_NAV_SEARCH_ITEMS: DrawerItem[] = [...SQUAD_SUB_NAV, ...MARKET_SUB_NAV]
 const PINNED_ITEMS = PINNED_DRAWER_SCREENS.map(screen => ALL_ITEMS.find(i => i.screen === screen)).filter(Boolean) as DrawerItem[];
 const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 
-// Sections that collapse by default for new players. "Career" stays expanded
-// (it holds the only entry points to Career Overview and Job Market), and
-// "Management" stays expanded too — the drawer is the only home for
-// Facilities/Finance/Merchandise, and collapsing it made them undiscoverable.
-const NEW_PLAYER_COLLAPSED_SECTIONS = new Set<string>([]);
+// Groups that collapse by default for new players. None do: "Me" holds the only
+// entry points to Career Overview and Job Market, and "Club" is the only home
+// for Facilities/Finance/Merchandise — collapsing either made them
+// undiscoverable.
+const NEW_PLAYER_COLLAPSED_SECTIONS = new Set<DrawerGroupId>([]);
 
 interface MoreDrawerProps {
   disabled?: boolean;
@@ -169,8 +169,16 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
     fixtures: s.fixtures, playerClubId: s.playerClubId, leagueTable: s.leagueTable,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const managerPass = useGameStore(s => s.managerPass);
+  const monetization = useGameStore(s => s.monetization);
   const isUnemployed = useCareerUnemployed();
   const unread = messages.filter(m => !m.read).length;
+  // Manager Pass rewards waiting to be collected — only worked out while the
+  // drawer is open, since that is the only time the row is drawn.
+  const passClaimable = useMemo(
+    () => (open ? passHomeSummary(managerPass, isPro(monetization), new Date(observeClock())).claimable : 0),
+    [open, managerPass, monetization],
+  );
   const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
   const hasPendingLeagueCupMatch = leagueCup?.ties?.some(t => !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
 
@@ -187,22 +195,22 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
   const isNewPlayer = season === 1 && week <= NEW_PLAYER_DRAWER_WEEK_THRESHOLD;
 
   // Section collapse state — smart defaults for new players
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Partial<Record<DrawerGroupId, boolean>>>({});
 
-  const toggleSection = useCallback((title: string) => {
+  const toggleSection = useCallback((id: DrawerGroupId) => {
     hapticLight();
     setCollapsed(prev => {
-      const currentlyCollapsed = prev[title] !== undefined
-        ? prev[title]
-        : (isNewPlayer && NEW_PLAYER_COLLAPSED_SECTIONS.has(title));
-      return { ...prev, [title]: !currentlyCollapsed };
+      const currentlyCollapsed = prev[id] !== undefined
+        ? prev[id]
+        : (isNewPlayer && NEW_PLAYER_COLLAPSED_SECTIONS.has(id));
+      return { ...prev, [id]: !currentlyCollapsed };
     });
   }, [isNewPlayer]);
 
   // Compute effective collapsed state: use explicit toggle if set, otherwise smart default
-  const isSectionCollapsed = useCallback((title: string) => {
-    if (collapsed[title] !== undefined) return collapsed[title];
-    return isNewPlayer && NEW_PLAYER_COLLAPSED_SECTIONS.has(title);
+  const isSectionCollapsed = useCallback((id: DrawerGroupId) => {
+    if (collapsed[id] !== undefined) return collapsed[id];
+    return isNewPlayer && NEW_PLAYER_COLLAPSED_SECTIONS.has(id);
   }, [collapsed, isNewPlayer]);
 
   // Hide screens when the player isn't participating. Individual continental /
@@ -251,11 +259,11 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
               <MoreHorizontal className="w-5 h-5" />
               {(unread > 0 || (!isUnemployed && hasPendingCupMatch)) && (
                 <div className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-destructive rounded-full flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
+                  <span className="text-micro font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
                 </div>
               )}
             </span>
-            <span className="text-[10px] font-medium">More</span>
+            <span className="text-micro font-medium">More</span>
           </span>
         </button>
       </SheetTrigger>
@@ -289,6 +297,8 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
         </div>
         <SheetHeader className="pb-3">
           <SheetTitle className="text-foreground font-display text-lg tracking-wide">Quick Access</SheetTitle>
+          {/* Radix warned "Missing Description" on every open (R19). */}
+          <SheetDescription className="sr-only">{t('moreDrawer.sheetDescription')}</SheetDescription>
         </SheetHeader>
 
         {/* Pinned essentials row — each becomes a liquid-glass tile so the
@@ -323,7 +333,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                   {/* Contextual hints on pinned items */}
                   {screen === 'calendar' && hasMatchThisWeek && (
                     <span
-                      className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full text-emerald-100 relative"
+                      className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full text-emerald-100 relative"
                       style={{
                         background: 'linear-gradient(180deg, rgba(110,231,183,0.25) 0%, rgba(16,185,129,0.3) 100%)',
                         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px rgba(16,185,129,0.4), 0 0 8px rgba(16,185,129,0.35)',
@@ -334,7 +344,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                     </span>
                   )}
                   {screen === 'league-table' && leaguePosition && (
-                    <span className="text-[9px] text-muted-foreground relative">{leaguePosition}{getSuffix(leaguePosition)}</span>
+                    <span className="text-micro text-muted-foreground relative">{leaguePosition}{getSuffix(leaguePosition)}</span>
                   )}
                 </button>
               );
@@ -365,8 +375,8 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
             if (items.length === 0) return null;
             return (
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
-                  Jump to
+                <p className="text-micro text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
+                  {t('moreDrawer.jumpTo')}
                 </p>
                 <div className="space-y-1.5">
                   {items.map(item => (
@@ -379,6 +389,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                       hasPendingCupMatch={hasPendingCupMatch}
                       hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
                       nationalTeamOffer={nationalTeamOffer}
+                      passClaimable={passClaimable}
                     />
                   ))}
                 </div>
@@ -386,10 +397,11 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
             );
           })()}
           {drawerSections.map(section => {
-            // In career mode, prepend career-specific items to the Career section
-            const baseItems = (section.title === 'Career' && gameMode === 'career')
-              ? [...CAREER_MODE_ITEMS, ...section.items]
-              : section.items;
+            // Career Overview and Job Market only exist in Manager Career mode.
+            const baseItems = gameMode === 'career'
+              ? section.items
+              : section.items.filter(i => !CAREER_MODE_DRAWER_SCREENS.has(i.screen));
+            const sectionTitle = t(GROUP_TITLE_KEY[section.id]);
             // Hide competitions the player isn't participating in
             let visibleItems = baseItems.filter(i => !hiddenScreens.has(i.screen));
             // Hide club-specific screens when unemployed
@@ -402,9 +414,9 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
               );
               if (items.length === 0) return null;
               return (
-                <div key={section.title}>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
-                    {section.title}
+                <div key={section.id}>
+                  <p className="text-micro text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
+                    {sectionTitle}
                   </p>
                   <div className="space-y-1.5">
                     {items.map(item => (
@@ -417,6 +429,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                         hasPendingCupMatch={hasPendingCupMatch}
                         hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
                         nationalTeamOffer={nationalTeamOffer}
+                        passClaimable={passClaimable}
                       />
                     ))}
                   </div>
@@ -435,18 +448,20 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
 
             if (visibleItems.length === 0) return null;
 
-            const sectionCollapsed = isSectionCollapsed(section.title);
+            const sectionCollapsed = isSectionCollapsed(section.id);
 
             return (
-              <div key={section.title}>
+              <div key={section.id}>
                 <button
-                  onClick={() => toggleSection(section.title)}
-                  className="flex items-center gap-2 w-full px-1.5 py-1.5 mb-1.5 rounded-lg active:bg-white/5 transition-colors"
+                  type="button"
+                  onClick={() => toggleSection(section.id)}
+                  aria-expanded={!sectionCollapsed}
+                  className="flex items-center gap-2 w-full px-1.5 min-h-[44px] mb-1.5 rounded-lg active:bg-white/5 transition-colors"
                 >
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold">
-                    {section.title}
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] font-semibold">
+                    {sectionTitle}
                   </p>
-                  <span className="text-[10px] text-muted-foreground/50 tabular-nums">
+                  <span className="text-micro text-muted-foreground/50 tabular-nums">
                     {visibleItems.length}
                   </span>
                   <ChevronDown className={cn(
@@ -462,7 +477,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      className="text-[10px] text-muted-foreground/40 px-3 pb-1 truncate overflow-hidden"
+                      className="text-micro text-muted-foreground/40 px-3 pb-1 truncate overflow-hidden"
                     >
                       {visibleItems.map(i => i.label).join(' \u00b7 ')}
                     </motion.p>
@@ -486,6 +501,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                             hasPendingCupMatch={hasPendingCupMatch}
                             hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
                             nationalTeamOffer={nationalTeamOffer}
+                            passClaimable={passClaimable}
                           />
                         ))}
                       </div>
@@ -502,7 +518,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
 }
 
 // Extracted as a proper component for clean key handling and potential memoization
-function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch, hasPendingLeagueCupMatch, nationalTeamOffer }: {
+function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch, hasPendingLeagueCupMatch, nationalTeamOffer, passClaimable = 0 }: {
   item: DrawerItem;
   currentScreen: GameScreen;
   onNav: (screen: GameScreen) => void;
@@ -510,6 +526,8 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
   hasPendingCupMatch: boolean | undefined;
   hasPendingLeagueCupMatch: boolean | undefined;
   nationalTeamOffer: { status: string } | null | undefined;
+  /** Manager Pass rewards collectable now (badge on the Pass row). */
+  passClaimable?: number;
 }) {
   const { screen, label, icon: Icon, description, gold } = item;
   const isActive = currentScreen === screen;
@@ -545,9 +563,10 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
           {screen === 'inbox' && <CountBadge count={unread} pulse cap={99} />}
+          {screen === 'manager-pass' && <CountBadge count={passClaimable} tone="primary" cap={99} />}
           {screen === 'competitions' && (hasPendingCupMatch || hasPendingLeagueCupMatch) && (
             <span
-              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
+              className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
               style={{
                 background: 'linear-gradient(180deg, #FB7185 0%, #E11D48 60%, #9F1239 100%)',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 8px rgba(239,68,68,0.55)',

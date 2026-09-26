@@ -57,7 +57,7 @@ import { generateInitialStaff } from '@/utils/staff';
 import { initializeClubPowerRankings } from '@/utils/teamRankings';
 import { generateInitialFreeAgents } from '@/utils/transferMarketGen';
 import { applyBallonDorTop10Boost } from '@/utils/ballonDorBoost';
-import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
+import { BALLON_DOR_TOP10_RANK, INBOX_ARRIVES_READ } from '@/config/gameBalance';
 import { loadClubTemplates } from '@/data/playerTemplatesAccess';
 import { LIVING_WORLD_LEAGUE_COUNT, LIVING_WORLD_SQUAD_SIZE } from '@/config/continental';
 import { getLivingWorldLeagueIds } from '@/data/continentalDraw';
@@ -498,12 +498,13 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   // set; the latter two were added as part of the onboarding plan (Phase 3)
   // to actively point new managers at the Tactics and Scouting screens —
   // two systems that don't otherwise surface themselves during the first
-  // week of play. All five are read=false so they show up unread in the
-  // inbox; the inbox unread badge becomes a "go look at this" signal.
+  // week of play. The three that ask the manager to do something arrive
+  // unread (the inbox badge becomes a "go look at this" signal); the two
+  // calendar notices arrive read (INBOX_ARRIVES_READ.windowNotices).
   const messages: Message[] = [
     { id: safeRandomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
-    { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
-    { id: safeRandomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market during the opening weeks. Any pre-season friendlies are scheduled on free weeks, so they never clash with your league fixtures.', read: false },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'general', read: INBOX_ARRIVES_READ.windowNotices, title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.' },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'transfer', read: INBOX_ARRIVES_READ.windowNotices, title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market during the opening weeks. Any pre-season friendlies are scheduled on free weeks, so they never clash with your league fixtures.' },
     { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-3-3 formation. To change it: tap "Tactics" in the bottom navigation bar. Inside Tactics, the seven formation badges at the top let you pick a new shape (4-4-2 is balanced, 5-3-2 defends more). Tap "Save" when done. Sticking with one shape builds tactical familiarity — a real boost in matches.', read: false },
     { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'Scouts find players you would never see on the open market. To send one: tap "Market" in the bottom navigation bar (the left-right arrows). At the top of the Market page there\'s a row of pills — Transfers, Scouting, Packs; tap "Scouting". Scroll to "Send Scout" and tap a region. Domestic returns reports in 2 weeks; Asia and Africa take 4-5 weeks but tend to surface higher-potential youngsters. Reports arrive automatically in your inbox.', read: false },
   ];
@@ -512,11 +513,17 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const initialStaff = generateInitialStaff(pcInit.reputation);
   const availableHires = generateStaffMarket();
   const youthCoachQuality = getStaffBonus(initialStaff, 'youth-coach');
+  // Youth positions lean toward the squad's gaps; the preview is next
+  // season's actual intake (see generateIntakePreview).
+  const initSquad = (pcInit.playerIds || []).map(id => allPlayers[id]).filter(Boolean);
   const { prospects: youthProspects, players: youthPlayers } = generateYouthProspects(
-    clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), selectedClubData?.squadQuality
+    clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), selectedClubData?.squadQuality,
+    { squad: initSquad },
   );
   youthPlayers.forEach(p => { allPlayers[p.id] = p; });
-  const nextIntakePreview = generateIntakePreview(pcInit.youthRating);
+  const nextIntakePreview = generateIntakePreview(pcInit.youthRating, {
+    youthCoachQuality, clubSquadQuality: selectedClubData?.squadQuality, squad: [...initSquad, ...youthPlayers],
+  });
   const scoutCount = initialStaff.filter(s => s.role === 'scout').length;
 
   // Generate cup draws and pre-season friendlies — scheduled on the player
@@ -560,6 +567,19 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
       (sum, pid) => sum + (allPlayers[pid]?.wage || 0),
       0,
     );
+  }
+
+  // The manager's own starting XI, picked once the squad is final (the
+  // Ballon d'Or seeding above changes real stars' ratings), preferring each
+  // player's own position, so a new game — Quick Start included — does not
+  // open with a right winger at striker and the strikers on the wings (R5).
+  // This is the free position-aware pick, not the Pro Smart Optimizer.
+  {
+    const pc = clubs[clubId];
+    const squad = pc.playerIds.map(id => allPlayers[id]).filter(Boolean);
+    const { lineup, subs } = selectBestLineup(squad, pc.formation, undefined, { preferNaturalPositions: true });
+    pc.lineup = lineup.map(p => p.id);
+    pc.subs = subs.map(p => p.id);
   }
 
   // Surface the sponsorship system on day 1 — kit_main + digital are
@@ -665,6 +685,9 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     pendingStoryline: null,
     activeStorylineChains: [],
     completedStorylineChainIds: [],
+    // Every initGame starts a fresh seasonHistory + managerStats, i.e. a new
+    // Hall of Managers record — give it its own key (see `hallEntryId`).
+    careerId: safeRandomUUID(),
     pendingFarewell: [],
     openedPacks: [],
     packPityCounter: 0,

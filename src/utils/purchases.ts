@@ -143,6 +143,27 @@ export function isUserCancelledError(err: unknown): boolean {
   return codes.some(c => (typeof c === 'string' || typeof c === 'number') && CANCEL_CODES.has(String(c)));
 }
 
+const PAYMENT_PENDING_CODES = new Set([
+  '20', // PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR
+  'PAYMENT_PENDING',
+  'PAYMENT_PENDING_ERROR',
+]);
+
+/** True when the store accepted the purchase but is waiting on approval
+ *  (Ask to Buy, strong customer authentication). Nothing is charged yet, but
+ *  the transaction may still complete after the sheet has closed. */
+export function isPaymentPendingError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as {
+    code?: unknown;
+    readableErrorCode?: unknown;
+    userInfo?: { readableErrorCode?: unknown };
+    data?: { readableErrorCode?: unknown };
+  };
+  const codes = [e.code, e.readableErrorCode, e.userInfo?.readableErrorCode, e.data?.readableErrorCode];
+  return codes.some(c => (typeof c === 'string' || typeof c === 'number') && PAYMENT_PENDING_CODES.has(String(c)));
+}
+
 // ── Product resolution ──
 //
 // RevenueCat's recommended path is Offerings → Package → purchasePackage, and
@@ -154,6 +175,31 @@ export function isUserCancelledError(err: unknown): boolean {
 // about a product as soon as it's approved, regardless of RevenueCat's offering
 // config, so we fall back to getProducts() → purchaseStoreProduct().
 
+/**
+ * Our product ID for an identifier the store reports.
+ *
+ * Google Play subscriptions come back from RevenueCat as
+ * `<subscriptionId>:<basePlanId>` (StoreProduct.identifier, and on some SDK
+ * paths the purchased-product list). Compared raw against our catalogue, every
+ * Pro subscription read as "not sold" on Android and its purchase could never
+ * be matched to a plan. iOS product IDs never contain a colon, so this is the
+ * identity there.
+ *
+ * Only a subscription carries a base-plan suffix, so the prefix is accepted
+ * only when it names one of OUR subscriptions. Otherwise the raw identifier is
+ * returned and matches nothing: a Play subscription whose ID happened to equal
+ * a one-time SKU (e.g. `com.dynastymanager.pro:monthly`) must never read as
+ * that permanent purchase — `mapEntitlements` would persist it and a lapsed
+ * subscriber would keep Pro forever.
+ */
+export function normalizeStoreProductId(identifier: string | null | undefined): string {
+  if (typeof identifier !== 'string') return '';
+  const colon = identifier.indexOf(':');
+  if (colon === -1) return identifier;
+  const base = identifier.slice(0, colon);
+  return PRODUCTS[base as ProductId]?.type === 'subscription' ? base : identifier;
+}
+
 interface StoreProductLike {
   identifier: string;
   priceString?: string;
@@ -162,6 +208,13 @@ interface StoreProductLike {
    *  USD config values, which are wrong in every non-US storefront. */
   price?: number;
   currencyCode?: string;
+  /** The store's introductory offer, if App Store Connect configured one. */
+  introPrice?: {
+    price?: number;
+    cycles?: number;
+    periodUnit?: string;
+    periodNumberOfUnits?: number;
+  } | null;
 }
 
 interface PackageLike {
@@ -282,7 +335,7 @@ async function buyProduct(Purchases: PurchasesModule, productId: ProductId) {
   } catch (err) {
     throw new PurchaseNotAttemptedError(`Could not load offerings for ${productId}`, err);
   }
-  const pkg = packages.find(p => p.product.identifier === productId);
+  const pkg = packages.find(p => normalizeStoreProductId(p.product.identifier) === productId);
   if (pkg) {
     // pkg is narrowed from the loose offerings shape above; the runtime object
     // satisfies PurchasesPackage but structural typing misses the extra fields.
@@ -293,7 +346,8 @@ async function buyProduct(Purchases: PurchasesModule, productId: ProductId) {
 
   let product: Awaited<ReturnType<typeof fetchStoreProducts>>[number] | undefined;
   try {
-    [product] = await fetchStoreProducts(Purchases, [productId]);
+    const products = await fetchStoreProducts(Purchases, [productId]);
+    product = products.find(p => normalizeStoreProductId(p.identifier) === productId);
   } catch (err) {
     throw new PurchaseNotAttemptedError(`Could not load product ${productId}`, err);
   }
@@ -321,6 +375,10 @@ export interface StoreAvailability {
   amounts: Partial<Record<ProductId, number>>;
   /** ISO currency code of the storefront, when the store reported one. */
   currencyCode?: string;
+  /** Length in days of each product's FREE introductory offer, as configured
+   *  in App Store Connect. A product with no free intro offer is absent — a
+   *  paid introductory price is not a free trial and is never reported here. */
+  freeTrialDays?: Partial<Record<ProductId, number>>;
 }
 
 /**
@@ -334,7 +392,7 @@ export async function getStoreAvailability(
   productIds: ProductId[] = Object.keys(PRODUCTS) as ProductId[],
 ): Promise<StoreAvailability> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
-    return { supported: false, available: [], prices: {}, amounts: {} };
+    return { supported: false, available: [], prices: {}, amounts: {}, freeTrialDays: {} };
   }
 
   try {
@@ -348,24 +406,46 @@ export async function getStoreAvailability(
     const wanted = new Set<string>(productIds);
     const prices: Partial<Record<ProductId, string>> = {};
     const amounts: Partial<Record<ProductId, number>> = {};
+    const freeTrialDays: Partial<Record<ProductId, number>> = {};
     const available = new Set<ProductId>();
     let currencyCode: string | undefined;
     for (const entry of [...packages.map(p => p.product), ...products]) {
-      if (!wanted.has(entry.identifier)) continue;
-      const id = entry.identifier as ProductId;
+      const id = normalizeStoreProductId(entry.identifier) as ProductId;
+      if (!wanted.has(id)) continue;
       available.add(id);
       if (entry.priceString && !prices[id]) prices[id] = entry.priceString;
       if (typeof entry.price === 'number' && Number.isFinite(entry.price) && amounts[id] == null) {
         amounts[id] = entry.price;
       }
       if (!currencyCode && entry.currencyCode) currencyCode = entry.currencyCode;
+      const trialDays = freeIntroOfferDays(entry.introPrice);
+      if (trialDays != null && freeTrialDays[id] == null) freeTrialDays[id] = trialDays;
     }
-    return { supported: true, available: Array.from(available), prices, amounts, currencyCode };
+    return { supported: true, available: Array.from(available), prices, amounts, currencyCode, freeTrialDays };
   } catch (err) {
     if (import.meta.env.DEV) console.error('[Purchases] getStoreAvailability failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.getStoreAvailability' } });
-    return { supported: true, available: [], prices: {}, amounts: {} };
+    return { supported: true, available: [], prices: {}, amounts: {}, freeTrialDays: {} };
   }
+}
+
+/** Only units with a fixed length in days. A MONTH or YEAR trial is billed a
+ *  calendar month/year later (28 to 31 days for a month), so describing it as
+ *  "30 days" would promise a length the store does not honour — the Apple
+ *  3.1.2(c) false-trial-terms class. Those offers read as "no trial we can
+ *  state" and every surface stays silent; the store sheet still states them. */
+const INTRO_PERIOD_DAYS: Record<string, number> = { DAY: 1, WEEK: 7 };
+
+/** Days of free access an introductory offer grants, or null when the offer
+ *  is missing, paid, measured in calendar months/years, or has a shape we
+ *  cannot read. Exported for tests. */
+export function freeIntroOfferDays(intro: StoreProductLike['introPrice']): number | null {
+  if (!intro || intro.price !== 0) return null;
+  const unitDays = INTRO_PERIOD_DAYS[String(intro.periodUnit || '').toUpperCase()];
+  const units = intro.periodNumberOfUnits;
+  if (!unitDays || typeof units !== 'number' || !Number.isFinite(units) || units <= 0) return null;
+  const cycles = typeof intro.cycles === 'number' && intro.cycles > 0 ? intro.cycles : 1;
+  return unitDays * units * cycles;
 }
 
 /**
@@ -397,7 +477,7 @@ export async function readConsumableHistory(productId: string, sync = false): Pr
   return {
     customerId: customerInfo.originalAppUserId,
     transactionIds: customerInfo.nonSubscriptionTransactions
-      .filter(t => t.productIdentifier === productId).map(t => t.transactionIdentifier),
+      .filter(t => normalizeStoreProductId(t.productIdentifier) === productId).map(t => t.transactionIdentifier),
   };
 }
 
@@ -423,6 +503,9 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
     if (isUserCancelledError(err)) {
       return false;
     }
+    // Ask to Buy / SCA is not a failure: the caller keeps its pending-credit
+    // marker and waits for approval. Rethrow without paging Sentry.
+    if (isPaymentPendingError(err)) throw err;
     if (import.meta.env.DEV) console.error('[Purchases] Consumable purchase failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.purchaseConsumable' }, extra: { productId } });
     throw err;
@@ -437,6 +520,11 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
 export interface PurchaseOutcome {
   cancelled: boolean;
   granted: ProductId[];
+  /** Set (true) when the store is waiting on approval — Ask to Buy or strong
+   *  customer authentication. Nothing is charged or granted yet; if approval
+   *  comes, the customer-info listener delivers the entitlement. Absent
+   *  otherwise. */
+  pending?: boolean;
 }
 
 /** Purchase a product. Distinguishes user-cancel from a completed
@@ -462,6 +550,12 @@ export async function purchaseProduct(productId: ProductId): Promise<PurchaseOut
     if (isUserCancelledError(err)) {
       // User dismissed the store sheet — not an error, and no charge.
       return { cancelled: true, granted: [] };
+    }
+    if (isPaymentPendingError(err)) {
+      // Ask to Buy: a parent must approve. This used to throw like a store
+      // failure, so a child's request showed "Purchase Could Not Complete" and
+      // paged Sentry, though nothing had gone wrong.
+      return { cancelled: false, pending: true, granted: [] };
     }
     if (import.meta.env.DEV) console.error('[Purchases] Purchase failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.purchaseProduct' }, extra: { productId } });
@@ -515,28 +609,40 @@ export async function restorePurchases(): Promise<ProductId[]> {
  *           this function never guesses.
  */
 export async function isEligibleForIntroOffer(productId: ProductId): Promise<boolean | null> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return null;
+  const result = await checkIntroOfferEligibility([productId]);
+  return result[productId] ?? null;
+}
+
+/** `isEligibleForIntroOffer` for several products in one store round-trip.
+ *  Each product maps to true / false / null with the same meaning; a product
+ *  the store did not answer for maps to null. Never throws. */
+export async function checkIntroOfferEligibility(
+  productIds: ProductId[],
+): Promise<Partial<Record<ProductId, boolean | null>>> {
+  const unknown = Object.fromEntries(productIds.map(id => [id, null])) as Partial<Record<ProductId, boolean | null>>;
+  if (productIds.length === 0 || !Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return unknown;
 
   try {
     await ensureConfigured();
     const { Purchases, INTRO_ELIGIBILITY_STATUS } = await import('@revenuecat/purchases-capacitor');
     const result = await Purchases.checkTrialOrIntroductoryPriceEligibility({
-      productIdentifiers: [productId],
+      productIdentifiers: productIds,
     });
-    const status = result?.[productId]?.status;
-    if (status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) return true;
-    if (
-      status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE ||
-      status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_NO_INTRO_OFFER_EXISTS
-    ) {
-      return false;
+    const out = { ...unknown };
+    for (const id of productIds) {
+      const status = result?.[id]?.status;
+      if (status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) out[id] = true;
+      else if (
+        status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE ||
+        status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_NO_INTRO_OFFER_EXISTS
+      ) out[id] = false;
+      // INTRO_ELIGIBILITY_STATUS_UNKNOWN, or a shape we don't recognise: null.
     }
-    // INTRO_ELIGIBILITY_STATUS_UNKNOWN, or a shape we don't recognise.
-    return null;
+    return out;
   } catch (err) {
     if (import.meta.env.DEV) console.error('[Purchases] intro eligibility check failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.isEligibleForIntroOffer' } });
-    return null;
+    return unknown;
   }
 }
 
@@ -643,7 +749,7 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
   if (activeEntitlements && typeof activeEntitlements === 'object') {
     for (const key of Object.keys(activeEntitlements)) {
       const ent = activeEntitlements[key];
-      if (ent?.productIdentifier) purchased.add(ent.productIdentifier);
+      if (ent?.productIdentifier) purchased.add(normalizeStoreProductId(ent.productIdentifier));
     }
   }
 
@@ -654,7 +760,8 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
   // indefinitely. For non-consumable one-time purchases (Pro, Lifetime,
   // packs, bundle) the list is a reliable forever-record.
   const allIds = customerInfo?.allPurchasedProductIdentifiers || [];
-  for (const id of allIds) {
+  for (const rawId of allIds) {
+    const id = normalizeStoreProductId(rawId);
     const product = PRODUCTS[id as ProductId];
     if (product && product.type !== 'subscription') {
       purchased.add(id);
@@ -664,24 +771,113 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
   return Array.from(purchased).filter((id): id is ProductId => validIds.includes(id as ProductId));
 }
 
+/** RevenueCat entitlement identifiers that convey Dynasty Pro. The dashboard
+ *  entitlement is `pro`; `dynasty_pro` is honoured as a legacy alias. If the
+ *  dashboard entitlement is ever renamed, EVERY subscription purchase resolves
+ *  to null here → the user pays but never gets Pro. Verify against the live RC
+ *  dashboard config before shipping any pricing change. */
+const PRO_ENTITLEMENT_IDS = ['pro', 'dynasty_pro'] as const;
+
+/**
+ * A subscription the store DEFINITIVELY reports as over — refunded, revoked
+ * (Family Sharing removed), or lapsed out of billing retry — as a record whose
+ * expiry is in the past.
+ *
+ * Without this, nothing could end a subscription early: every sync site writes
+ * only non-null records, so a refunded Yearly kept Pro locally until its
+ * original `expiresAt`, up to a year later. Only `entitlements.all` with
+ * `isActive === false` counts — RevenueCat computes that against its own
+ * request date, not the device clock. A payload with no `pro` entitlement at
+ * all (the transient-glitch shape) still returns null and changes nothing.
+ * One-time Pro SKUs are never read here: their refunds are pruned by
+ * `reconcileEntitlements` from a definitive entitlement read.
+ */
+function extractConfirmedLapse(customerInfo: CustomerInfo | null | undefined): SubscriptionInfo | null {
+  const all = customerInfo?.entitlements?.all;
+  if (!all || typeof all !== 'object') return null;
+  const ent = PRO_ENTITLEMENT_IDS.map(id => all[id]).find(Boolean);
+  if (!ent || ent.isActive !== false) return null;
+  const productId = normalizeStoreProductId(ent.productIdentifier) as ProductId;
+  const product = PRODUCTS[productId];
+  if (!product || product.type !== 'subscription') return null;
+  const now = Date.now();
+  // RevenueCat moves the expiry to the refund date; if a payload keeps the
+  // original (future) date, `isActive: false` is still the store's verdict.
+  const storeExpiry = ent.expirationDate ? new Date(ent.expirationDate).getTime() : NaN;
+  const endedAt = Number.isFinite(storeExpiry) ? Math.min(storeExpiry, now) : now;
+  const isTrial = ent.periodType === 'TRIAL' || ent.periodType === 'INTRO';
+  return {
+    tier: isTrial ? 'trial' : product.subscriptionTier!,
+    productId,
+    expiresAt: new Date(endedAt).toISOString(),
+    // Written after its own expiry — that shape is how mergeDeviceMonetization
+    // recognises an observed lapse and lets it beat an older active record.
+    grantedAt: new Date(now).toISOString(),
+    isInGracePeriod: false,
+    willRenew: false,
+    isTrial,
+  };
+}
+
+/** Durations RevenueCat promotional grants use that are a month or shorter. */
+const SHORT_PROMO_DURATION = /_(daily|three_day|weekly|monthly)$/;
+
+/**
+ * An active Pro entitlement granted from the RevenueCat dashboard (a comp for
+ * a tester, reviewer or influencer). RevenueCat reports it with the product ID
+ * `rc_promo_<entitlement>_<duration>` and store `PROMOTIONAL` — an ID that is
+ * in no store catalog, so the PRODUCTS lookup would drop it and the comp would
+ * grant nothing.
+ *
+ * The record is mapped onto a real Pro SKU so every reader keeps working: a
+ * lifetime grant (no expiry) looks exactly like a Lifetime owner's record; a
+ * bounded one is a subscription record that ends at the store's expiry date.
+ */
+function extractPromotionalGrant(
+  ent: CustomerInfo['entitlements']['active'][string],
+): SubscriptionInfo | null {
+  const rawId = String(ent?.productIdentifier ?? '');
+  const isPromo = rawId.startsWith('rc_promo_') || String(ent?.store ?? '') === 'PROMOTIONAL';
+  if (!isPromo) return null;
+  const expiresAt = ent.expirationDate || null;
+  const base = {
+    grantedAt: new Date().toISOString(),
+    isInGracePeriod: false,
+    willRenew: false,
+    isTrial: false,
+  };
+  if (!expiresAt && rawId.endsWith('_lifetime')) {
+    return { ...base, tier: 'lifetime', productId: 'com.dynastymanager.pro.lifetime', expiresAt: null };
+  }
+  const short = SHORT_PROMO_DURATION.test(rawId);
+  return {
+    ...base,
+    tier: short ? 'monthly' : 'annual',
+    productId: short ? 'com.dynastymanager.pro.monthly' : 'com.dynastymanager.pro.yearly',
+    expiresAt,
+  };
+}
+
 /**
  * Extract subscription info from RevenueCat CustomerInfo.
- * Returns null if no active subscription is found.
+ *
+ * Returns the active Pro subscription (or lifetime) record; failing that, a
+ * store-confirmed lapse (see `extractConfirmedLapse`), whose `expiresAt` is in
+ * the past so `isPro()` reads it as ended; otherwise null. Callers write only a
+ * non-null result — null means "the store told us nothing", never "revoke".
  */
 export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | undefined): SubscriptionInfo | null {
   try {
     const activeEntitlements = customerInfo?.entitlements?.active;
     if (!activeEntitlements || typeof activeEntitlements !== 'object') return null;
 
-    // Look for a 'pro' or 'dynasty_pro' entitlement. NOTE: these identifiers
-    // must match the entitlement name configured in the RevenueCat dashboard.
-    // If the dashboard entitlement is named anything else, EVERY subscription
-    // purchase resolves to null here → the user pays but never gets Pro. Verify
-    // against the live RC dashboard config before shipping any pricing change.
-    const proEntitlement = activeEntitlements['pro'] || activeEntitlements['dynasty_pro'];
-    if (!proEntitlement) return null;
+    const proEntitlement = PRO_ENTITLEMENT_IDS.map(id => activeEntitlements[id]).find(Boolean);
+    if (!proEntitlement) return extractConfirmedLapse(customerInfo);
 
-    const productId = proEntitlement.productIdentifier as ProductId;
+    const promo = extractPromotionalGrant(proEntitlement);
+    if (promo) return promo;
+
+    const productId = normalizeStoreProductId(proEntitlement.productIdentifier) as ProductId;
     const product = PRODUCTS[productId];
     if (!product || (product.type !== 'subscription' && product.subscriptionTier !== 'lifetime')) return null;
 
@@ -731,18 +927,20 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
 export async function openSubscriptionManagement(): Promise<boolean> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return false;
 
-  // Apple's universal subscription-management URL — works on every iOS
-  // device even when RevenueCat hasn't synced customerInfo yet. Used as
-  // a fallback when `customerInfo.managementURL` is missing (audit
-  // finding: without it, a flaky RC sync left the user with no way to
-  // manage their subscription).
-  const APPLE_SUB_FALLBACK = 'https://apps.apple.com/account/subscriptions';
+  // The store's own subscription-management page — works even when
+  // RevenueCat hasn't synced customerInfo yet. Used as a fallback when
+  // `customerInfo.managementURL` is missing (audit finding: without it, a
+  // flaky RC sync left the user with no way to manage their subscription).
+  // Per platform: an Android player sent to Apple's page cannot cancel.
+  const STORE_SUB_FALLBACK = Capacitor.getPlatform() === 'android'
+    ? 'https://play.google.com/store/account/subscriptions'
+    : 'https://apps.apple.com/account/subscriptions';
 
   try {
     await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
-    const managementUrl = customerInfo?.managementURL || APPLE_SUB_FALLBACK;
+    const managementUrl = customerInfo?.managementURL || STORE_SUB_FALLBACK;
     const { openExternalUrl } = await import('@/utils/externalUrl');
     void openExternalUrl(managementUrl);
     return true;
@@ -753,7 +951,7 @@ export async function openSubscriptionManagement(): Promise<boolean> {
     // so the user can still cancel their subscription.
     try {
       const { openExternalUrl } = await import('@/utils/externalUrl');
-      void openExternalUrl(APPLE_SUB_FALLBACK);
+      void openExternalUrl(STORE_SUB_FALLBACK);
       return true;
     } catch {
       return false;

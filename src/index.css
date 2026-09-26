@@ -111,7 +111,8 @@
    smoothness escape hatch for low-end devices: strip the expensive
    backdrop-filter passes from glass surfaces (the biggest mobile-WebKit cost)
    and drop the decorative specular overlay. Reduced motion is handled
-   separately in App.tsx via MotionConfig. */
+   separately: MotionConfig in App.tsx, plus the `.reduce-motion` root class
+   (which Performance mode also sets) in the kill switch below. */
 .perf-mode .glass-surface {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
@@ -145,28 +146,87 @@
    field of view (bottom-nav badges, lineup selection rings, board warnings).
    Only a handful were individually guarded with `motion-reduce:animate-none`.
    App.tsx's <MotionConfig> governs framer-motion transforms only — it cannot
-   see CSS classes — so both triggers are handled here: the OS reduced-motion
-   preference AND Performance mode.
+   see CSS classes — so every trigger is handled here: the OS reduced-motion
+   preference, and the root `.reduce-motion` class App.tsx sets from the
+   in-app Reduced Motion setting (and from Performance mode, which implies it).
+   App.tsx sets `.perf-mode` and `.reduce-motion` in the same commit, so
+   the `.perf-mode` loop selectors below are redundant with the
+   `.reduce-motion` ones; they are kept only so the perf-mode rules read on
+   their own.
+
+   Beyond the loops, reduced motion also collapses every CSS `transition` and
+   any other keyframe animation to a single ~0 ms step. Durations are
+   shortened rather than removed so `transitionend` / `animationend` still
+   fire (Radix Presence waits on the latter to unmount a closing dialog), and
+   an animation with `forwards` fill still lands on its final frame instead of
+   stranding an element on its `from` state.
 
    `animate-spin` is deliberately NOT stopped: a frozen spinner reads as a
-   hung app. It is slowed instead. */
+   hung app. It is slowed instead. Attribute selectors catch the
+   `motion-safe:` variants, whose class names are not `.animate-*`. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-pulse,
-  .animate-bounce,
-  .animate-ping {
+  [class*="animate-pulse"],
+  [class*="animate-bounce"],
+  [class*="animate-ping"] {
     animation: none !important;
   }
-  .animate-spin {
+  [class*="animate-spin"] {
     animation-duration: 1.5s !important;
+  }
+  [class*="animate-"]:not([class*="animate-spin"]) {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
 }
 .perf-mode .animate-pulse,
 .perf-mode .animate-bounce,
-.perf-mode .animate-ping {
+.perf-mode .animate-ping,
+.reduce-motion [class*="animate-pulse"],
+.reduce-motion [class*="animate-bounce"],
+.reduce-motion [class*="animate-ping"] {
   animation: none !important;
 }
-.perf-mode .animate-spin {
+.perf-mode .animate-spin,
+.reduce-motion [class*="animate-spin"] {
   animation-duration: 1.5s !important;
+}
+.reduce-motion [class*="animate-"]:not([class*="animate-spin"]) {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+}
+/* The named decorative loops below each carry their own OS-preference guard;
+   the in-app setting has to reach them too. */
+.reduce-motion .holo-ring,
+.reduce-motion .pack-rays,
+.reduce-motion .pack-starfield-far,
+.reduce-motion .pack-starfield-mid,
+.reduce-motion .pack-starfield-near,
+.reduce-motion .player-avatar-idle,
+.reduce-motion .title-float-circle {
+  animation: none !important;
+  will-change: auto !important;
+}
+/* The stadium-upgrade flash is a fill + rings whose visibility lives entirely
+   in the keyframes: with the animation merely stopped it froze as a solid
+   gold block over the stand for the 1.4 s it stays mounted. Decorative layers
+   disappear under reduced motion; they do not freeze. */
+.reduce-motion .stadium-upgrade-ring,
+.reduce-motion .stadium-upgrade-fill {
+  display: none !important;
 }
 
 @layer base {
@@ -190,6 +250,15 @@
     -webkit-touch-callout: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: none;
+  }
+
+  /* A horizontal overscroll of the viewport is the browser's swipe-to-go-back.
+     In Chromium a right swipe on the League Table fired it alongside the
+     in-game swipe back and left the game for the title screen (playthrough
+     2026-09). The game owns horizontal swipes (useSwipeGesture); Chromium
+     reads this from the root element, not body. */
+  html {
+    overscroll-behavior-x: none;
   }
 
   input, textarea {
@@ -419,8 +488,9 @@
   pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {
+  /* Hidden, not frozen — see the `.reduce-motion` rule near the top. */
   .stadium-upgrade-ring,
-  .stadium-upgrade-fill { animation: none !important; }
+  .stadium-upgrade-fill { animation: none !important; display: none !important; }
 }
 
 /* ── Custom Age Slider ── */

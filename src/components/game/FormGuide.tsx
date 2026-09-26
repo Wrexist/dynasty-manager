@@ -29,8 +29,8 @@ const FORM_STYLE: Record<'W' | 'D' | 'L', React.CSSProperties> = {
 };
 
 const SIZE_CLASSES = {
-  sm: 'w-3.5 h-3.5 text-[8px]',
-  default: 'w-5 h-5 text-[9px]',
+  sm: 'w-4 h-4 text-micro',
+  default: 'w-5 h-5 text-micro',
 } as const;
 
 const RESULT_WORD: Record<'W' | 'D' | 'L', string> = { W: 'Win', D: 'Draw', L: 'Loss' };

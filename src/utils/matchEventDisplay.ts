@@ -93,3 +93,19 @@ export function isStructuredEvent(type: MatchEvent['type']): boolean {
   if (type === 'kickoff' || type === 'half_time' || type === 'added_time' || type === 'full_time') return false;
   return !!EVENT_LABELS[type];
 }
+
+/**
+ * The live match Log's rows, NEWEST FIRST, each with its index in `events`
+ * (a stable key — a reversed list keyed by position would re-key every row on
+ * each new event). The Log listed oldest first with no scroll-to-latest, so by
+ * 61' the events the player was watching for were below the fold (playthrough
+ * 2026-09, R13). Newest-first needs no auto-scroll, so there is no motion for
+ * reduced-motion to suppress. Kickoff events are the pitch's, not the log's.
+ */
+export function liveLogRows(events: MatchEvent[]): { event: MatchEvent; index: number }[] {
+  const rows: { event: MatchEvent; index: number }[] = [];
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].type !== 'kickoff') rows.push({ event: events[i], index: i });
+  }
+  return rows;
+}

@@ -85,7 +85,7 @@ function ConfidenceGauge({ value }: { value: number }) {
           className={cn('text-4xl font-black font-display tabular-nums', textClass)}
           duration={800}
         />
-        <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
+        <span className="text-micro text-muted-foreground uppercase tracking-widest mt-0.5">
           Confidence
         </span>
       </div>
@@ -247,7 +247,7 @@ const BoardPage = () => {
               <Target className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">Season {season} Objectives</h3>
             </div>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-micro text-muted-foreground">
               {completedCount}/{boardObjectives.length} complete
             </span>
           </div>
@@ -283,31 +283,31 @@ const BoardPage = () => {
                       {obj.description}
                     </p>
                     {obj.adjusted && (
-                      <span className="text-[8px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Adjusted</span>
+                      <span className="text-micro font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Adjusted</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className={cn('text-[10px] font-semibold uppercase',
+                    <span className={cn('text-micro font-semibold uppercase',
                       obj.priority === 'critical' ? 'text-destructive' : obj.priority === 'important' ? 'text-amber-400' : 'text-muted-foreground'
                     )}>
                       {obj.priority}
                     </span>
                     {obj.progressCurrent != null && obj.checkType === 'league_position' && !obj.completed && (
-                      <span className="text-[10px] text-muted-foreground">Currently {obj.progressCurrent}{getSuffix(obj.progressCurrent)}</span>
+                      <span className="text-micro text-muted-foreground">Currently {obj.progressCurrent}{getSuffix(obj.progressCurrent)}</span>
                     )}
                     {obj.xpReward != null && (
-                      <span className="inline-flex items-center gap-0.5 text-[9px] text-primary/70">
+                      <span className="inline-flex items-center gap-0.5 text-micro text-primary/70">
                         <Zap className="w-2.5 h-2.5" />{obj.completed ? (obj.overachieved ? obj.xpRewardOverachieve : obj.xpReward) : obj.xpReward} XP
                       </span>
                     )}
                     {obj.budgetBoost != null && obj.budgetBoost > 0 && (
-                      <span className="inline-flex items-center gap-0.5 text-[9px] text-emerald-400/70">
+                      <span className="inline-flex items-center gap-0.5 text-micro text-emerald-400/70">
                         <DollarSign className="w-2.5 h-2.5" />+£{(obj.budgetBoost / 1_000_000).toFixed(0)}M
                       </span>
                     )}
                   </div>
                   {obj.targetOverachieve != null && obj.targetOverachieve !== obj.targetMin && obj.checkType === 'league_position' && !obj.overachieved && (
-                    <p className="text-[9px] text-primary/50 mt-0.5 flex items-center gap-1">
+                    <p className="text-micro text-primary/50 mt-0.5 flex items-center gap-1">
                       <Star className="w-2.5 h-2.5" /> Overachieve: Finish in Top {obj.targetOverachieve}
                     </p>
                   )}
@@ -387,7 +387,7 @@ const BoardPage = () => {
                     <span className="text-xs text-muted-foreground w-14">Season {h.season}</span>
                     <span className="text-sm font-semibold text-foreground">{h.position}{getSuffix(h.position)}</span>
                   </div>
-                  <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold',
+                  <span className={cn('text-micro px-2 py-0.5 rounded-full font-semibold',
                     h.boardVerdict === 'excellent' ? 'bg-emerald-500/15 text-emerald-400'
                     : h.boardVerdict === 'good' ? 'bg-primary/15 text-primary'
                     : h.boardVerdict === 'acceptable' ? 'bg-amber-500/15 text-amber-400'

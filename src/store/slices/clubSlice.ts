@@ -4,6 +4,7 @@ import { selectBestLineup } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { buildAutoFillContext } from '@/utils/autoFillContext';
 import { isPro } from '@/utils/monetization';
+import { isAwayOnLoan } from '@/utils/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -75,7 +76,7 @@ export const createClubSlice = (set: Set, get: Get) => ({
     if (undersized) {
       const injuredCount = squad.filter(p => p.injured).length;
       const suspendedCount = squad.filter(p => p.suspendedUntilWeek && state.week !== undefined && p.suspendedUntilWeek > state.week).length;
-      const onLoanCount = squad.filter(p => p.onLoan).length;
+      const onLoanCount = squad.filter(p => isAwayOnLoan(p, club.id)).length;
       undersizedDetail = `Only ${result.lineup.length}/11 spots filled (${injuredCount} injured, ${suspendedCount} suspended, ${onLoanCount} on loan)`;
     }
 

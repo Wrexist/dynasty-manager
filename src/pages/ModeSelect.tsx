@@ -8,6 +8,7 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { SHOW_COMING_SOON_MODES } from '@/config/ui';
 
 type Mode = {
   id: string;
@@ -103,6 +104,10 @@ const modes: readonly Mode[] = [
   },
 ] as const;
 
+/** What the picker actually renders — `comingSoon` tiles are hidden unless the
+ *  config flag turns them back on. */
+const VISIBLE_MODES: readonly Mode[] = modes.filter(m => SHOW_COMING_SOON_MODES || !m.comingSoon);
+
 const ModeSelect = () => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotionPref();
@@ -127,7 +132,7 @@ const ModeSelect = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground hover:text-foreground gap-1.5 -ml-2"
+          className="min-h-11 text-muted-foreground hover:text-foreground gap-1.5 -ml-2"
           onClick={() => navigate('/')}
         >
           <ArrowLeft className="w-4 h-4" /> Back
@@ -147,7 +152,7 @@ const ModeSelect = () => {
 
       {/* Mode Cards */}
       <div className="w-full max-w-xs space-y-3.5">
-        {modes.map((mode, idx) => {
+        {VISIBLE_MODES.map((mode, idx) => {
           const disabled = mode.comingSoon;
           const handleClick = () => {
             if (disabled) {
@@ -215,7 +220,7 @@ const ModeSelect = () => {
               {disabled && (
                 <div className="absolute top-3 right-3 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/30">
                   <Sparkles className="w-3 h-3 text-sky-300" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-200">
+                  <span className="text-micro font-semibold uppercase tracking-wider text-sky-200">
                     Coming Soon
                   </span>
                 </div>
@@ -229,7 +234,7 @@ const ModeSelect = () => {
                 {mode.featured && (
                   <div className="mb-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-lime-400/20 border border-lime-300/50 shadow-[0_2px_10px_-2px_rgba(163,230,53,0.45)]">
                     <Sparkles className="w-3 h-3 text-lime-200 shrink-0" aria-hidden />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-lime-100">
+                    <span className="text-micro font-bold uppercase tracking-wider text-lime-100">
                       {t('modeSelect.newGamemode')}
                     </span>
                   </div>

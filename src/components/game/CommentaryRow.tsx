@@ -38,17 +38,17 @@ function PlayerChip({
     <span
       className={cn(
         'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border bg-background/40',
-        size === 'sm' ? 'text-[10px]' : 'text-[11px]',
+        size === 'sm' ? 'text-micro' : 'text-[11px]',
         variant === 'own-goal' && 'border-dashed'
       )}
       style={{ borderColor: accent }}
     >
-      {variant === 'gk' && <span className="text-[9px] font-bold text-red-400 uppercase">GK</span>}
+      {variant === 'gk' && <span className="text-micro font-bold text-red-400 uppercase">GK</span>}
       <FlagIcon nationality={player.nationality} size={flagSize} />
       <span className="font-semibold text-foreground leading-none">
         {player.firstName[0]}. {player.lastName}
       </span>
-      <span className="text-[10px] font-bold tabular-nums leading-none" style={{ color: accent }}>
+      <span className="text-micro font-bold tabular-nums leading-none" style={{ color: accent }}>
         {player.overall}
       </span>
     </span>
@@ -120,7 +120,7 @@ export function CommentaryRow({
         isGoalish && 'font-semibold'
       )}
     >
-      <span className={cn('font-mono shrink-0 text-primary tabular-nums', compact ? 'w-6 text-[10px]' : 'w-8 text-xs')}>
+      <span className={cn('font-mono shrink-0 text-primary tabular-nums', compact ? 'w-8 text-micro' : 'w-8 text-xs')}>
         {ev.displayMinute ?? ev.minute}'
       </span>
 
@@ -128,7 +128,7 @@ export function CommentaryRow({
       <span
         className={cn(
           'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border font-bold uppercase tracking-wider shrink-0',
-          compact ? 'text-[9px]' : 'text-[10px]',
+          'text-micro',
           toneClass.text,
           toneClass.pill
         )}
@@ -163,7 +163,7 @@ export function CommentaryRow({
               <PlayerChip player={gk} variant="gk" size={compact ? 'sm' : 'md'} />
             )}
             {isGoalish && assistOrOut && ev.type !== 'own_goal' && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-primary/70">
+              <span className="inline-flex items-center gap-1 text-micro text-primary/70">
                 <span>assist</span>
                 <FlagIcon nationality={assistOrOut.nationality} size={10} />
                 <span>{assistOrOut.lastName}</span>

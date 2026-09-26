@@ -11,6 +11,8 @@ import {
 import { generateSquad, getTeamStrength } from '@/utils/playerGen';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
+import { CONTINENTAL_REPUTATION_HOME_BONUS } from '@/config/matchEngine';
 import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 
 // ── The living world: real-engine continental football ──
@@ -47,6 +49,8 @@ function resolveContinentalFixture(
   virtualClubs: Record<string, VirtualClub>,
   world?: ContinentalWorld,
   matchId?: string,
+  /** The single-leg final is played at a neutral ground. */
+  neutral = false,
 ): { homeGoals: number; awayGoals: number } {
   const homeClub = world?.clubs?.[homeClubId];
   const awayClub = world?.clubs?.[awayClubId];
@@ -59,6 +63,7 @@ function resolveContinentalFixture(
         week: world.week,
         homeClubId, awayClubId,
         played: false, homeGoals: 0, awayGoals: 0, events: [],
+        ...neutralVenue(neutral),
       };
       const { result } = simulateMatch(
         match, homeClub, awayClub, homeSquad.xi, awaySquad.xi,
@@ -71,7 +76,7 @@ function resolveContinentalFixture(
   }
   const homeRep = virtualClubs[homeClubId]?.reputation || 3;
   const awayRep = virtualClubs[awayClubId]?.reputation || 3;
-  return simulateContinentalMatch(homeRep, awayRep);
+  return simulateContinentalMatch(homeRep, awayRep, neutral);
 }
 
 // ── Simplified Match Simulation ──
@@ -84,9 +89,11 @@ function resolveContinentalFixture(
 export function simulateContinentalMatch(
   homeRep: number,
   awayRep: number,
+  /** Neutral venue (the final): no home bonus. */
+  neutral = false,
 ): { homeGoals: number; awayGoals: number } {
   // Base scoring chance scaled by reputation (1-5 scale → 0.3-1.0)
-  const homeStrength = 0.2 + (homeRep / 5) * 0.6 + 0.1; // home advantage
+  const homeStrength = 0.2 + (homeRep / 5) * 0.6 + (neutral ? 0 : CONTINENTAL_REPUTATION_HOME_BONUS);
   const awayStrength = 0.2 + (awayRep / 5) * 0.6;
 
   // Poisson-like goal generation: average goals ~ strength * 1.5
@@ -332,7 +339,7 @@ export function simulateKnockoutLeg(
     // For finals (single leg)
     if (round === 'F' && leg === 1 && !tie.leg1Played) {
       const { homeGoals, awayGoals } = resolveContinentalFixture(
-        tie.homeClubId, tie.awayClubId, virtualClubs, world, `${tie.id}-f`,
+        tie.homeClubId, tie.awayClubId, virtualClubs, world, `${tie.id}-f`, /* neutral */ true,
       );
       let newTie = { ...tie, leg1Played: true, leg1HomeGoals: homeGoals, leg1AwayGoals: awayGoals };
       // Resolve immediately for finals

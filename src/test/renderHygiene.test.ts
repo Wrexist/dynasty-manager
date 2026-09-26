@@ -40,8 +40,12 @@ interface Probe<T> {
   renders: number;
 }
 
-/** Mirrors Dashboard.tsx:116-142 — the useShallow hash that drives the
- *  dashboard page's re-render decision. */
+/** Mirrors the `useShallow` hash at the top of `Dashboard.tsx` — the page's
+ *  re-render decision. The home rework moved everything below the fold
+ *  (objectives, sagas, XP, tips, quick links…) into `DashboardMore`, which is
+ *  only mounted while expanded, so the page itself no longer subscribes to
+ *  managerProgression, facilities, scouting, clubRecords, training,
+ *  weekCliffhangers, activeStorylineChains, unlockedAchievements, etc. */
 function dashboardSelector(s: GameState) {
   return {
     playerClubId: s.playerClubId,
@@ -52,48 +56,28 @@ function dashboardSelector(s: GameState) {
     fixtures: s.fixtures,
     leagueTable: s.leagueTable,
     boardConfidence: s.boardConfidence,
-    boardObjectives: s.boardObjectives,
-    currentMatchResult: s.currentMatchResult,
+    boardUltimatum: s.boardUltimatum,
     incomingOffers: s.incomingOffers,
-    trainingFocus: s.trainingFocus,
     cup: s.cup,
     leagueCup: s.leagueCup,
     championsCup: s.championsCup,
     shieldCup: s.shieldCup,
     conferenceCup: s.conferenceCup,
-    virtualClubs: s.virtualClubs,
     domesticSuperCup: s.domesticSuperCup,
     continentalSuperCup: s.continentalSuperCup,
-    weekCliffhangers: s.weekCliffhangers,
-    objectiveStreak: s.objectiveStreak,
-    facilities: s.facilities,
-    scouting: s.scouting,
-    divisionTables: s.divisionTables,
     playerDivision: s.playerDivision,
-    managerProgression: s.managerProgression,
-    clubRecords: s.clubRecords,
     transferWindowOpen: s.transferWindowOpen,
-    training: s.training,
     weeklyObjectives: s.weeklyObjectives,
-    shortlist: s.shortlist,
     seasonPhase: s.seasonPhase,
     totalWeeks: s.totalWeeks,
-    objectivesStartWeek: s.objectivesStartWeek,
-    completedCoachTaskIds: s.completedCoachTaskIds,
     gameMode: s.gameMode,
-    careerManager: s.careerManager,
     jobOffers: s.jobOffers,
     pendingPressConference: s.pendingPressConference,
     pendingStoryline: s.pendingStoryline,
     pendingTransferTalk: s.pendingTransferTalk,
     activeChallenge: s.activeChallenge,
     youthAcademy: s.youthAcademy,
-    fanMood: s.fanMood,
-    sessionStats: s.sessionStats,
     pendingAchievementIds: s.pendingAchievementIds,
-    activeStorylineChains: s.activeStorylineChains,
-    unlockedAchievements: s.unlockedAchievements,
-    packPityCounter: s.packPityCounter || 0,
   };
 }
 
@@ -158,9 +142,12 @@ describe.skipIf(!RUN)('Render hygiene (PERF_AUDIT=1)', () => {
         }
       });
 
-      // Run a full season (46 weeks + match plays)
+      // Run a full season: the club's OWN length (38 weeks for the Premier
+      // League), not the 46-week reference calendar the harness used to assume
+      // — the 8 extra iterations were empty post-season weeks.
+      const seasonWeeks = useGameStore.getState().totalWeeks;
       const weekRenders: Record<string, number[]> = Object.fromEntries(probes.map(p => [p.name, []]));
-      for (let w = 0; w < 46; w++) {
+      for (let w = 0; w < seasonWeeks; w++) {
         const before = probes.map(p => p.renders);
         await useGameStore.getState().advanceWeek();
         useGameStore.getState().playCurrentMatch();
@@ -174,7 +161,7 @@ describe.skipIf(!RUN)('Render hygiene (PERF_AUDIT=1)', () => {
         generatedAt: new Date().toISOString(),
         node: process.version,
         clubId: CLUB_ID,
-        weeks: 46,
+        weeks: seasonWeeks,
         perProbe: probes.map(p => {
           const perWeek = weekRenders[p.name];
           const total = p.renders;
@@ -190,9 +177,9 @@ describe.skipIf(!RUN)('Render hygiene (PERF_AUDIT=1)', () => {
       fs.writeFileSync(outPath, JSON.stringify(results, null, 2) + '\n');
       console.log(`[render-hygiene] wrote ${outPath}`);
 
-      // Sanity — at minimum the week scalar must change 46 times.
+      // Sanity — at minimum the week scalar must change once per week.
       const weekProbe = results.perProbe.find(p => p.name === 'week (scalar)');
-      expect(weekProbe?.total).toBeGreaterThanOrEqual(46);
+      expect(weekProbe?.total).toBeGreaterThanOrEqual(seasonWeeks);
     },
   );
 });
@@ -252,9 +239,11 @@ describe('Render hygiene — always-on guards', () => {
     const leagueBefore = leagueTableSelector(useGameStore.getState());
     const dashBefore = dashboardSelector(useGameStore.getState());
 
-    // fanMood is watched by Dashboard but NOT by Squad/League. Mutating it
-    // should re-render Dashboard only.
-    useGameStore.setState({ fanMood: (useGameStore.getState().fanMood + 7) % 100 });
+    // boardConfidence is watched by Dashboard (it drives the "Needs your
+    // attention" board row) but NOT by Squad/League. Mutating it should
+    // re-render Dashboard only. (This probe used fanMood until the home rework
+    // moved the Fan Mood tile into the collapsed DashboardMore section.)
+    useGameStore.setState({ boardConfidence: (useGameStore.getState().boardConfidence + 7) % 100 });
     const s = useGameStore.getState();
 
     expect(shallow(squadPageSelector(s), squadBefore)).toBe(true);

@@ -1,15 +1,16 @@
 # Render Hygiene Audit
 
-**Generated:** 2026-04-22  
-**Branch:** `claude/analyze-bundle-size-bfgiS`  
+**Generated:** 2026-09-25 (numbers re-measured; first run 2026-04-22)  
+**Branch:** `wp/world`  
 **Harness:** `src/test/renderHygiene.test.ts` — gated behind `PERF_AUDIT=1`,
 writes `docs/render-hygiene.json`.
 
 Measures how often the **page-level Zustand selectors** for the three key
 screens (Dashboard, LeagueTable, SquadPage) would fire a React re-render
-across a full 46-week season. Uses `store.subscribe` + the same equality
-function each page uses (`shallow` for multi-field shape, `Object.is` for
-scalars) — the same signal React uses.
+across a full season (38 weeks for the Premier League — the harness used to
+loop 46 times regardless, counting 8 empty post-season weeks). Uses
+`store.subscribe` + the same equality function each page uses (`shallow` for
+multi-field shape, `Object.is` for scalars) — the same signal React uses.
 
 ---
 
@@ -24,13 +25,16 @@ The harness answers: **do they, and how many renders per week?**
 
 ## Results
 
-| Selector | Renders over 46 weeks | Mean / week | Max / week | Assessment |
+| Selector | Renders over 38 weeks | Mean / week | Max / week | Assessment |
 |---|---:|---:|---:|---|
-| Dashboard selector (50-field `useShallow`) | **201** | 4.37 | 6 | ✅ proportional to data changes |
-| LeagueTable selector (9-field `useShallow`) | **201** | 4.37 | 6 | ✅ proportional to data changes |
-| SquadPage selector (5-field `useShallow`) | **201** | 4.37 | 6 | ✅ proportional to data changes |
-| `usePlayerClub` (scalar `clubs[id]`) | 46 | 1 | 1 | ✅ single render per week |
-| `week` (scalar) | 46 | 1 | 1 | ✅ single render per week |
+| Dashboard selector (50-field `useShallow`) | **172** | 4.53 | 6 | ✅ proportional to data changes |
+| LeagueTable selector (9-field `useShallow`) | **172** | 4.53 | 6 | ✅ proportional to data changes |
+| SquadPage selector (5-field `useShallow`) | **172** | 4.53 | 6 | ✅ proportional to data changes |
+| `usePlayerClub` (scalar `clubs[id]`) | 42 | 1.11 | 2 | ✅ ~one render per week |
+| `week` (scalar) | 38 | 1 | 1 | ✅ single render per week |
+
+(April run, 46 iterations: 201 renders / 4.37 per week for the three pages,
+46 / 1 for both scalars. Per-week volume is essentially unchanged.)
 
 **Nothing measured is "excessive".** The headline is: the three pages each
 fire ~4–5 renders per weekly tick, matching the number of distinct
@@ -39,7 +43,10 @@ volume proportional to state-change volume**, which is the goal.
 
 Scalar selectors (e.g. `usePlayerClub(): s.clubs[playerClubId]`) — the
 output reference is stable across bulk-map rewrites as long as that specific
-club wasn't touched — correctly fire exactly once per week.
+club wasn't touched — fire about once per week: 42 over 38 weeks, never
+more than 2 in a week. The extra ones (the player's club object replaced twice
+in one tick) were not investigated further — at most two renders of one small
+component, not a fan-out.
 
 ---
 
@@ -71,15 +78,20 @@ data later.
 
 ## Render cost in context
 
-- Weekly tick total: **~109 ms** (see `docs/perf-baseline.md`)
-- Match-sim share: **~85%** (44 AI matches × ~2 ms each + player match)
-- React reconciliation share: **at most ~15%**, spread across the ~4–5
-  re-renders per page × a handful of mounted pages. Even at a conservative
-  5 ms per Dashboard reconciliation, 5 renders × 5 ms = 25 ms of React
-  work, well inside the 500 ms weekly-tick budget.
+- Weekly tick total: **~258 ms** in season 1, **~288 ms** in season 2 on
+  desktop Node (see `docs/perf-baseline.md`; the world is now 168 clubs /
+  ~5.3k players, against 92 / ~2.3k in April)
+- Match-sim share: **about two thirds of `advanceWeek`** — ~80 AI league
+  fixtures a week across the seven other loaded divisions at ~2 ms each, plus
+  cups and continental football
+- React reconciliation: not measured here. At a conservative 5 ms per
+  Dashboard reconciliation, ~4.5 renders × 5 ms ≈ 23 ms of React work per
+  week — small next to the engine, but no longer "well inside" the 500 ms
+  budget once the ×3 phone projection is applied to the tick itself.
 
 The match engine, not render hygiene, is the dominant cost on the hot
-path. No measured justification to apply `React.memo` / `useCallback` to
+path (the largest remaining engine-side lever is listed in
+`docs/perf-baseline.md`). No measured justification to apply `React.memo` / `useCallback` to
 chase the 4-render baseline.
 
 ---

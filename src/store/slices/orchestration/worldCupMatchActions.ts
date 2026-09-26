@@ -39,6 +39,11 @@ type Get = () => GameState;
 
 const MIN_SQUAD = 7;
 
+/** Every World Cup match is at a neutral venue: the game models no host nation,
+ *  so `isHome` is only which name is printed first. Passed to every segment
+ *  (both halves and extra time) so none of them hands out HOME_ADVANTAGE. */
+const WORLD_CUP_NEUTRAL = true;
+
 /** Event types that credit a personal goal to the scorer's nation. Own goals
  *  count toward the opponent's score (handled by the engine) but never as a
  *  scorer's international goal. */
@@ -138,7 +143,7 @@ export function playWorldCupFirstHalfImpl(set: Set, get: Get): HalfState | null 
     const halfState = simulateHalf(
       hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity,
       playerClubId, undefined, undefined, false, hc.facilities, ac.facilities, season,
-      0, hBench, aBench, undefined, weather, 0,
+      0, hBench, aBench, undefined, weather, 0, WORLD_CUP_NEUTRAL,
     );
 
     set({
@@ -175,12 +180,12 @@ export function playWorldCupSecondHalfImpl(set: Set, get: Get): Match | null {
     const isPlayerHome = ctx.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
     const awayTactics = isPlayerHome ? undefined : tactics;
-    const match: Match = { id: `wc-${ctx.homeClubId}-${ctx.awayClubId}`, week, homeClubId: ctx.homeClubId, awayClubId: ctx.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] };
+    const match: Match = { id: `wc-${ctx.homeClubId}-${ctx.awayClubId}`, week, homeClubId: ctx.homeClubId, awayClubId: ctx.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: WORLD_CUP_NEUTRAL };
 
     const fullState = simulateHalf(
       hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity,
       playerClubId, halfTimeState!, undefined, false, hc.facilities, ac.facilities, season,
-      0, undefined, undefined, undefined, currentMatchWeather ?? undefined, 0,
+      0, undefined, undefined, undefined, currentMatchWeather ?? undefined, 0, WORLD_CUP_NEUTRAL,
     );
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState, players);
     if (currentMatchWeather) result.weather = currentMatchWeather;
@@ -221,12 +226,12 @@ export function playWorldCupExtraTimeImpl(set: Set, get: Get): Match | null {
     const isPlayerHome = ctx.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
     const awayTactics = isPlayerHome ? undefined : tactics;
-    const match: Match = { id: currentMatchResult.id, week, homeClubId: ctx.homeClubId, awayClubId: ctx.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] };
+    const match: Match = { id: currentMatchResult.id, week, homeClubId: ctx.homeClubId, awayClubId: ctx.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: WORLD_CUP_NEUTRAL };
 
     const etState = simulateHalf(
       hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity,
       playerClubId, halfTimeState, undefined, false, hc.facilities, ac.facilities, season,
-      0, undefined, undefined, undefined, currentMatchWeather ?? undefined, 0,
+      0, undefined, undefined, undefined, currentMatchWeather ?? undefined, 0, WORLD_CUP_NEUTRAL,
     );
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, etState, players);
     if (currentMatchWeather) result.weather = currentMatchWeather;

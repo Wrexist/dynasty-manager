@@ -74,11 +74,11 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
       )}
       <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-card/80 px-2.5 py-1 backdrop-blur-md border border-border/40">
         <RotateCcw className="h-3 w-3 text-primary" />
-        <span className="text-[10px] font-bold uppercase tracking-wide text-foreground">Replay</span>
+        <span className="text-micro font-bold uppercase tracking-wide text-foreground">Replay</span>
       </div>
       <button
         onClick={onDone}
-        className="absolute bottom-2 right-2 rounded-full bg-card/80 px-3 py-1 text-[10px] font-semibold text-foreground backdrop-blur-md border border-border/40 active:scale-95"
+        className="absolute bottom-2 right-2 rounded-full bg-card/80 px-3 py-1 text-micro font-semibold text-foreground backdrop-blur-md border border-border/40 active:scale-95"
       >
         Skip
       </button>

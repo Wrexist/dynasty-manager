@@ -19,7 +19,8 @@
   [x] Web app built (npm run build) — dist/ folder ready
   [x] iOS project synced (npx cap sync ios)
   [x] GitHub Actions workflow file created at .github/workflows/ios-testflight.yml
-  [x] Privacy policy page created at privacy-policy.html
+  [x] Privacy policy: https://wrexist.github.io/dynasty-manager/privacy.html
+      (PRIVACY_URL in src/config/legal.ts; source docs/privacy.html)
 
 
 ================================================

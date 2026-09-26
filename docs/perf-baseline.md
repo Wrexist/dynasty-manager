@@ -1,148 +1,132 @@
 # Runtime Perf Baseline
 
-**Generated:** 2026-04-22  
-**Branch:** `claude/analyze-bundle-size-bfgiS`  
+**Generated:** 2026-09-25 (supersedes the 2026-04-22 baseline)
+**Branch:** `wp/world`
 **Harness:** `src/test/perf.test.ts` — gated behind `PERF_AUDIT=1`, writes
 machine-readable numbers to `docs/perf-baseline.json`.
 
-Baselines the three hot paths called out in CLAUDE.md after the community
-pack (~8–12 MB of player data) landed. No optimization in this pass — just
-measure and flag anything out of spec.
+The April baseline measured a world of 92 clubs / ~2.3k players over a
+46-iteration loop. Since then the living world instantiates the four strongest
+foreign top tiers (168 clubs; 3.8k players in season 1, 5.3k by season 2), and
+the harness had two problems of its own: it looped 46 times against a 38-week
+season (8 empty post-season ticks pulled the mean down) and it was unseeded.
+It now runs **two seeded seasons** of Manchester City, times `advanceWeek` on
+its own as well as the user-facing tick, and times `endSeason`.
 
 ---
 
 ## Targets and current numbers
 
-| Path | Target | Mean | p50 | p95 | Max | Verdict |
-|---|---:|---:|---:|---:|---:|:---:|
-| Match sim (`simulateMatch`) | **< 50 ms** | **1.92 ms** | 1.68 | 3.30 | 21.1 | ✅ pass (26× under) |
-| Weekly tick (`playCurrentMatch + advanceWeek`) | **< 500 ms** | **109.38 ms** | 104.20 | 152.3 | 201.4 | ✅ pass (4.5× under) |
-| Initial game load (`resetGame + initGame`) | **< 3000 ms** | **51.89 ms** | 42.47 | 103.2 | 103.2 | ✅ pass (58× under) |
+Season 2 is the steady state (continental football running, ~5.3k players).
 
-Numbers from the `PERF_AUDIT=1` run that wrote
-`docs/perf-baseline.json`:
+| Path | Target | Season 1 mean | Season 2 mean | Season 2 p95 | Verdict |
+|---|---:|---:|---:|---:|:---:|
+| Match sim (`simulateMatch`, standalone) | **< 50 ms** | 2.09 ms | — | 3.59 ms | ✅ |
+| Weekly tick (`playCurrentMatch` + `advanceWeek`) | **< 500 ms** | 258 ms | 288 ms | 446 ms | ✅ |
+| `advanceWeek` alone | — | 231 ms | 265 ms | 398 ms | — |
+| Season rollover (`endSeason`) | **< 1000 ms** | 193 ms | 200 ms | — | ✅ |
+| Initial game load (`resetGame + initGame`) | **< 3000 ms** | 151 ms | — | 221 ms | ✅ |
 
-```text
-initGame       n=5    mean 51.9 ms   p95 103 ms
-simulateMatch  n=200  mean 1.9 ms    p95 3.3 ms
-weeklyTick     n=46   mean 109 ms    p95 152 ms
-```
+World size: 168 clubs; 3,786 players at the end of season 1, 5,327 at the end
+of season 2. Autosave is off in the harness (the save is its own path — see
+the 2026-09-25 audit, #14).
 
-> **Weekly tick order:** the harness runs `playCurrentMatch()` first, then
-> `await advanceWeek()` — the same order as real gameplay (user plays their
-> match, then taps "advance"). An earlier version of the harness did it the
-> other way and slightly understated weekly cost; corrected in the latest
-> perf commit.
+## Before / after (audit 2026-09-25, S5 / S9 / S10)
 
-**Nothing exceeds 2× target.** No flags raised.
+Same seeded harness, same machine, medians of three interleaved runs of each
+build. The container is shared with a concurrent CPU-heavy job, so single runs
+move by up to ±10%; interleaving the builds is what keeps the comparison fair.
+
+| Build | `advanceWeek` S1 / S2 | Tick S1 / S2 | `endSeason` S1 / S2 |
+|---|---:|---:|---:|
+| `b8afb76` (before this work) | 225 / 270 ms | 256 / 298 ms | 567 / 512 ms |
+| + S5 unemployed competitions, S9 every division completes its season | 245 / 285 ms | 278 / 311 ms | 519 / 445 ms |
+| + S10 hot-path work | 239 / 263 ms | 268 / 288 ms | 180 / 177 ms |
+
+- **S9 adds real work.** Before it, the Championship, League One and League
+  Two left 288 fixtures a season unplayed and `endSeason` invented their
+  scorelines. They are now simulated during the season (midweek double
+  rounds): ~7.6 extra engine matches a week on average, +5–9% on the tick.
+  It is also why `endSeason` got a little cheaper in the second row — no
+  backlog left to resolve.
+- **S10** takes 3–8% back off `advanceWeek` (row 2 → row 3) and cuts
+  `endSeason` by **~65%**. Net against the original build: season 1 ticks ~5%
+  slower, season 2 ~3% faster — while simulating 288 more matches a season.
+- **Every S10 change is outcome-identical.** A two-season fixed-seed run
+  (seeded `Math.random` and `crypto.randomUUID`) produced a byte-identical
+  fingerprint — every table, Cup, League Cup and continental result, and every
+  player's name, club, overall, potential, fitness, form, wage and career
+  totals — before and after. `src/test/worldTickPerf.test.ts` pins each change
+  against a verbatim copy of the code it replaced.
+
+### What S10 changed
+
+| Change | Where | Effect |
+|---|---|---|
+| The real-player picker reads position buckets (built once per pool, in pool order) instead of filtering the whole ~16k-template pool up to five times per generated player; the per-nation pool is memoised; the rating-band test runs before the claim-key test | `utils/realPlayerPicker.ts` | This was most of `endSeason` — the regen fill generates hundreds of players. `endSeason` 450–570 → ~180 ms |
+| `selectBestLineup` ranks the squad once (stable sort) instead of filter+sorting it per formation slot, again for fillers and again for the bench — 13 sorts per call | `utils/playerGen.ts` | AI XI pick is now ~0.12 ms per fixture (both sides); it was ~7% of `advanceWeek` in the season-1 profile |
+| Chemistry adjacency is a symmetric map lookup instead of a scan of the 23-entry `ADJACENT_PAIRS` list for each of an XI's 55 slot pairs | `utils/chemistry.ts` | The engine asks for chemistry on every strength recompute of every fixture |
+| The AI week shares ONE working copy of the player map instead of each of up to five stages spreading the ~5.3k-entry record again (~2 ms per copy on desktop Node, plus GC) | `utils/aiSimulation.ts` | `processAIWeekly` |
+
+## Where the tick goes now
+
+Section timers and a CPU profile over the seeded run (per season-1 week):
+
+1. **The match engine — about two thirds of `advanceWeek`.** The seven other
+   loaded divisions play ~80 AI fixtures a week (3,028 in season 1) at
+   ~1.9–2.1 ms each: ~150–165 ms a week, before cups and continental
+   football. The game loop's own overhead per fixture is small: XI pick
+   0.12 ms, post-match bookkeeping (`applyAIMatchEvents`, Elo, detail strip)
+   0.19 ms.
+2. AI world upkeep and development (`tickWorldPlayers`): ~9 ms.
+3. AI transfers / renewals / loans / free agents (`processAIWeekly`): ~11 ms.
+4. Everything else in `advanceWeek` (training, finance, board, storylines,
+   offers, tables, messages): ~25 ms combined.
+
+Inside the engine, `computeStrengths` is ~20% of engine time, most of it
+formation fit (`getFormationFitBonus`) and chemistry — both recomputed from
+scratch on every recompute (kickoff, every substitution, injury, red card and
+tactical change), even for the side whose XI did not change. **That is the
+largest remaining lever, and it lives in `engine/*`**, which is out of scope
+for this package (the engine is being recalibrated separately for S6).
+Caching each side's formation fit and chemistry until its XI changes would
+leave every result identical and remove up to ~13% of `advanceWeek` (an
+estimate from the profile, not a measurement).
+
+Two other levers were considered and left alone:
+
+- **A per-week cache of each AI club's matchday XI.** Each club is picked once
+  per fixture and plays about one fixture a week, so once `selectBestLineup`
+  stopped re-sorting per slot there is almost nothing left for a cache to save.
+- **Replacing the `Object.values(newPlayers).filter(p => p.clubId ===
+  playerClubId …)` scans** in the offer/rumour code with the club's
+  `playerIds` (~1.5 ms each). Some of those loops draw a random number per
+  player, so a different iteration order changes outcomes; not done without
+  a decision that the change is acceptable.
 
 ---
 
 ## Environment caveat (read before celebrating)
 
-This baseline was captured on:
+Captured on Node **v22.22.2** (desktop x64 V8, JIT-warm) under `jsdom`, in a
+containerized Linux shared with another CPU-heavy job.
 
-- Node **v22.22.2** / V8 (JIT-warm, desktop x64)
-- `jsdom` (DOM shim; no paint, no layout, no network)
-- Containerized Linux, likely over-provisioned CPU
+**Mid-range phones are typically 2–5× slower** (WKWebView runs JavaScriptCore,
+thermal throttling on sustained work, slower memory → more visible GC, plus
+real React reconciliation and paint, which jsdom does not do). Rule of thumb:
+×3 on the mean, ×4 on p95.
 
-**Mid-range Android phones are typically 2–5× slower** due to:
-
-1. **Different WebView engines:** iOS WKWebView runs WebKit / JavaScriptCore
-   (a distinct JIT from V8). Android WebView is Chromium / V8 — same engine
-   family as Node, but optimized for mobile power/heat rather than desktop
-   throughput. Both are slower in practice than desktop V8.
-2. Thermal throttling on sustained work (full-season sims heat up the CPU).
-3. Slower memory bandwidth → GC pauses are more visible.
-4. Actual **React reconciliation + paint** overhead (jsdom doesn't paint).
-
-**Rule of thumb:** multiply mean by ~3 and p95 by ~4 for a conservative
-on-device projection:
-
-| Path | Dev mean | Projected mid-range phone mean | Still meets target? |
+| Path | Dev (season 2) | Projected mid-range phone | Meets target? |
 |---|---:|---:|:---:|
-| Match sim | 1.9 ms | ~6 ms | ✅ yes |
-| Weekly tick | 101 ms | ~300 ms | ✅ yes (still <500) |
-| Initial load | 54 ms | ~160 ms (pure JS) + network fetch | ✅ yes, but see below |
+| Weekly tick | 288 ms mean / 446 ms p95 | ~860 ms / ~1.8 s | ❌ projected over the 500 ms target |
+| `endSeason` | 200 ms | ~600 ms | ✅ |
+| Initial load | 151 ms | ~450 ms (pure JS) + network fetch | ✅ |
 
-**`initGame` projection assumes bundle is already cached.** First-visit load
-has to download ~878 KB gzipped (see `docs/bundle-report.md`), which on 3G
-takes ~8 s before `initGame` even starts. That is the real first-paint
-concern on mid-range devices, not `initGame` itself.
-
----
-
-## What each path exercises
-
-### `simulateMatch` — 1.9 ms mean, 200 samples
-
-Pure engine call with freshly generated 70-ovr squads. Excludes:
-- Player-state propagation (goal/assist/appearance counters)
-- Match-event UI rendering (MatchDay page animates events minute-by-minute)
-- Substitution menu / celebrations
-
-Harness: `src/test/perf.test.ts:92-112`. Each sample rebuilds squads to keep
-fatigue/form drift out of the measurement.
-
-### `weeklyTick` — 101 ms mean, 46 samples (one full season)
-
-Wraps `advanceWeek()` + `playCurrentMatch()`, which together run:
-- 4 divisions × ~11 AI fixtures/week = ~44 `simulateMatch` calls
-- Training (all ~40 clubs × their squads)
-- Player development (young progress, vet decline, per-attribute rolls)
-- Injury rolls
-- Transfer offer generation & listing expiry
-- Income / finance updates
-- Message/inbox generation
-- Weekly objectives, streak tracking, facilities
-
-At ~101 ms for 46 weeks → total season tick = ~4.6 s in dev. On a phone
-that projects to ~15 s per season of background progression. Acceptable
-given users tap "advance" 46 times across a season, not all at once.
-
-**Per-match amortized cost inside the tick:** 101 ms ÷ 44 matches ≈ 2.3 ms —
-very close to the standalone `simulateMatch` number (1.9 ms). The extra
-0.4 ms / match is the stats-propagation cost inside `advanceWeek`.
-
-### `initGame` — 54 ms mean, 5 samples
-
-From the moment "New Game" is clicked to a playable state. Wraps:
-- Squad generation for all 92 clubs × ~25 players each (~2,300 players)
-- Fixture generation for 4 divisions (~1,600 fixtures)
-- Cup draws, continental group stage seeding
-- League table initialization
-- Transfer market seeding
-
-**Community pack NOT enabled** in this baseline. With CP on, `initGame`
-awaits `Promise.all([byClub, freeAgents, cpLeagueSquads])` → **+200–500 ms**
-for the dynamic-import fetch-and-parse on first enable, cached thereafter
-(see `orchestrationSlice.ts:2758-2761`). Still well under the 3 s target.
-
----
-
-## Hot spot candidates (no optimization — just where to look first)
-
-Ordered by "time spent" in a weekly tick, based on call-site breakdown:
-
-1. **AI match simulation** (~85 ms / 101 ms weekly tick = ~85%)
-   - 44 matches × 2 ms each. The dominant cost.
-   - Engine itself is tight (1.9 ms isolated). Optimization would mean
-     cutting the AI match count or approximating AI-vs-AI results for
-     non-player divisions.
-
-2. **Training + player dev loop** (~10 ms)
-   - ~2,300 players × a handful of attribute rolls each. Mostly RNG.
-   - Could batch if it ever became a bottleneck.
-
-3. **Transfer offer generation** (~3-5 ms)
-   - Scans squads for listed players, rolls market interest.
-
-4. **Persistence (debounced)** — not timed here. Runs on idle, not inside
-   the tick. `writeSaveSlot` is already async with atomic writes.
-
-Nothing in this list is urgent. The engine has meaningful headroom for
-future feature work (more leagues, deeper AI logic) before it approaches
-the 500 ms weekly-tick ceiling.
+The weekly tick is the number to watch. With the living world it is
+engine-bound, and on a phone a tap on "Advance" plausibly takes close to a
+second. This is a projection, not a device measurement — profile a real build
+with Safari Web Inspector before deciding whether the engine-side caching
+above is needed for release.
 
 ---
 
@@ -150,30 +134,20 @@ the 500 ms weekly-tick ceiling.
 
 ```bash
 PERF_AUDIT=1 npx vitest run src/test/perf.test.ts
-# writes docs/perf-baseline.json with fresh numbers
+# writes docs/perf-baseline.json (two seeded seasons, ~1 min)
 ```
 
-The perf test is skipped by default (`describe.skipIf(!RUN)`) so regular
-CI and dev runs don't spend the ~5 s it takes.
-
-To re-baseline after a change:
-
-```bash
-PERF_AUDIT=1 npx vitest run src/test/perf.test.ts
-# Commit any meaningful delta in docs/perf-baseline.json alongside the code change.
-```
+The perf test is skipped unless `PERF_AUDIT=1` (`describe.skipIf(!RUN)`) and
+listed in `SLOW_SUITES`, so regular CI and dev runs don't pay for it. Commit
+any meaningful delta in `docs/perf-baseline.json` with the code change.
 
 ## Known limitations
 
-- **jsdom ≠ real WebView.** No paint, no layout, no network. Actual
-  per-frame cost on device includes React reconciliation + browser paint.
+- **jsdom ≠ real WebView.** No paint, no layout, no network.
 - **Node V8 ≠ phone JavaScriptCore.** Desktop JIT is faster on hot loops.
-- **Single club, single save.** Multi-save management, crowded inboxes, or
-  late-career saves with thousands of historical players/matches are not
-  covered. Longevity tests (`src/test/longevity.test.ts`, gated behind
-  `VITEST_AUDIT=1`) do cover 10–20 season runs for correctness but not
-  timing.
-- **Match engine variance.** The `simulateMatch` max of 17 ms vs mean
-  1.9 ms is driven by extra-time/penalty-shootout branches. Acceptable.
-- No **first-paint / time-to-interactive** number — that needs a real
-  browser and Lighthouse/web-vitals. Out of scope for this harness.
+- **One club, one country.** An English save loads the most clubs (four
+  divisions + four foreign top tiers). A short league's save carries the same
+  foreign top tiers but fits their seasons into fewer weeks (an 18-week league
+  plays the Premier League's 38 rounds as double and triple rounds), so its
+  weeks are denser than an English save's.
+- **Save cost is excluded** (audit 2026-09-25, #14).

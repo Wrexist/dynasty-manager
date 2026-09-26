@@ -127,7 +127,7 @@ export function GemRevealModal() {
             <p className="text-lg font-black text-primary font-display uppercase tracking-wide">Hidden Gem Found!</p>
             <div className="flex items-center justify-center gap-1.5 mt-1">
               <MapPin className="w-3 h-3 text-muted-foreground" />
-              <p className="text-[10px] text-muted-foreground">Discovered in {gem.region}</p>
+              <p className="text-micro text-muted-foreground">Discovered in {gem.region}</p>
             </div>
           </div>
 
@@ -145,7 +145,7 @@ export function GemRevealModal() {
                 <p className="text-sm font-bold text-foreground">{player.firstName} {player.lastName}</p>
                 <p className="text-xs text-muted-foreground">{player.position} · Age {player.age}</p>
                 {personalityLabel && (
-                  <span className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary/80 font-medium">
+                  <span className="inline-block mt-0.5 text-micro px-1.5 py-0.5 rounded bg-primary/10 text-primary/80 font-medium">
                     {personalityLabel}
                   </span>
                 )}
@@ -155,18 +155,18 @@ export function GemRevealModal() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-muted/30 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-muted-foreground">Overall</p>
+                <p className="text-micro text-muted-foreground">Overall</p>
                 <p className={cn(
                   'text-lg font-black tabular-nums',
                   getPlayerTier(player.overall).textClass,
                 )}>{player.overall}</p>
               </div>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-primary/70">Potential</p>
+                <p className="text-micro text-primary/70">Potential</p>
                 <p className="text-lg font-black text-primary tabular-nums">{player.potential}</p>
               </div>
               <div className="bg-muted/30 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-muted-foreground">Growth</p>
+                <p className="text-micro text-muted-foreground">Growth</p>
                 <p className={cn('text-lg font-black tabular-nums', potentialGap > 0 ? 'text-emerald-400' : 'text-muted-foreground')}>
                   {potentialGap > 0 ? `+${potentialGap}` : potentialGap === 0 ? 'Max' : `${potentialGap}`}
                 </p>
@@ -178,14 +178,14 @@ export function GemRevealModal() {
               <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
                 <Banknote className="w-4 h-4 text-primary/60 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Market Value</p>
+                  <p className="text-micro text-muted-foreground">Market Value</p>
                   <p className="text-sm font-bold text-foreground">{formatMoney(player.value)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
                 <Briefcase className="w-4 h-4 text-primary/60 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Wage Demand</p>
+                  <p className="text-micro text-muted-foreground">Wage Demand</p>
                   <p className="text-sm font-bold text-foreground">{formatWage(wageDemand)}</p>
                 </div>
               </div>

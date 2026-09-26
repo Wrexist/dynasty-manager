@@ -3,27 +3,40 @@ description: Core principles for all interactions with this codebase
 alwaysApply: true
 ---
 
-# Identity
-You are a senior game developer and React/TypeScript expert working on Dynasty Manager, a football management sim. You write clean, minimal, production-quality code.
+# Source of truth
+`CLAUDE.md` at the repo root is the maintained architecture guide (its countable
+claims are checked by `npm run docs:check`). These rules are a short digest of it;
+when they disagree, CLAUDE.md and the code win.
 
 # Process
-1. **Read before writing.** Always read the relevant files before making changes. Start with `gameStore.ts` and `game.ts` types for any game logic task.
-2. **Plan before coding.** For anything touching 3+ files, outline your approach first and wait for approval.
-3. **Minimal diffs.** Change only what's needed. Don't refactor unrelated code. Don't reformat files.
-4. **Test the build.** Run `npm run build` after changes. Fix any errors before finishing.
+1. **Read before writing.** Start from the slice that owns the behaviour
+   (`src/store/slices/`), its types in `src/types/game.ts`, and its constants in
+   `src/config/`.
+2. **Plan before coding.** For anything touching 3+ files, outline the approach first.
+3. **Minimal diffs.** Change only what's needed; don't reformat unrelated code.
+4. **Gate before pushing.** `npm run preflight` (lint, typecheck, docs:check,
+   i18n:check, packs:supply, fast tests, build, bundle budgets). CI runs
+   `npm run preflight:full`.
 
-# Principles
-- Push back if a request would create tech debt, break mobile layout, or conflict with the architecture.
-- Prefer composition over inheritance. Prefer small functions over large ones.
-- SOLID but simple — don't over-engineer. This is a game, not enterprise software.
-- When unsure, ask. Don't guess at game design intent.
+# Architecture in one breath
+- Zustand store composed in `src/store/gameStore.ts` from 16 slices in
+  `src/store/slices/`. The game loop is `orchestration/weekAdvance.ts`; season end,
+  match actions and new-game setup live beside it in `orchestration/`.
+- ALL types in `src/types/game.ts`; `GameState` in `src/store/storeTypes.ts`.
+- Balance numbers in `src/config/` — never hardcoded in logic.
+- Storage only through `src/store/helpers/persistence.ts` (ESLint bans direct
+  `localStorage`/`sessionStorage`). Register new keys in `STORAGE_KEYS`.
+- Changing persisted state shape bumps `CURRENT_VERSION` in
+  `src/utils/saveMigration.ts` and adds a migration step.
+- Monetization (`src/config/monetization.ts`, `src/utils/monetization.ts`,
+  `src/utils/purchases.ts`) never touches a sim parameter; `isPro()` is the only Pro
+  check. Read the Monetization section of CLAUDE.md before editing paywall code.
+- Generated data (`src/data/communityPack/`, `src/data/nationalPlayerPool.ts`,
+  `src/data/squads/`, `src/data/playerPortraits.ts`) is never hand-edited and never
+  imported eagerly.
 
 # Style
-- TypeScript non-strict. No unnecessary `as` casts. Use interfaces for objects.
-- Tailwind utility classes only. Use `cn()` from `@/lib/utils` for conditionals.
-- All game logic in `gameStore.ts` or utility modules. Components are dumb renderers.
-- Imports: `@/` alias always. External → ui → game → local.
-- No `any` even though TS is non-strict. Use proper types from `game.ts`.
-
-# When Context Drifts
-If the conversation is long and you start ignoring these rules, re-read CLAUDE.md and this file.
+- TypeScript non-strict; `interface` for objects; no needless `as` casts.
+- Tailwind only, `cn()` from `@/lib/utils` for conditionals.
+- `@/` imports. Order: external → `@/components/ui` → `@/components/game` → local.
+- Player-facing strings go through `t()` with keys in `src/i18n/locales/en.ts`.

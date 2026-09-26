@@ -51,7 +51,7 @@ export function CommunityPackToggle({ enabled, onChange, className }: CommunityP
         </button>
       </div>
       {enabled && (
-        <p className="text-[10px] text-muted-foreground/70 leading-snug mt-2.5 pt-2.5 border-t border-white/[0.06]">
+        <p className="text-micro text-muted-foreground/70 leading-snug mt-2.5 pt-2.5 border-t border-white/[0.06]">
           Community-sourced data, loaded offline on your device. Not affiliated with or endorsed
           by any league, club, player, or governing body — all names and ratings belong to their
           respective rights holders.

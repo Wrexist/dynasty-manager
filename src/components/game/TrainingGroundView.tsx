@@ -76,7 +76,7 @@ export function TrainingGroundView({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-xs font-semibold text-foreground">Training Ground</h3>
-          <span className={cn('text-[10px] font-bold', getTierColor(trainingLevel))}>
+          <span className={cn('text-micro font-bold', getTierColor(trainingLevel))}>
             Lv.{trainingLevel} {getTierLabel(trainingLevel)}
           </span>
         </div>
@@ -161,7 +161,7 @@ export function TrainingGroundView({
                 ))}
               </div>
               {/* Attribute tags */}
-              <span className="text-[8px] text-muted-foreground/70 leading-tight">
+              <span className="text-micro text-muted-foreground/70 leading-tight">
                 {attrs.map(a => ATTR_LABELS[a] || a).join(' / ')}
               </span>
             </button>

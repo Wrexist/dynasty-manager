@@ -117,19 +117,19 @@ const YouthAcademy = () => {
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
               <p className="text-lg font-display font-bold text-foreground tabular-nums">{youthAcademy.prospects.length}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Prospects</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Prospects</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-display font-bold text-emerald-400 tabular-nums">{graduatesInSquad}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Graduates</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Graduates</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-display font-bold text-primary tabular-nums">+{devSpeedBonus}%</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Dev. Speed</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Dev. Speed</p>
             </div>
             <div className="text-center">
               <p className={cn('text-lg font-display font-bold tabular-nums', spotlightUsesRemaining > 0 ? 'text-amber-400' : 'text-muted-foreground')}>{spotlightUsesRemaining}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Spotlights</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Spotlights</p>
             </div>
           </div>
         </GlassPanel>
@@ -156,7 +156,7 @@ const YouthAcademy = () => {
                 />
               ))}
             </div>
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <div className="flex items-center justify-between text-micro text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Users className="w-3 h-3" />
                 <span>Coach: {youthCoachQuality > 0 ? `${youthCoachQuality}/10` : 'None'}</span>
@@ -178,7 +178,7 @@ const YouthAcademy = () => {
                 <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">({youthAcademy.prospects.length})</span>
               </h3>
               {readyCount > 0 && (
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full tabular-nums">
+                <span className="text-micro font-bold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full tabular-nums">
                   {readyCount} ready
                 </span>
               )}
@@ -235,8 +235,8 @@ const YouthAcademy = () => {
                     {/* Development bar — matches PlayerCard lg width */}
                     <div className="mt-1.5" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Dev</span>
-                        <span className={cn('text-[9px] font-semibold tabular-nums', getRatingColor(prospect.developmentScore))}>
+                        <span className="text-micro text-muted-foreground uppercase tracking-wider">Dev</span>
+                        <span className={cn('text-micro font-semibold tabular-nums', getRatingColor(prospect.developmentScore))}>
                           {Math.round(prospect.developmentScore)}%
                         </span>
                       </div>
@@ -257,7 +257,7 @@ const YouthAcademy = () => {
                           className="flex-1 flex items-center justify-center gap-1 py-1 rounded-md bg-muted/20 hover:bg-muted/40 active:scale-[0.97] transition-all"
                         >
                           <FocusIcon className={cn('w-2.5 h-2.5', focusDef.tone)} />
-                          <span className={cn('text-[9px] font-bold tracking-wider', focusDef.tone)}>{focusDef.short}</span>
+                          <span className={cn('text-micro font-bold tracking-wider', focusDef.tone)}>{focusDef.short}</span>
                           <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/60" />
                         </button>
                       ) : (
@@ -295,7 +295,7 @@ const YouthAcademy = () => {
                         )}
                       >
                         <Zap className="w-2.5 h-2.5" />
-                        <span className="text-[8px] font-bold tracking-wider">BOOST</span>
+                        <span className="text-micro font-bold tracking-wider">BOOST</span>
                       </button>
                     </div>
 
@@ -305,7 +305,7 @@ const YouthAcademy = () => {
                         <>
                           <button
                             onClick={() => handleRelease(prospect.playerId)}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-destructive/20 text-destructive text-[10px] font-bold active:scale-[0.97] transition-all"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-destructive/20 text-destructive text-micro font-bold active:scale-[0.97] transition-all"
                             aria-label={t('youthAcademy.confirmRelease')}
                           >
                             <Check className="w-3 h-3" /> Release
@@ -323,12 +323,12 @@ const YouthAcademy = () => {
                           {prospect.readyToPromote ? (
                             <button
                               onClick={() => handlePromote(prospect.playerId)}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold hover:bg-emerald-500/30 active:scale-[0.97] transition-all"
+                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-emerald-500/20 text-emerald-400 text-micro font-semibold hover:bg-emerald-500/30 active:scale-[0.97] transition-all"
                             >
                               <ArrowUpRight className="w-3 h-3" /> Promote
                             </button>
                           ) : (
-                            <div className="flex-1 py-1.5 rounded-md bg-muted/20 text-muted-foreground/50 text-[10px] font-medium text-center cursor-default">
+                            <div className="flex-1 py-1.5 rounded-md bg-muted/20 text-muted-foreground/50 text-micro font-medium text-center cursor-default">
                               Developing
                             </div>
                           )}
@@ -368,7 +368,7 @@ const YouthAcademy = () => {
                 return (
                   <div key={i} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', posBadgeColor(preview.position))}>
+                      <span className={cn('text-micro font-bold px-1.5 py-0.5 rounded', posBadgeColor(preview.position))}>
                         {preview.position}
                       </span>
                       <span className="text-xs text-muted-foreground">Incoming prospect</span>

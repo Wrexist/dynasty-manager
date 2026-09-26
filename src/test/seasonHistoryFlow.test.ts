@@ -13,6 +13,10 @@ import { useGameStore } from '@/store/gameStore';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 import type { CupState, ContinentalTournamentState, LeagueTableEntry } from '@/types/game';
+import { STORYLINE_CHAIN_COOLDOWN_SEASONS } from '@/config/playoffs';
+import { carryStorylineCooldowns } from '@/utils/storylines';
+import { loadHall, saveToHall, buildHallEntry, HALL_MAX_STORED } from '@/utils/hallOfManagers';
+import { writeHallData } from '@/store/helpers/persistence';
 
 import { withSeededRandom } from './helpers/seasonFixtures';
 
@@ -51,6 +55,10 @@ function restoreBaseline() {
     shieldCup: baseline.shieldCup,
     conferenceCup: baseline.conferenceCup,
     boardConfidence: baseline.boardConfidence,
+    activeStorylineChains: baseline.activeStorylineChains,
+    completedStorylineChainIds: baseline.completedStorylineChainIds,
+    careerId: baseline.careerId,
+    activeSlot: baseline.activeSlot,
   }));
   useGameStore.setState(fresh);
 }
@@ -246,5 +254,97 @@ describe('endSeason — overall season history entry', () => {
     withSeededRandom(8, () => useGameStore.getState().endSeason());
 
     expect(getLatestHistory().position).toBe(1);
+  });
+});
+
+// ── Storyline chain cooldowns ─────────────────────────────────────────
+
+describe('endSeason — storyline chain cooldowns survive the rollover', () => {
+  it('a chain completed in season N is still on cooldown in season N+1', () => {
+    fillLeagueTablesForRollover();
+    const season = useGameStore.getState().season;
+    useGameStore.setState({ completedStorylineChainIds: [`media-scandal@${season}`] });
+
+    withSeededRandom(11, () => useGameStore.getState().endSeason());
+
+    const after = useGameStore.getState();
+    expect(after.season).toBe(season + 1);
+    expect(after.completedStorylineChainIds).toContain(`media-scandal@${season}`);
+  });
+
+  it('a chain dropped mid-story at season end is put on cooldown, not forgotten', () => {
+    fillLeagueTablesForRollover();
+    const season = useGameStore.getState().season;
+    useGameStore.setState({
+      activeStorylineChains: [{ chainId: 'injury-crisis', startWeek: 30, currentStep: 0, choices: [0] }],
+      completedStorylineChainIds: [],
+    });
+
+    withSeededRandom(12, () => useGameStore.getState().endSeason());
+
+    const after = useGameStore.getState();
+    expect(after.activeStorylineChains).toEqual([]);
+    expect(after.completedStorylineChainIds).toContain(`injury-crisis@${season}`);
+  });
+});
+
+describe('carryStorylineCooldowns', () => {
+  it('keeps markers still cooling next season and prunes expired / legacy ones', () => {
+    const ending = 10;
+    const stillCooling = `fan-protests@${ending + 2 - STORYLINE_CHAIN_COOLDOWN_SEASONS}`;
+    const expired = `board-takeover@${ending + 1 - STORYLINE_CHAIN_COOLDOWN_SEASONS}`;
+    const out = carryStorylineCooldowns([stillCooling, expired, 'legacy-bare-id', `media-scandal@${ending}`], [], ending);
+    expect(out).toEqual([stillCooling, `media-scandal@${ending}`]);
+  });
+
+  it('stays bounded — a marker is never duplicated', () => {
+    const out = carryStorylineCooldowns(['injury-crisis@5'], [{ chainId: 'injury-crisis', startWeek: 1, currentStep: 0, choices: [] }], 5);
+    expect(out).toEqual(['injury-crisis@5']);
+  });
+});
+
+// ── Hall of Managers ──────────────────────────────────────────────────
+
+describe('endSeason — Hall of Managers is keyed per career, not per slot', () => {
+  beforeEach(() => writeHallData('[]'));
+
+  it('initGame mints a career id', () => {
+    expect(typeof baseline!.careerId).toBe('string');
+    expect(baseline!.careerId!.length).toBeGreaterThan(0);
+  });
+
+  it('two careers played in the same slot both stay in the hall', () => {
+    fillLeagueTablesForRollover();
+    useGameStore.setState({ activeSlot: 1, careerId: 'career-a' });
+    withSeededRandom(21, () => useGameStore.getState().endSeason());
+
+    // A brand-new career in the SAME slot (initGame would mint a new id).
+    restoreBaseline();
+    fillLeagueTablesForRollover();
+    useGameStore.setState({ activeSlot: 1, careerId: 'career-b' });
+    withSeededRandom(22, () => useGameStore.getState().endSeason());
+
+    const ids = loadHall().map(e => e.id);
+    expect(ids).toContain('career-a');
+    expect(ids).toContain('career-b');
+  });
+
+  it('a pre-v93 career (no careerId) keeps updating its legacy slot row', () => {
+    fillLeagueTablesForRollover();
+    useGameStore.setState({ activeSlot: 2, careerId: null });
+    withSeededRandom(23, () => useGameStore.getState().endSeason());
+    expect(loadHall().map(e => e.id)).toEqual(['slot-2']);
+  });
+});
+
+describe('saveToHall retention', () => {
+  beforeEach(() => writeHallData('[]'));
+
+  it('keeps well past 20 careers so lifetime totals do not shrink', () => {
+    const stats = { totalWins: 10, totalDraws: 5, totalLosses: 5 };
+    for (let i = 0; i < 30; i++) saveToHall(buildHallEntry(`c-${i}`, `Club ${i}`, [], stats, 0));
+    expect(loadHall()).toHaveLength(30);
+    for (let i = 30; i < HALL_MAX_STORED + 5; i++) saveToHall(buildHallEntry(`c-${i}`, `Club ${i}`, [], stats, 0));
+    expect(loadHall()).toHaveLength(HALL_MAX_STORED);
   });
 });

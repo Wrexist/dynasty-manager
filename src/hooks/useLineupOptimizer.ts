@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { LINEUP_SIZE } from '@/config/gameBalance';
 import { toast } from 'sonner';
 import { positionalOverall } from '@/utils/autoFillLineup';
+import { isAwayOnLoan } from '@/utils/helpers';
 import type { OptimizeResult } from '@/components/game/OptimizeResultModal';
 
 /**
@@ -41,7 +42,7 @@ export function useLineupOptimizer() {
       ? lineupPlayers.reduce((s, p) => s + effective(p), 0) / lineupPlayers.length
       : 0;
     const allAvailable = club.playerIds.map(id => players[id]).filter(p =>
-      p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
+      p && !p.injured && !isAwayOnLoan(p, club.id) && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
     );
     allAvailable.sort((a, b) => effective(b) - effective(a));
     const bestXI = allAvailable.slice(0, LINEUP_SIZE);

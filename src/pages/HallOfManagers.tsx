@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Star, Crown, Medal, Award, Diamond, Flame, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { loadHall, type HallEntry } from '@/utils/hallOfManagers';
+import { loadHall, HALL_DISPLAY_MAX, type HallEntry } from '@/utils/hallOfManagers';
 import { useGameStore } from '@/store/gameStore';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
 import { PageHint } from '@/components/game/PageHint';
@@ -36,7 +36,7 @@ const HallOfManagers = () => {
   const BadgeIcon = (prestigeBadgeId && PRESTIGE_BADGE_ICONS[prestigeBadgeId]) || Star;
 
   useEffect(() => {
-    setEntries(loadHall());
+    setEntries(loadHall().slice(0, HALL_DISPLAY_MAX));
   }, []);
 
   return (

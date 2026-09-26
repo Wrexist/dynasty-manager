@@ -563,6 +563,12 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       careerManager: newCareerManager,
       lastMatchXPGain: xpEarned > 0 ? xpEarned : state.lastMatchXPGain,
     });
+    // The free/ad allowance was spent on the device above, at once; the pulls
+    // themselves lived only in memory until the next week advance. An app kill
+    // in between burned the day's pack and lost its players (reproduced in the
+    // browser, playthrough 2026-09). Persist now, as a played match does. Paid
+    // opens are made durable by the purchase reconciler (flushSave) instead.
+    if (method !== 'iap' && state.settings.autoSave) get().saveGame();
 
     // ── Phase 2: deferred post-processing ──
     // The heavy, reveal-irrelevant work: AI counter-signings and the

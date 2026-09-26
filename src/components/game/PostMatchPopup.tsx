@@ -99,7 +99,9 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   // Free tactical debrief (G3): surface the engine's tactical insight + first
   // opposition reaction + one actionable hint. Hidden when the match had no
   // insight (neutral matchup / AI-only sim). Free for all users.
-  const debrief = extractMatchDebrief(currentMatchResult.events, playerClubId);
+  // Phrased for full time: the latest segment's insight, reviewed against the
+  // final score (it could show half-time advice after the whistle).
+  const debrief = extractMatchDebrief(currentMatchResult.events, playerClubId, { goalsFor, goalsAgainst });
 
   return (
     <motion.div

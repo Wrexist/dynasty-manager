@@ -85,14 +85,27 @@ describe('buildPlayerMatchXI', () => {
     expect([...weeks].sort((a, b) => a - b)).toEqual(weeks);
   });
 
-  it('never fields a player who is out on loan, not even as emergency cover', () => {
+  it('never fields a player who is out on loan AWAY, not even as emergency cover', () => {
+    // `onLoan` alone does not mean "away": a loanee sits in the BORROWER's
+    // squad with the flag set (see the next test). Away = loaned to another club.
     const squad = Array.from({ length: 18 }, (_, i) => player(`p${i}`, {
       injured: i >= 3 && i < 12,
       onLoan: i >= 12,
+      loanToClubId: i >= 12 ? 'elsewhere' : undefined,
     }));
     const xi = buildPlayerMatchXI(club(squad), byId(squad), 1);
     expect(xi.every(p => !p.onLoan)).toBe(true);
     expect(xi.length).toBeGreaterThanOrEqual(AI_MIN_MATCH_PLAYERS);
+  });
+
+  it('fields a player loaned IN to this club', () => {
+    const squad = Array.from({ length: 18 }, (_, i) => player(`p${i}`, {
+      onLoan: i === 0,
+      loanFromClubId: i === 0 ? 'lender' : undefined,
+      loanToClubId: i === 0 ? 'c' : undefined,
+    }));
+    const xi = buildPlayerMatchXI(club(squad), byId(squad), 1);
+    expect(xi.map(p => p.id)).toContain('p0');
   });
 });
 

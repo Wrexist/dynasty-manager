@@ -119,6 +119,10 @@ jobs:
           # the workflow is dispatched with dev_tools checked — real releases
           # (blank/false) ship without it.
           VITE_DEV_TOOLS: ${{ github.event.inputs.dev_tools }}
+          # Optional. Unset or shorter than MIN_REDEEM_SECRET_LENGTH leaves
+          # redeem codes disabled and the Settings entry hidden
+          # (utils/redeemCodes.ts getRedeemSecret).
+          VITE_REDEEM_SECRET: ${{ secrets.VITE_REDEEM_SECRET }}
         run: npm run build
 
       # Upload source maps to Sentry BEFORE they are stripped below (the strip

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { Club, Player, RetiredLegend, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState, PlayoffTieResult } from '@/types/game';
+import { Club, Player, RetiredLegend, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState, PlayoffTieResult, CupTie } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, getRetirementAge, calculateLegacyScore, generateCompetitors } from '@/utils/managerCareer';
 import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
@@ -34,7 +34,7 @@ import { applyRarityToPlayer } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
 import { isLegendWorthy, buildRetiredLegend, addLegendToArchive } from '@/utils/legends';
 import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
-import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance';
+import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE, INBOX_ARRIVES_READ } from '@/config/gameBalance';
 
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
@@ -49,11 +49,12 @@ import {
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
 } from '@/config/playoffs';
 import { resetSeasonGrowth } from '@/store/helpers/development';
-import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
+import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub, isNeutralPlayoffRound } from '@/utils/promotionRelegation';
 import { simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
 import { getDerbyIntensity } from '@/data/league';
 
-import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
+import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool, nationalTeamOfferReputation } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
@@ -62,14 +63,17 @@ import { generateAIManagerProfile } from '@/config/aiManager';
 
 import { createMilestone } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
-import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
+import { buildHallEntry, saveToHall, hallEntryId } from '@/utils/hallOfManagers';
+import { carryStorylineCooldowns } from '@/utils/storylines';
 
 import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 import {
   generateObjectives,
   pickAiMatchSquad,
   catchUpUnplayedFixtures,
   regenFillQuality,
+  squadDepthOverall,
 } from '@/store/slices/orchestration/helpers';
 import {
   generateLeagueCupDraw,
@@ -88,6 +92,72 @@ import {
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
+
+/**
+ * The season's knockout competitions as the MANAGER's record should see them.
+ *
+ * An unemployed career manager keeps `playerClubId` pointing at the club that
+ * let them go, and the competitions keep running while they are out of work
+ * (`progressCompetitionsWeek`). Every credit below compares a winner with
+ * `playerClubId`, so a Cup, League Cup or continental title the ex-club won
+ * AFTER the sacking landed on the manager's record: a 'Winner' season-history
+ * row (achievements, Hall of Managers, prestige), a timeline milestone and
+ * trophy XP. A competition whose final fell on or after the week the manager
+ * left is therefore shown to that code with no winner — the ex-club's run reads
+ * as "reached the Final". A trophy decided before they left is still theirs.
+ *
+ * Credit only: qualification, the Super Cup draws and the post-season snapshot
+ * keep reading the real `state.*`.
+ */
+function competitionsCreditedToManager(state: GameState) {
+  const real = {
+    cup: state.cup, leagueCup: state.leagueCup,
+    championsCup: state.championsCup, shieldCup: state.shieldCup, conferenceCup: state.conferenceCup,
+  };
+  const cm = state.careerManager;
+  // In a job (or not a career save): everything is judged exactly as before.
+  if (state.gameMode !== 'career' || !cm || cm.contract) return real;
+  // The unemployed week advances `week` and `unemployedWeeks` together, so the
+  // difference is the week the manager left. A final with no known week counts
+  // as after it.
+  const leftWeek = state.week - (cm.unemployedWeeks || 0);
+  const cupFinalWeek = (ties: CupTie[]) => ties.find(t => t.round === 'F')?.week ?? Infinity;
+  const continental = (t: ContinentalTournamentState | null): ContinentalTournamentState | null =>
+    t?.winnerId && (t.knockoutTies.find(k => k.round === 'F')?.week1 ?? Infinity) >= leftWeek
+      ? { ...t, winnerId: null } : t;
+  return {
+    cup: real.cup.winner && cupFinalWeek(real.cup.ties) >= leftWeek ? { ...real.cup, winner: null } : real.cup,
+    leagueCup: real.leagueCup?.winner && cupFinalWeek(real.leagueCup.ties) >= leftWeek
+      ? { ...real.leagueCup, winner: null } : real.leagueCup,
+    championsCup: continental(real.championsCup),
+    shieldCup: continental(real.shieldCup),
+    conferenceCup: continental(real.conferenceCup),
+  };
+}
+
+/**
+ * Whether a league title — finishing `position` — is the MANAGER's.
+ *
+ * The league is decided at season end, so it is theirs only if they are in
+ * charge then. An unemployed career manager still has `playerClubId` pointing
+ * at the club that let them go, and `history.position` is that club's final
+ * place: a title the ex-club went on to win after the sacking was credited to
+ * the manager as a "League Champions!" / "First League Title!" milestone and
+ * title XP. Same rule as the cups (`competitionsCreditedToManager`): only a
+ * competition decided while in charge counts.
+ */
+export function leagueTitleCreditedToManager(state: Pick<GameState, 'gameMode' | 'careerManager'>, position: number): boolean {
+  if (position !== 1) return false;
+  return managerInChargeAtSeasonEnd(state);
+}
+
+/** False only for a career manager with no contract: they are out of work,
+ *  and the season being closed is the ex-club's. Stored on the season-history
+ *  row as `managed`. */
+export function managerInChargeAtSeasonEnd(state: Pick<GameState, 'gameMode' | 'careerManager'>): boolean {
+  const cm = state.careerManager;
+  return !(state.gameMode === 'career' && cm && !cm.contract);
+}
 
 export function endSeasonImpl(set: Set, get: Get) {
   const state = get();
@@ -200,18 +270,24 @@ export function endSeasonImpl(set: Set, get: Get) {
   else if (boardConfidence < BOARD_SACKING_THRESHOLD) verdict = 'sacked';
   else verdict = 'poor';
 
+  // Trophies are judged on what the manager can be credited with — see
+  // `competitionsCreditedToManager`.
+  const credited = competitionsCreditedToManager(state);
   const history: SeasonHistory = {
     season, position: pos, points: playerEntry?.points || 0,
     won: playerEntry?.won || 0, drawn: playerEntry?.drawn || 0, lost: playerEntry?.lost || 0,
     goalsFor: playerEntry?.goalsFor || 0, goalsAgainst: playerEntry?.goalsAgainst || 0,
     topScorer: topScorer ? { name: `${topScorer.firstName} ${topScorer.lastName}`, goals: topScorer.goals } : { name: 'N/A', goals: 0 },
     boardVerdict: verdict,
-    cupResult: getCupResultForClub(state.cup, playerClubId),
-    leagueCupResult: state.leagueCup?.winner ? (state.leagueCup.winner === playerClubId ? 'Winner' : getCupResultForClub(state.leagueCup, playerClubId)) : undefined,
-    championsCupResult: getContinentalResultForClub(state.championsCup, playerClubId),
-    shieldCupResult: getContinentalResultForClub(state.shieldCup, playerClubId),
-    conferenceCupResult: getContinentalResultForClub(state.conferenceCup, playerClubId),
+    cupResult: getCupResultForClub(credited.cup, playerClubId),
+    leagueCupResult: state.leagueCup?.winner ? (credited.leagueCup.winner === playerClubId ? 'Winner' : getCupResultForClub(credited.leagueCup, playerClubId)) : undefined,
+    championsCupResult: getContinentalResultForClub(credited.championsCup, playerClubId),
+    shieldCupResult: getContinentalResultForClub(credited.shieldCup, playerClubId),
+    conferenceCupResult: getContinentalResultForClub(credited.conferenceCup, playerClubId),
     divisionId: playerDiv,
+    // In charge at season end? A career manager out of work keeps a row for
+    // the ex-club, but its title is not theirs (item 9).
+    managed: managerInChargeAtSeasonEnd(state),
     awards: seasonAwards,
     ballonDOrRanking,
     financialSummary: {
@@ -325,7 +401,7 @@ export function endSeasonImpl(set: Set, get: Get) {
   for (const r of state.playoffState?.resolved ?? []) {
     prePlayed.set([r.homeClubId, r.awayClubId].sort().join('|'), r);
   }
-  const resolvePlayoffTie = (homeClubId: string, awayClubId: string): string => {
+  const resolvePlayoffTie = (homeClubId: string, awayClubId: string, teamsInRound?: number): string => {
     const already = prePlayed.get([homeClubId, awayClubId].sort().join('|'));
     if (already) {
       if (already.homeClubId === playerClubId || already.awayClubId === playerClubId) {
@@ -345,6 +421,8 @@ export function endSeasonImpl(set: Set, get: Get) {
       id: `playoff-${state.season}-${homeClubId}-${awayClubId}`,
       week: state.week, season: state.season,
       homeClubId, awayClubId, homeGoals: 0, awayGoals: 0, played: false, events: [],
+      // The final is at a neutral ground — the same rule as `playoff.ts`.
+      ...neutralVenue(isNeutralPlayoffRound(teamsInRound)),
     } as Match;
     const { result } = simulateMatch(
       tie, hc, ac, hp, ap,
@@ -653,6 +731,10 @@ function finalizeSeason(
   const { season, playerClubId } = state;
   const newSeason = season + 1;
   resetSeasonGrowth();
+  // Timeline milestones and trophy XP are the manager's — see
+  // `competitionsCreditedToManager` and `leagueTitleCreditedToManager`.
+  const credited = competitionsCreditedToManager(state);
+  const titleCredited = leagueTitleCreditedToManager(state, history.position);
 
   // Snapshot everything the career tail needs to judge the season that just
   // ENDED, before the rollover below overwrites it with next season's fresh
@@ -975,12 +1057,14 @@ function finalizeSeason(
       // Anchored on the club's DESIGNED quality, not its reputation — see
       // `regenFillQuality` and audit 6.2. Reputation could not tell the second
       // tier from the fourth.
-      const quality = regenFillQuality(club, avgOvr, club.id === playerClubId);
+      // Held to squad depth too, and academy intake sits well below it.
+      const isIntake = fillIdx >= gapCount;
+      const quality = regenFillQuality(club, avgOvr, club.id === playerClubId, squadDepthOverall(clubSquad), isIntake);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       // Intake beyond the position gaps comes through the academy: young, with
       // room to grow. This is what restores the youth the world stopped making,
       // and it does so without retiring anyone earlier.
-      if (fillIdx >= gapCount) {
+      if (isIntake) {
         newP.age = REGEN_YOUTH_AGE_MIN + Math.floor(Math.random() * (REGEN_YOUTH_AGE_MAX - REGEN_YOUTH_AGE_MIN + 1));
         newP.potential = Math.max(newP.potential, Math.min(99, newP.overall + YOUNG_POTENTIAL_BOOST_BASE));
       }
@@ -1013,7 +1097,7 @@ function finalizeSeason(
         const emergencyAvgOvr = emergencySquad.length > 0 ? emergencySquad.reduce((s, p) => s + p.overall, 0) / emergencySquad.length : null;
         // Same anchor as the normal gap-fill: the emergency net used a hardcoded
         // copy of the reputation formula, so it drifted from the real one.
-        const emergencyQuality = regenFillQuality(club, emergencyAvgOvr, club.id === playerClubId);
+        const emergencyQuality = regenFillQuality(club, emergencyAvgOvr, club.id === playerClubId, squadDepthOverall(emergencySquad));
         const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), emergencyQuality, club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);
@@ -1377,6 +1461,7 @@ function finalizeSeason(
   newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'transfer',
     title: 'Pre-Season Market Surge',
+    read: INBOX_ARRIVES_READ.windowNotices,
     body: 'The summer window is buzzing! Clubs are reshaping their squads during pre-season. Expect more transfer activity and higher-quality players before league fixtures resume.',
   });
 
@@ -1421,8 +1506,13 @@ function finalizeSeason(
   const youthSquad = (pcForYouth?.playerIds || []).map(id => newPlayers[id]).filter(Boolean);
   const youthSquadQuality = youthSquad.length > 0 ? youthSquad.reduce((s, p) => s + p.overall, 0) / youthSquad.length : undefined;
   const youthRatingForIntake = pcForYouth?.youthRating ?? 50;
+  // The intake IS last season's preview: one prospect per previewed entry, at
+  // that position and potential (see generateIntakePreview). The preview used
+  // to be an unrelated roll. An empty preview (fresh state / old saves that
+  // never had one) falls back to a normal need-weighted roll.
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
-    playerClubId, youthRatingForIntake, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
+    playerClubId, youthRatingForIntake, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality,
+    { preview: state.youthAcademy?.nextIntakePreview || [], squad: youthSquad },
   );
   // Wonder Coach perk: +5 potential on all youth intake
   if (hasPerk(state.managerProgression, 'wonder_coach') && youthPlayers.length > 0) {
@@ -1447,14 +1537,22 @@ function finalizeSeason(
   // that silently corrupted the academy count.
   if (hasPerk(state.managerProgression, 'prodigy_factory')) {
     const { prospects: bonusProspects, players: bonusPlayers } = generateYouthProspects(
-      playerClubId, youthRatingForIntake, youthCoachQ, newSeason, 2, youthSquadQuality
+      playerClubId, youthRatingForIntake, youthCoachQ, newSeason, 2, youthSquadQuality,
+      { squad: [...youthSquad, ...youthPlayers] },
     );
     newYouthProspects.push(...bonusProspects);
     youthPlayers.push(...bonusPlayers);
   }
   youthPlayers.forEach(p => { newPlayers[p.id] = p; });
 
-  const newIntakePreview = generateIntakePreview(youthRatingForIntake);
+  // Next season's intake, decided now so the Youth Academy preview is a
+  // promise: positions lean toward gaps in the first team plus this intake
+  // (unpromoted prospects are cleared at the next rollover, see below).
+  const newIntakePreview = generateIntakePreview(youthRatingForIntake, {
+    youthCoachQuality: youthCoachQ,
+    clubSquadQuality: youthSquadQuality,
+    squad: [...youthSquad, ...youthPlayers],
+  });
 
   newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'general',
@@ -1669,7 +1767,9 @@ function finalizeSeason(
     retiredLegends: legendArchive,
     activeChallenge: endChallenge,
     activeStorylineChains: [],
-    completedStorylineChainIds: [],
+    // Keep the season-stamped cooldown markers; wiping them here defeated
+    // STORYLINE_CHAIN_COOLDOWN_SEASONS and let chains repeat back-to-back.
+    completedStorylineChainIds: carryStorylineCooldowns(state.completedStorylineChainIds, state.activeStorylineChains, season),
     pendingStoryline: null,
     freeAgents: freeAgentIds, transferNews: [],
     ...(farewells.length > 0 ? { pendingFarewell: farewells.sort((a, b) => b.seasonsServed - a.seasonsServed) } : {}),
@@ -1677,23 +1777,23 @@ function finalizeSeason(
     // Career milestones & manager XP at end of season
     careerTimeline: (() => {
       const milestones = [...state.careerTimeline];
-      if (history.position === 1) {
-        const isFirst = !state.seasonHistory.some(h => h.position === 1);
+      if (titleCredited) {
+        const isFirst = !state.seasonHistory.some(isManagersLeagueTitle);
         milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${history.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
       }
-      if (state.cup.winner === playerClubId) {
+      if (credited.cup.winner === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
-      if (state.leagueCup?.winner === playerClubId) {
+      if (credited.leagueCup?.winner === playerClubId) {
         milestones.push(createMilestone('cup_win', 'League Cup Winners!', `Won the League Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
-      if (state.championsCup?.winnerId === playerClubId) {
+      if (credited.championsCup?.winnerId === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Champions Cup Winners!', `Won the Champions Cup in Season ${season}!`, season, TOTAL_WEEKS, 'trophy'));
       }
-      if (state.shieldCup?.winnerId === playerClubId) {
+      if (credited.shieldCup?.winnerId === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Shield Cup Winners!', `Won the Shield Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
-      if (state.conferenceCup?.winnerId === playerClubId) {
+      if (credited.conferenceCup?.winnerId === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Conference Cup Winners!', `Won the Conference Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
       // Cap at MAX_CAREER_TIMELINE so a 30-season campaign doesn't accumulate
@@ -1703,14 +1803,14 @@ function finalizeSeason(
     })(),
     managerProgression: grantXP(state.managerProgression, (() => {
       let xp = XP_REWARDS.seasonEnd;
-      if (history.position === 1) xp += XP_REWARDS.titleWin;
-      if (state.cup.winner === playerClubId) xp += XP_REWARDS.cupWin;
-      if (state.leagueCup?.winner === playerClubId) xp += XP_REWARDS.leagueCupWin;
-      if (state.championsCup?.winnerId === playerClubId) xp += XP_REWARDS.championsCupWin;
+      if (titleCredited) xp += XP_REWARDS.titleWin;
+      if (credited.cup.winner === playerClubId) xp += XP_REWARDS.cupWin;
+      if (credited.leagueCup?.winner === playerClubId) xp += XP_REWARDS.leagueCupWin;
+      if (credited.championsCup?.winnerId === playerClubId) xp += XP_REWARDS.championsCupWin;
       else if (state.championsCup && !state.championsCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
-      if (state.shieldCup?.winnerId === playerClubId) xp += XP_REWARDS.shieldCupWin;
+      if (credited.shieldCup?.winnerId === playerClubId) xp += XP_REWARDS.shieldCupWin;
       else if (state.shieldCup && !state.shieldCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
-      if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
+      if (credited.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
       else if (state.conferenceCup && !state.conferenceCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       xp += objectiveXP;
       xp += challengeRewardXp;
@@ -1761,8 +1861,10 @@ function finalizeSeason(
   const finalState = get();
   const playerClubForHall = finalState.clubs[playerClubId];
   if (playerClubForHall) {
+    // Keyed per CAREER, not per slot: a slot key let a new career in the same
+    // slot overwrite the previous career's row.
     const hallEntry = buildHallEntry(
-      `slot-${finalState.activeSlot}`,
+      hallEntryId(finalState),
       playerClubForHall.name,
       finalState.seasonHistory,
       finalState.managerStats,
@@ -1771,13 +1873,17 @@ function finalizeSeason(
     saveToHall(hallEntry);
   }
 
-  // Career mode: check if the FA should re-offer the national team job (after sacking)
+  // Career mode: the FA offers the national team job once the manager's
+  // reputation is enough for a nation of that standing — the first approach
+  // (R7: no longer automatic on day one) or a re-offer after a sacking.
   {
     const cs = get();
     if (cs.gameMode === 'career' && cs.careerManager && cs.managerNationality
-      && !cs.nationalTeam && !cs.nationalTeamOffer
-      && cs.careerManager.nationalTeamSacked) {
-      const threshold = NT_JOB_REHIRE_REPUTATION;
+      && !cs.nationalTeam && !cs.nationalTeamOffer) {
+      const nationThreshold = nationalTeamOfferReputation(cs.managerNationality);
+      const threshold = cs.careerManager.nationalTeamSacked
+        ? Math.max(NT_JOB_REHIRE_REPUTATION, nationThreshold)
+        : nationThreshold;
       const upcomingTournament = getTournamentForSeason(season + 1) || getTournamentForSeason(season + 2);
       if (cs.careerManager.reputationScore >= threshold && upcomingTournament) {
         const expWeek = cs.week + NT_JOB_OFFER_DURATION_WEEKS;

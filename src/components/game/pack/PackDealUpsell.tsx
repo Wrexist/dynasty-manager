@@ -36,17 +36,22 @@ export function PackDealUpsell({ deals, onClose, onView, prices, trigger = 'post
     const pack = PACK_TIER_MAP[key];
     return prices === undefined ? pack.iapPriceDisplay : pack.productId ? prices[pack.productId] : undefined;
   };
+  // Backdrop tap closes. `cursor-pointer` is load-bearing, not styling: this
+  // layer is portalled into <body>, where React's click listener is delegated,
+  // and iOS WebKit only dispatches a tap as a click on a non-interactive
+  // element that looks clickable — without it a backdrop tap on an iPhone can
+  // do nothing (device check; Chromium is unaffected).
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/75 p-3 backdrop-blur-md sm:items-center sm:p-6"
+    <div data-testid="pack-deal-backdrop" className="fixed inset-0 z-[100] flex cursor-pointer items-end justify-center bg-black/75 p-3 backdrop-blur-md sm:items-center sm:p-6"
       onClick={event => { if (event.target === event.currentTarget) dismiss(); }}>
       <motion.div ref={ref} role="dialog" aria-modal="true" aria-labelledby="pack-deal-title" aria-describedby="pack-deal-description" tabIndex={-1}
         initial={reduced ? false : { opacity: 0, y: 32, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', damping: 30, stiffness: 310 }}
-        className="relative isolate w-full max-w-md outline-none overflow-y-auto overscroll-contain rounded-[28px] border border-white/15 bg-[#10151e] text-white shadow-[0_32px_100px_rgba(0,0,0,0.65)] max-h-[92dvh]">
+        className="relative isolate w-full max-w-md cursor-auto outline-none overflow-y-auto overscroll-contain rounded-[28px] border border-white/15 bg-[#10151e] text-white shadow-[0_32px_100px_rgba(0,0,0,0.65)] max-h-[92dvh]">
         <div aria-hidden className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/60 to-transparent" />
         <button type="button" onClick={dismiss} aria-label="Close pack offers" className="absolute right-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"><X className="h-[18px] w-[18px]" /></button>
         <header className="px-5 pb-4 pt-6">
-          <p className="mb-2 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-amber-200/90"><Sparkles className="h-3 w-3" /> Limited pack offers</p>
+          <p className="mb-2 flex items-center gap-1.5 text-micro font-semibold uppercase tracking-[0.22em] text-amber-200/90"><Sparkles className="h-3 w-3" /> Limited pack offers</p>
           <h2 id="pack-deal-title" className="pr-5 font-display text-[28px] font-bold leading-tight tracking-tight">Boost your squad.</h2>
           <p id="pack-deal-description" className="mt-2 text-xs leading-relaxed text-slate-400">Your favourite packs. More cards. Same price.</p>
         </header>
@@ -63,16 +68,16 @@ export function PackDealUpsell({ deals, onClose, onView, prices, trigger = 'post
                 {!reduced && [0, 1, 2].map(i => <motion.span key={i} aria-hidden className="pointer-events-none absolute h-1 w-1 rounded-full bg-amber-100 shadow-[0_0_8px_rgba(253,230,138,0.8)]" style={{ left: `${12 + i * 33}%`, top: `${24 + i * 19}%` }} animate={{ opacity: [0, 0.8, 0], y: [5, -12] }} transition={{ duration: 3.5, repeat: Infinity, delay: i * 1.1, ease: 'easeInOut' }} />)}
               </div>
               <div className="min-w-0 pb-2">
-                <span className="inline-flex rounded-md border border-amber-200/25 bg-amber-200/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-200">+{featured.bonusCards} bonus card{featured.bonusCards === 1 ? '' : 's'}</span>
+                <span className="inline-flex rounded-md border border-amber-200/25 bg-amber-200/10 px-2 py-1 text-micro font-bold uppercase tracking-wider text-amber-200">+{featured.bonusCards} bonus card{featured.bonusCards === 1 ? '' : 's'}</span>
                 <h3 className="mt-3 font-display text-2xl font-bold leading-none">{tier.label}</h3>
                 {priceFor(featured.tierKey) && <p className="mt-2 text-sm font-semibold text-amber-200">Only {priceFor(featured.tierKey)}</p>}
                 <p className="mt-2 text-sm font-semibold tabular-nums text-white">{tier.cards + featured.bonusCards} players</p>
-                <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/25 px-2 py-1 text-[10px] font-semibold tabular-nums text-white/90">
+                <p className="mt-2 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/25 px-2 py-1 text-micro font-semibold tabular-nums text-white/90">
                   <ShieldCheck className="h-3 w-3 shrink-0 text-amber-200/80" />
                   {1 + featured.bonusCards} × {tier.guaranteedMinOvr}+ OVR
                 </p>
-                <p className="mt-1 text-[9px] text-slate-400">Guaranteed ratings</p>
-                <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2 py-1.5 text-[10px] tabular-nums text-amber-100"><Clock3 className="h-3 w-3 shrink-0" /> {formatDealRemaining(featured.remainingMs)} left</div>
+                <p className="mt-1 text-micro text-slate-400">Guaranteed ratings</p>
+                <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2 py-1.5 text-micro tabular-nums text-amber-100"><Clock3 className="h-3 w-3 shrink-0" /> {formatDealRemaining(featured.remainingMs)} left</div>
               </div>
             </div>
             <div className="relative px-3 pb-3 pt-2">
@@ -80,7 +85,7 @@ export function PackDealUpsell({ deals, onClose, onView, prices, trigger = 'post
             </div>
           </article>
           {others.length > 0 && <div className="mt-4">
-            <p className="mb-2 px-1 text-[9px] font-medium uppercase tracking-[0.18em] text-slate-500">More to discover</p>
+            <p className="mb-2 px-1 text-micro font-medium uppercase tracking-[0.18em] text-slate-500">More to discover</p>
             <div className="space-y-2">
               {others.map(deal => {
                 const otherTier = PACK_TIER_MAP[deal.tierKey];
@@ -90,12 +95,12 @@ export function PackDealUpsell({ deals, onClose, onView, prices, trigger = 'post
                     <span className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-xs font-semibold"><span>{otherTier.label}</span>{priceFor(deal.tierKey) && <span className="text-[11px] text-amber-200">Only {priceFor(deal.tierKey)}</span>}</span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="text-[11px] font-medium tabular-nums text-white/90">{otherTier.cards + deal.bonusCards} players</span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/25 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-white/90">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/25 px-1.5 py-0.5 text-micro font-semibold tabular-nums text-white/90">
                         <ShieldCheck className="h-2.5 w-2.5 shrink-0 text-amber-200/80" />{1 + deal.bonusCards} × {otherTier.guaranteedMinOvr}+
                       </span>
                     </span>
-                    <span className="mt-1 block text-[9px] text-slate-400">Guaranteed ratings · includes {deal.bonusCards} bonus</span>
-                    <span className="mt-1 block text-[10px] tabular-nums text-amber-200/90">{formatDealRemaining(deal.remainingMs)} left</span>
+                    <span className="mt-1 block text-micro text-slate-400">Guaranteed ratings · includes {deal.bonusCards} bonus</span>
+                    <span className="mt-1 block text-micro tabular-nums text-amber-200/90">{formatDealRemaining(deal.remainingMs)} left</span>
                   </span>
                   <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-amber-200" />
                 </button>;

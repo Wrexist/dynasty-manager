@@ -1,8 +1,9 @@
 # Goals — Execute the Next Goal
 
 You are executing the Dynasty Manager goal system. `GOALS.md` at the repo root is the
-ranked execution list — it supersedes the open items in `ROADMAP.md`, `IDEAS.md`, and
-the `AUDIT*` reports. Trust the code over any doc, and this file over other docs.
+ranked execution list — it supersedes the open items in the archived `ROADMAP.md`,
+`IDEAS.md` and `AUDIT*` reports (`docs/archive/`). Trust the code over any doc, and this
+file over other docs.
 
 ## User Request
 
@@ -12,7 +13,9 @@ $ARGUMENTS
 
 1. **Read `GOALS.md`.** If `$ARGUMENTS` names a goal (e.g. "G3") or a quick win, work
    that. Otherwise pick the **first goal not marked done** — or, if the request is
-   small-session-sized, the highest-numbered unchecked quick win.
+   small-session-sized, the highest-numbered unchecked quick win. When every G-goal is
+   done, `GOALS.md` names the current execution list (the latest `docs/audit-*.md`);
+   work its open items in the order it ranks them.
 2. **Re-verify before building.** Every goal cites file:line evidence. Confirm the
    cited code still looks like the finding describes — items ship between sessions.
    If a finding is stale, mark it in the "Corrected record" section of `GOALS.md`

@@ -434,8 +434,15 @@ describe('product catalog', () => {
   });
 
   it('all cosmetic items reference valid packs', () => {
+    // An item is either SOLD (a real pack) or EARNED (Manager Pass / Legacy),
+    // never both — an earned item with a pack would also be purchasable, and a
+    // sold item marked earned would bypass the entitlement check.
     for (const item of COSMETIC_ITEMS) {
-      expect(PRODUCTS[item.pack]).toBeDefined();
+      if (item.earnedBy) {
+        expect(item.pack, item.id).toBeUndefined();
+      } else {
+        expect(PRODUCTS[item.pack], item.id).toBeDefined();
+      }
       expect(item.id).toBeTruthy();
       expect(item.name).toBeTruthy();
     }

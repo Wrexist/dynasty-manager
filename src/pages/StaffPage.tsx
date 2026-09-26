@@ -94,7 +94,7 @@ const QualityBar = ({ quality, compact }: { quality: number; compact?: boolean }
         animate={false}
         value={pct}
       />
-      <span className={cn('font-semibold tabular-nums', compact ? 'text-[10px]' : 'text-xs', 'text-foreground')}>{quality}</span>
+      <span className={cn('font-semibold tabular-nums', compact ? 'text-micro' : 'text-xs', 'text-foreground')}>{quality}</span>
     </div>
   );
 };
@@ -121,7 +121,7 @@ const MoraleBar = ({ morale }: { morale: number }) => {
   return (
     <div className="flex items-center gap-1.5 w-16">
       <PremiumProgress className="flex-1" size="sm" tone={tone} animate={false} value={pct} />
-      <span className="text-[9px] text-muted-foreground tabular-nums w-5 text-right">{Math.round(pct)}</span>
+      <span className="text-micro text-muted-foreground tabular-nums w-5 text-right">{Math.round(pct)}</span>
     </div>
   );
 };
@@ -138,7 +138,7 @@ const TRAIT_TONE: Record<StaffTrait, string> = {
 
 const TraitChip = ({ trait }: { trait: StaffTrait }) => (
   <span
-    className={cn('text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border', TRAIT_TONE[trait])}
+    className={cn('text-micro font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border', TRAIT_TONE[trait])}
     title={getTraitDescription(trait)}
   >
     {getTraitLabel(trait)}
@@ -234,9 +234,9 @@ const StaffPage = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-display font-bold text-foreground">Staff</h2>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-muted-foreground">{filledCount}/{ALL_ROLES.length} roles</span>
+            <span className="text-micro text-muted-foreground">{filledCount}/{ALL_ROLES.length} roles</span>
             {totalWages > 0 && (
-              <span className="text-[10px] text-muted-foreground">{'£'}{(totalWages / 1000).toFixed(0)}K/w</span>
+              <span className="text-micro text-muted-foreground">{'£'}{(totalWages / 1000).toFixed(0)}K/w</span>
             )}
           </div>
         </div>
@@ -249,13 +249,13 @@ const StaffPage = () => {
                 <Sparkles className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Backroom Mood</p>
+                <p className="text-micro uppercase tracking-wider text-muted-foreground">Backroom Mood</p>
                 <div className="flex items-center gap-2">
                   <p className={cn(
                     'text-sm font-bold tabular-nums',
                     avgMorale >= 75 ? 'text-emerald-400' : avgMorale >= 50 ? 'text-primary' : avgMorale >= 30 ? 'text-amber-400' : 'text-destructive',
                   )}>{avgMorale}</p>
-                  <span className="text-[10px] text-muted-foreground">avg morale</span>
+                  <span className="text-micro text-muted-foreground">avg morale</span>
                 </div>
               </div>
             </div>
@@ -264,7 +264,7 @@ const StaffPage = () => {
               onClick={handleRefreshMarket}
               disabled={!refreshAvailable}
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all min-h-[36px]',
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-micro font-semibold transition-all min-h-[36px]',
                 refreshAvailable
                   ? 'bg-primary/15 text-primary hover:bg-primary/25 active:scale-[0.97]'
                   : 'bg-muted/20 text-muted-foreground cursor-not-allowed',
@@ -319,10 +319,10 @@ const StaffPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-foreground">{ROLE_LABELS[role]}</p>
-                  <p className="text-[10px] text-muted-foreground">{ROLE_DESCRIPTIONS[role]}</p>
+                  <p className="text-micro text-muted-foreground">{ROLE_DESCRIPTIONS[role]}</p>
                 </div>
                 {!current && !upgrade && (
-                  <span className="text-[10px] text-muted-foreground/50 italic">Vacant</span>
+                  <span className="text-micro text-muted-foreground/50 italic">Vacant</span>
                 )}
               </div>
 
@@ -337,7 +337,7 @@ const StaffPage = () => {
                       </p>
                       <QualityBar quality={current.quality} />
                     </div>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{'£'}{(current.wage / 1000).toFixed(0)}K/w</span>
+                    <span className="text-micro text-muted-foreground shrink-0">{'£'}{(current.wage / 1000).toFixed(0)}K/w</span>
                   </div>
 
                   {/* Traits */}
@@ -355,7 +355,7 @@ const StaffPage = () => {
                     </div>
                   )}
                   {traitsExpanded && current.traits && (
-                    <div className="text-[10px] text-muted-foreground/80 leading-relaxed bg-muted/10 rounded p-2 space-y-1">
+                    <div className="text-micro text-muted-foreground/80 leading-relaxed bg-muted/10 rounded p-2 space-y-1">
                       {current.traits.map(t => (
                         <p key={t}><span className="font-semibold text-foreground">{getTraitLabel(t)}.</span> {getTraitDescription(t)}</p>
                       ))}
@@ -366,10 +366,10 @@ const StaffPage = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <MoraleDot morale={currentMorale} />
-                      <span className="text-[10px] text-muted-foreground">Morale</span>
+                      <span className="text-micro text-muted-foreground">Morale</span>
                       <MoraleBar morale={currentMorale} />
                       <span className={cn(
-                        'text-[10px] font-medium tabular-nums shrink-0',
+                        'text-micro font-medium tabular-nums shrink-0',
                         moraleMult >= 1.05 ? 'text-emerald-400' : moraleMult <= 0.95 ? 'text-amber-400' : 'text-muted-foreground',
                       )}>
                         {moraleMult >= 1 ? '+' : ''}{Math.round((moraleMult - 1) * 100)}%
@@ -380,7 +380,7 @@ const StaffPage = () => {
                       onClick={() => setChatOpenId(chatOpenId === current.id ? null : current.id)}
                       disabled={!interactReady}
                       className={cn(
-                        'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-all min-h-[28px] shrink-0',
+                        'flex items-center gap-1 px-2 py-1 rounded-md text-micro font-semibold transition-all min-h-[28px] shrink-0',
                         interactReady
                           ? 'bg-primary/15 text-primary hover:bg-primary/25 active:scale-[0.97]'
                           : 'bg-muted/20 text-muted-foreground/50 cursor-not-allowed',
@@ -398,7 +398,7 @@ const StaffPage = () => {
                       <button
                         type="button"
                         onClick={() => { handlePraise(current); setChatOpenId(null); }}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 active:scale-[0.97] transition-all min-h-[36px]"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-micro font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 active:scale-[0.97] transition-all min-h-[36px]"
                       >
                         <Smile className="w-3.5 h-3.5" />
                         Praise <span className="text-emerald-400/80 font-normal">· +morale</span>
@@ -406,7 +406,7 @@ const StaffPage = () => {
                       <button
                         type="button"
                         onClick={() => { handleCriticize(current); setChatOpenId(null); }}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 active:scale-[0.97] transition-all min-h-[36px]"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-micro font-semibold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 active:scale-[0.97] transition-all min-h-[36px]"
                       >
                         <Frown className="w-3.5 h-3.5" />
                         Criticise <span className="text-amber-400/80 font-normal">· −morale</span>
@@ -425,19 +425,19 @@ const StaffPage = () => {
                   {/* Effective stat line */}
                   <div className="flex items-center justify-between">
                     <span className={cn(
-                      'text-[10px] font-medium',
+                      'text-micro font-medium',
                       currentEffective >= 7 ? 'text-emerald-400' : currentEffective >= 5 ? 'text-primary' : 'text-amber-400'
                     )}>
                       {getStatEffect(role, currentEffective)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/70 tabular-nums">
+                    <span className="text-micro text-muted-foreground/70 tabular-nums">
                       Effective {currentEffective.toFixed(1)}
                     </span>
                   </div>
 
                   {/* Performance summary */}
                   {current.performance && (
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground/80 border-t border-border/30 pt-1.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-micro text-muted-foreground/80 border-t border-border/30 pt-1.5">
                       {(current.seasonsAtClub ?? 0) > 0 && (
                         <span>
                           <span className="text-foreground/80 font-semibold tabular-nums">{current.seasonsAtClub}</span>
@@ -473,7 +473,7 @@ const StaffPage = () => {
 
                   {/* Contract row */}
                   <div className="flex items-center justify-between gap-2 pt-1">
-                    <div className="flex items-center gap-1.5 text-[10px]">
+                    <div className="flex items-center gap-1.5 text-micro">
                       <FileText className="w-3 h-3 text-muted-foreground/70" />
                       {expiringSoon ? (
                         <span className="text-amber-400 font-semibold flex items-center gap-1">
@@ -501,7 +501,7 @@ const StaffPage = () => {
                           onClick={() => handleRenew(current)}
                           disabled={!canRenew}
                           className={cn(
-                            'flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all min-h-[32px]',
+                            'flex items-center gap-1 px-2 py-1.5 rounded-md text-micro font-semibold transition-all min-h-[32px]',
                             canRenew ? 'bg-primary/15 text-primary hover:bg-primary/25 active:scale-[0.97]' : 'bg-muted/20 text-muted-foreground/50 cursor-not-allowed',
                           )}
                           title={renewCooldown > 0 ? `Renewal cooldown ${renewCooldown}w` : `Renew · £${Math.round(renewFee / 1000)}K`}
@@ -538,11 +538,11 @@ const StaffPage = () => {
                 )}>
                   {confirmReplaceId === upgrade.id && current && (
                     <div className="mb-2 p-2 rounded bg-background/60 border border-border/40">
-                      <p className="text-[10px] text-foreground font-semibold mb-1">
+                      <p className="text-micro text-foreground font-semibold mb-1">
                         <RefreshCw className="w-3 h-3 inline mr-1" />
                         Replace {current.firstName} {current.lastName} (Q{current.quality}) with {upgrade.firstName} {upgrade.lastName} (Q{upgrade.quality})?
                       </p>
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-2">
+                      <div className="flex items-center gap-1 text-micro text-muted-foreground mb-2">
                         <span>Fee: {'£'}{Math.round(hiringFee / 1000)}K</span>
                         {wageDelta !== 0 && (
                           <span className={wageDelta > 0 ? 'text-destructive' : 'text-emerald-400'}>
@@ -562,17 +562,17 @@ const StaffPage = () => {
                       {current && isUpgrade && (
                         <div className="flex items-center gap-1 mb-1.5">
                           <ArrowUpRight className="w-3 h-3 text-emerald-400" />
-                          <span className="text-[10px] font-semibold text-emerald-400">Upgrade Available</span>
+                          <span className="text-micro font-semibold text-emerald-400">Upgrade Available</span>
                         </div>
                       )}
                       {current && isDowngrade && (
                         <div className="flex items-center gap-1 mb-1.5">
-                          <span className="text-[10px] font-medium text-muted-foreground">Alternative Available</span>
+                          <span className="text-micro font-medium text-muted-foreground">Alternative Available</span>
                         </div>
                       )}
                       {!current && (
                         <div className="flex items-center gap-1 mb-1.5">
-                          <span className="text-[10px] font-semibold text-primary">Available to Hire</span>
+                          <span className="text-micro font-semibold text-primary">Available to Hire</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
@@ -583,7 +583,7 @@ const StaffPage = () => {
                           <QualityBar quality={upgrade.quality} compact />
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-2">
-                          <span className="text-[10px] text-muted-foreground">{'£'}{(upgrade.wage / 1000).toFixed(0)}K/w</span>
+                          <span className="text-micro text-muted-foreground">{'£'}{(upgrade.wage / 1000).toFixed(0)}K/w</span>
                           <button
                             onClick={() => handleHire(upgrade, current)}
                             disabled={!canAfford}
@@ -607,18 +607,18 @@ const StaffPage = () => {
                       )}
                       <div className="flex items-center justify-between mt-1">
                         <span className={cn(
-                          'text-[10px]',
+                          'text-micro',
                           upgradeEffective >= 7 ? 'text-emerald-400' : upgradeEffective >= 5 ? 'text-primary' : 'text-amber-400'
                         )}>
                           {getStatEffect(role, upgradeEffective)}
                         </span>
                         <div className="flex items-center gap-2">
                           {current && wageDelta !== 0 && (
-                            <span className={cn('text-[10px]', wageDelta > 0 ? 'text-destructive' : 'text-emerald-400')}>
+                            <span className={cn('text-micro', wageDelta > 0 ? 'text-destructive' : 'text-emerald-400')}>
                               {wageDelta > 0 ? '+' : ''}{'£'}{(wageDelta / 1000).toFixed(0)}K/w
                             </span>
                           )}
-                          <span className="text-[10px] text-muted-foreground/70">
+                          <span className="text-micro text-muted-foreground/70">
                             Fee: {'£'}{Math.round(hiringFee / 1000)}K
                           </span>
                         </div>
@@ -626,7 +626,7 @@ const StaffPage = () => {
                       {/* Affordability reason as visible text — a `title=`
                           attribute does nothing on a touch device. */}
                       {!canAfford && (
-                        <p className="text-[10px] text-destructive font-medium mt-1">
+                        <p className="text-micro text-destructive font-medium mt-1">
                           Can't afford the {'£'}{Math.round(hiringFee / 1000)}K signing fee
                           {' '}(budget {'£'}{Math.round((club?.budget ?? 0) / 1000)}K).
                         </p>

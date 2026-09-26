@@ -2,6 +2,7 @@ import type { GameState } from '../storeTypes';
 import type { SponsorDeal, SponsorOffer, SponsorNegotiation, SponsorNegotiationProposal } from '@/types/game';
 import { addMsg, formatMoney, clamp100, safeRandomUUID } from '@/utils/helpers';
 import { LEAGUES } from '@/data/league';
+import { INBOX_ARRIVES_READ } from '@/config/gameBalance';
 import {
   SPONSOR_SLOTS,
   SPONSOR_OFFER_INTERVAL,
@@ -215,6 +216,7 @@ export function processSponsorWeek(state: GameState): Partial<GameState> {
       type: 'sponsorship',
       title: 'Sponsor Offer Expired',
       body: `The offer from ${sponsor?.name || 'a sponsor'} for the ${SPONSOR_SLOTS.find(s => s.id === o.slotId)?.label || 'sponsor'} slot has expired.`,
+      read: INBOX_ARRIVES_READ.sponsorOfferExpired,
     });
   }
   updatedOffers = updatedOffers.filter(o => o.expiresWeek > week);

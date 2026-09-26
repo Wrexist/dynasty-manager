@@ -144,7 +144,7 @@ export function DailyRewardModal() {
                   <Flame className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-primary/80 font-semibold">Daily Reward</p>
+                  <p className="text-micro uppercase tracking-[0.18em] text-primary/80 font-semibold">Daily Reward</p>
                   <h2 className="text-base font-bold text-foreground font-display leading-tight">
                     {status.current}-day streak
                   </h2>
@@ -194,12 +194,12 @@ export function DailyRewardModal() {
                             : <Sparkles className="w-3 h-3" />}
                       </div>
                       <span className={cn(
-                        'text-[9px] font-semibold tabular-nums leading-none',
+                        'text-micro font-semibold tabular-nums leading-none',
                         isToday ? 'text-primary' : isCollected ? 'text-emerald-300/90' : 'text-foreground/50',
                       )}>
                         +{xp}
                       </span>
-                      <span className="text-[8px] text-foreground/40 leading-none">D{day}</span>
+                      <span className="text-micro text-foreground/40 leading-none">D{day}</span>
                     </div>
                   );
                 })}

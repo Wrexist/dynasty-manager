@@ -42,7 +42,7 @@ import type { Player } from '@/types/game';
 import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { isPro } from '@/utils/monetization';
 import { reconcilePendingPackCreditAtLaunch, setPackPurchaseInFlight, isPackPurchaseInFlight } from '@/utils/packCreditRecovery';
-import { purchaseConsumable, readConsumableHistory, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
+import { purchaseConsumable, readConsumableHistory, getStoreAvailability, isPurchaseNotAttempted, isPaymentPendingError } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit, currentWeekIndex, msUntilNextWeekIndex } from '@/store/helpers/persistence';
 import { track } from '@/utils/analytics';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
@@ -506,10 +506,35 @@ const PacksPage = () => {
     // every bonus that was actually granted.
     const bonusAtPurchase = advertisedDeal?.bonusCards ?? bonusFor(tierKey);
     setBusy(true);
-    setPackPurchaseInFlight(true);
-    addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
-    track('purchase_initiated', { productId: tier.productId, surface: 'packs' });
     try {
+      // An earlier purchase that never confirmed blocks this one. Give it a
+      // chance to resolve first — a verified "no payment" releases it, and a
+      // verified payment is delivered — instead of refusing on sight.
+      const earlier = readPendingPackCredit();
+      if (earlier) {
+        const recovered = await reconcilePendingPackCreditAtLaunch(false);
+        if (recovered?.success && recovered.players?.length) {
+          successToast('Purchase restored', 'Your earlier pack purchase has been credited.');
+          setOpening({ tier: earlier.tierKey as PackTierKey, players: recovered.players, pityTriggered: recovered.pityTriggered });
+          return;
+        }
+        const still = readPendingPackCredit();
+        if (still) {
+          if (still.slot !== activeSlot) {
+            infoToast('A purchase is still waiting', 'Reopen the Market in the save that bought the pack before buying another.');
+          } else if (still.charged === false) {
+            infoToast('Checking your last purchase', still.deferred
+              ? 'Your last pack purchase is waiting for approval. It will be credited once approved.'
+              : 'No payment has arrived yet. If none does, the Market unlocks again automatically.');
+          } else {
+            infoToast('A purchase is still waiting', recovered?.message || 'Your paid pack must be credited before you buy another.');
+          }
+          return;
+        }
+      }
+      setPackPurchaseInFlight(true);
+      addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
+      track('purchase_initiated', { productId: tier.productId, surface: 'packs' });
       // Crash durability: persist a pending-credit marker BEFORE the StoreKit
       // charge. Consumables never appear in RevenueCat entitlements, so if
       // the app dies between the charge completing and the pack being
@@ -520,10 +545,6 @@ const PacksPage = () => {
       // un-charged and only promoted once the store confirms, otherwise any
       // failed attempt (offline, force-quit on the sheet) left a record the
       // reconciler happily granted — a free, repeatable paid pack.
-      if (readPendingPackCredit()) {
-        infoToast('A purchase is still waiting', 'Reopen the Market in the save that bought the pack before buying another.');
-        return;
-      }
       const history = await readConsumableHistory(tier.productId);
       if (useGameStore.getState().activeSlot !== activeSlot || useGameStore.getState().playerClubId !== club.id) return;
       // Recheck after the network probe: an offer may have expired meanwhile.
@@ -592,6 +613,15 @@ const PacksPage = () => {
       // never reached the store (offline, product unavailable) is definitively
       // un-charged and its marker is dropped; keeping it was the exploit.
       if (isPurchaseNotAttempted(err)) clearPendingPackCredit();
+      // Awaiting approval (Ask to Buy): not a failure, and the payment may
+      // still land after the sheet closed — the marker waits longer for it.
+      if (isPaymentPendingError(err)) {
+        const waiting = readPendingPackCredit();
+        if (waiting?.charged === false && waiting.productId === tier.productId) writePendingPackCredit({ ...waiting, deferred: true });
+        addGameBreadcrumb('purchase', 'pack iap deferred', { surface: 'packs', tierKey });
+        infoToast('Waiting for approval', `Your ${tier.label} will be credited once the purchase is approved.`);
+        return;
+      }
       addGameBreadcrumb('purchase', 'pack iap threw', { surface: 'packs', tierKey, notAttempted: isPurchaseNotAttempted(err) });
       Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
       track('purchase_failed', { productId: tier.productId, surface: 'packs' });
@@ -617,7 +647,7 @@ const PacksPage = () => {
             featured pack image is visible above the fold on a 375px
             phone (audit finding). */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest">
+          <div className="flex flex-wrap items-center gap-2 text-micro uppercase tracking-widest">
             <span className={cn(
               'px-2 py-1 rounded-md border flex items-center gap-1',
               squadSize >= MAX_SQUAD_SIZE
@@ -658,7 +688,7 @@ const PacksPage = () => {
         <section aria-labelledby="market-deals">
           <div className="mb-2 flex items-center justify-between">
             <h3 id="market-deals" className="text-xs font-semibold uppercase tracking-widest">Limited deals</h3>
-            <span className="text-[10px] text-muted-foreground">Same price. More cards.</span>
+            <span className="text-micro text-muted-foreground">Same price. More cards.</span>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
             {deals.map(deal => (
@@ -675,11 +705,11 @@ const PacksPage = () => {
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <div className="flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 text-primary" />
-              <h3 id="market-week" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <h3 id="market-week" className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
                 This Week
               </h3>
             </div>
-            <span className="text-[10px] text-muted-foreground tabular-nums flex items-center gap-1">
+            <span className="text-micro text-muted-foreground tabular-nums flex items-center gap-1">
               <Clock className="w-3 h-3" /> {weeklyCountdown} left
             </span>
           </div>
@@ -699,7 +729,7 @@ const PacksPage = () => {
             weeklyCountdown={weeklyCountdown}
           />
           {featuredBonus === 0 && (
-            <p className="text-[10px] text-muted-foreground mt-1 px-0.5">
+            <p className="text-micro text-muted-foreground mt-1 px-0.5">
               This week&apos;s bonus card is claimed. The pack is still available at its
               normal contents — the next bonus arrives in {weeklyCountdown}.
             </p>
@@ -713,7 +743,7 @@ const PacksPage = () => {
         <section aria-labelledby="market-free">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Gift className="w-3.5 h-3.5 text-emerald-400" />
-            <h3 id="market-free" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <h3 id="market-free" className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
               Free Today
             </h3>
           </div>
@@ -734,7 +764,7 @@ const PacksPage = () => {
                 escalation is invisible and the player has no reason to know
                 tomorrow is worth more than today. */}
             <GlassPanel className="p-3 flex flex-col justify-center gap-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
                 Login streak
               </p>
               <p className="text-2xl font-display font-bold text-foreground tabular-nums leading-none">
@@ -753,7 +783,7 @@ const PacksPage = () => {
         <section aria-labelledby="market-packs">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Store className="w-3.5 h-3.5 text-muted-foreground" />
-            <h3 id="market-packs" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <h3 id="market-packs" className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
               Always available
             </h3>
           </div>
@@ -779,7 +809,11 @@ const PacksPage = () => {
 
         {/* Guarantee Tracker — premium "what's coming next" reward meter.
             Three visual states keyed off pityRemaining:
-              ready   (0): glowing gold panel, "Guaranteed 80+ Next Pack"
+              ready   (0): glowing gold panel, "80+ on next paid pack" — PAID,
+                           because pity caps at a tier's own ceiling + 3 and
+                           the free Daily tops out below 80 even on pity
+                           (a free pity open that misses keeps the counter
+                           armed, so the next paid pack still gets it)
               close (1–2): amber-tinted, "Almost there"
               normal (3+): muted gold accent, just the progress
             All three share the same panel chrome so the transition
@@ -813,7 +847,7 @@ const PacksPage = () => {
                 <div className="flex items-center gap-1.5">
                   <span
                     className={cn(
-                      'font-display font-bold uppercase tracking-[0.16em] text-[10px]',
+                      'font-display font-bold uppercase tracking-[0.16em] text-micro',
                       ready ? 'text-amber-200' : 'text-foreground/90',
                     )}
                   >
@@ -838,7 +872,7 @@ const PacksPage = () => {
                   )}
                 >
                   {ready
-                    ? 'Guaranteed 80+ Next Pack'
+                    ? '80+ on next paid pack'
                     : pityRemaining === 1
                       ? '1 pack to guaranteed gold'
                       : `${pityRemaining} packs to guaranteed gold`}
@@ -924,11 +958,11 @@ const PacksPage = () => {
                             className="w-5 h-6 rounded-sm object-cover shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
                           />
                         )}
-                        <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
+                        <span className="text-micro font-semibold uppercase tracking-widest text-muted-foreground truncate">
                           {tier.label}
                         </span>
                       </span>
-                      <span className="text-[9px] tabular-nums text-muted-foreground/80 shrink-0">
+                      <span className="text-micro tabular-nums text-muted-foreground/80 shrink-0">
                         S{rec.season} · W{rec.week}
                       </span>
                     </div>
@@ -944,7 +978,7 @@ const PacksPage = () => {
                         <p className="text-sm font-bold text-foreground leading-tight truncate">
                           {best.firstName.charAt(0)}. {best.lastName}
                         </p>
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight mt-0.5 truncate">
+                        <p className="text-micro uppercase tracking-widest text-muted-foreground leading-tight mt-0.5 truncate">
                           {best.legendId ? 'Hall of Legends' : ptier.label}
                         </p>
                       </div>
@@ -953,13 +987,13 @@ const PacksPage = () => {
                     {/* Footer — top pull badge + pack pull count. */}
                     <div className="relative flex items-center justify-between mt-2.5">
                       <span className={cn(
-                        'text-[9px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded',
+                        'text-micro font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded',
                         ptier.badgeClass,
                       )}>
                         Top Pull
                       </span>
                       {pulled.length > 1 && (
-                        <span className="text-[9px] text-muted-foreground tabular-nums">
+                        <span className="text-micro text-muted-foreground tabular-nums">
                           +{pulled.length - 1} more
                         </span>
                       )}
@@ -1064,7 +1098,7 @@ const PacksPage = () => {
           <div className="flex flex-col items-center gap-3 bg-card/90 border border-border/50 rounded-2xl px-6 py-5 shadow-xl">
             <Loader2 className="w-7 h-7 text-primary animate-spin" />
             <p className="text-xs font-medium text-foreground">Processing…</p>
-            <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">Do not close the app until this finishes.</p>
+            <p className="text-micro text-muted-foreground text-center max-w-[200px]">Do not close the app until this finishes.</p>
           </div>
         </div>
       )}

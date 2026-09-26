@@ -27,10 +27,14 @@ jobs:
       - name: Sync version to iOS and Android
         run: node scripts/sync-version.mjs
 
+      # Stage exactly what the two steps above write — never `git add -A`,
+      # which would sweep any other runner-side file into a commit pushed
+      # straight to main. `npm version` writes package.json + package-lock.json;
+      # sync-version.mjs writes the iOS project and the Android gradle file.
       - name: Commit version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add package.json package-lock.json ios/App/App.xcodeproj/project.pbxproj android/app/build.gradle
           git commit -m "chore: bump version to ${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
           git push origin HEAD:main

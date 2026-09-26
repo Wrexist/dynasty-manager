@@ -45,7 +45,7 @@ const PerksPage = () => {
         <div className="flex items-center justify-between mb-2">
           <div>
             <p className="text-sm font-semibold text-foreground">Level {managerProgression.level}</p>
-            <p className="text-[10px] text-muted-foreground">{availableXP} XP available to spend</p>
+            <p className="text-micro text-muted-foreground">{availableXP} XP available to spend</p>
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">{managerProgression.xp}/{xpNeeded} XP to next level</p>
@@ -57,11 +57,11 @@ const PerksPage = () => {
             style={{ width: `${xpProgress}%` }}
           />
         </div>
-        <p className="text-[9px] text-muted-foreground mt-1">Earn XP from wins (+{XP_REWARDS.win}), draws (+{XP_REWARDS.draw}), season end (+{XP_REWARDS.seasonEnd}), titles (+{XP_REWARDS.titleWin}), cup wins (+{XP_REWARDS.cupWin})</p>
+        <p className="text-micro text-muted-foreground mt-1">Earn XP from wins (+{XP_REWARDS.win}), draws (+{XP_REWARDS.draw}), season end (+{XP_REWARDS.seasonEnd}), titles (+{XP_REWARDS.titleWin}), cup wins (+{XP_REWARDS.cupWin})</p>
         {(managerProgression.prestigeLevel || 0) > 0 && (
           <div className="flex items-center gap-1.5 mt-2 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <span className="text-[10px] font-bold text-amber-400">Prestige {managerProgression.prestigeLevel}</span>
-            <span className="text-[9px] text-amber-400/60">({managerProgression.prestigeLevel * 50}% XP bonus)</span>
+            <span className="text-micro font-bold text-amber-400">Prestige {managerProgression.prestigeLevel}</span>
+            <span className="text-micro text-amber-400/60">({managerProgression.prestigeLevel * 50}% XP bonus)</span>
           </div>
         )}
       </GlassPanel>
@@ -72,7 +72,7 @@ const PerksPage = () => {
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-sm font-semibold text-foreground">Mastery Rank {mastery.rank}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 All perk effects +{Math.round(getMasteryBonus(managerProgression) * 100)}%
                 {mastery.capped ? ' (max)' : ''}
               </p>
@@ -102,8 +102,8 @@ const PerksPage = () => {
             .reduce((sum, p) => sum + p.cost, 0);
           return (
             <GlassPanel key={branch.id} className="p-2 text-center">
-              <p className={cn('text-[10px] font-bold', branch.color)}>{unlocked}/{perks.length}</p>
-              <p className="text-[8px] text-muted-foreground">{spent} XP</p>
+              <p className={cn('text-micro font-bold', branch.color)}>{unlocked}/{perks.length}</p>
+              <p className="text-micro text-muted-foreground">{spent} XP</p>
             </GlassPanel>
           );
         })}

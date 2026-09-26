@@ -18,8 +18,8 @@
   [x] Android project synced (npx cap sync android) — android/ folder ready
   [x] Package ID set to com.dynastymanager in build.gradle
   [x] Version set to 1.0 (versionCode 1)
-  [x] Privacy policy page created at privacy-policy.html
-      (you need to host this online — see Step 4)
+  [x] Privacy policy: https://wrexist.github.io/dynasty-manager/privacy.html
+      (PRIVACY_URL in src/config/legal.ts; source docs/privacy.html)
 
 
 ================================================
@@ -123,22 +123,16 @@
   (10 minutes)
 ------------------------------------------------
 
-  Google Play requires a public URL for your privacy policy.
-  A privacy-policy.html file was already created in your project.
+  Google Play requires a public URL for your privacy policy. Use the one
+  the app already links to (PRIVACY_URL in src/config/legal.ts; source
+  docs/privacy.html):
 
-  Easiest free option — GitHub Pages:
+     https://wrexist.github.io/dynasty-manager/privacy.html
 
-  1. Create a new PUBLIC repo on GitHub (e.g., "dynasty-manager-site")
-  2. Upload privacy-policy.html to it
-  3. Go to repo Settings > Pages
-  4. Set Source to "Deploy from a branch", Branch to "main", folder to "/ (root)"
-  5. Click Save
-  6. Your policy will be live at:
-     https://YOUR_USERNAME.github.io/dynasty-manager-site/privacy-policy.html
+  Enter the same URL in Play Console. Do not upload another copy: a second
+  policy drifts from the one the app shows (the old root
+  privacy-policy.html did, and was deleted).
 
-  Other free options:
-  - Google Sites: sites.google.com (create a page and paste the text)
-  - Netlify: netlify.com (drag & drop the HTML file)
 
 
 ------------------------------------------------

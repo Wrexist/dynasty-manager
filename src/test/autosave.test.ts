@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { fnv1a } from '@/utils/hashString';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
-import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
+import { __resetSaveStorageForTests, readSaveSlot, readSaveSlotBackup, writeSaveSlot } from '@/store/helpers/persistence';
 
 const CLUB_ID = 'manchester-city';
 
@@ -104,6 +104,90 @@ describe('autosave: async scheduled path', () => {
       return !key.endsWith('-backup') && !key.endsWith('-tmp');
     });
     expect(primary.length).toBe(1);
+  });
+});
+
+describe('autosave: debounce keeps the trailing save', () => {
+  beforeEach(() => initFresh());
+  afterEach(() => vi.useRealTimers());
+
+  const slotKey = () => `dynasty-save-${useGameStore.getState().activeSlot}`;
+  const primaryWrites = (setItem: ReturnType<typeof vi.spyOn>) =>
+    setItem.mock.calls.filter(([k]) => k === slotKey()).length;
+
+  // Regression: a save requested inside the 2 s window after the previous
+  // save had already RUN used to be dropped outright, so the change it was
+  // meant to persist waited for the next unrelated save (or was lost on quit).
+  it('persists a change requested inside the debounce window once the window ends', () => {
+    useGameStore.getState().saveGame();
+    vi.advanceTimersByTime(1); // the idle save runs
+    const before = useGameStore.getState().season;
+    expect(JSON.parse(localStorage.getItem(slotKey())!).season).toBe(before);
+
+    useGameStore.setState({ season: before + 1 });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().saveGame(); // 1 ms later — inside the window
+    vi.advanceTimersByTime(1000);
+    expect(primaryWrites(setItem)).toBe(0); // still debounced
+    vi.runAllTimers();
+    expect(primaryWrites(setItem)).toBe(1);
+    expect(JSON.parse(localStorage.getItem(slotKey())!).season).toBe(before + 1);
+  });
+
+  it('coalesces every call in the window into a single trailing save', () => {
+    useGameStore.getState().saveGame();
+    vi.advanceTimersByTime(1);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    for (let i = 0; i < 5; i++) {
+      useGameStore.setState(s => ({ week: s.week + 1 }));
+      useGameStore.getState().saveGame();
+      vi.advanceTimersByTime(100);
+    }
+    vi.runAllTimers();
+    expect(primaryWrites(setItem)).toBe(1);
+    expect(JSON.parse(localStorage.getItem(slotKey())!).week).toBe(useGameStore.getState().week);
+  });
+
+  it('a flush supersedes the trailing save instead of writing twice', () => {
+    useGameStore.getState().saveGame();
+    vi.advanceTimersByTime(1);
+    useGameStore.setState(s => ({ week: s.week + 1 }));
+    useGameStore.getState().saveGame();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().flushForLifecycle();
+    vi.runAllTimers();
+    expect(primaryWrites(setItem)).toBe(1);
+  });
+});
+
+describe('autosave: backup-rotation guard cost', () => {
+  beforeEach(() => initFresh());
+  afterEach(() => vi.useRealTimers());
+
+  // Every save used to JSON.parse the previous ~7 MB save just to confirm it
+  // was safe to rotate into the backup — even though it was the string this
+  // module had serialized one save earlier.
+  it('does not re-parse its own previous save', () => {
+    useGameStore.getState().saveGame(1);
+    const previous = readSaveSlot(1);
+    expect(previous).not.toBeNull();
+    useGameStore.setState(s => ({ week: s.week + 1 }));
+    const parse = vi.spyOn(JSON, 'parse');
+    useGameStore.getState().saveGame(1);
+    expect(parse.mock.calls.some(([arg]) => arg === previous)).toBe(false);
+    expect(readSaveSlotBackup(1)).toBe(previous);
+  });
+
+  it('still refuses to rotate an outgoing main it did not write', () => {
+    useGameStore.getState().saveGame(1);
+    const good = readSaveSlot(1);
+    // A truncated main lands in the slot by some other path.
+    writeSaveSlot(1, '{"version":92,"clubs":');
+    expect(readSaveSlotBackup(1)).toBe(good);
+    useGameStore.setState(s => ({ week: s.week + 1 }));
+    useGameStore.getState().saveGame(1);
+    // The corrupt main was overwritten in place; the last good copy survives.
+    expect(readSaveSlotBackup(1)).toBe(good);
   });
 });
 

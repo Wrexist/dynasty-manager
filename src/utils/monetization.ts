@@ -7,8 +7,11 @@
  */
 
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
-import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
+import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS, FREE_TRIAL_DAYS, SUB_TRIAL_PRODUCT_IDS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
 import { observeClock } from '@/store/helpers/persistence';
+// legacy: ownership of earned cosmetics. utils/managerPass never imports this
+// module, so there is no cycle.
+import { isEarnedCosmeticOwned } from '@/utils/managerPass';
 
 /**
  * The time entitlement decisions are judged against.
@@ -85,6 +88,21 @@ export function isSubscriptionActive(state: MonetizationState): boolean {
 }
 
 /**
+ * An active store subscription the player can renew, cancel or manage.
+ *
+ * Narrower than `isSubscriptionActive`: `extractSubscriptionInfo` also writes a
+ * Lifetime owner's record into the subscription slot, and the Shop and Settings
+ * used to present that as an "Active Subscription · lifetime" with a Manage
+ * Subscription button leading to a store page that lists nothing. Pro status
+ * itself is untouched — `isPro()` remains the only authority.
+ */
+export function hasRecurringSubscription(state: MonetizationState): boolean {
+  const sub = state.subscription;
+  if (!sub || PRODUCTS[sub.productId]?.type !== 'subscription') return false;
+  return isSubscriptionActive(state);
+}
+
+/**
  * May this product ID be persisted in `monetization.entitlements`?
  *
  *  - Subscription SKUs are banned: RevenueCat keeps them in
@@ -105,6 +123,52 @@ export function isPersistableEntitlement(productId: ProductId): boolean {
   return true;
 }
 
+/** Milliseconds for an ISO date, NaN when absent or unparseable. */
+const isoMs = (iso: string | null | undefined): number => (iso ? new Date(iso).getTime() : NaN);
+
+/**
+ * Is `candidate` a lapse that ended AFTER `other` was last vouched for?
+ *
+ * `extractSubscriptionInfo` records a refund, revocation or lapse as a record
+ * written after its own expiry (`expiresAt <= grantedAt`). That shape alone is
+ * not proof of an observation: the v73→v74 migration backfilled `grantedAt`
+ * with the migration time on every dated record, so an old save's long-expired
+ * local trial has it too. What makes the lapse the newer verdict is that the
+ * subscription ENDED at or after the other record was written — e.g. a refund
+ * of the very subscription the other record describes. A lapse that ended
+ * before the other record was written (an old trial; a subscription the player
+ * has since restarted) never overrides it. An undated other record (no
+ * `grantedAt`) cannot be compared, and the lapse wins.
+ */
+function isNewerObservedLapse(candidate: SubscriptionInfo, other: SubscriptionInfo): boolean {
+  const expires = isoMs(candidate.expiresAt);
+  const observed = isoMs(candidate.grantedAt);
+  if (!Number.isFinite(expires) || !Number.isFinite(observed) || expires > observed) return false;
+  const otherObserved = isoMs(other.grantedAt);
+  return !Number.isFinite(otherObserved) || expires >= otherObserved;
+}
+
+/**
+ * Should a sync refuse to write `incoming` over `current`?
+ *
+ * True when `incoming` is an observed lapse (see `isNewerObservedLapse`) that
+ * ended before `current` — still active — was written. The live sync paths
+ * (GameShell's launch sync and listener, `syncStoreState`) apply the same rule
+ * `mergeDeviceMonetization` applies on load: a returning subscriber whose old
+ * Yearly lapsed buys Monthly, `purchaseAndSync` writes its local record because
+ * the customer record has not caught up (or Monthly is not attached to `pro`),
+ * and the next payload still reports the old Yearly as inactive. That verdict
+ * is about a subscription that ended before this purchase, so it must not
+ * revoke the Pro the player just paid for.
+ */
+export function isStaleLapseOver(incoming: SubscriptionInfo | null, current: SubscriptionInfo | null): boolean {
+  if (!incoming || !current || isSubscriptionExpired(current)) return false;
+  const expires = isoMs(incoming.expiresAt);
+  const observed = isoMs(incoming.grantedAt);
+  if (!Number.isFinite(expires) || !Number.isFinite(observed) || expires > observed) return false;
+  return !isNewerObservedLapse(incoming, current);
+}
+
 /**
  * Merge the device-scoped purchase fields of two monetization records, keeping
  * whichever side actually proves a purchase.
@@ -121,9 +185,11 @@ export function isPersistableEntitlement(productId: ProductId): boolean {
  *
  * Neither side can be trusted wholesale, so merge rather than pick: the union
  * of entitlements, the stronger subscription record, and the earliest real
- * first-launch timestamp. A purchase is only ever added by this function, never
- * dropped; the store remains the authority for taking one away (an expired
- * subscription still reads as expired through isSubscriptionExpired).
+ * first-launch timestamp. A purchase is only ever added by this function; the
+ * one thing it lets end a subscription is the store's own lapse verdict when it
+ * postdates the other record (see `isNewerObservedLapse`). Otherwise the store
+ * remains the authority for taking one away (an expired subscription still
+ * reads as expired through isSubscriptionExpired).
  */
 export function mergeDeviceMonetization(
   saved: Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'>,
@@ -138,12 +204,17 @@ export function mergeDeviceMonetization(
   ).filter(isPersistableEntitlement);
 
   // Prefer an unexpired record over an expired one; if both agree, prefer live,
-  // which is the one a RevenueCat sync can have refreshed.
+  // which is the one a RevenueCat sync can have refreshed. The exception is a
+  // lapse the store reported AFTER the other record was written (a refund or
+  // revocation): the newer verdict wins, or loading a save from before the
+  // refund would hand the refunded subscription back.
   const savedSub = saved.subscription ?? null;
   const liveSub = live.subscription ?? null;
   let subscription: SubscriptionInfo | null;
   if (!savedSub) subscription = liveSub;
   else if (!liveSub) subscription = savedSub;
+  else if (isNewerObservedLapse(liveSub, savedSub)) subscription = liveSub;
+  else if (isNewerObservedLapse(savedSub, liveSub)) subscription = savedSub;
   else {
     const liveActive = !isSubscriptionExpired(liveSub);
     const savedActive = !isSubscriptionExpired(savedSub);
@@ -201,6 +272,9 @@ export function hasProduct(state: MonetizationState, productId: ProductId): bool
 export function hasCosmetic(state: MonetizationState, cosmeticId: string): boolean {
   const item = COSMETIC_ITEMS.find(c => c.id === cosmeticId);
   if (!item) return false;
+  // legacy: an EARNED cosmetic (Manager Pass / Legacy tier) is owned through
+  // play and never appears in `entitlements` — no product grants it.
+  if (item.earnedBy) return isEarnedCosmeticOwned(item);
   return state.entitlements.includes(item.pack);
 }
 
@@ -238,6 +312,9 @@ export function isStarterKitAvailable(state: MonetizationState): boolean {
   if (state.starterKitDismissed) return false;
   if (state.firstLaunchTimestamp <= 0) return false;
   if (isPro(state)) return false;
+  // Already owns what the kit contains: recommending it again sold the Manager
+  // Identity Pack to its own owner (StoreKit then answers "already purchased").
+  if (STARTER_KIT.includes.every(id => state.entitlements.includes(id))) return false;
   const elapsed = entitlementNow() - state.firstLaunchTimestamp;
   return elapsed < STARTER_KIT_WINDOW_MS;
 }
@@ -252,4 +329,131 @@ export function getStarterKitRemainingMs(state: MonetizationState): number {
 /** Count how many products the player owns (for stats/display) */
 export function getPurchaseCount(state: MonetizationState): number {
   return state.entitlements.length;
+}
+
+// ── Paywall free-trial offers ──
+
+export interface PaywallTrialInputs {
+  /** Plans the paywall is showing. */
+  planIds: ProductId[];
+  /** True on a device with a real store; false on web/dev (purchases mocked). */
+  native: boolean;
+  /** No subscription record on this install. */
+  locallyEligible: boolean;
+  /** Per-product store eligibility: true / false / null (unknown). */
+  eligibility: Partial<Record<ProductId, boolean | null>>;
+  /** Free intro-offer length per product, as App Store Connect configured it. */
+  storeTrialDays: Partial<Record<ProductId, number>>;
+}
+
+/**
+ * Which plans the paywall may sell with a free trial, and for how many days.
+ *
+ * On device a plan qualifies only when the store BOTH has a free intro offer
+ * on that exact product AND confirms this Apple ID can still use it. The trial
+ * used to be hardcoded — "7-day free trial" on Yearly and Monthly, gated on
+ * one probe of Yearly alone — so if App Store Connect put the offer on the
+ * other product, or gave it a different length, the paywall either hid a
+ * trial the store would grant or promised one it would not (3.1.2(c)).
+ * Unknown eligibility never qualifies. Off-device the flow is mocked, so every
+ * trial-bearing plan shows the configured default to keep it testable.
+ */
+export function resolvePaywallTrials(inputs: PaywallTrialInputs): Partial<Record<ProductId, number>> {
+  const trials: Partial<Record<ProductId, number>> = {};
+  if (!inputs.locallyEligible) return trials;
+  for (const id of inputs.planIds) {
+    if (!SUB_TRIAL_PRODUCT_IDS.includes(id)) continue;
+    if (!inputs.native) {
+      trials[id] = FREE_TRIAL_DAYS;
+      continue;
+    }
+    const days = inputs.storeTrialDays[id];
+    if (inputs.eligibility[id] === true && typeof days === 'number' && days > 0) trials[id] = days;
+  }
+  return trials;
+}
+
+/** The plan a paywall should preselect: the trial target when it carries a
+ *  trial (or when no plan does), otherwise the first plan that does — a free
+ *  trial the player never sees selected converts nobody. */
+export function preferredPaywallPlan(
+  visibleIds: ProductId[],
+  trials: Partial<Record<ProductId, number>>,
+): ProductId | undefined {
+  const target = visibleIds.includes(TRIAL_TARGET_PRODUCT_ID) ? TRIAL_TARGET_PRODUCT_ID : undefined;
+  if (target && trials[target]) return target;
+  const withTrial = visibleIds.find(id => trials[id]);
+  return withTrial ?? target ?? visibleIds[0];
+}
+
+/**
+ * A store price divided into periods ("works out at X/month"), formatted for
+ * the storefront's currency — never by splicing `toFixed(2)` into the store's
+ * own price string, which printed "2.08 €" in Germany and "¥250.00" in Japan (a
+ * yen has no minor unit). Null — the caller omits the line — when the amount or
+ * the currency is unknown, or the runtime rejects the currency code.
+ *
+ * It must read like the price it sits next to. The paywall showed "$24.99/year"
+ * beside "Works out at US$2.08/month": the store string is formatted in the
+ * STOREFRONT's locale, the derived line was formatted in the DEVICE's (en-GB
+ * spells a US dollar "US$"). So, in order:
+ *   1. `storePrice` (the price string shown beside it): the per-period amount
+ *      is written in that string's own shape — its symbol, symbol position and
+ *      separators — provided the string round-trips to `total`, so a string we
+ *      cannot read is never trusted.
+ *   2. Otherwise Intl with `currencyDisplay: 'narrowSymbol'` ("$", not "US$"),
+ *      falling back to the default display where a runtime lacks narrowSymbol.
+ */
+export function formatPerPeriodPrice(
+  total: number | null | undefined,
+  periods: number,
+  currencyCode: string | undefined,
+  locale?: string,
+  storePrice?: string,
+): string | null {
+  if (total == null || !Number.isFinite(total) || total <= 0 || !(periods > 0) || !currencyCode) return null;
+  let fractionDigits: number;
+  try {
+    fractionDigits = new Intl.NumberFormat('en', { style: 'currency', currency: currencyCode })
+      .resolvedOptions().maximumFractionDigits ?? 2;
+  } catch {
+    return null;
+  }
+  const amount = total / periods;
+  const likeStore = storePrice ? formatLikeStorePrice(amount, total, storePrice, fractionDigits) : null;
+  if (likeStore) return likeStore;
+  for (const currencyDisplay of ['narrowSymbol', 'symbol'] as const) {
+    try {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, currencyDisplay }).format(amount);
+    } catch { /* narrowSymbol unsupported → plain symbol */ }
+  }
+  return null;
+}
+
+/** `amount` written in the shape of `storePrice` (which must say `total`), or
+ *  null when the string cannot be read with certainty. */
+function formatLikeStorePrice(amount: number, total: number, storePrice: string, fractionDigits: number): string | null {
+  const match = /\d(?:[\d.,'\u2019\s\u00a0\u202f]*\d)?/.exec(storePrice);
+  if (!match) return null;
+  const run = match[0];
+  const seps = run.replace(/\d/g, '');
+  let decimal = '';
+  if (fractionDigits > 0) {
+    // The decimal separator is the last non-digit, followed by exactly the
+    // currency's minor-unit digits. A price shown without its minor unit is
+    // not a template we can extend.
+    const tail = new RegExp(`([^\\d])(\\d{${fractionDigits}})$`).exec(run);
+    if (!tail) return null;
+    decimal = tail[1];
+  }
+  const groupChars = decimal ? seps.slice(0, -1) : seps;
+  const group = groupChars[0] ?? '';
+  if ([...groupChars].some(c => c !== group) || (group && group === decimal)) return null;
+  // Round-trip: the template must say exactly the total we divide.
+  const parsed = Number((group ? run.split(group).join('') : run).replace(decimal || '\u0000', '.'));
+  if (!Number.isFinite(parsed) || Math.abs(parsed - total) > 0.5 * 10 ** -fractionDigits) return null;
+  const [intPart, fracPart] = amount.toFixed(fractionDigits).split('.');
+  const grouped = group ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, group) : intPart;
+  const number = fracPart ? `${grouped}${decimal}${fracPart}` : grouped;
+  return storePrice.slice(0, match.index) + number + storePrice.slice(match.index + run.length);
 }

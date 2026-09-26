@@ -19,7 +19,7 @@ import {
   FFP_WAGE_RATIO_WARNING,
   FFP_WAGE_RATIO_CRITICAL,
 } from '@/config/gameBalance';
-import { hasPerk } from '@/utils/managerPerks';
+import { hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { SPONSOR_SLOTS } from '@/config/sponsorship';
 import { calculateWeeklyMerchRevenue, getMerchOperatingCost } from '@/utils/merchandise';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
@@ -185,7 +185,9 @@ export function getFinanceBreakdown(opts: {
 }): FinanceBreakdown {
   const { club, facilities, staffMembers, scoutingAssignmentCount, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, division, managerSalary } = opts;
 
-  const fanFavMult = hasPerk(managerProgression, 'fan_favourite') ? 1.15 : 1;
+  // Same multiplier weekAdvance pays (it scales with the dynasty perk); a flat
+  // 1.15 here overstated or understated the stadium line against the money paid.
+  const fanFavMult = hasPerk(managerProgression, 'fan_favourite') ? 1 + 0.15 * dynastyMult(managerProgression) : 1;
   const fanMoodMult = FAN_MOOD_BASE + (fanMood / 100) * FAN_MOOD_SCALE;
 
   const revenueDivision = division ?? club.divisionId;

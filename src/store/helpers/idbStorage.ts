@@ -36,30 +36,40 @@ const OPEN_TIMEOUT_MS = 2000;
 // A live connection can still stop delivering transaction events in WKWebView.
 const WRITE_TIMEOUT_MS = 10_000;
 
+const READ_TIMEOUT_MS = 10_000;
+
 let dbPromise: Promise<IDBDatabase | null> | null = null;
+/** Why the most recent open attempt settled without a database. `true` means
+ *  it timed out, was blocked or failed with an error: the database may exist
+ *  and hold a save, it just did not answer. `false` means IDB is unsupported
+ *  or refused outright (SecurityError / InvalidStateError), so there is
+ *  nothing in it that a later write could clobber. */
+let lastOpenTransient = false;
 
 function openDB(): Promise<IDBDatabase | null> {
   if (dbPromise) return dbPromise;
   if (typeof indexedDB === 'undefined') {
+    lastOpenTransient = false;
     dbPromise = Promise.resolve(null);
     return dbPromise;
   }
   dbPromise = new Promise<IDBDatabase | null>((resolve) => {
     let settled = false;
-    const settle = (db: IDBDatabase | null) => {
+    const settle = (db: IDBDatabase | null, transient = false) => {
       if (settled) return;
       settled = true;
+      lastOpenTransient = !db && transient;
       resolve(db);
     };
     // Don't cache a timed-out attempt — a later operation may find the DB has
     // become openable again.
     const timer = setTimeout(() => {
       if (!settled) dbPromise = null;
-      settle(null);
+      settle(null, true);
     }, OPEN_TIMEOUT_MS);
-    const resolveOnce = (db: IDBDatabase | null) => {
+    const resolveOnce = (db: IDBDatabase | null, transient = false) => {
       clearTimeout(timer);
-      settle(db);
+      settle(db, transient);
     };
     try {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -79,12 +89,23 @@ function openDB(): Promise<IDBDatabase | null> {
         };
         resolveOnce(db);
       };
-      req.onerror = () => resolveOnce(null);
+      req.onerror = () => {
+        // Only a refusal that means "this browser will not store anything
+        // here" (storage disabled, a private window) is a completed read of
+        // nothing. Anything else — WebKit's UnknownError after a WebView crash,
+        // an aborted open — fails an EXISTING database that may hold a career:
+        // treat it like a blocked open, so the slot stays unread (and offers
+        // Retry) instead of reading as empty and taking a New Game over it.
+        const name = req.error?.name;
+        const refused = name === 'SecurityError' || name === 'InvalidStateError';
+        if (!refused) dbPromise = null;
+        resolveOnce(null, !refused);
+      };
       req.onblocked = () => {
         // Blocked is transient (another tab holds an old connection). Don't
         // cache the failed attempt — let the next op retry.
         dbPromise = null;
-        resolveOnce(null);
+        resolveOnce(null, true);
       };
     } catch {
       resolveOnce(null);
@@ -93,25 +114,55 @@ function openDB(): Promise<IDBDatabase | null> {
   return dbPromise;
 }
 
-/** Read a string value from IDB. Resolves to `null` when the key is absent
- *  or IDB is unavailable. Never throws. */
-export async function idbGet(key: string): Promise<string | null> {
-  const db = await openDB();
-  if (!db) return null;
+/** A read that distinguishes "IDB answered: no such key" (`ok: true, value:
+ *  null`) from "IDB did not answer" (`ok: false`). Save hydration needs the
+ *  difference: treating a timed-out open as an empty slot is how a slow launch
+ *  offered New Game over a career and then overwrote it. */
+export type IdbReadResult = { ok: true; value: string | null } | { ok: false };
+
+/** Read a string value from IDB, reporting whether the read actually
+ *  completed. Unsupported/refused IDB counts as a completed read of nothing;
+ *  a timed-out or blocked open, a failed request, or a read that stalls past
+ *  READ_TIMEOUT_MS does not. Never throws. */
+export async function idbRead(key: string): Promise<IdbReadResult> {
+  const connection = openDB();
+  const db = await connection;
+  if (!db) return lastOpenTransient ? { ok: false } : { ok: true, value: null };
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: IdbReadResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+    // Same wedged-connection failure mode as idbPut: drop the handle so a
+    // retry reopens instead of queueing behind a request that never answers.
+    const timer = setTimeout(() => {
+      finish({ ok: false });
+      try { db.close(); } catch { /* already closed */ }
+      if (dbPromise === connection) dbPromise = null;
+    }, READ_TIMEOUT_MS);
     try {
       const tx = db.transaction(STORE, 'readonly');
       const store = tx.objectStore(STORE);
       const req = store.get(key);
       req.onsuccess = () => {
         const v = req.result;
-        resolve(typeof v === 'string' ? v : null);
+        finish({ ok: true, value: typeof v === 'string' ? v : null });
       };
-      req.onerror = () => resolve(null);
+      req.onerror = () => finish({ ok: false });
     } catch {
-      resolve(null);
+      finish({ ok: false });
     }
   });
+}
+
+/** Read a string value from IDB. Resolves to `null` when the key is absent
+ *  or IDB is unavailable. Never throws. */
+export async function idbGet(key: string): Promise<string | null> {
+  const r = await idbRead(key);
+  return r.ok ? r.value : null;
 }
 
 /** Write a string value to IDB. Resolves to `true` on success, `false`

@@ -272,7 +272,7 @@ const InboxPage = () => {
             <p className="text-xs text-foreground/90 mt-0.5">
               Your subscription couldn't be renewed. Update your payment method to keep Pro features active.
             </p>
-            <p className="text-[10px] text-amber-400 mt-1 inline-flex items-center gap-0.5">
+            <p className="text-micro text-amber-400 mt-1 inline-flex items-center gap-0.5">
               Tap to manage subscription
               <ChevronRight className="w-3 h-3 shrink-0" aria-hidden />
             </p>
@@ -314,7 +314,7 @@ const InboxPage = () => {
           <Filter className="w-3 h-3" />
           Filter
           {activeCount > 0 && (
-            <span className="ml-0.5 w-4 h-4 rounded-full bg-primary-foreground/20 text-[10px] flex items-center justify-center">
+            <span className="ml-0.5 w-4 h-4 rounded-full bg-primary-foreground/20 text-micro flex items-center justify-center">
               {activeCount}
             </span>
           )}
@@ -345,7 +345,7 @@ const InboxPage = () => {
                 <BellDot className="w-3.5 h-3.5 shrink-0" />
                 <span className="font-medium">Unread only</span>
                 {totalUnread > 0 && (
-                  <span className="ml-auto text-[10px] text-primary font-semibold">{totalUnread}</span>
+                  <span className="ml-auto text-micro text-primary font-semibold">{totalUnread}</span>
                 )}
               </button>
 
@@ -381,7 +381,7 @@ const InboxPage = () => {
                       {counts.unread > 0 && (
                         <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                       )}
-                      <span className="text-[10px] tabular-nums text-muted-foreground">{counts.total}</span>
+                      <span className="text-micro tabular-nums text-muted-foreground">{counts.total}</span>
                     </span>
                   </button>
                 );
@@ -391,7 +391,7 @@ const InboxPage = () => {
               <div className="border-t border-border/50 px-2.5 py-2">
                 <button
                   onClick={clearAllFilters}
-                  className="text-[10px] text-primary hover:underline"
+                  className="text-micro text-primary hover:underline"
                 >
                   Clear all
                 </button>
@@ -407,7 +407,7 @@ const InboxPage = () => {
           <div className="flex items-center gap-2 px-4 pt-4 pb-2">
             <BookOpen className="w-4 h-4 text-primary" />
             <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Active Storylines</p>
-            <span className="ml-auto text-[10px] text-muted-foreground/60">{activeStorylineChains.length} active</span>
+            <span className="ml-auto text-micro text-muted-foreground/60">{activeStorylineChains.length} active</span>
           </div>
           <div className="px-2 pb-2">
             {activeStorylineChains.map(chain => {
@@ -475,12 +475,12 @@ const InboxPage = () => {
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-semibold text-foreground truncate">{chainDef?.name || chain.chainId}</p>
                         {targetPlayer && (
-                          <span className="text-[10px] text-amber-400 truncate shrink-0">
+                          <span className="text-micro text-amber-400 truncate shrink-0">
                             {playerLabel}
                           </span>
                         )}
                         {playerDeparted && (
-                          <span className="text-[10px] text-muted-foreground/60 shrink-0">Departed</span>
+                          <span className="text-micro text-muted-foreground/60 shrink-0">Departed</span>
                         )}
                       </div>
                       {/* Slim progress bar */}
@@ -493,7 +493,7 @@ const InboxPage = () => {
                             transition={{ duration: 0.5, ease: 'easeOut' }}
                           />
                         </div>
-                        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                        <span className="text-micro text-muted-foreground tabular-nums shrink-0">
                           {chain.choices.length}/{totalSteps}
                         </span>
                       </div>
@@ -548,7 +548,7 @@ const InboxPage = () => {
                                   )}>
                                     {isCompleted && <Check className="w-3 h-3 text-primary-foreground" />}
                                     {isPending && <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />}
-                                    {isSkipped && <span className="text-[8px] text-muted-foreground/40">—</span>}
+                                    {isSkipped && <span className="text-micro text-muted-foreground/40">—</span>}
                                     {isUpcoming && <Circle className="w-2 h-2 text-muted-foreground/30" />}
                                   </div>
                                   {!isLast && (
@@ -562,7 +562,7 @@ const InboxPage = () => {
                                 <div className={cn('pb-3 flex-1 min-w-0', isLast && 'pb-0')}>
                                   <div className="flex items-center gap-1.5">
                                     <span className={cn(
-                                      'text-[9px] tabular-nums font-medium leading-none mt-px',
+                                      'text-micro tabular-nums font-medium leading-none mt-px',
                                       isCompleted ? 'text-primary/60' : isPending ? 'text-primary' : 'text-muted-foreground/30'
                                     )}>
                                       {i + 1}
@@ -586,12 +586,12 @@ const InboxPage = () => {
                                     </p>
                                   )}
                                   {isCompleted && step.options[stepChoiceMap[i]] && (
-                                    <p className="text-[10px] text-primary/70 mt-0.5 truncate">
+                                    <p className="text-micro text-primary/70 mt-0.5 truncate">
                                       Chose: {step.options[stepChoiceMap[i]].label}
                                     </p>
                                   )}
                                   {isSkipped && (
-                                    <p className="text-[10px] text-muted-foreground/40 mt-0.5">Skipped</p>
+                                    <p className="text-micro text-muted-foreground/40 mt-0.5">Skipped</p>
                                   )}
                                 </div>
                               </motion.div>
@@ -616,7 +616,7 @@ const InboxPage = () => {
           <p className="text-sm text-muted-foreground">
             {hasActiveFilter ? 'No messages match your filters' : 'Your inbox is empty'}
           </p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">
+          <p className="text-micro text-muted-foreground/60 mt-1">
             {hasActiveFilter ? 'Try a different filter or clear all filters below' : 'Messages about transfers, contracts, injuries, and more will appear here as you progress'}
           </p>
           {hasActiveFilter && (
@@ -629,7 +629,7 @@ const InboxPage = () => {
       ) : (
         Object.entries(grouped).map(([weekKey, msgs]) => (
           <div key={weekKey}>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">{weekKey}</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">{weekKey}</p>
             <div className="space-y-1.5">
               {msgs.map((msg, msgIdx) => {
                 const Icon = typeIcon[msg.type] || Mail;
@@ -681,7 +681,7 @@ const InboxPage = () => {
                         <div className="mt-2 ml-11">
                           <p className="text-xs text-foreground/80 leading-relaxed">{msg.body}</p>
                           <div className="flex items-center justify-between mt-2">
-                            <p className="text-[10px] text-muted-foreground/60">Season {msg.season} · Week {msg.week}</p>
+                            <p className="text-micro text-muted-foreground/60">Season {msg.season} · Week {msg.week}</p>
                             <div className="flex items-center gap-1.5">
                               {msg.playerId && players[msg.playerId] && !hasTransferTalk && (
                                 <button

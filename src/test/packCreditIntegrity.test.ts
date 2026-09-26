@@ -121,4 +121,15 @@ describe('daily free pack allowance is device-global and clock-monotonic', () =>
     expect(readDailyPackOpens().free[FREE_PACK_TIER]).toBeUndefined();
     expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(true);
   });
+
+  // Playthrough 2026-09: open the free pack, close the app before the next
+  // week advance — the relaunch had the day's allowance spent (device record)
+  // but no pulled players and no opened-pack record (they were memory-only).
+  it('a free open asks for a save, so the pulls outlive an app kill', () => {
+    const saveGame = vi.fn();
+    useGameStore.setState({ saveGame });
+    const result = useGameStore.getState().openPack(FREE_PACK_TIER, { method: 'free' });
+    expect(result.success).toBe(true);
+    expect(saveGame).toHaveBeenCalled();
+  });
 });

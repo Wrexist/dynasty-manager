@@ -65,7 +65,7 @@ const CareerOverview = () => {
                 Age {careerManager.age} — {careerManager.nationality}
               </p>
               {specTitle && (
-                <span className="text-[9px] font-bold text-primary italic">{specTitle}</span>
+                <span className="text-micro font-bold text-primary italic">{specTitle}</span>
               )}
             </div>
           </div>
@@ -76,19 +76,19 @@ const CareerOverview = () => {
         <div className="grid grid-cols-4 gap-2 text-center">
           <div className="bg-muted/20 rounded-lg py-2">
             <p className="text-sm font-bold text-foreground">{careerManager.totalCareerMatches}</p>
-            <p className="text-[9px] text-muted-foreground">Matches</p>
+            <p className="text-micro text-muted-foreground">Matches</p>
           </div>
           <div className="bg-muted/20 rounded-lg py-2">
             <p className="text-sm font-bold text-emerald-400">{winRate}%</p>
-            <p className="text-[9px] text-muted-foreground">Win Rate</p>
+            <p className="text-micro text-muted-foreground">Win Rate</p>
           </div>
           <div className="bg-muted/20 rounded-lg py-2">
             <p className="text-sm font-bold text-primary">{careerManager.titlesWon}</p>
-            <p className="text-[9px] text-muted-foreground">Titles</p>
+            <p className="text-micro text-muted-foreground">Titles</p>
           </div>
           <div className="bg-muted/20 rounded-lg py-2">
             <p className="text-sm font-bold text-amber-400">{legacyScore}</p>
-            <p className="text-[9px] text-muted-foreground">Legacy</p>
+            <p className="text-micro text-muted-foreground">Legacy</p>
           </div>
         </div>
       </GlassPanel>
@@ -120,7 +120,7 @@ const CareerOverview = () => {
                 <span
                   key={i}
                   className={cn(
-                    'inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded font-semibold',
+                    'inline-flex items-center gap-1 text-micro px-1.5 py-0.5 rounded font-semibold',
                     b.met ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted/30 text-muted-foreground'
                   )}
                 >
@@ -162,7 +162,7 @@ const CareerOverview = () => {
           ] as [string, number, string][]).map(([label, value, desc]) => (
             <div key={label}>
               <ManagerStatBar label={label} value={value} />
-              <p className="text-[9px] text-muted-foreground/60 italic mt-0.5 pl-0.5">{desc}</p>
+              <p className="text-micro text-muted-foreground/60 italic mt-0.5 pl-0.5">{desc}</p>
             </div>
           ))}
         </div>
@@ -190,7 +190,7 @@ const CareerOverview = () => {
             return (
               <div key={traitId} className="bg-muted/20 rounded-lg p-2.5">
                 <p className="text-xs font-bold text-primary">{trait.name}</p>
-                <p className="text-[10px] text-muted-foreground italic">{trait.passiveEffect}</p>
+                <p className="text-micro text-muted-foreground italic">{trait.passiveEffect}</p>
               </div>
             );
           })}
@@ -209,17 +209,17 @@ const CareerOverview = () => {
               <div key={`${entry.startSeason}-${entry.clubId}`} className="bg-muted/20 rounded-lg p-2.5 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-foreground">{entry.clubName}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     Season {entry.startSeason}{entry.endSeason ? ` — ${entry.endSeason}` : ' — Present'}
                   </p>
                 </div>
                 <div className="text-right">
                   {entry.bestFinish > 0 && (
-                    <p className="text-[10px] text-muted-foreground">Best: {entry.bestFinish}{getSuffix(entry.bestFinish)}</p>
+                    <p className="text-micro text-muted-foreground">Best: {entry.bestFinish}{getSuffix(entry.bestFinish)}</p>
                   )}
                   {entry.reason !== 'hired' && entry.endSeason && (
                     <span className={cn(
-                      'text-[9px] font-semibold capitalize',
+                      'text-micro font-semibold capitalize',
                       entry.reason === 'sacked' ? 'text-red-400' : entry.reason === 'moved' ? 'text-blue-400' : entry.reason === 'contract_expired' ? 'text-amber-400' : 'text-muted-foreground'
                     )}>
                       {entry.reason === 'contract_expired' ? 'expired' : entry.reason}
@@ -241,7 +241,7 @@ const CareerOverview = () => {
           </div>
           <div className="flex flex-wrap gap-1.5">
             {careerManager.awardsWon.map((award, idx) => (
-              <span key={`${award.season}-${award.type}-${idx}`} className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-semibold">
+              <span key={`${award.season}-${award.type}-${idx}`} className="text-micro bg-primary/10 text-primary px-2 py-1 rounded-lg font-semibold">
                 {award.type === 'manager_of_month' ? 'MOTM' : 'MOTY'} S{award.season}
               </span>
             ))}

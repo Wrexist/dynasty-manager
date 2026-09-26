@@ -60,9 +60,34 @@ export const MOD_MEDIA_PRESS = 0.04;                // +4% press effects per poi
 export const MAX_VACANCIES = 5;
 export const VACANCY_DURATION_WEEKS = 8;
 export const INITIAL_VACANCIES_SHOWN = 3;
-// Values beyond the league's totalWeeks are harmlessly skipped at runtime
-export const JOB_MARKET_REFRESH_WEEKS = [1, 24, 46];
+/** When the job market refreshes, as fractions of the player's league season
+ *  (0 = the first week ticked, 0.5 = mid-season, 1 = the final week). These
+ *  used to be absolute weeks [1, 24, 46] written for a 46-week calendar: week 1
+ *  is never ticked (a tick lands on week + 1), 38-week leagues never reach 46,
+ *  and the 18/22-week leagues never reached 24 either — so they got no
+ *  refresh at all. Resolved per league by `getJobMarketRefreshWeeks`. */
+export const JOB_MARKET_REFRESH_SEASON_FRACTIONS = [0, 0.5, 1];
+/** Earliest week an advance tick can land on (advancing from week 1). */
+export const FIRST_TICKED_WEEK = 2;
 export const STARTING_JOB_OFFERS = 3;
+
+// ── Contract performance bonuses (by league qualityTier) ──
+/**
+ * Amounts for the bonuses a job offer lists. WHICH bonuses are listed depends
+ * on what the league makes earnable (`generateDefaultBonuses`): promotion only
+ * where the league promotes, avoiding relegation only where it relegates, and
+ * the title in a league with nothing above it. These used to live inline and
+ * be chosen by quality tier alone, so a single-tier league (Úrvalsdeild,
+ * Liga 1) offered an unearnable "Promotion: £25K" (R8).
+ */
+export const MANAGER_BONUS_AMOUNTS: Record<1 | 2 | 3 | 4, {
+  title: number; topHalf: number; promotion: number; avoidRelegation: number; cupWin: number;
+}> = {
+  1: { title: 200000, topHalf: 50000, promotion: 100000, avoidRelegation: 25000, cupWin: 100000 },
+  2: { title: 100000, topHalf: 25000, promotion: 100000, avoidRelegation: 25000, cupWin: 50000 },
+  3: { title: 50000, topHalf: 15000, promotion: 50000, avoidRelegation: 25000, cupWin: 25000 },
+  4: { title: 25000, topHalf: 10000, promotion: 25000, avoidRelegation: 10000, cupWin: 25000 },
+};
 
 // ── Starting Offer Negotiation ──
 export const MAX_NEGOTIATION_ROUNDS = 2;

@@ -133,11 +133,11 @@ export function NationalTeamOfferModal() {
                 transition={{ delay: 0.35 }}
               >
                 <div className="bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Role</p>
+                  <p className="text-micro text-muted-foreground uppercase tracking-wider">Role</p>
                   <p className="text-sm font-semibold text-foreground">Head Coach</p>
                 </div>
                 <div className="bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Commitment</p>
+                  <p className="text-micro text-muted-foreground uppercase tracking-wider">Commitment</p>
                   <p className="text-sm font-semibold text-foreground">Dual Role</p>
                 </div>
               </motion.div>

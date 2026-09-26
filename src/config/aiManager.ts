@@ -52,6 +52,15 @@ const AI_STYLE_TACTICS: Record<AIManagerStyle, TacticalInstructions> = {
   },
 };
 
+// ── simcal: style baseline for in-season tactical drift ──
+/** The kickoff tactics a manager's STYLE implies. In-season adaptation
+ *  (`processAITacticalAdaptation` in utils/aiSimulation.ts) drifts back toward
+ *  these once a streak ends, so a run of results bends a manager's approach
+ *  without permanently rewriting it. */
+export function getAIStyleTactics(style: AIManagerStyle): TacticalInstructions {
+  return { ...AI_STYLE_TACTICS[style] };
+}
+
 // ── AI Manager Name Pools ──
 
 export const AI_MANAGER_FIRST_NAMES = [

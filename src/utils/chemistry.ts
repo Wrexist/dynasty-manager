@@ -10,11 +10,26 @@ import {
   MENTOR_GROWTH_BONUS_PER_STRENGTH, MENTOR_GROWTH_MAX_AGE,
 } from '@/config/chemistry';
 
+/** ADJACENT_PAIRS as a symmetric lookup, built once. The match engine asks for
+ *  chemistry on every strength recompute (kickoff, every substitution, injury,
+ *  red card and tactical change) for every fixture in the world, and each ask
+ *  checks all 55 slot pairs of an XI — scanning the 23-entry pair list for
+ *  each one made the adjacency test the bulk of the chemistry cost. Same
+ *  answers, constant time. */
+const ADJACENCY: ReadonlyMap<string, ReadonlySet<string>> = (() => {
+  const map = new Map<string, Set<string>>();
+  const link = (a: string, b: string) => {
+    let set = map.get(a);
+    if (!set) { set = new Set(); map.set(a, set); }
+    set.add(b);
+  };
+  for (const [p1, p2] of ADJACENT_PAIRS) { link(p1, p2); link(p2, p1); }
+  return map;
+})();
+
 /** Check whether two positions are adjacent per ADJACENT_PAIRS config. */
 function areAdjacent(posA: string, posB: string): boolean {
-  return ADJACENT_PAIRS.some(([p1, p2]) =>
-    (posA === p1 && posB === p2) || (posA === p2 && posB === p1)
-  );
+  return ADJACENCY.get(posA)?.has(posB) ?? false;
 }
 
 /**

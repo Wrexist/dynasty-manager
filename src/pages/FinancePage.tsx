@@ -70,6 +70,12 @@ const FinancePage = () => {
   const managerSalary = careerManager?.contract?.salary ?? 0;
   const displayExpenses = breakdown?.totalExpenses ?? (totalWages + managerSalary);
 
+  // The headline figures above are a projection (the gate averaged over the
+  // season). What last week actually did to the budget is the finance history
+  // entry the week wrote — the numbers the Weekly Digest shows.
+  const lastWeek = financeHistory.length > 0 ? financeHistory[financeHistory.length - 1] : null;
+  const lastWeekNet = lastWeek ? lastWeek.income - lastWeek.expenses : 0;
+
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
@@ -108,7 +114,7 @@ const FinancePage = () => {
             <TrendingDown className="w-3.5 h-3.5 text-destructive" />
           )}
           <span className={cn('text-xs font-semibold', isPositive ? 'text-emerald-400' : 'text-destructive')}>
-            {isPositive ? '+' : ''}{formatMoney(netPerWeek)}/week
+            {t('econ.finance.perWeekProjected', { amount: formatMoney(netPerWeek, { signed: true }) })}
           </span>
         </div>
       </GlassPanel>
@@ -154,12 +160,27 @@ const FinancePage = () => {
         </GlassPanel>
       )}
 
-      {/* Income vs Expenses */}
+      {/* Last week, realised — the same figures as the Weekly Digest (R1). */}
+      {lastWeek && (
+        <GlassPanel className="p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{t('econ.finance.lastWeek')}</span>
+            <span className={cn('text-xs font-bold tabular-nums', lastWeekNet >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+              {formatMoney(lastWeekNet, { signed: true })}
+            </span>
+          </div>
+          <p className="text-micro text-muted-foreground mt-1">
+            {t('econ.finance.lastWeekDetail', { income: formatMoney(lastWeek.income), expenses: formatMoney(lastWeek.expenses) })}
+          </p>
+        </GlassPanel>
+      )}
+
+      {/* Income vs Expenses — season-average projection */}
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-3 cursor-pointer" onClick={() => { setFinanceSheetMode('income'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-1.5 mb-1">
             <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-xs text-muted-foreground">Weekly Income</span>
+            <span className="text-xs text-muted-foreground">{t('econ.finance.avgIncome')}</span>
           </div>
           <p className="text-lg font-bold text-emerald-400 tabular-nums">{formatMoney(weeklyIncome)}</p>
           <div className="mt-2 space-y-1">
@@ -176,7 +197,7 @@ const FinancePage = () => {
         <GlassPanel className="p-3 cursor-pointer" onClick={() => { setFinanceSheetMode('expenses'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-1.5 mb-1">
             <ArrowDownRight className="w-3.5 h-3.5 text-destructive" />
-            <span className="text-xs text-muted-foreground">Weekly Expenses</span>
+            <span className="text-xs text-muted-foreground">{t('econ.finance.avgExpenses')}</span>
           </div>
           <p className="text-lg font-bold text-destructive tabular-nums">{formatMoney(displayExpenses)}</p>
           <div className="mt-2 space-y-1">
@@ -193,6 +214,7 @@ const FinancePage = () => {
           </div>
         </GlassPanel>
       </div>
+      <p className="text-micro text-muted-foreground -mt-1 px-1">{t('econ.finance.projectionNote')}</p>
 
       {/* Sponsorship Deals */}
       <SponsorshipPanel />

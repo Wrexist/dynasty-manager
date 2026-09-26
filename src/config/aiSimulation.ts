@@ -82,6 +82,21 @@ export const AI_SEASON_DEVELOPMENT_PASSES = 12;
 export function aiDevelopmentSlices(totalWeeks: number): number {
   return Math.max(1, Math.round(totalWeeks / AI_SEASON_DEVELOPMENT_PASSES));
 }
+
+/**
+ * Per-pass decline multiplier for the PLAYER's squad.
+ *
+ * The player's squad runs `applyPlayerDevelopment` every week (~46 passes a
+ * season); an AI club runs one pass every `aiDevelopmentSlices` weeks (~12).
+ * Faster growth there is intended — `MAX_SEASON_GROWTH` caps it and training
+ * and facilities are meant to matter — but decline has no cap, so an identical
+ * 33-year-old aged ~3.8x faster at the player's club than at any rival. Scaling
+ * each weekly decline roll by the passes ratio gives both the same expected
+ * decline per season.
+ */
+export function playerClubDeclineRate(totalWeeks: number): number {
+  return 1 / aiDevelopmentSlices(totalWeeks);
+}
 export const AI_STAFF_COST_PER_REP = 15_000;
 
 // ── AI Wage Constraints ──

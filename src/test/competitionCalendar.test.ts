@@ -6,7 +6,8 @@
  * competition's schedule so finals land INSIDE the season, while keeping
  * the load-bearing run-in ordering intact. Before this existed, the Cup
  * Final (reference week 43) was unreachable in 40 of 45 leagues and
- * continental knockouts stranded with winnerId null — see AUDIT_REPORT C1.
+ * continental knockouts stranded with winnerId null — see
+ * docs/archive/AUDIT_REPORT.md C1.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getCompetitionCalendar, REF_TOTAL_WEEKS, LEAGUE_CUP_WEEKS, CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, REF_CUP_WEEKS } from '@/config/continental';

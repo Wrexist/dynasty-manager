@@ -93,10 +93,13 @@ export function pitchConditionFor(quality: number): PitchCondition {
  */
 export function rollSundayWeather(rng: SundayRng, week: number, totalWeeks: number, pitchQuality: number): MatchWeather {
   const midSeason = totalWeeks > 0 && week / totalWeeks > 0.3 && week / totalWeeks < 0.75;
-  // Weighted so bad weather is a talking point rather than a tax. Rain
-  // subtracts 0.08 from every goal chance in the engine, which at this level is
-  // roughly half the scoring — at the first pass rain fell on 45% of mid-season
-  // Sundays and the whole division stopped scoring from October to February.
+  // Weighted so bad weather is a talking point rather than a tax. These weights
+  // were set when rain SUBTRACTED 0.08 from every goal chance — roughly half the
+  // scoring at this level — and rain on 45% of mid-season Sundays stopped the
+  // whole division scoring from October to February. The engine now applies
+  // weather as a RELATIVE conversion multiplier (rain x0.88, snow x0.78, wind
+  // x0.92; see WEATHER_CONVERSION_MIN), so the weights are no longer
+  // load-bearing for scoring; they are kept for how the season reads.
   const weather = rng.weighted(
     ['clear', 'rain', 'wind', 'snow'] as WeatherCondition[],
     w => {

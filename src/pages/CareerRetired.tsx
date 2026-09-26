@@ -118,7 +118,7 @@ const CareerRetired = () => {
                 </div>
                 {spell.reason && (
                   <span className={cn(
-                    'text-[10px] uppercase tracking-wider shrink-0',
+                    'text-micro uppercase tracking-wider shrink-0',
                     spell.reason === 'sacked' ? 'text-destructive' : 'text-muted-foreground',
                   )}>
                     {spell.reason.replace(/_/g, ' ')}
@@ -163,7 +163,7 @@ function RetiredStat({ icon: Icon, label, value }: { icon: typeof Trophy; label:
     <div className="p-3 rounded-lg bg-muted/20 text-center">
       <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
       <p className="font-display text-lg font-bold tabular-nums">{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-micro uppercase tracking-wider text-muted-foreground">{label}</p>
     </div>
   );
 }

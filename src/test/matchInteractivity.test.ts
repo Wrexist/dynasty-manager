@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { simulateHalf } from '@/engine/match';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { Club, Match, TacticalInstructions, MatchShout, ShoutType } from '@/types/game';
-import { SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, SHOUT_DURATION, GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, SHOUT_DURATION, GOAL_EVENT_TYPES, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
+import { withSeededRandom } from './helpers/seasonFixtures';
 
 function makeClub(id: string, name: string): Club {
   return {
@@ -135,6 +136,30 @@ describe('Match Interactivity Features', () => {
       if (firstHalf.tacticalInsights.length > 0) {
         expect(secondHalf.tacticalInsights).not.toEqual(firstHalf.tacticalInsights);
       }
+    });
+
+    // Playthrough 2026-09: the live second half runs in SECOND_HALF_SEGMENTS
+    // (46-60, 61-75, 76-90). Every resumed segment used to emit its own
+    // "Second half underway!" kickoff, so the pitch snapped back to kickoff
+    // shape and momentum reset at 61' and 76'.
+    it('a second half simulated in segments has exactly one restart kickoff, at 46', () => {
+      const tactics: TacticalInstructions = {
+        mentality: 'balanced', tempo: 'normal', width: 'normal',
+        defensiveLine: 'normal', pressingIntensity: 50,
+      };
+      const events = withSeededRandom(2609, () => {
+        const { homeClub, awayClub, homePlayers, awayPlayers } = setupMatch();
+        let state = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, tactics, undefined, undefined, 'home');
+        let from = 46;
+        for (const until of SECOND_HALF_SEGMENTS) {
+          state = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, from, until, tactics, undefined, undefined, 'home', state);
+          from = until + 1;
+        }
+        return state.events;
+      });
+      const restarts = events.filter(e => e.type === 'kickoff' && e.minute >= 46);
+      expect(restarts.map(e => e.minute)).toEqual([46]);
+      expect(restarts[0].description).toBe('Second half underway!');
     });
   });
 

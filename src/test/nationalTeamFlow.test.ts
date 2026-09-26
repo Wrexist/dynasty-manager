@@ -18,6 +18,7 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 
 import { useGameStore } from '@/store/gameStore';
+import { createDefaultManager } from '@/utils/managerCareer';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 import type {
@@ -77,7 +78,12 @@ function getState() {
 
 describe('National team flow — setManagerNationality', () => {
   it('career mode: stores the nation, queues an offer, shows the popup, adds an inbox message', () => {
-    useGameStore.setState({ gameMode: 'career' });
+    // England is a top-10 nation: its FA only approaches an established
+    // manager (R7, NT_OFFER_REPUTATION_BY_RANKING).
+    useGameStore.setState({
+      gameMode: 'career',
+      careerManager: { ...createDefaultManager('NT Flow', TARGET_NATIONALITY, 45, []), reputationScore: 800 },
+    });
     const before = getState();
     const beforeMsgCount = before.messages.length;
 

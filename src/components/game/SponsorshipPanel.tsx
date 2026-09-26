@@ -36,18 +36,18 @@ function DealDetail({ deal, onTerminate, season }: DealDetailProps) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-bold text-foreground">{sponsor?.name || 'Unknown'}</p>
-          <p className="text-[10px] text-muted-foreground">{sponsor?.industry} — {slotDef?.label}</p>
+          <p className="text-micro text-muted-foreground">{sponsor?.industry} — {slotDef?.label}</p>
         </div>
         <div className="text-right">
           <p className="text-sm font-bold text-primary tabular-nums">{formatMoney(deal.weeklyPayment)}/wk</p>
-          <p className="text-[10px] text-muted-foreground">{seasonsLeft} season{seasonsLeft !== 1 ? 's' : ''} left</p>
+          <p className="text-micro text-muted-foreground">{seasonsLeft} season{seasonsLeft !== 1 ? 's' : ''} left</p>
         </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-muted-foreground">Satisfaction</span>
-          <span className={cn('text-[10px] font-semibold', deal.satisfaction >= 60 ? 'text-emerald-400' : deal.satisfaction >= 30 ? 'text-amber-400' : 'text-destructive')}>
+          <span className="text-micro text-muted-foreground">Satisfaction</span>
+          <span className={cn('text-micro font-semibold', deal.satisfaction >= 60 ? 'text-emerald-400' : deal.satisfaction >= 30 ? 'text-amber-400' : 'text-destructive')}>
             {deal.satisfaction}%
           </span>
         </div>
@@ -55,7 +55,7 @@ function DealDetail({ deal, onTerminate, season }: DealDetailProps) {
       </div>
 
       <div className="bg-muted/10 rounded-lg p-2">
-        <p className="text-[10px] text-muted-foreground">Performance Bonus</p>
+        <p className="text-micro text-muted-foreground">Performance Bonus</p>
         <p className="text-xs font-semibold text-foreground">{formatMoney(deal.performanceBonus)} — {getBonusConditionLabel(deal.bonusCondition)}</p>
       </div>
 
@@ -112,7 +112,7 @@ export function SponsorshipPanel() {
           </div>
           <span className="text-sm font-bold text-primary tabular-nums">{formatMoney(totalWeekly)}/wk</span>
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-micro text-muted-foreground">
           {sponsorDeals.length} active deal{sponsorDeals.length !== 1 ? 's' : ''} · {sponsorOffers.length} pending offer{sponsorOffers.length !== 1 ? 's' : ''}
           {sponsorDeals.length === 0 && sponsorOffers.length === 0 && ' — improve reputation to attract sponsors'}
         </p>
@@ -136,12 +136,12 @@ export function SponsorshipPanel() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold text-foreground">{sponsor?.name || 'Unknown'}</p>
-                      <p className="text-[10px] text-muted-foreground">{slotDef?.label} · {offer.seasonDuration} season{offer.seasonDuration > 1 ? 's' : ''}</p>
+                      <p className="text-micro text-muted-foreground">{slotDef?.label} · {offer.seasonDuration} season{offer.seasonDuration > 1 ? 's' : ''}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="text-right">
                         <p className="text-xs font-bold text-primary tabular-nums">{formatMoney(offer.weeklyPayment)}/wk</p>
-                        <p className="text-[10px] text-amber-400 flex items-center gap-0.5 justify-end">
+                        <p className="text-micro text-amber-400 flex items-center gap-0.5 justify-end">
                           <Clock className="w-2.5 h-2.5" /> {weeksLeft}w left
                         </p>
                       </div>
@@ -173,7 +173,7 @@ export function SponsorshipPanel() {
                     <Lock className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground">{slot.label}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-micro text-muted-foreground">
                         Requires {slot.unlock?.facilityType} level {slot.unlock?.level}
                       </p>
                     </div>
@@ -196,7 +196,7 @@ export function SponsorshipPanel() {
                       <Handshake className="w-4 h-4 text-emerald-400 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-foreground truncate">{sponsor?.name || 'Unknown'}</p>
-                        <p className="text-[10px] text-muted-foreground">{slot.label}</p>
+                        <p className="text-micro text-muted-foreground">{slot.label}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
@@ -228,20 +228,20 @@ export function SponsorshipPanel() {
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground">{slot.label}</p>
                       {onCooldown ? (
-                        <p className="text-[10px] text-amber-400 flex items-center gap-0.5">
+                        <p className="text-micro text-amber-400 flex items-center gap-0.5">
                           <Clock className="w-2.5 h-2.5" /> Cooldown: {cooldownWeek - week}w
                         </p>
                       ) : offer ? (
-                        <p className="text-[10px] text-amber-400">Offer pending — tap to review</p>
+                        <p className="text-micro text-amber-400">Offer pending — tap to review</p>
                       ) : (
-                        <p className="text-[10px] text-muted-foreground/50">Waiting for offers...</p>
+                        <p className="text-micro text-muted-foreground/50">Waiting for offers...</p>
                       )}
                     </div>
                   </div>
                   {offer && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setSelectedOffer(offer); }}
-                      className="text-[10px] font-semibold text-primary px-2 py-1 rounded bg-primary/10"
+                      className="text-micro font-semibold text-primary px-2 py-1 rounded bg-primary/10"
                     >
                       Review
                     </button>

@@ -20,6 +20,7 @@ import {
   buildHallEntry,
   saveToHall,
   loadHall,
+  HALL_MAX_STORED,
   type HallEntry,
 } from '@/utils/hallOfManagers';
 import {
@@ -206,9 +207,12 @@ describe('saveToHall + loadHall', () => {
     expect(hall.map(h => h.id)).toEqual(['a', 'b']);
   });
 
-  it('caps the leaderboard at 20 entries', () => {
-    for (let i = 0; i < 25; i++) saveToHall(makeEntry(`entry-${i}`, i));
-    expect(loadHall()).toHaveLength(20);
+  it('stores up to HALL_MAX_STORED careers, keeping the best ones', () => {
+    for (let i = 0; i < HALL_MAX_STORED + 5; i++) saveToHall(makeEntry(`entry-${i}`, i));
+    const hall = loadHall();
+    expect(hall).toHaveLength(HALL_MAX_STORED);
+    // The five lowest-ranked careers are the ones dropped.
+    expect(hall.map(h => h.id)).not.toContain('entry-0');
   });
 
   it('returns [] when storage is empty or corrupted', () => {

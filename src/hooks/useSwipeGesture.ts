@@ -22,6 +22,46 @@ interface UseSwipeOptions {
   edgeIgnore?: number;
 }
 
+/**
+ * Touch targets that own their own horizontal gesture. A swipe that STARTS on
+ * one of these is the control's, never a screen switch: dragging a bid slider
+ * used to jump to Scouting and throw the negotiation away.
+ */
+const SWIPE_EXEMPT_SELECTOR = [
+  'input[type="range"]',
+  '[role="slider"]',
+  '[role="dialog"]',
+  '[role="alertdialog"]',
+  '[aria-modal="true"]',
+  '[data-radix-popper-content-wrapper]',
+  '[data-no-swipe]',
+].join(',');
+
+/**
+ * True when a touch that started on `target` must not become a screen swipe.
+ *
+ * Walks from the target up to (not including) `boundary` — the element the
+ * handlers are attached to. A target OUTSIDE the boundary reached it through a
+ * React portal (Radix sheets, dialogs, popovers render into <body> but their
+ * events bubble through the React tree), so it is an overlay by definition.
+ * `position: fixed` ancestors are in-page overlays and pinned bars — the
+ * negotiation modals are fixed full-screen layers inside <main>.
+ */
+export function isSwipeExemptTarget(target: EventTarget | null, boundary?: Element | null): boolean {
+  if (!target || typeof Element === 'undefined' || !(target instanceof Element)) return false;
+  if (boundary && !boundary.contains(target)) return true;
+  for (let el: Element | null = target; el && el !== boundary; el = el.parentElement) {
+    if (el.matches(SWIPE_EXEMPT_SELECTOR)) return true;
+    const style = window.getComputedStyle(el);
+    if (style.position === 'fixed') return true;
+    // A row that scrolls sideways (club carousels, stat strips, chip rows).
+    if ((style.overflowX === 'auto' || style.overflowX === 'scroll') && el.scrollWidth > el.clientWidth) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function useSwipeGesture({
   onSwipeLeft,
   onSwipeRight,
@@ -35,6 +75,11 @@ export function useSwipeGesture({
   >(null);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
+    // A slider, a sideways-scrolling row or an overlay owns this touch.
+    if (isSwipeExemptTarget(e.target, e.currentTarget as Element)) {
+      touchRef.current = null;
+      return;
+    }
     const touch = e.touches[0];
     const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
     const fromEdge =
