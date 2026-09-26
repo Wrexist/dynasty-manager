@@ -68,6 +68,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Share your best pack pull as a story card.',
     'New managers are guided to open their free pack in the first session.',
     'Shared best-pull cards now show the player\'s portrait.',
+    'Release unconfirmed purchase markers instead of locking the Market.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
