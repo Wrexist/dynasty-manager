@@ -68,3 +68,53 @@ describe('loan development keeps an authored rating', () => {
     expect(after.overall).toBeLessThanOrEqual(authored + (attrSum(after) - attrSum(loanee)));
   }, 120_000);
 });
+
+// A borrower in the USER's division plays its round inside playCurrentMatch,
+// before advanceWeek snapshots `state.players`, so the loanee's real
+// appearance was already in the snapshot and the weekly loan block fabricated
+// a second one on top (21 appearances in 12 matches).
+describe('a loanee at a club in the user\'s division', () => {
+  it('never has more appearances than his borrower has played matches', async () => {
+    useGameStore.getState().initGame('arsenal');
+    const s = useGameStore.getState();
+    const divClubs = new Set(s.leagueTable.map(e => e.clubId));
+    const aiClubs = Object.values(s.clubs).filter(c =>
+      c.id !== s.playerClubId && divClubs.has(c.id) && c.playerIds.length > 18);
+    const lender = aiClubs[0];
+    const borrower = aiClubs[1];
+    const source = lender.playerIds.map(id => s.players[id])
+      .filter(p => p && p.position !== 'GK' && !p.injured)
+      .sort((a, b) => b.overall - a.overall)[0]!;
+    const loanee: Player = {
+      ...source,
+      appearances: 0,
+      onLoan: true,
+      loanFromClubId: lender.id,
+      loanToClubId: borrower.id,
+      clubId: borrower.id,
+    };
+    useGameStore.setState({
+      players: { ...s.players, [loanee.id]: loanee },
+      clubs: {
+        ...s.clubs,
+        [lender.id]: { ...lender, playerIds: lender.playerIds.filter(id => id !== loanee.id), lineup: lender.lineup.filter(id => id !== loanee.id), subs: lender.subs.filter(id => id !== loanee.id) },
+        [borrower.id]: { ...borrower, playerIds: [...borrower.playerIds, loanee.id] },
+      },
+      activeLoans: [...s.activeLoans, {
+        id: 'loan-same-div', playerId: loanee.id, fromClubId: lender.id, toClubId: borrower.id,
+        startWeek: s.week, startSeason: s.season, durationWeeks: 40, wageSplit: 100, recallClause: false,
+      }],
+    });
+
+    for (let i = 0; i < 8; i++) {
+      useGameStore.getState().playCurrentMatch();
+      await useGameStore.getState().advanceWeek();
+    }
+
+    const st = useGameStore.getState();
+    const borrowerPlayed = st.fixtures.filter(m => m.played
+      && (m.homeClubId === borrower.id || m.awayClubId === borrower.id)).length;
+    expect(borrowerPlayed).toBeGreaterThan(0);
+    expect(st.players[loanee.id].appearances).toBeLessThanOrEqual(borrowerPlayed);
+  }, 120_000);
+});
