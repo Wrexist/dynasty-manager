@@ -2465,6 +2465,14 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (!loanClub) continue;
     // The borrower now fields its loanees, so a real match this week already
     // credited the appearance, minutes and form — don't fabricate a second one.
+    // Comparing appearances against `state.players` is not enough on its own:
+    // a borrower in the user's division played its round inside
+    // `playCurrentMatch`, BEFORE this advance, so the real appearance is
+    // already in the snapshot. When the borrower played a league fixture this
+    // week, that match is the loanee's week: never fabricate one on top.
+    const borrowerPlayed = Object.values(updatedDivisionFixtures).some(list =>
+      (list || []).some(m => m.week === week && m.played
+        && (m.homeClubId === loan.toClubId || m.awayClubId === loan.toClubId)));
     const playedForReal = loanedPlayer.appearances > (state.players[loan.playerId]?.appearances ?? 0);
     // Weekly playing chance scales with player quality vs loan club level:
     // a player at or above the loan club's level is a guaranteed starter
@@ -2473,7 +2481,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const playChance = loanedPlayer.overall >= (loanClub.reputation * LOAN_QUALITY_FORMULA_REP_MULT + LOAN_QUALITY_FORMULA_BASE) ? LOAN_PLAY_CHANCE_HIGH : LOAN_PLAY_CHANCE_LOW;
     if (playedForReal || Math.random() < playChance) {
       const lp = { ...loanedPlayer };
-      if (!playedForReal) {
+      if (!playedForReal && !borrowerPlayed) {
         lp.appearances += 1;
         // Fitness and form fluctuate based on simulated match performance
         lp.fitness = Math.max(50, Math.min(100, lp.fitness - LOAN_FITNESS_DRAIN + Math.floor(Math.random() * 6)));

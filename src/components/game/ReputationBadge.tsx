@@ -16,7 +16,7 @@ export function ReputationBadge({ tier, score, size = 'sm', className }: Reputat
   return (
     <span className={cn(
       'inline-flex items-center gap-1 rounded-full font-semibold border',
-      size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs',
+      size === 'sm' ? 'px-2 py-0.5 text-micro' : 'px-3 py-1 text-xs',
       colorClass,
       'border-current/20 bg-current/10',
       className,

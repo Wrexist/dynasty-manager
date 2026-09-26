@@ -56,11 +56,11 @@ function StatTile({ tone, icon, label, value, sub, was }: {
       <div aria-hidden className={cn('pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b to-transparent', t.glow)} />
       <div className="relative flex items-center gap-1.5 mb-1.5">
         {icon}
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
+        <span className="text-micro text-muted-foreground uppercase tracking-wider">{label}</span>
       </div>
       <p className={cn('relative text-xl font-black tabular-nums leading-none', t.text)}>{value}</p>
-      {was && <p className="relative text-[10px] text-muted-foreground/60 mt-1">was <span className="line-through">{was}</span></p>}
-      {sub && <p className="relative text-[10px] text-muted-foreground mt-1">{sub}</p>}
+      {was && <p className="relative text-micro text-muted-foreground/60 mt-1">was <span className="line-through">{was}</span></p>}
+      {sub && <p className="relative text-micro text-muted-foreground mt-1">{sub}</p>}
     </div>
   );
 }
@@ -77,10 +77,10 @@ function Stepper({ tone, icon, label, value, min, max, step, original, format, o
     <div className={cn('relative overflow-hidden rounded-xl p-3 ring-1', t.ring, 'bg-gradient-to-b from-white/[0.04] to-transparent')}>
       <div className="flex items-center gap-1.5 mb-2">
         {icon}
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
+        <span className="text-micro text-muted-foreground uppercase tracking-wider">{label}</span>
         {delta !== 0 && (
           <span className={cn(
-            'ml-auto text-[10px] font-bold tabular-nums',
+            'ml-auto text-micro font-bold tabular-nums',
             delta > 0 ? 'text-emerald-400' : 'text-destructive',
           )}>
             {delta > 0 ? '+' : '-'}{format(Math.abs(delta))} vs offer
@@ -152,7 +152,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
       </div>
       {sponsor && (
         <span className={cn(
-          'ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ring-1',
+          'ml-auto shrink-0 text-micro font-bold uppercase tracking-wider px-2 py-1 rounded-md ring-1',
           TIER_BADGE[sponsor.tier],
         )}>
           Tier {sponsor.tier}
@@ -236,7 +236,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
               <Scale className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-semibold text-foreground">Counter-proposal</span>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-primary/80 tabular-nums">
+            <span className="text-micro font-bold uppercase tracking-wider text-primary/80 tabular-nums">
               Round {roundsUsed + 1} of {SPONSOR_NEGOTIATION_MAX_ROUNDS}
             </span>
           </div>
@@ -270,7 +270,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
 
           <div className="relative flex items-start gap-1.5 mb-4 px-1">
             <AlertTriangle className="w-3 h-3 text-amber-400/80 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
+            <p className="text-micro text-muted-foreground leading-relaxed">
               The harder you push, the more likely {sponsorName} counters low — or walks away
               for good. A strong club reputation buys you more room.
             </p>
@@ -351,7 +351,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
         <div className="relative rounded-xl p-3 mb-4 bg-white/[0.03] ring-1 ring-white/[0.06]">
           <div className="flex items-center gap-1.5 mb-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Terms</span>
+            <span className="text-micro text-muted-foreground uppercase tracking-wider">Terms</span>
           </div>
           <ul className="text-[11px] text-muted-foreground space-y-1">
             <li>· Early termination buyout: {formatMoney(liveOffer.buyoutCost)}</li>
@@ -372,7 +372,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
               <button onClick={openNegotiate} className={cn(BTN_OUTLINE, 'flex-1')}>
                 <Scale className="w-4 h-4" />
                 Negotiate
-                <span className="text-[10px] opacity-70">
+                <span className="text-micro opacity-70">
                   ({SPONSOR_NEGOTIATION_MAX_ROUNDS - roundsUsed} left)
                 </span>
               </button>

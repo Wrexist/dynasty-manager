@@ -101,7 +101,7 @@ const TeamDetailPage = () => {
                 {leaguePosition && <span className="text-foreground font-medium"> — {leaguePosition}{getSuffix(leaguePosition)}</span>}
               </p>
               {isOwnClub && (
-                <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-full">
+                <span className="inline-block mt-1 px-2 py-0.5 text-micro font-bold bg-primary/20 text-primary rounded-full">
                   Your Club
                 </span>
               )}
@@ -114,15 +114,15 @@ const TeamDetailPage = () => {
       <GlassPanel className="p-4">
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Manager</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Manager</p>
             <p className="text-sm font-medium text-foreground truncate">{managerName}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Style</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Style</p>
             <p className="text-sm font-medium text-foreground truncate">{managerStyle || '—'}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Formation</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Formation</p>
             <p className="text-sm font-bold text-foreground">{club.formation}</p>
           </div>
         </div>
@@ -132,19 +132,19 @@ const TeamDetailPage = () => {
       <GlassPanel className="p-4">
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg OVR</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Avg OVR</p>
             <p className={cn('text-lg font-display tabular-nums font-black tabular-nums', getRatingColor(avgOverall))}>{avgOverall}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg Age</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Avg Age</p>
             <p className="text-lg font-display tabular-nums font-bold text-foreground tabular-nums">{avgAge}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Squad</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Squad</p>
             <p className="text-lg font-display tabular-nums font-bold text-foreground tabular-nums">{squadPlayers.length}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Value</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Value</p>
             <p className="text-lg font-display tabular-nums font-bold text-foreground tabular-nums">{formatValue(totalValue)}</p>
           </div>
         </div>
@@ -156,19 +156,19 @@ const TeamDetailPage = () => {
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Season Record</p>
           <div className="grid grid-cols-4 gap-3 text-center mb-3">
             <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5">W-D-L</p>
+              <p className="text-micro text-muted-foreground mb-0.5">W-D-L</p>
               <p className="text-sm font-display tabular-nums font-bold text-foreground tabular-nums">{tableEntry.won}-{tableEntry.drawn}-{tableEntry.lost}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5">Points</p>
+              <p className="text-micro text-muted-foreground mb-0.5">Points</p>
               <p className="text-sm font-display tabular-nums font-bold text-primary tabular-nums">{tableEntry.points}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5">GF / GA</p>
+              <p className="text-micro text-muted-foreground mb-0.5">GF / GA</p>
               <p className="text-sm font-display tabular-nums font-bold text-foreground tabular-nums">{tableEntry.goalsFor} / {tableEntry.goalsAgainst}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5">GD</p>
+              <p className="text-micro text-muted-foreground mb-0.5">GD</p>
               <p className={cn(
                 'text-sm font-display tabular-nums font-bold tabular-nums',
                 tableEntry.goalDifference > 0 ? 'text-emerald-400' : tableEntry.goalDifference < 0 ? 'text-destructive' : 'text-foreground'
@@ -178,17 +178,17 @@ const TeamDetailPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground uppercase">Form</span>
+            <span className="text-micro text-muted-foreground uppercase">Form</span>
             <div className="flex gap-0.5">
               {tableEntry.form.map((r, i) => (
                 <span key={i} className={cn(
-                  'w-4 h-4 rounded-sm flex items-center justify-center text-[8px] font-bold',
+                  'w-4 h-4 rounded-sm flex items-center justify-center text-micro font-bold',
                   r === 'W' ? 'bg-emerald-500/20 text-emerald-400' : r === 'L' ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
                 )}>{r}</span>
               ))}
             </div>
             {tableEntry.cleanSheets > 0 && (
-              <span className="text-[10px] text-muted-foreground ml-auto">
+              <span className="text-micro text-muted-foreground ml-auto">
                 {tableEntry.cleanSheets} clean sheet{tableEntry.cleanSheets !== 1 ? 's' : ''}
               </span>
             )}
@@ -202,7 +202,7 @@ const TeamDetailPage = () => {
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-3.5 h-3.5 text-muted-foreground" />
             <p className="text-xs text-muted-foreground uppercase tracking-wider">{group.label}</p>
-            <span className="text-[10px] text-muted-foreground/60 ml-auto">{group.players.length}</span>
+            <span className="text-micro text-muted-foreground/60 ml-auto">{group.players.length}</span>
           </div>
           <div className="space-y-1">
             {group.players.map(p => {
@@ -230,13 +230,13 @@ const TeamDetailPage = () => {
                         <span className="flex items-center gap-0.5 shrink-0" title={`Injured — ${p.injuryWeeks || '?'} wk(s)`}>
                           <HeartPulse className="w-3 h-3 text-destructive" />
                           {p.injuryWeeks ? (
-                            <span className="text-[8px] font-bold text-destructive tabular-nums">{p.injuryWeeks}w</span>
+                            <span className="text-micro font-bold text-destructive tabular-nums">{p.injuryWeeks}w</span>
                           ) : null}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      <span className={cn('px-1 py-0.5 rounded text-[9px] font-bold', posBadgeColor(p.position))}>
+                    <div className="flex items-center gap-1.5 text-micro text-muted-foreground">
+                      <span className={cn('px-1 py-0.5 rounded text-micro font-bold', posBadgeColor(p.position))}>
                         {p.position}
                       </span>
                       <span>Age {p.age}</span>
@@ -246,7 +246,7 @@ const TeamDetailPage = () => {
                   <FlagIcon nationality={p.nationality} size={18} />
                   {/* Contract */}
                   <span className={cn(
-                    'text-[10px] font-medium w-8 text-right shrink-0',
+                    'text-micro font-medium w-8 text-right shrink-0',
                     contractYears <= 1 ? 'text-amber-400' : 'text-muted-foreground'
                   )}>
                     {contractYears > 0 ? `${contractYears}y` : 'Exp'}

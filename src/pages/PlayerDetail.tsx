@@ -294,7 +294,7 @@ const PlayerDetail = () => {
           {narratives.map(n => (
             <div key={n.tag} className="flex items-center gap-1.5 bg-muted/30 border border-border/40 rounded-full px-3 py-1">
               <Award className={cn('w-3 h-3', n.color)} />
-              <span className={cn('text-[10px] font-bold', n.color)}>{n.tag}</span>
+              <span className={cn('text-micro font-bold', n.color)}>{n.tag}</span>
             </div>
           ))}
         </div>
@@ -310,22 +310,22 @@ const PlayerDetail = () => {
             <Medal className="w-4 h-4 text-[hsl(43,96%,56%)]" />
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Hall of Legends</p>
             {legend.source === 'career' && (
-              <span className="text-[10px] text-[hsl(43,96%,56%)] font-bold ml-auto uppercase tracking-wider">Your save</span>
+              <span className="text-micro text-[hsl(43,96%,56%)] font-bold ml-auto uppercase tracking-wider">Your save</span>
             )}
           </div>
           <p className="text-xs text-foreground/90 leading-relaxed mb-3">{legend.era}</p>
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-muted/30 border border-border/40 rounded-lg p-2 text-center">
               <p className="text-sm font-bold text-foreground tabular-nums">{legend.careerApps}</p>
-              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">Apps</p>
+              <p className="text-micro uppercase tracking-widest text-muted-foreground mt-0.5">Apps</p>
             </div>
             <div className="bg-muted/30 border border-border/40 rounded-lg p-2 text-center">
               <p className="text-sm font-bold text-foreground tabular-nums">{legend.careerGoals}</p>
-              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">Goals</p>
+              <p className="text-micro uppercase tracking-widest text-muted-foreground mt-0.5">Goals</p>
             </div>
             <div className="bg-muted/30 border border-border/40 rounded-lg p-2 text-center">
               <p className="text-sm font-bold text-foreground tabular-nums">{legend.careerAssists}</p>
-              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">Assists</p>
+              <p className="text-micro uppercase tracking-widest text-muted-foreground mt-0.5">Assists</p>
             </div>
           </div>
         </GlassPanel>
@@ -377,7 +377,7 @@ const PlayerDetail = () => {
                     )} />
                   )}
                   <span className={cn(
-                    'text-[10px] font-black tabular-nums leading-none mt-0.5',
+                    'text-micro font-black tabular-nums leading-none mt-0.5',
                     isGold && 'text-[hsl(var(--gold))]',
                     isSilver && 'text-[hsl(var(--silver))]',
                     isBronze && 'text-[hsl(var(--bronze))]',
@@ -386,7 +386,7 @@ const PlayerDetail = () => {
                   )}>
                     #{p.rank}
                   </span>
-                  <span className="text-[9px] text-muted-foreground mt-0.5">S{p.season}</span>
+                  <span className="text-micro text-muted-foreground mt-0.5">S{p.season}</span>
                 </motion.div>
               );
             })}
@@ -400,16 +400,16 @@ const PlayerDetail = () => {
           <AlertTriangle className="w-4 h-4 text-destructive" />
           <span className="text-xs font-bold text-destructive">Transfer Request Submitted</span>
           {(player.lowMoraleWeeks || 0) >= UNHAPPY_CONTAGION_WEEKS && (
-            <span className="text-[8px] font-bold text-destructive bg-destructive/20 px-1 py-0.5 rounded">CONTAGIOUS</span>
+            <span className="text-micro font-bold text-destructive bg-destructive/20 px-1 py-0.5 rounded">CONTAGIOUS</span>
           )}
-          <span className="text-[10px] text-muted-foreground ml-auto">Low morale for {player.lowMoraleWeeks || 0} weeks</span>
+          <span className="text-micro text-muted-foreground ml-auto">Low morale for {player.lowMoraleWeeks || 0} weeks</span>
         </div>
       )}
 
       {/* Happiness Recovery Guide */}
       {happinessTips && (
         <GlassPanel className="p-4">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">How to Improve Happiness</p>
+          <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">How to Improve Happiness</p>
           <div className="space-y-2">
             {happinessTips.map((tip, i) => (
               <div key={i} className="flex items-start gap-2 text-xs">
@@ -431,24 +431,24 @@ const PlayerDetail = () => {
         <GlassPanel className="p-3 text-center">
           <Zap className="w-4 h-4 text-primary mx-auto mb-1" />
           <p className="text-lg font-black text-foreground tabular-nums">{player.fitness}%</p>
-          <p className="text-[10px] text-muted-foreground">Fitness</p>
+          <p className="text-micro text-muted-foreground">Fitness</p>
         </GlassPanel>
         <GlassPanel className="p-3 text-center">
           <Heart className={cn("w-4 h-4 mx-auto mb-1", getMoodColor(player.morale))} />
           <p className={cn("text-lg font-black tabular-nums", getMoodColor(player.morale))}>{player.morale}%</p>
-          <p className="text-[10px] text-muted-foreground">Morale <span className="text-muted-foreground/60">· {getMoodLabel(player.morale)}</span></p>
+          <p className="text-micro text-muted-foreground">Morale <span className="text-muted-foreground/60">· {getMoodLabel(player.morale)}</span></p>
         </GlassPanel>
         <GlassPanel className="p-3 text-center">
           <TrendingUp className="w-4 h-4 text-primary mx-auto mb-1" />
           <p className="text-lg font-black text-foreground tabular-nums">{player.form}%</p>
-          <p className="text-[10px] text-muted-foreground">Form</p>
+          <p className="text-micro text-muted-foreground">Form</p>
         </GlassPanel>
       </div>
 
       {/* Morale Factors */}
       {moraleFactors.length > 0 && (
         <GlassPanel className="p-4">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Morale Factors</p>
+          <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Morale Factors</p>
           <div className="space-y-1">
             {moraleFactors.map((f, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
@@ -476,17 +476,17 @@ const PlayerDetail = () => {
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Development</p>
           {isGrowing && (
-            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+            <span className="text-micro font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
               Growing
             </span>
           )}
           {isDeclining && (
-            <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
+            <span className="text-micro font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
               Declining
             </span>
           )}
           {!isGrowing && !isDeclining && (
-            <span className="text-[10px] font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+            <span className="text-micro font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
               Peak
             </span>
           )}
@@ -508,20 +508,20 @@ const PlayerDetail = () => {
         </div>
         <div className="relative mt-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">Current</span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-micro text-muted-foreground">Current</span>
+            <span className="text-micro text-muted-foreground">
               Gap: {player.potential - player.overall > 0 ? `+${player.potential - player.overall}` : '0'}
             </span>
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">Potential <InfoTip text={HELP_TEXTS.potential} /></span>
+            <span className="text-micro text-muted-foreground flex items-center gap-1">Potential <InfoTip text={HELP_TEXTS.potential} /></span>
           </div>
           {/* Growth trajectory context */}
           {isGrowing && player.potential - player.overall > 0 && (
-            <p className="text-[10px] text-emerald-400/80 mt-1.5">
+            <p className="text-micro text-emerald-400/80 mt-1.5">
               Peak years: {Math.max(player.age, 27)}-{Math.min(30, Math.max(player.age + 1, 29))} · Room to grow +{player.potential - player.overall} OVR
             </p>
           )}
           {isDeclining && (
-            <p className="text-[10px] text-muted-foreground mt-1.5">
+            <p className="text-micro text-muted-foreground mt-1.5">
               Past peak — expect gradual attribute decline each season
             </p>
           )}
@@ -561,18 +561,18 @@ const PlayerDetail = () => {
 
           {/* Focus bonus description */}
           {trainingWidgetData.currentFocus ? (
-            <p className="text-[10px] text-emerald-400/80 mt-2">
+            <p className="text-micro text-emerald-400/80 mt-2">
               +50% gain for {(MODULE_ATTR_MAP[trainingWidgetData.currentFocus] || []).map(a => ATTR_LABELS[a] || a).join(', ')}
             </p>
           ) : (
-            <p className="text-[10px] text-muted-foreground mt-2">No individual focus set. Assign one for +50% training gain.</p>
+            <p className="text-micro text-muted-foreground mt-2">No individual focus set. Assign one for +50% training gain.</p>
           )}
 
           {/* Divider */}
           <div className="border-t border-border/30 mt-3 pt-3 space-y-2">
             {/* Personality multiplier */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">Training Multiplier</span>
+              <span className="text-micro text-muted-foreground">Training Multiplier</span>
               <span className={cn('text-[11px] font-semibold tabular-nums', trainingWidgetData.multColor)}>
                 {trainingWidgetData.personalityMult.toFixed(2)}x
               </span>
@@ -586,8 +586,8 @@ const PlayerDetail = () => {
               if (!moduleRate) {
                 return (
                   <div className="space-y-1">
-                    <span className="text-[10px] text-muted-foreground">Expected Gain Rate</span>
-                    <p className="text-[10px] text-amber-400/80">
+                    <span className="text-micro text-muted-foreground">Expected Gain Rate</span>
+                    <p className="text-micro text-amber-400/80">
                       Not in the weekly schedule. Add sessions to see gains.
                     </p>
                   </div>
@@ -596,20 +596,20 @@ const PlayerDetail = () => {
 
               return focusAttrs.length > 0 && (
                 <div className="space-y-1">
-                  <span className="text-[10px] text-muted-foreground">Expected Gain Rate</span>
+                  <span className="text-micro text-muted-foreground">Expected Gain Rate</span>
                   {focusAttrs.map(attr => {
                     const effectiveRate = Math.min(100, moduleRate.expectedGainPct * trainingWidgetData.personalityMult * INDIVIDUAL_TRAINING_BONUS);
                     const barWidth = Math.min(100, effectiveRate * 4);
                     return (
                       <div key={attr} className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground w-6">{ATTR_LABELS[attr] || attr}</span>
+                        <span className="text-micro text-muted-foreground w-6">{ATTR_LABELS[attr] || attr}</span>
                         <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-emerald-500/70 rounded-full transition-all"
                             style={{ width: `${barWidth}%` }}
                           />
                         </div>
-                        <span className="text-[10px] text-emerald-400 tabular-nums w-10 text-right">{effectiveRate.toFixed(1)}%</span>
+                        <span className="text-micro text-emerald-400 tabular-nums w-10 text-right">{effectiveRate.toFixed(1)}%</span>
                       </div>
                     );
                   })}
@@ -619,11 +619,11 @@ const PlayerDetail = () => {
 
             {/* Intensity & fitness impact */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">Intensity</span>
+              <span className="text-micro text-muted-foreground">Intensity</span>
               <span className="text-[11px] font-medium text-foreground capitalize">{training.intensity}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">Weekly Fitness Impact</span>
+              <span className="text-micro text-muted-foreground">Weekly Fitness Impact</span>
               <span className={cn('text-[11px] font-semibold tabular-nums', trainingWidgetData.preview.fitnessImpact >= 0 ? 'text-emerald-400' : 'text-destructive')}>
                 {trainingWidgetData.preview.fitnessImpact >= 0 ? '+' : ''}{trainingWidgetData.preview.fitnessImpact}
               </span>
@@ -631,7 +631,7 @@ const PlayerDetail = () => {
 
             {/* Injury risk */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <span className="text-micro text-muted-foreground flex items-center gap-1">
                 <AlertTriangle className={cn('w-3 h-3', trainingWidgetData.preview.injuryRiskPct > 2 ? 'text-destructive' : 'text-muted-foreground')} />
                 Injury Risk
               </span>
@@ -645,10 +645,10 @@ const PlayerDetail = () => {
             {/* Streak info */}
             {trainingWidgetData.streakTier.tier > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Training Streak</span>
+                <span className="text-micro text-muted-foreground">Training Streak</span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] font-medium text-foreground">{trainingWidgetData.streakTier.label}</span>
-                  <span className="text-[10px] text-amber-400 tabular-nums">
+                  <span className="text-micro text-amber-400 tabular-nums">
                     +{((STREAK_MULTIPLIERS[trainingWidgetData.streakTier.tier] - 1) * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -684,7 +684,7 @@ const PlayerDetail = () => {
                   {pos}
                 </span>
                 <span className={cn(
-                  'text-[9px] font-medium',
+                  'text-micro font-medium',
                   isNatural ? 'text-primary/70' : 'text-muted-foreground'
                 )}>
                   {isNatural ? 'Natural' : 'Capable'}
@@ -703,7 +703,7 @@ const PlayerDetail = () => {
 
         {/* Attack */}
         <div>
-          <p className="text-[10px] text-red-400/80 uppercase tracking-wider font-semibold mb-2">Attack</p>
+          <p className="text-micro text-red-400/80 uppercase tracking-wider font-semibold mb-2">Attack</p>
           <div className="space-y-2">
             <StatBar label={t('playerDetail.pace')} value={player.attributes.pace} change={player.lastAttributeChanges?.pace} />
             <StatBar label={t('playerDetail.shooting')} value={player.attributes.shooting} change={player.lastAttributeChanges?.shooting} />
@@ -712,7 +712,7 @@ const PlayerDetail = () => {
 
         {/* Playmaking */}
         <div>
-          <p className="text-[10px] text-emerald-400/80 uppercase tracking-wider font-semibold mb-2">Playmaking</p>
+          <p className="text-micro text-emerald-400/80 uppercase tracking-wider font-semibold mb-2">Playmaking</p>
           <div className="space-y-2">
             <StatBar label={t('playerDetail.passing')} value={player.attributes.passing} change={player.lastAttributeChanges?.passing} />
             <StatBar label={t('playerDetail.mental')} value={player.attributes.mental} change={player.lastAttributeChanges?.mental} />
@@ -721,7 +721,7 @@ const PlayerDetail = () => {
 
         {/* Defense */}
         <div>
-          <p className="text-[10px] text-blue-400/80 uppercase tracking-wider font-semibold mb-2">Defense</p>
+          <p className="text-micro text-blue-400/80 uppercase tracking-wider font-semibold mb-2">Defense</p>
           <div className="space-y-2">
             <StatBar label={t('playerDetail.defending')} value={player.attributes.defending} change={player.lastAttributeChanges?.defending} />
             <StatBar label={t('playerDetail.physical')} value={player.attributes.physical} change={player.lastAttributeChanges?.physical} />
@@ -747,14 +747,14 @@ const PlayerDetail = () => {
               { label: 'Leadership', value: player.personality.leadership },
             ].map(t => (
               <div key={t.label} className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground w-24">{t.label}</span>
+                <span className="text-micro text-muted-foreground w-24">{t.label}</span>
                 <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
                   <div
                     className={cn('h-full rounded-full', t.value >= ATTR_RATING_HIGH ? 'bg-emerald-400' : t.value >= ATTR_RATING_MID ? 'bg-sky-400' : t.value >= ATTR_RATING_LOW ? 'bg-amber-400' : 'bg-destructive')}
                     style={{ width: `${(t.value / 20) * 100}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-bold text-foreground w-5 text-right tabular-nums">{t.value}</span>
+                <span className="text-micro font-bold text-foreground w-5 text-right tabular-nums">{t.value}</span>
               </div>
             ))}
           </div>
@@ -773,7 +773,7 @@ const PlayerDetail = () => {
           ].map(s => (
             <div key={s.label}>
               <p className="text-lg font-black text-foreground tabular-nums">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground">{s.label}</p>
+              <p className="text-micro text-muted-foreground">{s.label}</p>
             </div>
           ))}
         </div>
@@ -782,20 +782,20 @@ const PlayerDetail = () => {
         <div className="mt-3 pt-3 border-t border-border/30">
           <div className="flex items-center gap-2 mb-2">
             <Activity className="w-3.5 h-3.5 text-primary" />
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Performance</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider">Performance</p>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-sm font-bold text-foreground tabular-nums">{goalsPerApp}</p>
-              <p className="text-[9px] text-muted-foreground">Goals/App</p>
+              <p className="text-micro text-muted-foreground">Goals/App</p>
             </div>
             <div>
               <p className="text-sm font-bold text-foreground tabular-nums">{assistsPerApp}</p>
-              <p className="text-[9px] text-muted-foreground">Assists/App</p>
+              <p className="text-micro text-muted-foreground">Assists/App</p>
             </div>
             <div>
               <p className="text-sm font-bold text-foreground tabular-nums">{gcPerApp}</p>
-              <p className="text-[9px] text-muted-foreground">G+A/App</p>
+              <p className="text-micro text-muted-foreground">G+A/App</p>
             </div>
           </div>
         </div>
@@ -806,20 +806,20 @@ const PlayerDetail = () => {
         <GlassPanel className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <FlagIcon nationality={player.nationality} size={14} />
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">International Career</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider">International Career</p>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{player.internationalCaps || 0}</p>
-              <p className="text-[10px] text-muted-foreground">Caps</p>
+              <p className="text-micro text-muted-foreground">Caps</p>
             </div>
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{player.internationalGoals || 0}</p>
-              <p className="text-[10px] text-muted-foreground">Goals</p>
+              <p className="text-micro text-muted-foreground">Goals</p>
             </div>
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{player.nationality}</p>
-              <p className="text-[10px] text-muted-foreground">Nation</p>
+              <p className="text-micro text-muted-foreground">Nation</p>
             </div>
           </div>
         </GlassPanel>
@@ -838,7 +838,7 @@ const PlayerDetail = () => {
       )}
       {player.matchHistory && player.matchHistory.length > 0 && (
         <GlassPanel className="p-4">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Recent Matches</p>
+          <p className="text-micro text-muted-foreground uppercase tracking-wider mb-3">Recent Matches</p>
           <div className="space-y-2">
             {player.matchHistory.slice().reverse().slice(0, showFullHistory ? 20 : 5).map((m, i) => {
               const won = m.goalsFor > m.goalsAgainst;
@@ -852,8 +852,8 @@ const PlayerDetail = () => {
                   <span className="text-foreground flex-1 truncate">{m.opponentName}</span>
                   <span className="text-muted-foreground tabular-nums">{m.goalsFor}-{m.goalsAgainst}</span>
                   <span className={cn('font-bold tabular-nums w-8 text-right', getRatingColor(m.rating))}>{m.rating.toFixed(1)}</span>
-                  {m.goals > 0 && <span className="text-primary text-[10px]">{m.goals}G</span>}
-                  {m.assists > 0 && <span className="text-blue-400 text-[10px]">{m.assists}A</span>}
+                  {m.goals > 0 && <span className="text-primary text-micro">{m.goals}G</span>}
+                  {m.assists > 0 && <span className="text-blue-400 text-micro">{m.assists}A</span>}
                 </div>
               );
             })}
@@ -862,7 +862,7 @@ const PlayerDetail = () => {
             <button
               type="button"
               onClick={() => setShowFullHistory(!showFullHistory)}
-              className="text-[10px] text-primary mt-2 w-full text-center"
+              className="text-micro text-primary mt-2 w-full text-center"
             >
               {showFullHistory ? 'Show Less' : `Show All (${player.matchHistory.length})`}
             </button>
@@ -877,15 +877,15 @@ const PlayerDetail = () => {
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{player.careerAppearances}</p>
-              <p className="text-[10px] text-muted-foreground">Apps</p>
+              <p className="text-micro text-muted-foreground">Apps</p>
             </div>
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{player.careerGoals}</p>
-              <p className="text-[10px] text-muted-foreground">Goals</p>
+              <p className="text-micro text-muted-foreground">Goals</p>
             </div>
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{player.careerAssists}</p>
-              <p className="text-[10px] text-muted-foreground">Assists</p>
+              <p className="text-micro text-muted-foreground">Assists</p>
             </div>
           </div>
           {(player.careerAppearances || 0) > 0 && (
@@ -895,19 +895,19 @@ const PlayerDetail = () => {
                   <p className="text-xs font-bold text-muted-foreground tabular-nums">
                     {(player.careerGoals / (player.careerAppearances || 1)).toFixed(2)}
                   </p>
-                  <p className="text-[9px] text-muted-foreground">Career G/App</p>
+                  <p className="text-micro text-muted-foreground">Career G/App</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-muted-foreground tabular-nums">
                     {(player.careerAssists / (player.careerAppearances || 1)).toFixed(2)}
                   </p>
-                  <p className="text-[9px] text-muted-foreground">Career A/App</p>
+                  <p className="text-micro text-muted-foreground">Career A/App</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-muted-foreground tabular-nums">
                     {((player.careerGoals + player.careerAssists) / (player.careerAppearances || 1)).toFixed(2)}
                   </p>
-                  <p className="text-[9px] text-muted-foreground">Career G+A/App</p>
+                  <p className="text-micro text-muted-foreground">Career G+A/App</p>
                 </div>
               </div>
             </div>
@@ -958,7 +958,7 @@ const PlayerDetail = () => {
       {/* Transfer Clauses */}
       {!isWorldCup && (player.sellOnPercentage || player.releaseClause) && (
         <GlassPanel className="p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Clauses</p>
+          <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Clauses</p>
           <div className="space-y-1">
             {player.sellOnPercentage && player.sellOnClubId && (
               <div className="flex justify-between text-xs">
@@ -994,7 +994,7 @@ const PlayerDetail = () => {
             </div>
             {details && (
               <div className="flex items-center gap-2 mb-3">
-                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', severityColor, severityBg)}>
+                <span className={cn('text-micro font-bold px-2 py-0.5 rounded-full uppercase', severityColor, severityBg)}>
                   {details.severity}
                 </span>
                 <span className="text-xs text-foreground font-medium">{details.type.replace(/_/g, ' ')}</span>
@@ -1002,7 +1002,7 @@ const PlayerDetail = () => {
             )}
             <div className="space-y-2">
               <div>
-                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <div className="flex justify-between text-micro text-muted-foreground mb-1">
                   <span>{t('playerDetail.recoveryProgress')}</span>
                   <span>
                     {/* A return week past the season's end used to clamp to
@@ -1019,7 +1019,7 @@ const PlayerDetail = () => {
                 </div>
               </div>
               {details && (
-                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="grid grid-cols-2 gap-2 text-micro">
                   {details.reinjuryRisk > 0 && (
                     <div className="flex items-center gap-1 text-amber-400">
                       <AlertTriangle className="w-3 h-3" />
@@ -1031,7 +1031,7 @@ const PlayerDetail = () => {
                   </div>
                 </div>
               )}
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-micro text-muted-foreground">
                 <Stethoscope className="w-3 h-3" />
                 <span>Medical Center Lv.{facilities.medicalLevel}</span>
                 {facilities.medicalLevel >= 5 && <span className="text-emerald-400">— Enhanced recovery</span>}
@@ -1080,13 +1080,13 @@ const PlayerDetail = () => {
             onClick={() => { hapticLight(); setShowReleaseConfirm(true); }}
           >
             <UserMinus className="w-4 h-4" /> Release Player
-            <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+            <span className="text-micro text-muted-foreground ml-auto tabular-nums">
               Severance £{(severanceCost / 1e6).toFixed(1)}M
             </span>
           </Button>
           {/* Why the button is disabled, as visible text rather than a tooltip. */}
           {!canRelease && (
-            <p className="text-[10px] text-muted-foreground/70 px-1">
+            <p className="text-micro text-muted-foreground/70 px-1">
               {player.onLoan
                 ? 'Cannot release a player who is currently on loan.'
                 : `Squad would drop below the minimum of ${MIN_SQUAD_SIZE} players.`}
@@ -1112,7 +1112,7 @@ const PlayerDetail = () => {
           }}
         >
           <FileText className="w-4 h-4" /> Negotiate Renewal
-          <span className="text-[10px] text-muted-foreground ml-auto">
+          <span className="text-micro text-muted-foreground ml-auto">
             Expires end of S{player.contractEnd}
           </span>
         </Button>

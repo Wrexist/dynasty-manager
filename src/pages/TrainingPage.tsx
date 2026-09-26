@@ -161,30 +161,30 @@ const TrainingPage = () => {
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
                     <div className="text-lg font-bold text-emerald-400 tabular-nums">{report.totalGains}</div>
-                    <div className="text-[9px] text-muted-foreground">Attr Gains</div>
+                    <div className="text-micro text-muted-foreground">Attr Gains</div>
                   </div>
                   <div>
                     <div className={cn('text-lg font-bold tabular-nums', report.injuries.length > 0 ? 'text-destructive' : 'text-emerald-400')}>
                       {report.injuries.length}
                     </div>
-                    <div className="text-[9px] text-muted-foreground">Injuries</div>
+                    <div className="text-micro text-muted-foreground">Injuries</div>
                   </div>
                   <div>
                     <div className={cn('text-lg font-bold tabular-nums', report.fitnessChange >= 0 ? 'text-emerald-400' : 'text-amber-400')}>
                       {report.fitnessChange >= 0 ? '+' : ''}{report.fitnessChange}
                     </div>
-                    <div className="text-[9px] text-muted-foreground">Avg Fitness</div>
+                    <div className="text-micro text-muted-foreground">Avg Fitness</div>
                   </div>
                 </div>
                 {report.starPerformers.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-border/30">
-                    <div className="text-[9px] text-muted-foreground mb-1">Star Performers</div>
+                    <div className="text-micro text-muted-foreground mb-1">Star Performers</div>
                     <div className="flex flex-wrap gap-1.5">
                       {report.starPerformers.map((sp, i) => {
                         const p = players[sp.playerId];
                         if (!p) return null;
                         return (
-                          <span key={i} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          <span key={i} className="text-micro bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                             {p.lastName} +{ATTR_LABELS[sp.attrGained] || sp.attrGained}
                           </span>
                         );
@@ -197,7 +197,7 @@ const TrainingPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowReportBreakdown(!showReportBreakdown)}
-                      className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider mb-2 w-full"
+                      className="flex items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider mb-2 w-full"
                     >
                       <TrendingUp className="w-3 h-3" />
                       <span>Player Development ({report.playerBreakdown.length})</span>
@@ -210,7 +210,7 @@ const TrainingPage = () => {
                             <span className="text-foreground truncate max-w-[60%]">{entry.playerName}</span>
                             <div className="flex gap-1 flex-wrap justify-end">
                               {entry.gains.map((g, i) => (
-                                <span key={i} className="text-emerald-400 font-semibold text-[10px]">
+                                <span key={i} className="text-emerald-400 font-semibold text-micro">
                                   +{g.amount} {ATTR_LABELS[g.attribute] || g.attribute.toUpperCase().slice(0, 3)}
                                 </span>
                               ))}
@@ -333,7 +333,7 @@ const TrainingPage = () => {
                 transition={{ duration: 0.15 }}
                 className="space-y-1.5 mt-3"
               >
-                <p className="text-[10px] text-muted-foreground mb-1">Optional: pick a specific drill focus</p>
+                <p className="text-micro text-muted-foreground mb-1">Optional: pick a specific drill focus</p>
                 {DRILLS_BY_MODULE[schedule[activeDay]].map(drill => {
                   const isSelected = training.drillSchedule?.[activeDay] === drill.id;
                   return (
@@ -383,22 +383,22 @@ const TrainingPage = () => {
           <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
             <div className="flex items-center gap-1.5">
               <TrendingUp className="w-3 h-3 text-primary" />
-              <span className="text-[10px] font-medium text-foreground">Effectiveness Preview</span>
+              <span className="text-micro font-medium text-foreground">Effectiveness Preview</span>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               {preview.moduleGainRates.map(m => {
                 const info = MODULE_INFO.find(mi => mi.module === m.module);
                 return (
                   <div key={m.module} className="flex items-center justify-between">
-                    <span className={cn('text-[10px]', info?.color || 'text-muted-foreground')}>
+                    <span className={cn('text-micro', info?.color || 'text-muted-foreground')}>
                       {info?.label || m.module} ({m.daysScheduled}d)
                     </span>
-                    <span className="text-[10px] text-foreground font-medium tabular-nums">{m.expectedGainPct}%</span>
+                    <span className="text-micro text-foreground font-medium tabular-nums">{m.expectedGainPct}%</span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex items-center gap-4 text-[10px]">
+            <div className="flex items-center gap-4 text-micro">
               <div className="flex items-center gap-1">
                 <AlertTriangle className={cn('w-3 h-3', preview.injuryRiskPct > 2 ? 'text-destructive' : 'text-muted-foreground')} />
                 <span className="text-muted-foreground">Injury:</span>
@@ -427,7 +427,7 @@ const TrainingPage = () => {
         <GlassPanel className="p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-foreground">Squad Fitness</h3>
-            <span className="text-[10px] text-muted-foreground">Avg: <span className="text-foreground font-medium">{fitnessDistribution.avgFitness}</span></span>
+            <span className="text-micro text-muted-foreground">Avg: <span className="text-foreground font-medium">{fitnessDistribution.avgFitness}</span></span>
           </div>
           <div className="w-full h-4 bg-muted/30 rounded-full overflow-hidden flex">
             {fitnessDistribution.green > 0 && (
@@ -449,7 +449,7 @@ const TrainingPage = () => {
               />
             )}
           </div>
-          <div className="flex justify-between mt-1.5 text-[9px]">
+          <div className="flex justify-between mt-1.5 text-micro">
             <span className="text-emerald-400">{fitnessDistribution.green} fit</span>
             <span className="text-amber-400">{fitnessDistribution.yellow} tired</span>
             <span className="text-destructive">{fitnessDistribution.red} exhausted</span>
@@ -471,11 +471,11 @@ const TrainingPage = () => {
             <div className="flex items-center justify-center gap-4 mt-1">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 rounded bg-emerald-600" />
-                <span className="text-[9px] text-muted-foreground">Your Squad</span>
+                <span className="text-micro text-muted-foreground">Your Squad</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 border-t border-dashed border-muted-foreground" />
-                <span className="text-[9px] text-muted-foreground">League Avg</span>
+                <span className="text-micro text-muted-foreground">League Avg</span>
               </div>
             </div>
           </GlassPanel>
@@ -491,7 +491,7 @@ const TrainingPage = () => {
             {dominantInfo && (
               <div className="flex items-center gap-1.5">
                 {(() => { const DIcon = dominantInfo.icon; return <DIcon className={cn('w-3 h-3', dominantInfo.color)} />; })()}
-                <span className={cn('text-[10px] font-medium', dominantInfo.color)}>{dominantInfo.label}</span>
+                <span className={cn('text-micro font-medium', dominantInfo.color)}>{dominantInfo.label}</span>
               </div>
             )}
           </div>
@@ -511,21 +511,21 @@ const TrainingPage = () => {
                 ))}
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-[9px] text-muted-foreground">{streakCount} week{streakCount !== 1 ? 's' : ''}</span>
+                <span className="text-micro text-muted-foreground">{streakCount} week{streakCount !== 1 ? 's' : ''}</span>
                 {streakTier.nextThreshold && (
-                  <span className="text-[9px] text-muted-foreground">
+                  <span className="text-micro text-muted-foreground">
                     Next bonus at {streakTier.nextThreshold}w (+{Math.round((STREAK_MULTIPLIERS[streakTier.tier + 1] - 1) * 100)}%)
                   </span>
                 )}
                 {!streakTier.nextThreshold && streakCount >= STREAK_THRESHOLDS[STREAK_THRESHOLDS.length - 1] && (
-                  <span className="text-[9px] text-primary font-medium">Max bonus active!</span>
+                  <span className="text-micro text-primary font-medium">Max bonus active!</span>
                 )}
               </div>
             </div>
             {streakTier.tier > 0 && (
               <div className="text-center shrink-0">
                 <div className="text-lg font-bold text-primary">+{Math.round((STREAK_MULTIPLIERS[streakTier.tier] - 1) * 100)}%</div>
-                <div className="text-[8px] text-muted-foreground">bonus</div>
+                <div className="text-micro text-muted-foreground">bonus</div>
               </div>
             )}
           </div>
@@ -546,7 +546,7 @@ const TrainingPage = () => {
               style={{ width: `${tacticalFamiliarity}%` }}
             />
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1.5">
+          <p className="text-micro text-muted-foreground mt-1.5">
             Train 'Tactical' to improve familiarity with your formation and instructions.
           </p>
         </GlassPanel>
@@ -560,7 +560,7 @@ const TrainingPage = () => {
             <div className="flex items-center gap-2">
               <Dumbbell className="w-3.5 h-3.5 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">Individual Plans</h3>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-micro text-muted-foreground">
                 {(training.individualPlans || []).length}/{squadPlayers.length}
               </span>
             </div>
@@ -574,7 +574,7 @@ const TrainingPage = () => {
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <p className="text-[10px] text-muted-foreground mt-2 mb-2">
+                <p className="text-micro text-muted-foreground mt-2 mb-2">
                   +50% gains on focus attributes. Extra sessions for skills not in team schedule. {Math.abs(INDIVIDUAL_FITNESS_COST)} fitness/wk cost per player.
                 </p>
                 <div className="space-y-1 max-h-72 overflow-y-auto">
@@ -592,21 +592,21 @@ const TrainingPage = () => {
                             onClick={() => { hapticLight(); setExpandedPlayerId(isExpanded ? null : p.id); }}
                             className="flex items-center gap-2 w-full text-left hover:bg-muted/30 rounded-md px-1.5 py-1.5 transition-colors"
                           >
-                            <span className="text-[10px] text-muted-foreground w-6 text-center tabular-nums">{p.overall}</span>
+                            <span className="text-micro text-muted-foreground w-6 text-center tabular-nums">{p.overall}</span>
                             <span className={cn("text-xs font-medium truncate flex-1", p.injured ? "text-muted-foreground" : "text-foreground")}>
                               {p.firstName[0]}. {p.lastName}
                               {p.injured && <Heart className="w-2.5 h-2.5 text-destructive inline ml-1" />}
                             </span>
-                            <span className="text-[10px] text-muted-foreground w-8">{p.position}</span>
-                            <span className={cn('text-[9px] w-8 text-right tabular-nums', multLabel)}>
+                            <span className="text-micro text-muted-foreground w-8">{p.position}</span>
+                            <span className={cn('text-micro w-8 text-right tabular-nums', multLabel)}>
                               {personalityMult.toFixed(1)}x
                             </span>
                             {planInfo ? (
-                              <span className={cn('text-[10px] font-medium w-16 text-right', planInfo.color)}>
+                              <span className={cn('text-micro font-medium w-16 text-right', planInfo.color)}>
                                 {planInfo.label}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-muted-foreground/50 w-16 text-right">None</span>
+                              <span className="text-micro text-muted-foreground/50 w-16 text-right">None</span>
                             )}
                           </button>
                           <AnimatePresence>
@@ -623,7 +623,7 @@ const TrainingPage = () => {
                                       key={module}
                                       onClick={() => handleSetIndividualFocus(p.id, plan?.focus === module ? null : module)}
                                       className={cn(
-                                        'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all',
+                                        'flex items-center gap-1 px-2 py-1 rounded-md text-micro font-medium transition-all',
                                         plan?.focus === module
                                           ? 'bg-primary/20 text-primary border border-primary/30'
                                           : 'bg-muted/20 text-muted-foreground hover:bg-muted/40'
@@ -631,7 +631,7 @@ const TrainingPage = () => {
                                     >
                                       <Icon className="w-3 h-3" />
                                       {label}
-                                      <span className="text-[8px] opacity-50">
+                                      <span className="text-micro opacity-50">
                                         ({MODULE_ATTR_MAP[module].map(a => ATTR_LABELS[a] || a).join('/')})
                                       </span>
                                     </button>
@@ -674,9 +674,9 @@ const TrainingPage = () => {
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="text-xs text-foreground font-medium truncate">{p.firstName[0]}. {p.lastName}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">({p.position})</span>
+                        <span className="text-micro text-muted-foreground shrink-0">({p.position})</span>
                         {gainLabels.length > 0 && (
-                          <span className="text-[9px] text-emerald-400/70 truncate">+{gainLabels.join(', ')}</span>
+                          <span className="text-micro text-emerald-400/70 truncate">+{gainLabels.join(', ')}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -701,7 +701,7 @@ const TrainingPage = () => {
               {devChanges.length > 5 && (
                 <button
                   onClick={() => setShowAllDev(!showAllDev)}
-                  className="flex items-center gap-1 text-[10px] text-primary mt-2 mx-auto"
+                  className="flex items-center gap-1 text-micro text-primary mt-2 mx-auto"
                 >
                   {showAllDev ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   {showAllDev ? 'Show less' : `Show all (${devChanges.length})`}

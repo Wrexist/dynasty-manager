@@ -60,16 +60,16 @@ export function NewsTab({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-muted/30 rounded-lg p-2">
-              <p className="text-[10px] text-muted-foreground">Total Spend</p>
+              <p className="text-micro text-muted-foreground">Total Spend</p>
               <p className="text-sm font-bold text-primary">{formatMoney(totalSpend)}</p>
             </div>
             <div className="bg-muted/30 rounded-lg p-2">
-              <p className="text-[10px] text-muted-foreground">Deals</p>
+              <p className="text-micro text-muted-foreground">Deals</p>
               <p className="text-sm font-bold text-foreground">{allNews.length}</p>
             </div>
             {biggestDeal?.fee ? (
               <div className="bg-muted/30 rounded-lg p-2 col-span-2">
-                <p className="text-[10px] text-muted-foreground">Biggest Deal</p>
+                <p className="text-micro text-muted-foreground">Biggest Deal</p>
                 <p className="text-sm font-bold text-foreground">
                   {biggestDeal.playerName} <span className="text-primary">{formatMoney(biggestDeal.fee)}</span>
                 </p>
@@ -79,7 +79,7 @@ export function NewsTab({
           {myClubDeals.length > 0 && (
             <div className="flex items-center gap-1.5 pt-1 border-t border-border/30">
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-micro text-muted-foreground">
                 Your club: <span className="text-foreground font-medium">{myClubDeals.length} deal{myClubDeals.length !== 1 ? 's' : ''}</span>
               </span>
             </div>
@@ -100,7 +100,7 @@ export function NewsTab({
               key={f.id}
               onClick={() => { hapticLight(); onSetNewsTypeFilter(f.id); }}
               className={cn(
-                'px-2 py-1 rounded text-[10px] font-medium shrink-0 transition-all',
+                'px-2 py-1 rounded text-micro font-medium shrink-0 transition-all',
                 newsTypeFilter === f.id
                   ? f.id === 'transfer' ? 'bg-primary/20 text-primary'
                   : f.id === 'loan' ? 'bg-amber-500/20 text-amber-400'
@@ -121,7 +121,7 @@ export function NewsTab({
           <div key={weekLabel} className="space-y-1.5">
             <div className="flex items-center gap-2 pt-1">
               <Calendar className="w-3 h-3 text-muted-foreground/50" />
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{weekLabel}</span>
+              <span className="text-micro font-semibold text-muted-foreground uppercase tracking-wider">{weekLabel}</span>
               <div className="flex-1 h-px bg-border/30" />
             </div>
             {entries.map((entry, i) => {
@@ -151,7 +151,7 @@ export function NewsTab({
                         <div className="flex items-center gap-1.5">
                           <p className="text-sm font-bold text-foreground">{entry.playerName}</p>
                           {involvesMyClub && (
-                            <span className="text-[8px] font-bold bg-primary/20 text-primary px-1 py-0.5 rounded">YOU</span>
+                            <span className="text-micro font-bold bg-primary/20 text-primary px-1 py-0.5 rounded">YOU</span>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -176,9 +176,9 @@ export function NewsTab({
                         {entry.fee ? (
                           <span className="text-sm font-bold text-primary">{formatMoney(entry.fee)}</span>
                         ) : entry.type === 'loan' ? (
-                          <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded">LOAN</span>
+                          <span className="text-micro font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded">LOAN</span>
                         ) : (
-                          <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded">FREE</span>
+                          <span className="text-micro font-semibold bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded">FREE</span>
                         )}
                       </div>
                     </div>

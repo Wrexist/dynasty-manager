@@ -112,7 +112,7 @@ export function GoalCelebration({
             </div>
             {scorer && (
               <div className="rounded-md bg-card/70 px-2 py-0.5 backdrop-blur-md border border-border/40">
-                <span className="text-[10px] font-semibold text-foreground">⚽ {scorer}<span className="ml-1.5 tabular-nums text-primary">{minute}</span></span>
+                <span className="text-micro font-semibold text-foreground">⚽ {scorer}<span className="ml-1.5 tabular-nums text-primary">{minute}</span></span>
               </div>
             )}
           </motion.div>

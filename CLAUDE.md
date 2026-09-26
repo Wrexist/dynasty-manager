@@ -184,7 +184,7 @@ and you can re-run safely:
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
 
 ### When the user asks you to commit, push, ship, or create a PR:
-1. Run `npm run preflight` — lint + typecheck + docs drift + i18n ceiling + pack supply + fast tests + build + bundle budgets. Fix any failures before proceeding.
+1. Run `npm run preflight` — lint + typecheck + docs drift + i18n ceiling + type floor + pack supply + fast tests + build + bundle budgets. Fix any failures before proceeding.
    *Before a release, run `npm run preflight:full`* — the same gate with the
    long-running season/longevity suites (`SLOW_SUITES` in `vitest.config.ts`),
    which the per-commit gate skips so that it actually gets run. Test files run
@@ -217,11 +217,12 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 ### Available workflow commands:
 | Command | What it does |
 |---------|-------------|
-| `npm run preflight` | Lint + typecheck + docs:check + i18n:check + packs:supply + **fast** tests + build + size:check — run this per commit |
+| `npm run preflight` | Lint + typecheck + docs:check + i18n:check + type:check + packs:supply + **fast** tests + build + size:check — run this per commit |
 | `npm run preflight:full` | Same, with the long-running season/longevity suites. What CI enforces (`pr-checks.yml` runs it by name) |
 | `npm run test:fast` | Vitest minus the slow suites (see `SLOW_SUITES` in `vitest.config.ts`) |
 | `npm run docs:check` | Verify the countable claims in this file against the code (`-- --fix` to update) |
 | `npm run i18n:check` | Count player-facing strings still hardcoded in English; fails above the ceiling in `package.json` |
+| `npm run type:check` | Count sub-11px `text-[Npx]` copy in `src/pages` + `src/components` (lines marked `type-floor: graphic` excluded); fails above the ceiling (0) in `package.json` |
 | `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
 | `npm run branch -- name` | Create feature branch from latest origin/main |
 | `npm run typecheck` | Standalone TypeScript check |
@@ -319,7 +320,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 4.1.11 + jsdom + Testing Library** — 332 test files in `src/test/`
+- **Vitest 4.1.11 + jsdom + Testing Library** — 334 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -389,8 +390,8 @@ src/
 │   ├── slices/          → core, club, transfer, match, systems, orchestration,
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs, sunday, managerPass
-│   │   ├── orchestrationSlice.ts (1,551 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3,205 LOC — THE game loop),
+│   │   ├── orchestrationSlice.ts (1,557 LOC — façade) delegating to:
+│   │   └── orchestration/ → weekAdvance.ts (3,213 LOC — THE game loop),
 │   │                        seasonEnd.ts (2,277 LOC), matchActions.ts (2,243 LOC),
 │   │                        initGame.ts (756 LOC), tournaments.ts, playoff.ts,
 │   │                        worldCupMatchActions.ts, communityPackRuntime.ts, helpers.ts
@@ -405,7 +406,7 @@ src/
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 332 test files incl. longevity/stress suites, adversarial
+├── test/                → 334 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode,
@@ -414,7 +415,7 @@ src/
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,205 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
+1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,213 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
 2. **`src/store/storeTypes.ts`** — complete `GameState` interface (749 LOC).
 3. **`src/types/game.ts`** — all types (3,885 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
@@ -778,7 +779,7 @@ Player identities draw from the **community pack** real-player dataset
 - **Game loop:** `advanceWeek()` in `orchestration/weekAdvance.ts` — training, development, AI sims, injuries, income, messages, offers, weekly objectives, cup/continental/international scheduling.
 - **Match sim:** `simulateMatch()` → Match with events; MatchDay renders live with interactive subs, team talks, set pieces, penalty shootouts. Match speed tiers in `config/matchSpeed.ts` (instant sim = Pro). **Skip to full time** is free from half-time and Pro from kickoff (`SKIP_TO_FULL_TIME_PHASES`), on the live row and the Paused panel; it is playback-only (`utils/skipToFullTime.ts` makes the same store calls the clock would). **Neutral venues:** `Match.neutral` (optional; absent = home ground) is set on domestic and continental finals, both Super Cups, the promotion-playoff final and international-tournament matches; the engine then gives both sides the away factor (`homeAdvantageFactor`, `NEUTRAL_VENUE_ADVANTAGE`).
 - **Home (Dashboard):** one Continue button (`selectPrimaryAction`) → "Needs your attention" (`selectAttentionItems`, actionable rows only) → the Getting Started checklist (first session, then coach tasks through `COACH_CHECKLIST_MAX_SEASON`) → the next match → live-event / starter-kit banners and the Manager Pass row → "More" (`DashboardMore`, collapsed, remembered per device). Rules live in `utils/dashboardSelectors.ts`.
-- **Popup cap:** `utils/presentationQueue.ts` orders post-advance overlays and spends a budget of `BLOCKING_POPUPS_PER_ADVANCE` (2) per advance. Past it, each overlay follows its `OVERLAY_OVERFLOW` policy: decisions (press conference, storyline, transfer talk, national-team offer — ordered first), trophy lifts, the session recap and the daily reward always show; informational popups are filed to the inbox (`fileOverflowToInbox`, converters in `utils/overlayInbox.ts`); permission asks and offers wait for the next advance.
+- **Popup cap:** `utils/presentationQueue.ts` orders post-advance overlays and spends a budget of `BLOCKING_POPUPS_PER_ADVANCE` (2) per advance. Past it, each overlay follows its `OVERLAY_OVERFLOW` policy: decisions (press conference, storyline, transfer talk, national-team offer — ordered first), trophy lifts, the session recap, the daily reward and the one-time first-win notification ask always show; informational popups are filed to the inbox (`fileOverflowToInbox`, converters in `utils/overlayInbox.ts`); permission asks and offers wait for the next advance.
 - **New game:** ClubSelection defaults the nationality from the device locale (`utils/localeNation.ts`) and offers a one-tap **Quick Start** club for it (`config/quickStart.ts`, `utils/quickStart.ts`); ManagerCreation defaults the manager's nationality the same way.
 - **Player dev:** young (<24) grow toward potential, vets (>=31) decline. Per-attribute probability via `store/helpers/development.ts`.
 - **Transfers:** buy `makeOffer()`, sell `listPlayerForSale()`, respond `respondToOffer()`. Windows: **weeks 1–8 and 20–24** (`config/transfers.ts`).
@@ -809,7 +810,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (332 test files)
+npm run test         # Vitest (334 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
@@ -853,7 +854,7 @@ npm run scrape:icons                 # SoFIFA Icons scrape (Playwright; also a G
 Quick reference:
 - `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
 - `npm run branch -- name` = new branch from origin/main
-- `npm run preflight` = lint + typecheck + docs:check + i18n:check + fast tests + build + size:check (per commit)
+- `npm run preflight` = lint + typecheck + docs:check + i18n:check + type:check + fast tests + build + size:check (per commit)
 - `npm run preflight:full` = the same with the long-running suites — run before a release
 - After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
 - `gh pr create` is FORBIDDEN — no GitHub API auth available. GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available where configured.
@@ -935,7 +936,7 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   release on this count, and do not advertise Swedish (or any) localisation
   in store copy or release notes until a future release explicitly commits to
   finishing the migration.
-- `orchestration/weekAdvance.ts` (3,205 LOC) and `pages/Dashboard.tsx` (843 LOC) are the new oversized files — use `/refactor` for guided extraction.
+- `orchestration/weekAdvance.ts` (3,213 LOC) and `pages/Dashboard.tsx` (843 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~380K vs ~170K LOC) — keep it lazily imported; `size:check` is the guard.
 - framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.
@@ -953,7 +954,8 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
 - NEVER hand-edit generated data (`src/data/communityPack/*`, `src/data/squads/*`, `nationalPlayerPool.ts`, `playerPortraits.ts`) — regenerate via scripts
 - NEVER import heavy data eagerly — `size:check` enforces the eager-bundle budget
 - NEVER break mobile-first layout — test at 375px. Tap targets are 44px; the
-  type floor is 11px (a crest monogram is a graphic, not copy)
+  type floor is 11px (a crest monogram is a graphic, not copy — mark such a
+  line `type-floor: graphic`; `npm run type:check` enforces the rest)
 - NEVER import `lucide-react` in a Sunday screen or Sunday component — icons
   come from `src/config/sundayIcons.ts`
 - NEVER drive motion from JS (rAF, timers, style changed over time) without

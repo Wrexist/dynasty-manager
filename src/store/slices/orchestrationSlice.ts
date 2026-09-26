@@ -1437,8 +1437,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     try {
       const club = state.clubs[state.playerClubId];
       // Update this career's own row (the one season-end has been writing)
-      // rather than adding a second row for the same history — the re-init
-      // below mints a new careerId, so the next career gets its own row.
+      // rather than adding a second row for the same history. A Fresh Start
+      // gets the new careerId the re-init mints, so its own row; the options
+      // that carry the history carry the careerId with it (see below).
       const entry = buildHallEntry(
         hallEntryId(state),
         club?.name || 'Unknown Club',
@@ -1527,6 +1528,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }];
         updates.unlockedAchievements = state.unlockedAchievements;
         updates.seasonHistory = state.seasonHistory;
+        // The carried history keeps updating ONE Hall of Managers row. With the
+        // fresh careerId initGame minted, the next season end wrote the whole
+        // carried history into a second row and the Legacy total (job-market
+        // reputation, cosmetic unlocks) counted every carried trophy twice.
+        updates.careerId = state.careerId;
       }
 
       set(updates);

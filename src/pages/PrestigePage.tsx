@@ -69,19 +69,19 @@ const PrestigePage = () => {
           <div className="grid grid-cols-4 gap-3 text-center">
             <div>
               <p className="text-lg font-black text-primary tabular-nums">{stats.titles}</p>
-              <p className="text-[10px] text-muted-foreground">Titles</p>
+              <p className="text-micro text-muted-foreground">Titles</p>
             </div>
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{stats.cupWins}</p>
-              <p className="text-[10px] text-muted-foreground">Cups</p>
+              <p className="text-micro text-muted-foreground">Cups</p>
             </div>
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{stats.totalSeasons}</p>
-              <p className="text-[10px] text-muted-foreground">Seasons</p>
+              <p className="text-micro text-muted-foreground">Seasons</p>
             </div>
             <div>
               <p className="text-lg font-black text-foreground tabular-nums">{stats.winRate}%</p>
-              <p className="text-[10px] text-muted-foreground">Win Rate</p>
+              <p className="text-micro text-muted-foreground">Win Rate</p>
             </div>
           </div>
         </GlassPanel>
@@ -111,7 +111,7 @@ const PrestigePage = () => {
                       {option.bonuses.map((bonus, j) => (
                         <span
                           key={j}
-                          className="text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+                          className="text-micro font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full"
                         >
                           {bonus}
                         </span>
@@ -125,7 +125,7 @@ const PrestigePage = () => {
           ))}
         </div>
 
-        <p className="text-[10px] text-center text-muted-foreground px-4">
+        <p className="text-micro text-center text-muted-foreground px-4">
           Prestige carries forward your manager level, career timeline, and achievements.
           Your Hall of Managers record is updated automatically.
         </p>

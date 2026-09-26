@@ -329,6 +329,29 @@ describe('a refunded, revoked or lapsed subscription ends when the store says so
     expect(monetization().subscription).toMatchObject({ productId: YEARLY, willRenew: false });
   });
 
+  it('a lapse of an OLDER subscription does not revoke Pro a returning subscriber just bought', async () => {
+    // Former Yearly subscriber: `all.pro` is inactive and stays that way while
+    // the new Monthly is not on the record (lag, or not attached to `pro`).
+    const lapsedYearly = customer({
+      active: {}, all: { pro: proEntitlement(YEARLY, { isActive: false, expiresInDays: -90 }) },
+    });
+    storeSells(MONTHLY);
+    storeRecord(lapsedYearly);
+    mockPurchases.purchasePackage.mockResolvedValue({ customerInfo: lapsedYearly });
+
+    const outcome = await purchaseAndSync(MONTHLY);
+    expect(outcome.status).toBe('completed');
+    expect(isPro(monetization())).toBe(true);
+
+    // The next customer-info read (listener, or the next launch's sync).
+    await syncStoreState();
+    const sub = extractSubscriptionInfo(lapsedYearly as never);
+    if (sub) useGameStore.getState().updateSubscription(sub);
+
+    expect(isPro(monetization())).toBe(true);
+    expect(monetization().subscription).toMatchObject({ productId: MONTHLY });
+  });
+
   it('an inactive verdict ends it even if the payload kept the original future expiry', () => {
     const sub = extractSubscriptionInfo(customer({
       active: {}, all: { pro: proEntitlement(MONTHLY, { isActive: false, expiresInDays: 20 }) },

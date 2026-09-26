@@ -87,7 +87,7 @@ export function BoardPitch() {
           </div>
           <div>
             <p className="text-xs font-bold text-primary uppercase tracking-wide">Board Interview</p>
-            <p className="text-[10px] text-muted-foreground">{clubName}</p>
+            <p className="text-micro text-muted-foreground">{clubName}</p>
           </div>
         </div>
         {step === 'pitch' && (
@@ -97,14 +97,14 @@ export function BoardPitch() {
               <span
                 key={scoreFlash.key}
                 className={cn(
-                  'text-[10px] font-bold animate-bounce',
+                  'text-micro font-bold animate-bounce',
                   scoreFlash.value > 0 ? 'text-emerald-400' : scoreFlash.value < 0 ? 'text-red-400' : 'text-muted-foreground'
                 )}
               >
                 {scoreFlash.value > 0 ? '+' : ''}{scoreFlash.value}
               </span>
             )}
-            <span className="text-[10px] text-muted-foreground font-semibold">
+            <span className="text-micro text-muted-foreground font-semibold">
               {currentQuestionIndex + 1} / {totalQuestions}
             </span>
             <button
@@ -140,7 +140,7 @@ export function BoardPitch() {
         <div className="bg-muted/20 rounded-lg p-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Users className="w-3 h-3 text-muted-foreground" />
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <span className="text-micro font-semibold text-muted-foreground uppercase tracking-wide">
               Competing Candidates
             </span>
           </div>
@@ -148,7 +148,7 @@ export function BoardPitch() {
             {competitors.map((c, i) => (
               <span
                 key={i}
-                className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-1 rounded-full"
+                className="text-micro bg-muted/40 text-muted-foreground px-2 py-1 rounded-full"
               >
                 {c.name} ({getReputationTierLabel(c.reputationTier)})
               </span>
@@ -214,9 +214,9 @@ export function BoardPitch() {
           {/* Competitors summary on rejection */}
           {result === 'rejected' && competitors.length > 0 && (
             <div className="bg-muted/20 rounded-lg p-2.5">
-              <p className="text-[10px] text-muted-foreground font-semibold mb-1">Other candidates:</p>
+              <p className="text-micro text-muted-foreground font-semibold mb-1">Other candidates:</p>
               {competitors.map((c, i) => (
-                <p key={i} className="text-[10px] text-muted-foreground/70">
+                <p key={i} className="text-micro text-muted-foreground/70">
                   {c.name} — {getReputationTierLabel(c.reputationTier)} (prev. {c.previousClub})
                 </p>
               ))}

@@ -15,7 +15,8 @@ import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
 import { probePaywallTrials } from '@/utils/trialOffer';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { Capacitor } from '@capacitor/core';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -343,7 +344,7 @@ const ShopPage = () => {
               <Star className="w-4 h-4 text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" />
               <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">Best Deal</span>
               {bundleSavingsPct != null && (
-                <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+                <span className="text-micro bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
                   Save {bundleSavingsPct}%
                 </span>
               )}
@@ -355,10 +356,10 @@ const ShopPage = () => {
               Everything in one purchase — Pro features + all 3 cosmetic packs.
             </p>
             <div className="flex flex-wrap gap-1.5 mt-2.5">
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Dynasty Pro</span>
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Manager Pack</span>
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Stadium Pack</span>
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Legends Pack</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Dynasty Pro</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Manager Pack</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Stadium Pack</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Legends Pack</span>
             </div>
             <div className="flex items-baseline gap-2 mt-3 mb-3">
               <span className="text-lg font-bold text-[hsl(var(--gold))]">
@@ -392,9 +393,9 @@ const ShopPage = () => {
           <h3 className="text-base font-display font-bold text-foreground">{STARTER_KIT.name}</h3>
           <p className="text-xs text-muted-foreground mt-1">{STARTER_KIT.description}</p>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">12 Avatars</span>
-            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">8 Title Badges</span>
-            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">3 Celebration Texts</span>
+            <span className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">12 Avatars</span>
+            <span className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">8 Title Badges</span>
+            <span className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">3 Celebration Texts</span>
           </div>
           <button
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
@@ -428,7 +429,7 @@ const ShopPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <Crown className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-emerald-400">Active Subscription</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto capitalize">
+                <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto capitalize">
                   {monetization.subscription.tier}
                 </span>
               </div>
@@ -436,13 +437,13 @@ const ShopPage = () => {
                 {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
               </p>
               {monetization.subscription.expiresAt && (
-                <p className="text-[10px] text-muted-foreground mt-1">
+                <p className="text-micro text-muted-foreground mt-1">
                   {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
                   {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
                 </p>
               )}
               {monetization.subscription.isInGracePeriod && (
-                <p className="text-[10px] text-amber-400 mt-1">
+                <p className="text-micro text-amber-400 mt-1">
                   Payment issue detected. Please update your payment method.
                 </p>
               )}
@@ -466,7 +467,7 @@ const ShopPage = () => {
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-emerald-400">Switch to Annual</span>
                 {annualSavingsPct != null && (
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
+                  <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
                     Save {annualSavingsPct}%
                   </span>
                 )}
@@ -474,7 +475,7 @@ const ShopPage = () => {
               <p className="text-xs text-muted-foreground mb-2">
                 Pay yearly and save vs your current monthly plan — same Pro features.
               </p>
-              <p className="text-[10px] text-muted-foreground/60 mb-3">
+              <p className="text-micro text-muted-foreground/60 mb-3">
                 {perPeriod('com.dynastymanager.pro.yearly', 12) && `Just ${perPeriod('com.dynastymanager.pro.yearly', 12)}/month billed yearly`}
               </p>
               {isPurchasable('com.dynastymanager.pro.yearly') && <button
@@ -520,12 +521,12 @@ const ShopPage = () => {
                       <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
                       <div className="flex items-center gap-1.5">
                         {isAnnual && annualSavingsPct != null && (
-                          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                          <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
                             Save {annualSavingsPct}%
                           </span>
                         )}
                         {isLifetime && (
-                          <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
+                          <span className="text-micro bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
                             Best Value
                           </span>
                         )}
@@ -533,13 +534,13 @@ const ShopPage = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">{product.description}</p>
                     {isMonthly && perPeriod('com.dynastymanager.pro.monthly', 30) && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.monthly', 30)}/day — cancel anytime</p>
+                      <p className="text-micro text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.monthly', 30)}/day — cancel anytime</p>
                     )}
                     {isAnnual && perPeriod('com.dynastymanager.pro.yearly', 12) && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.yearly', 12)}/month — billed yearly</p>
+                      <p className="text-micro text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.yearly', 12)}/month — billed yearly</p>
                     )}
                     {isLifetime && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
+                      <p className="text-micro text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
                     )}
                     {trials[productId] != null && (
                       <p className="text-[11px] font-semibold text-emerald-300 mb-2">
@@ -586,7 +587,7 @@ const ShopPage = () => {
             {userIsPro ? 'Your Pro Features' : 'What You Get'}
           </p>
           {userIsPro && (
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto">
+            <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto">
               Unlocked
             </span>
           )}
@@ -639,12 +640,12 @@ const ShopPage = () => {
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
-                    <span className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full">
+                    <span className="text-micro bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full">
                       {packItems.length} items
                     </span>
                   </div>
                   {owned && (
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
+                    <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
                       Owned
                     </span>
                   )}
@@ -654,7 +655,7 @@ const ShopPage = () => {
                 <button
                   onClick={() => setExpandedPack(isExpanded ? null : productId)}
                   aria-expanded={isExpanded}
-                  className="min-h-11 -mt-2 flex items-center gap-1 text-[10px] text-primary font-semibold hover:text-primary/80 transition-colors"
+                  className="min-h-11 -mt-2 flex items-center gap-1 text-micro text-primary font-semibold hover:text-primary/80 transition-colors"
                 >
                   {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   {isExpanded ? 'Hide contents' : `View all ${packItems.length} items`}
@@ -662,7 +663,7 @@ const ShopPage = () => {
                 {isExpanded && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {packItems.map(item => (
-                      <span key={item.id} className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">
+                      <span key={item.id} className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">
                         {item.name}
                       </span>
                     ))}
@@ -691,7 +692,7 @@ const ShopPage = () => {
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
             </h3>
             {bundleSavingsPct != null && (
-              <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+              <span className="text-micro bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
                 Save {bundleSavingsPct}%
               </span>
             )}
@@ -699,7 +700,7 @@ const ShopPage = () => {
           <p className="text-xs text-muted-foreground mb-2">
             {PRODUCTS['com.dynastymanager.bundle.all'].description}
           </p>
-          <p className="text-[10px] text-muted-foreground/60 mb-3">
+          <p className="text-micro text-muted-foreground/60 mb-3">
             {bundleIndividualTotal != null && (
               <><span className="line-through">{formatPrice(bundleIndividualTotal)}</span> individually</>
             )}
@@ -745,7 +746,7 @@ const ShopPage = () => {
                       <button
                         onClick={() => clearCosmetic(key)}
                         className={cn(
-                          'px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+                          'px-2.5 py-1 rounded-md text-micro font-semibold transition-all',
                           !active ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground'
                         )}
                       >
@@ -756,7 +757,7 @@ const ShopPage = () => {
                           key={item.id}
                           onClick={() => setCosmetic(key, item.id)}
                           className={cn(
-                            'px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+                            'px-2.5 py-1 rounded-md text-micro font-semibold transition-all',
                             active === item.id ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                           )}
                         >
@@ -773,7 +774,7 @@ const ShopPage = () => {
       })()}
 
       {/* ─── Fine Print ─── */}
-      <div className="text-[10px] text-muted-foreground/60 text-center px-4 pb-4 space-y-1">
+      <div className="text-micro text-muted-foreground/60 text-center px-4 pb-4 space-y-1">
         <p>
           One-time purchases and subscriptions available. Subscriptions auto-renew until cancelled.
           Purchases can be restored on any device linked to your App Store / Play Store account.
@@ -781,7 +782,7 @@ const ShopPage = () => {
         <p>
           <button
             type="button"
-            onClick={() => { void openExternalUrl(TERMS_URL); }}
+            onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}
             className="min-h-11 px-1 underline hover:text-muted-foreground transition-colors"
           >
             Terms of Service

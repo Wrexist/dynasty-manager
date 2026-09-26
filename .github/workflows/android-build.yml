@@ -85,7 +85,10 @@ jobs:
         env:
           VITE_REVENUECAT_API_KEY_ANDROID: ${{ secrets.VITE_REVENUECAT_API_KEY_ANDROID }}
           # Observability: only Sentry now (analytics travels via RC/ASC).
-          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          # Gated on the same SENTRY_ENABLED variable as the iOS build: the
+          # privacy policy says Sentry is off, and a DSN secret that exists
+          # for later must not switch it on for Android alone.
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_ENABLED == 'true' && secrets.VITE_SENTRY_DSN || '' }}
           # Optional. Unset or shorter than MIN_REDEEM_SECRET_LENGTH leaves
           # redeem codes disabled and the Settings entry hidden
           # (utils/redeemCodes.ts getRedeemSecret).

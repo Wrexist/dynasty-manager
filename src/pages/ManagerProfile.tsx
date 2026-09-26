@@ -41,7 +41,7 @@ const RecordRow = ({ label, record }: { label: string; record: RecordEntry | nul
       <div className="text-right">
         <span className="font-semibold text-foreground">{record.value}</span>
         {record.detail && <span className="text-muted-foreground ml-1">{record.detail}</span>}
-        <span className="text-[10px] text-muted-foreground ml-1.5">S{record.season}</span>
+        <span className="text-micro text-muted-foreground ml-1.5">S{record.season}</span>
       </div>
     </div>
   );
@@ -127,7 +127,7 @@ const ManagerProfile = () => {
               {isPro(monetization) && <Crown className="w-3.5 h-3.5 text-primary" />}
             </div>
             {getActiveCosmetic(monetization, 'title_badge') && (
-              <p className="text-[10px] text-primary font-semibold">{getActiveCosmetic(monetization, 'title_badge')?.replace('badge-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
+              <p className="text-micro text-primary font-semibold">{getActiveCosmetic(monetization, 'title_badge')?.replace('badge-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
             )}
             <p className="text-xs text-muted-foreground">Season {season} · {seasonHistory.length} season{seasonHistory.length !== 1 ? 's' : ''} managed</p>
           </div>
@@ -136,15 +136,15 @@ const ManagerProfile = () => {
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
             <p className="text-xl font-black text-primary tabular-nums">{winRate}%</p>
-            <p className="text-[10px] text-muted-foreground">Win Rate</p>
+            <p className="text-micro text-muted-foreground">Win Rate</p>
           </div>
           <div className="text-center">
             <p className="text-xl font-black text-foreground tabular-nums">{titles}</p>
-            <p className="text-[10px] text-muted-foreground">Titles</p>
+            <p className="text-micro text-muted-foreground">Titles</p>
           </div>
           <div className="text-center">
             <p className="text-xl font-black text-foreground tabular-nums">{topFinishes}</p>
-            <p className="text-[10px] text-muted-foreground">Top 3</p>
+            <p className="text-micro text-muted-foreground">Top 3</p>
           </div>
         </div>
       </GlassPanel>
@@ -158,15 +158,15 @@ const ManagerProfile = () => {
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <p className="text-lg font-bold text-emerald-400 tabular-nums">{managerStats.totalWins}</p>
-            <p className="text-[10px] text-muted-foreground">Won</p>
+            <p className="text-micro text-muted-foreground">Won</p>
           </div>
           <div>
             <p className="text-lg font-bold text-amber-400 tabular-nums">{managerStats.totalDraws}</p>
-            <p className="text-[10px] text-muted-foreground">Drawn</p>
+            <p className="text-micro text-muted-foreground">Drawn</p>
           </div>
           <div>
             <p className="text-lg font-bold text-destructive tabular-nums">{managerStats.totalLosses}</p>
-            <p className="text-[10px] text-muted-foreground">Lost</p>
+            <p className="text-micro text-muted-foreground">Lost</p>
           </div>
         </div>
       </GlassPanel>
@@ -189,7 +189,7 @@ const ManagerProfile = () => {
                   {h.position}{getSuffix(h.position)} · {h.points}pts
                 </span>
                 <span className={cn(
-                  'text-[10px] px-1.5 py-0.5 rounded',
+                  'text-micro px-1.5 py-0.5 rounded',
                   h.boardVerdict === 'excellent' ? 'bg-emerald-500/20 text-emerald-400' :
                   h.boardVerdict === 'good' ? 'bg-primary/20 text-primary' :
                   h.boardVerdict === 'acceptable' ? 'bg-amber-500/20 text-amber-400' :
@@ -243,11 +243,11 @@ const ManagerProfile = () => {
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mb-3">
             <div className="text-center py-2">
               <p className="text-xl font-black text-primary tabular-nums">{clubRecords.cupWins}</p>
-              <p className="text-[10px] text-muted-foreground">Cup Wins</p>
+              <p className="text-micro text-muted-foreground">Cup Wins</p>
             </div>
             <div className="text-center py-2">
               <p className="text-xl font-black text-foreground tabular-nums">{clubRecords.seasonsManaged}</p>
-              <p className="text-[10px] text-muted-foreground">Seasons</p>
+              <p className="text-micro text-muted-foreground">Seasons</p>
             </div>
           </div>
           {userIsPro ? (
@@ -267,7 +267,7 @@ const ManagerProfile = () => {
 
           {clubRecords.hallOfFame.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="text-[10px] font-semibold text-primary mb-2">Hall of Fame</p>
+              <p className="text-micro font-semibold text-primary mb-2">Hall of Fame</p>
               <div className="space-y-1">
                 {clubRecords.hallOfFame.slice(-5).reverse().map((entry, i) => (
                   <div key={i} className="flex items-center justify-between text-[11px]">
@@ -292,7 +292,7 @@ const ManagerProfile = () => {
           <div className="flex items-center gap-2 mb-3">
             <Crown className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Hall of Legends</h3>
-            <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">{retiredLegends.length}</span>
+            <span className="text-micro text-muted-foreground ml-auto tabular-nums">{retiredLegends.length}</span>
           </div>
           <div className="space-y-2">
             {[...retiredLegends]
@@ -313,7 +313,7 @@ const ManagerProfile = () => {
                 </div>
               ))}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/30">
+          <p className="text-micro text-muted-foreground mt-3 pt-2 border-t border-border/30">
             Hall legends can return as Legend cards in Elite, World Class and Legends packs.
           </p>
         </GlassPanel>
@@ -334,15 +334,15 @@ const ManagerProfile = () => {
                   <DynamicIcon name={m.icon || getMilestoneIcon(m.type)} className="w-4 h-4 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground">{m.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{m.description}</p>
-                    <p className="text-[9px] text-muted-foreground/60 mt-0.5">Season {m.season} · Week {m.week}</p>
+                    <p className="text-micro text-muted-foreground">{m.description}</p>
+                    <p className="text-micro text-muted-foreground/60 mt-0.5">Season {m.season} · Week {m.week}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
           {careerTimeline.length > 10 && (
-            <p className="text-[10px] text-muted-foreground text-center mt-2">
+            <p className="text-micro text-muted-foreground text-center mt-2">
               + {careerTimeline.length - 10} earlier milestones
             </p>
           )}
@@ -371,8 +371,8 @@ const ManagerProfile = () => {
                 )}
               >
                 <DynamicIcon name={a.icon} className="w-5 h-5 text-primary mx-auto" />
-                <p className="text-[10px] font-semibold text-foreground mt-1">{a.title}</p>
-                <p className="text-[9px] text-muted-foreground">{a.description}</p>
+                <p className="text-micro font-semibold text-foreground mt-1">{a.title}</p>
+                <p className="text-micro text-muted-foreground">{a.description}</p>
               </div>
             );
           })}

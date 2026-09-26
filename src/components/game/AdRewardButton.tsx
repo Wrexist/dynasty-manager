@@ -100,7 +100,7 @@ export function AdRewardButton({ rewardType, onRewardClaimed, claimContext, clas
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-foreground">{reward.label}</p>
-          <p className="text-[10px] text-muted-foreground">{reward.description}</p>
+          <p className="text-micro text-muted-foreground">{reward.description}</p>
         </div>
         <button
           onClick={handleClaim}

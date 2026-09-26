@@ -128,7 +128,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
               <div className="relative shrink-0">
                 <PlayerCard player={player} size="md" interactive="none" compact />
                 {hasPotential && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[9px] font-black flex items-center gap-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.5)] z-10">
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-micro font-black flex items-center gap-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.5)] z-10">
                     <Star className="w-2.5 h-2.5" />{player.potential}
                   </span>
                 )}
@@ -148,7 +148,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
             {/* Top attributes */}
             <div className="flex gap-1.5 mt-2.5">
               {top3.map(attr => (
-                <span key={attr.label} className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded">
+                <span key={attr.label} className="text-micro font-mono bg-muted/60 px-1.5 py-0.5 rounded">
                   <span className="text-muted-foreground">{attr.label}</span>{' '}
                   <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
                 </span>
@@ -198,7 +198,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
                 className="range-touch relative z-10"
               />
             </div>
-            <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums mt-0.5">
+            <div className="flex justify-between text-micro text-muted-foreground tabular-nums mt-0.5">
               <span>{formatMoney(minPrice)}</span>
               <div className="flex items-center gap-1">
                 {priceRatio > 5 && <TrendingUp className="w-3 h-3 text-amber-400" />}
@@ -237,12 +237,12 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
               </div>
             </div>
             {positionCount <= 2 && (
-              <p className="text-[10px] text-amber-400 mt-1.5">
+              <p className="text-micro text-amber-400 mt-1.5">
                 Low cover at {player.position} — consider a replacement first
               </p>
             )}
             {player.wantsToLeave && (
-              <p className="text-[10px] text-muted-foreground/70 mt-1.5">
+              <p className="text-micro text-muted-foreground/70 mt-1.5">
                 Player wants to leave — listing may improve morale
               </p>
             )}

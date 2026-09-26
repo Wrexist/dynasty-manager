@@ -23,7 +23,7 @@ export function InsightsPanel({ insights }: InsightsPanelProps) {
             name={insight.icon}
             className={cn('w-3 h-3 shrink-0', INSIGHT_STYLES[insight.type])}
           />
-          <span className={cn('text-[9px]', INSIGHT_STYLES[insight.type])}>
+          <span className={cn('text-micro', INSIGHT_STYLES[insight.type])}>
             {insight.message}
           </span>
         </div>

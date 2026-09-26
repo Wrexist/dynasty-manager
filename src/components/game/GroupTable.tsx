@@ -83,7 +83,7 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
           Group {group.id}
         </span>
         {isPlayerGroup && (
-          <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Your Group</span>
+          <span className="text-micro bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Your Group</span>
         )}
       </button>
 
@@ -131,7 +131,7 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
                       >
                         <td className={cn('py-1.5 font-medium', qualifies ? qColors.text : 'text-muted-foreground')}>
                           {s.played >= 6 ? (
-                            <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded', qualifies ? qColors.badge : 'bg-destructive/20 text-destructive')}>
+                            <span className={cn('text-micro font-bold px-1 py-0.5 rounded', qualifies ? qColors.badge : 'bg-destructive/20 text-destructive')}>
                               {qualifies ? 'Q' : 'E'}
                             </span>
                           ) : idx + 1}
@@ -167,7 +167,7 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
               {/* Toggle matches */}
               <button
                 onClick={() => setShowMatches(!showMatches)}
-                className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                className="mt-2 text-micro text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showMatches ? 'Hide matches' : 'Show matches'}
               </button>
@@ -187,7 +187,7 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
                       const allPlayed = mdMatches.every(m => m.played);
                       return (
                         <div key={md}>
-                          <div className={cn('text-[10px] font-medium py-1', md === currentMatchday ? 'text-primary' : 'text-muted-foreground')}>
+                          <div className={cn('text-micro font-medium py-1', md === currentMatchday ? 'text-primary' : 'text-muted-foreground')}>
                             Matchday {md} {md === currentMatchday && !allPlayed ? '(Current)' : ''}
                           </div>
                           {mdMatches.map(m => (

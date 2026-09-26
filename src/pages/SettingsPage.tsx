@@ -32,7 +32,8 @@ import { track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
 import { isPro, hasRecurringSubscription } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { Capacitor } from '@capacitor/core';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
@@ -84,7 +85,7 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
         <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="min-w-0">
           <p className="text-sm text-foreground leading-tight">{label}</p>
-          <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{description}</p>
+          <p className="text-micro text-muted-foreground leading-snug mt-0.5">{description}</p>
         </div>
       </div>
       {/* The switch is a 44x44 target around the 44x24 track (the track
@@ -413,7 +414,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               <Zap className="w-4 h-4 text-muted-foreground" />
               <div>
                 <p className="text-sm text-foreground">Match Speed</p>
-                <p className="text-[10px] text-muted-foreground">How fast match events play out</p>
+                <p className="text-micro text-muted-foreground">How fast match events play out</p>
               </div>
             </div>
             <div className="flex p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.28)]">
@@ -492,10 +493,10 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <div className="flex gap-2.5">
             <ShieldAlert className="w-4 h-4 flex-shrink-0 text-amber-300 mt-0.5" />
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+              <p className="text-micro font-semibold uppercase tracking-wider text-amber-200">
                 Community-sourced — not our data
               </p>
-              <p className="text-[10px] leading-snug text-amber-100/85">
+              <p className="text-micro leading-snug text-amber-100/85">
                 Player data is community-sourced. Dynasty Manager didn't create
                 the real-player pool; it's a community-compiled dataset loaded
                 offline on your device. This app is <strong>not affiliated with
@@ -507,7 +508,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           </div>
         </div>
 
-        <p className="text-[10px] text-muted-foreground/70 leading-snug mt-3">
+        <p className="text-micro text-muted-foreground/70 leading-snug mt-3">
           Changing this applies to new games only — existing saves keep the setting they were started with.
         </p>
       </SettingsSection>
@@ -686,7 +687,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       {variant === 'in-game' && (
       <SettingsSection title={t('settings.backupRestore')}>
         <div className="space-y-3">
-          <p className="text-[10px] text-muted-foreground leading-snug">
+          <p className="text-micro text-muted-foreground leading-snug">
             Save a copy of this career to a file you control, or restore one on a
             new device. Importing overwrites the current slot — export first if
             you want to keep it.
@@ -707,7 +708,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               </LiquidButton>
             ) : (
               <div className="space-y-2">
-                <p className="text-[10px] text-amber-400/90 leading-snug flex items-start gap-1.5">
+                <p className="text-micro text-amber-400/90 leading-snug flex items-start gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
                   This replaces the save in slot {activeSlot}. This can't be undone.
                 </p>
@@ -760,7 +761,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             <span className="flex items-center justify-start gap-3 px-3 w-full">
               <Sparkles className="w-4 h-4" />
               <span className="flex-1 text-left">What&apos;s New</span>
-              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium tabular-nums">
+              <span className="flex items-center gap-1.5 text-micro text-muted-foreground font-medium tabular-nums">
                 <span>v{LATEST_RELEASE.version}</span>
                 {hasUnseenWhatsNew() && (
                   <span
@@ -808,7 +809,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Purchases</h3>
           {userIsPro && (
-            <span className="text-[10px] bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
+            <span className="text-micro bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
               <Crown className="w-3 h-3" /> Pro
             </span>
           )}
@@ -821,18 +822,18 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               <span className="text-xs font-semibold text-foreground">
                 {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
               </span>
-              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize border border-primary/30">
+              <span className="text-micro bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize border border-primary/30">
                 {monetization.subscription.tier}
               </span>
             </div>
             {monetization.subscription.expiresAt && (
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
                 {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
               </p>
             )}
             {monetization.subscription.isInGracePeriod && (
-              <p className="text-[10px] text-amber-400">
+              <p className="text-micro text-amber-400">
                 Payment issue detected. Please update your payment method.
               </p>
             )}
@@ -855,7 +856,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </span>
           </LiquidButton>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+        <p className="text-micro text-muted-foreground mt-2 leading-snug">
           Restore previously purchased items from your App Store or Play Store account.
         </p>
       </SettingsSection>
@@ -878,7 +879,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </span>
           </LiquidButton>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+        <p className="text-micro text-muted-foreground mt-2 leading-snug">
           Report a bug, request a feature, or get help with a purchase.
         </p>
       </SettingsSection>
@@ -892,7 +893,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               Privacy Policy
             </span>
           </LiquidButton>
-          <LiquidButton onClick={() => { void openExternalUrl(TERMS_URL); }}>
+          <LiquidButton onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}>
             <span className="flex items-center justify-start gap-3 px-3">
               <FileText className="w-4 h-4" />
               Terms of Service
@@ -917,7 +918,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <div className="space-y-3">
             <div className="rounded-2xl p-3 bg-destructive/10 border border-destructive/30 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.3)]">
               <p className="text-xs text-red-300 font-semibold mb-1">This cannot be undone</p>
-              <p className="text-[10px] text-muted-foreground leading-snug">
+              <p className="text-micro text-muted-foreground leading-snug">
                 This will permanently delete all save games, career history, Hall of Managers records, and preferences from this device.
               </p>
             </div>
@@ -931,7 +932,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </div>
           </div>
         )}
-        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+        <p className="text-micro text-muted-foreground mt-2 leading-snug">
           Remove all game data stored on this device. Subscription status is managed by your App Store or Play Store account.
         </p>
       </SettingsSection>
@@ -944,7 +945,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           save. A marketing capture tool is not a player-facing feature. */}
       {DEV_TOOLS_ENABLED && (
       <SettingsSection title={t('settings.captureStudio')}>
-        <p className="text-[10px] text-muted-foreground leading-snug mb-3">
+        <p className="text-micro text-muted-foreground leading-snug mb-3">
           Staged World Cup finals for screen-recording promo videos. Each scenario
           runs as a throwaway session — nothing in it is ever saved, and your
           saved games stay exactly as they are on disk.
@@ -955,7 +956,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             pendingCaptureId === sc.id ? (
               <div key={sc.id} className="rounded-2xl p-3 bg-primary/10 border border-primary/30 backdrop-blur-md space-y-2">
                 <p className="text-xs font-semibold text-foreground">{sc.title}</p>
-                <p className="text-[10px] text-muted-foreground leading-snug">{sc.tagline}</p>
+                <p className="text-micro text-muted-foreground leading-snug">{sc.tagline}</p>
                 <div className="flex gap-2">
                   <LiquidButton className="flex-1" onClick={() => {
                     const ok = startCaptureScenario(sc);
@@ -977,7 +978,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                   <Clapperboard className="w-4 h-4 shrink-0" />
                   <span className="min-w-0">
                     <span className="block text-sm leading-tight">{sc.title}</span>
-                    <span className="block text-[10px] text-muted-foreground leading-snug font-normal">{sc.tagline}</span>
+                    <span className="block text-micro text-muted-foreground leading-snug font-normal">{sc.tagline}</span>
                   </span>
                 </span>
               </LiquidButton>
@@ -996,7 +997,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               Reset Pro &amp; open paywall
             </span>
           </LiquidButton>
-          <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+          <p className="text-micro text-muted-foreground mt-2 leading-snug">
             Clears local Pro/entitlement state and opens the subscribe screen so
             the purchase &amp; restore flow can be re-tested. Non-destructive —
             store-owned products re-restore on the next app launch.
@@ -1008,7 +1009,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                 Throw test error (Sentry)
               </span>
             </LiquidButton>
-            <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+            <p className="text-micro text-muted-foreground mt-2 leading-snug">
               Fires an uncaught error to verify the crash-reporting pipeline.
             </p>
           </div>
@@ -1023,7 +1024,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           className="w-12 h-12 drop-shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
         />
         <p className="text-xs text-foreground/80 font-semibold tracking-wide">Dynasty Manager</p>
-        <p className="text-[10px] text-muted-foreground">{APP_VERSION}</p>
+        <p className="text-micro text-muted-foreground">{APP_VERSION}</p>
       </div>
 
       {/* Feedback Sheet — matching liquid-glass treatment.

@@ -205,7 +205,7 @@ const SeasonSummary = () => {
                       <span className="flex-1 truncate text-sm">
                         {away?.shortName ?? tie.awayClubId}
                       </span>
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground w-12 text-right shrink-0">
+                      <span className="text-micro uppercase tracking-wider text-muted-foreground w-12 text-right shrink-0">
                         {isFinal ? t('season.playoffFinal') : t('season.playoffSemi')}
                       </span>
                     </div>
@@ -276,7 +276,7 @@ const SeasonSummary = () => {
               </p>
               <p className="text-xs text-muted-foreground mt-1">{nearMiss.text}</p>
               {nearMiss.type === 'title' && (
-                <p className="text-[10px] text-primary/70 mt-2 font-medium">Next season is your chance.</p>
+                <p className="text-micro text-primary/70 mt-2 font-medium">Next season is your chance.</p>
               )}
             </GlassPanel>
           </motion.div>
@@ -296,7 +296,7 @@ const SeasonSummary = () => {
             ].map(s => (
               <div key={s.label}>
                 <p className={cn('text-2xl font-black', s.color)}>{s.value}</p>
-                <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                <p className="text-micro text-muted-foreground">{s.label}</p>
               </div>
             ))}
           </div>
@@ -398,15 +398,15 @@ const SeasonSummary = () => {
                 >
                   <DynamicIcon name={AWARD_ICONS[award.name] || 'trophy'} className="w-5 h-5 text-primary" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{award.name}</p>
+                    <p className="text-micro text-muted-foreground uppercase tracking-wider">{award.name}</p>
                     <p className={cn('text-xs font-bold truncate', award.recipientClub === playerClubShort ? 'text-primary' : 'text-foreground')}>
                       {award.recipientName}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">{award.recipientClub}</p>
+                    <p className="text-micro text-muted-foreground">{award.recipientClub}</p>
                   </div>
                   {award.stat !== undefined && (
                     <p className="text-sm font-black text-foreground tabular-nums">
-                      {award.stat} <span className="text-[10px] text-muted-foreground font-normal">{AWARD_STAT_LABELS[award.name] || ''}</span>
+                      {award.stat} <span className="text-micro text-muted-foreground font-normal">{AWARD_STAT_LABELS[award.name] || ''}</span>
                     </p>
                   )}
                 </motion.div>
@@ -445,7 +445,7 @@ const SeasonSummary = () => {
                   </div>
                 ))}
                 {bestXI.filter(p => p.recipientClub === playerClubShort).length > 0 && (
-                  <p className="text-[10px] text-primary text-center mt-1">
+                  <p className="text-micro text-primary text-center mt-1">
                     {bestXI.filter(p => p.recipientClub === playerClubShort).length} of your players made the Best XI!
                   </p>
                 )}
@@ -478,26 +478,26 @@ const SeasonSummary = () => {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-wider font-bold">Ballon d'Or Winner</p>
+                    <p className="text-micro text-[hsl(43,96%,56%)] uppercase tracking-wider font-bold">Ballon d'Or Winner</p>
                     <p className="text-sm font-black text-foreground truncate">{winner.playerName}</p>
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: winner.clubColor }} />
-                      <span className="text-[10px] text-muted-foreground">{winner.clubName}</span>
-                      <span className="text-[10px] text-muted-foreground">·</span>
-                      <span className="text-[10px] text-muted-foreground">{winner.goals}G {winner.assists}A</span>
+                      <span className="text-micro text-muted-foreground">{winner.clubName}</span>
+                      <span className="text-micro text-muted-foreground">·</span>
+                      <span className="text-micro text-muted-foreground">{winner.goals}G {winner.assists}A</span>
                     </div>
                   </div>
                   <span className="text-lg font-black text-[hsl(43,96%,56%)] tabular-nums">{winner.score.toFixed(1)}</span>
                 </div>
                 {yourPlayers.length > 0 && (
-                  <p className="text-[10px] text-primary mt-2 pt-2 border-t border-border/30 text-center">
+                  <p className="text-micro text-primary mt-2 pt-2 border-t border-border/30 text-center">
                     {yourPlayers.length} of your players made the Ballon d'Or Top 25!
                   </p>
                 )}
                 <button
                   type="button"
                   onClick={() => setScreen('ballon-dor')}
-                  className="mt-1 w-full text-center font-bold text-[10px] text-primary hover:underline inline-flex items-center justify-center gap-1"
+                  className="mt-1 w-full text-center font-bold text-micro text-primary hover:underline inline-flex items-center justify-center gap-1"
                 >
                   View Full Rankings
                   <ChevronRight className="w-3 h-3" />
@@ -520,7 +520,7 @@ const SeasonSummary = () => {
         {/* Financial Recap */}
         {latest.financialSummary && (
           <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Financial Recap</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Financial Recap</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Income</p>
@@ -543,10 +543,10 @@ const SeasonSummary = () => {
         {/* Transfer Activity */}
         {latest.transferActivity && (latest.transferActivity.bought.length > 0 || latest.transferActivity.sold.length > 0) && (
           <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Transfer Activity</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Transfer Activity</p>
             {latest.transferActivity.bought.length > 0 && (
               <div className="mb-2">
-                <p className="text-[10px] text-emerald-400 font-semibold mb-1">Signed ({latest.transferActivity.bought.length})</p>
+                <p className="text-micro text-emerald-400 font-semibold mb-1">Signed ({latest.transferActivity.bought.length})</p>
                 {latest.transferActivity.bought.map((t, i) => (
                   <div key={i} className="flex justify-between text-xs">
                     <span className="text-foreground">{t.playerName}</span>
@@ -557,7 +557,7 @@ const SeasonSummary = () => {
             )}
             {latest.transferActivity.sold.length > 0 && (
               <div>
-                <p className="text-[10px] text-destructive font-semibold mb-1">Sold ({latest.transferActivity.sold.length})</p>
+                <p className="text-micro text-destructive font-semibold mb-1">Sold ({latest.transferActivity.sold.length})</p>
                 {latest.transferActivity.sold.map((t, i) => (
                   <div key={i} className="flex justify-between text-xs">
                     <span className="text-foreground">{t.playerName}</span>
@@ -572,7 +572,7 @@ const SeasonSummary = () => {
         {/* Squad Development */}
         {latest.squadStrengthDelta && (
           <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Squad Development</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Squad Development</p>
             <div className="flex items-center justify-center gap-4">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Start</p>
@@ -659,14 +659,14 @@ const SeasonSummary = () => {
             {careerManager.awardsWon.filter(a => a.season === season - 1).length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {careerManager.awardsWon.filter(a => a.season === season - 1).map((award, idx) => (
-                  <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-semibold">
+                  <span key={idx} className="text-micro bg-primary/10 text-primary px-2 py-1 rounded-lg font-semibold">
                     {award.type === 'manager_of_month' ? 'Manager of the Month' : 'Manager of the Season'}
                   </span>
                 ))}
               </div>
             )}
             {careerManager.contract?.bonuses.some(b => b.met) && (
-              <p className="text-[10px] text-emerald-400 font-semibold">
+              <p className="text-micro text-emerald-400 font-semibold">
                 Bonuses earned: {careerManager.contract.bonuses.filter(b => b.met).map(b => getManagerBonusLabel(b.condition)).join(', ')}
               </p>
             )}

@@ -279,11 +279,11 @@ export default function PitchView({
         <ScoreCrest color={homeColor} />
         <span className="text-[11px] font-bold tracking-tight text-foreground">{teamCode(homeClub.shortName)}</span>
         <span className="px-0.5 text-sm font-extrabold leading-none tabular-nums text-foreground">{score.hg}</span>
-        <span className="text-[10px] leading-none text-muted-foreground">–</span>
+        <span className="text-micro leading-none text-muted-foreground">–</span>
         <span className="px-0.5 text-sm font-extrabold leading-none tabular-nums text-foreground">{score.ag}</span>
         <span className="text-[11px] font-bold tracking-tight text-foreground">{teamCode(awayClub.shortName)}</span>
         <ScoreCrest color={awayColor} />
-        <span className="ml-0.5 rounded bg-primary/15 px-1 py-0.5 text-[10px] font-semibold leading-none tabular-nums text-primary">{minute}'</span>
+        <span className="ml-0.5 rounded bg-primary/15 px-1 py-0.5 text-micro font-semibold leading-none tabular-nums text-primary">{minute}'</span>
       </div>
 
       {/* Tactical-wide / broadcast-follow camera toggle. */}
@@ -296,7 +296,7 @@ export default function PitchView({
           aria-pressed={tacticalWide}
         >
           {tacticalWide ? <Minimize2 className="h-3 w-3 text-primary" /> : <Maximize2 className="h-3 w-3 text-primary" />}
-          <span className="text-[10px] font-semibold text-foreground">{tacticalWide ? 'Follow' : 'Wide'}</span>
+          <span className="text-micro font-semibold text-foreground">{tacticalWide ? 'Follow' : 'Wide'}</span>
         </button>
       )}
 
@@ -309,7 +309,7 @@ export default function PitchView({
             exit={{ opacity: 0 }}
           >
             <div className="flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40">
-              <span className="text-[10px] font-semibold text-foreground">{playerClub.shortName} attack</span>
+              <span className="text-micro font-semibold text-foreground">{playerClub.shortName} attack</span>
               <span className="text-primary text-xs leading-none">{landscape ? '→' : '↑'}</span>
             </div>
           </motion.div>
@@ -324,7 +324,7 @@ export default function PitchView({
           aria-label={tr('pitchView.replayLastGoal')}
         >
           <RotateCcw className="h-3 w-3 text-primary" />
-          <span className="text-[10px] font-semibold text-foreground">Replay</span>
+          <span className="text-micro font-semibold text-foreground">Replay</span>
         </button>
       )}
 
@@ -380,21 +380,21 @@ export default function PitchView({
         <div className="absolute inset-x-0 bottom-0 z-[8] p-2" aria-live="polite">
           <div className="pointer-events-auto mx-auto flex max-w-[94%] items-center gap-2.5 rounded-lg border border-border/50 bg-card/90 px-3 py-2 shadow-xl backdrop-blur-md">
             <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ring-1 ring-black/30"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-micro font-bold text-white ring-1 ring-black/30"
               style={{ backgroundColor: (inspectIsHome ? homeColor : awayColor) || '#888888' }}
             >
               {inspectPlayer.position}
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold leading-tight text-foreground">{inspectPlayer.firstName} {inspectPlayer.lastName}</p>
-              <p className="truncate text-[10px] text-muted-foreground">{inspectPlayer.position} · Age {inspectPlayer.age} · {inspectPlayer.nationality}</p>
+              <p className="truncate text-micro text-muted-foreground">{inspectPlayer.position} · Age {inspectPlayer.age} · {inspectPlayer.nationality}</p>
             </div>
             <div className="text-center">
-              <p className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">OVR</p>
+              <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">OVR</p>
               <p className="text-lg font-extrabold leading-none text-primary">{inspectPlayer.overall}</p>
             </div>
             <div className="text-center">
-              <p className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">Fit</p>
+              <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Fit</p>
               <p className="text-sm font-bold leading-none text-foreground tabular-nums">{Math.round(inspectPlayer.fitness)}%</p>
             </div>
             <button onClick={() => setInspectId(null)} className="ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-bold text-muted-foreground active:scale-90" aria-label="Close player card">✕</button>

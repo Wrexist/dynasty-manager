@@ -180,7 +180,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
 
         {/* What you get — the outcomes that are not probabilities at all. */}
         <div className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 mb-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-1.5">
+          <h3 className="text-micro font-semibold uppercase tracking-widest text-primary mb-1.5">
             What you get
           </h3>
           <div className="flex items-start gap-2">
@@ -266,7 +266,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
              card count: bonus cards also roll in the band, so a bonus on a
              one-card pack used to flip this sheet back to the rarity table. */
           <div className="text-xs">
-            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground pb-1.5">
+            <div className="flex items-center justify-between text-micro uppercase tracking-widest text-muted-foreground pb-1.5">
               <span className="font-semibold">Rating</span>
               <span className="font-semibold">Chance</span>
             </div>
@@ -294,7 +294,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
         <table className="w-full text-xs">
           <caption className="sr-only">Per-card drop rates for the {tier.label}</caption>
           <thead>
-            <tr className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr className="text-micro uppercase tracking-widest text-muted-foreground">
               <th scope="col" className="text-left font-semibold pb-1.5">Rarity</th>
               <th scope="col" className="text-right font-semibold pb-1.5">Chance per card</th>
             </tr>
@@ -340,7 +340,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
             visible promise rather than a surprise. */}
         {ladder && ladder.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+            <h3 className="text-micro font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
               Streak ladder
             </h3>
             <ul className="space-y-1">

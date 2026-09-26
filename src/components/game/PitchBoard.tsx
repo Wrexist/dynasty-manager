@@ -186,7 +186,7 @@ export const PitchBoard = memo(function PitchBoard({
                     <span
                       className="w-[52px] aspect-[3/4] rounded-[7px] border border-dashed border-white/20 bg-white/5 flex items-center justify-center"
                     >
-                      <span className="text-[9px] font-semibold uppercase tracking-wide text-white/50" aria-hidden>
+                      <span className="text-micro font-semibold uppercase tracking-wide text-white/50" aria-hidden>
                         {slot.pos}
                       </span>
                     </span>

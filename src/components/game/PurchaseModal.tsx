@@ -4,7 +4,7 @@ import { PRODUCTS } from '@/config/monetization';
 import type { ProductId } from '@/types/game';
 import { Crown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
@@ -145,14 +145,14 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground/50 text-center">
+          <p className="text-micro text-muted-foreground/50 text-center">
             {isSubscription && product.billingPeriod !== 'one-time'
               ? 'Auto-renews until cancelled. Manage in your App Store or Play Store settings.'
               : 'One-time purchase. Works offline. No recurring charges.'}
             {' '}
             <button
               type="button"
-              onClick={() => { void openExternalUrl(TERMS_URL); }}
+              onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}
               className="underline hover:text-muted-foreground transition-colors"
             >
               Terms

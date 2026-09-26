@@ -149,6 +149,27 @@ function isNewerObservedLapse(candidate: SubscriptionInfo, other: SubscriptionIn
 }
 
 /**
+ * Should a sync refuse to write `incoming` over `current`?
+ *
+ * True when `incoming` is an observed lapse (see `isNewerObservedLapse`) that
+ * ended before `current` — still active — was written. The live sync paths
+ * (GameShell's launch sync and listener, `syncStoreState`) apply the same rule
+ * `mergeDeviceMonetization` applies on load: a returning subscriber whose old
+ * Yearly lapsed buys Monthly, `purchaseAndSync` writes its local record because
+ * the customer record has not caught up (or Monthly is not attached to `pro`),
+ * and the next payload still reports the old Yearly as inactive. That verdict
+ * is about a subscription that ended before this purchase, so it must not
+ * revoke the Pro the player just paid for.
+ */
+export function isStaleLapseOver(incoming: SubscriptionInfo | null, current: SubscriptionInfo | null): boolean {
+  if (!incoming || !current || isSubscriptionExpired(current)) return false;
+  const expires = isoMs(incoming.expiresAt);
+  const observed = isoMs(incoming.grantedAt);
+  if (!Number.isFinite(expires) || !Number.isFinite(observed) || expires > observed) return false;
+  return !isNewerObservedLapse(incoming, current);
+}
+
+/**
  * Merge the device-scoped purchase fields of two monetization records, keeping
  * whichever side actually proves a purchase.
  *

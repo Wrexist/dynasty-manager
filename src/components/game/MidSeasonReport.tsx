@@ -106,7 +106,7 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
                 <Trophy className="w-6 h-6 text-primary" />
               </div>
               <h2 className="text-base font-bold text-foreground font-display">Mid-Season Report</h2>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Season {season} — Halfway Point</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Season {season} — Halfway Point</p>
             </div>
 
             {/* Position */}
@@ -124,19 +124,19 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
             <div className="flex items-center justify-around text-center">
               <div>
                 <p className="text-lg font-black text-emerald-400">{wins}</p>
-                <p className="text-[10px] text-muted-foreground">Won</p>
+                <p className="text-micro text-muted-foreground">Won</p>
               </div>
               <div>
                 <p className="text-lg font-black text-amber-400">{draws}</p>
-                <p className="text-[10px] text-muted-foreground">Drawn</p>
+                <p className="text-micro text-muted-foreground">Drawn</p>
               </div>
               <div>
                 <p className="text-lg font-black text-destructive">{losses}</p>
-                <p className="text-[10px] text-muted-foreground">Lost</p>
+                <p className="text-micro text-muted-foreground">Lost</p>
               </div>
               <div>
                 <p className="text-lg font-black text-foreground">{entry?.points ?? 0}</p>
-                <p className="text-[10px] text-muted-foreground">Points</p>
+                <p className="text-micro text-muted-foreground">Points</p>
               </div>
             </div>
 
@@ -153,7 +153,7 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
             {/* Board confidence */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Board Confidence</span>
+                <span className="text-micro text-muted-foreground">Board Confidence</span>
                 <span className="text-xs font-bold text-foreground">{boardConfidence}%</span>
               </div>
               <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">

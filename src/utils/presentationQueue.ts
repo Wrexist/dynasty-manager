@@ -119,7 +119,10 @@ export const OVERLAY_OVERFLOW: Record<OverlayId, OverflowPolicy> = {
   achievement: 'inbox',
   gemReveal: 'inbox',
   farewell: 'inbox',
-  notifPrompt: 'defer',
+  // Fires once per career, on the first win, from a flag held only in memory:
+  // deferring it past a busy advance lost the ask on the next relaunch, or
+  // showed its "Great win!" copy weeks later. Low priority, never suppressed.
+  notifPrompt: 'never',
   // The modal is the only place the streak reward can be claimed; suppressing
   // it could cost the player a streak day.
   dailyReward: 'never',

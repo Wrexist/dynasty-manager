@@ -44,6 +44,24 @@ function enrichVacanciesWithLeagueData(
  * `finalizeSeason` does before a tournament. History (results, caps, goals,
  * formation, ranking) is kept as-is.
  */
+/**
+ * Move a freshly initialised world (built as season 1) to `offset` seasons
+ * later: every player's `contractEnd` and `joinedSeason` shift with it, so a
+ * contract generated to run "2 to 5 seasons from now" still does.
+ */
+function rebaseWorldSeason(players: Record<string, Player>, offset: number): Record<string, Player> {
+  if (!(offset > 0)) return players;
+  const out: Record<string, Player> = {};
+  for (const [id, p] of Object.entries(players)) {
+    out[id] = {
+      ...p,
+      contractEnd: p.contractEnd + offset,
+      ...(typeof p.joinedSeason === 'number' && { joinedSeason: p.joinedSeason + offset }),
+    };
+  }
+  return out;
+}
+
 function carryNationalTeam(
   nt: NationalTeamState,
   oldPlayers: Record<string, Player>,
@@ -665,8 +683,13 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       const applyNewClub = () => {
       const newState = get();
       const club = newState.clubs[clubId];
+      // initGame builds the new world as season 1 (contracts end in 2..5), but
+      // the career continues at `continuedSeason`. Without moving the world's
+      // season stamps along, a move at season 5 put every contract in the new
+      // world at or past expiry: the whole world walked at the next season end.
+      const worldPlayers = rebaseWorldSeason(newState.players, continuedSeason - 1);
       const carried = ntCarry.nationalTeam
-        ? carryNationalTeam(ntCarry.nationalTeam, ntCarry.players, newState.players, continuedSeason, newState.week, !!cpEnabled)
+        ? carryNationalTeam(ntCarry.nationalTeam, ntCarry.players, worldPlayers, continuedSeason, newState.week, !!cpEnabled)
         : null;
 
       const contract = {
@@ -709,7 +732,8 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         managerNationality: ntCarry.managerNationality,
         nationalTeamOffer: ntCarry.nationalTeamOffer,
         showNationalTeamOffer: ntCarry.showNationalTeamOffer,
-        ...(carried && { nationalTeam: carried.nationalTeam, players: carried.players }),
+        players: carried ? carried.players : worldPlayers,
+        ...(carried && { nationalTeam: carried.nationalTeam }),
       });
       };
 

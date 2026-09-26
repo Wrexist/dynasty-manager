@@ -1075,7 +1075,7 @@ const MatchDayInner = () => {
 
   const FormationPicker = () => (
     <div>
-      <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
+      <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
       {/* 3-up grid instead of wrapping 21px chips — these are tapped mid-match
           with the clock running, so every cell clears 44pt. */}
       <div className="grid grid-cols-3 gap-1.5">
@@ -1126,7 +1126,7 @@ const MatchDayInner = () => {
       {/* Momentum Meter & Tactical Insights */}
       {isLive && (
         <div className="px-1 space-y-1.5">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+          <div className="flex items-center justify-between text-micro text-muted-foreground mb-1">
             <span>{t('matchDay.momentum')}</span>
             <span className="tabular-nums">{homeMomPct}% - {100 - homeMomPct}%</span>
           </div>
@@ -1144,7 +1144,7 @@ const MatchDayInner = () => {
           </div>
           {/* Momentum label */}
           {Math.abs(currentMomentum) > 40 && (
-            <p className="text-[9px] text-center font-semibold" style={{ color: currentMomentum > 0 ? homeClub.color : awayBarColor }}>
+            <p className="text-micro text-center font-semibold" style={{ color: currentMomentum > 0 ? homeClub.color : awayBarColor }}>
               <Activity className="w-3 h-3 inline mr-0.5" />
               {Math.abs(currentMomentum) > 70 ? 'Dominant' : 'Building'} momentum for {currentMomentum > 0 ? homeClub.shortName : awayClub.shortName}
             </p>
@@ -1166,7 +1166,7 @@ const MatchDayInner = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center"
             >
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                 <Megaphone className="w-2.5 h-2.5" />
                 {activeShout.type === 'push_forward' ? 'PUSH FORWARD!' : activeShout.type === 'hold_the_line' ? 'HOLD THE LINE!' : activeShout.type === 'calm_down' ? 'CALM DOWN!' : 'TIME WASTE!'}
                 <span className="text-amber-400/60 ml-1">({activeShout.startMinute + SHOUT_DURATION - currentMin}' left)</span>
@@ -1186,7 +1186,7 @@ const MatchDayInner = () => {
             {/* Competition Badge */}
             {competitionInfo && (
               <div className="text-center mb-1">
-                <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border', competitionInfo.bg)}>
+                <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-wider border', competitionInfo.bg)}>
                   <Trophy className="w-3 h-3" />
                   <span className={competitionInfo.color}>{competitionInfo.name}</span>
                   {competitionInfo.round && (
@@ -1203,7 +1203,7 @@ const MatchDayInner = () => {
             <div className="text-center space-y-1.5">
               <span
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest',
+                  'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-widest',
                   isPlayerHome
                     ? 'bg-primary/15 text-primary border border-primary/30'
                     : 'bg-muted/40 text-muted-foreground border border-border/50'
@@ -1225,7 +1225,7 @@ const MatchDayInner = () => {
                   <span className="font-medium">{venueClub.stadiumName}</span>
                 </div>
                 {venueClub.stadiumCapacity && (
-                  <p className="text-[10px] text-muted-foreground/60">
+                  <p className="text-micro text-muted-foreground/60">
                     Capacity: {venueClub.stadiumCapacity.toLocaleString()}
                   </p>
                 )}
@@ -1252,10 +1252,10 @@ const MatchDayInner = () => {
             {highStakes.highStakes && (
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  <span className="inline-flex items-center gap-1.5 text-micro font-bold uppercase tracking-wider text-primary">
                     <Flame className="w-3 h-3" /> {highStakesLabel(highStakes.reason)} — Team Talk
                   </span>
-                  <span className="text-[9px] text-muted-foreground/70">Sets the first-half mood</span>
+                  <span className="text-micro text-muted-foreground/70">Sets the first-half mood</span>
                 </div>
                 {TEAM_TALK_OPTIONS.map(talk => {
                   const TalkIcon = talk.id === 'motivate' ? Flame : talk.id === 'calm' ? Shield : AlertTriangle;
@@ -1282,9 +1282,9 @@ const MatchDayInner = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
-                        <p className="text-[10px] text-muted-foreground italic truncate">"{talk.description}"</p>
+                        <p className="text-micro text-muted-foreground italic truncate">"{talk.description}"</p>
                       </div>
-                      {isSelected && <span className="text-[9px] text-primary/70 uppercase tracking-wider font-medium shrink-0">Selected</span>}
+                      {isSelected && <span className="text-micro text-primary/70 uppercase tracking-wider font-medium shrink-0">Selected</span>}
                     </button>
                   );
                 })}
@@ -1342,9 +1342,9 @@ const MatchDayInner = () => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-primary" />
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactics</p>
+                    <p className="text-micro text-muted-foreground uppercase tracking-wider">Tactics</p>
                   </div>
-                  <p className="text-[10px] text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
+                  <p className="text-micro text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
                 </div>
 
                 {/* Situational headline */}
@@ -1375,14 +1375,14 @@ const MatchDayInner = () => {
                           }
                         }}
                         className={cn(
-                          "flex-1 min-h-11 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-[10px] font-semibold transition-all active:scale-[0.97]",
+                          "flex-1 min-w-0 min-h-11 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-micro font-semibold transition-all active:scale-[0.97]",
                           isActive
                             ? 'bg-primary/20 text-primary border border-primary/30'
                             : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-border/30'
                         )}
                       >
                         <ChoiceIcon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{choice.label}</span>
+                        <span className="text-left leading-tight">{choice.label}</span>
                       </button>
                     );
                   })}
@@ -1394,7 +1394,7 @@ const MatchDayInner = () => {
                 {/* Expandable custom tactics */}
                 <button
                   onClick={() => setShowHalftimeCustomTactics(!showHalftimeCustomTactics)}
-                  className="w-full min-h-11 text-[10px] text-muted-foreground/60 hover:text-muted-foreground mt-1 transition-colors flex items-center justify-center gap-1"
+                  className="w-full min-h-11 text-micro text-muted-foreground/60 hover:text-muted-foreground mt-1 transition-colors flex items-center justify-center gap-1"
                 >
                   {showHalftimeCustomTactics ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   {showHalftimeCustomTactics ? 'Hide custom tactics' : 'Fine-tune tactics...'}
@@ -1411,8 +1411,8 @@ const MatchDayInner = () => {
           {/* Team Talk */}
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Team Talk</p>
-              <p className="text-[9px] text-muted-foreground/60">Your words affect intensity & energy</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Team Talk</p>
+              <p className="text-micro text-muted-foreground/60">Your words affect intensity & energy</p>
             </div>
             <div className="space-y-2">
               {TEAM_TALK_OPTIONS.map(talk => {
@@ -1444,15 +1444,15 @@ const MatchDayInner = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={cn("text-xs font-semibold", isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
-                        {isSelected && <span className="text-[10px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
+                        {isSelected && <span className="text-micro text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
+                      <p className="text-micro text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {talk.effects.map((effect, i) => (
                           <span
                             key={i}
                             className={cn(
-                              "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium",
+                              "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-micro font-medium",
                               effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
                               effect.type === 'negative' && 'bg-red-500/15 text-red-400',
                               effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
@@ -1475,7 +1475,7 @@ const MatchDayInner = () => {
           {/* Sub button at half-time */}
           {matchSubsUsed < MAX_SUBSTITUTIONS && (
             <GlassPanel className="p-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Substitutions</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Substitutions</p>
               <Button className="w-full min-h-11 gap-2" onClick={() => setSubSheetOpen(true)}>
                 <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
               </Button>
@@ -1538,8 +1538,8 @@ const MatchDayInner = () => {
           {/* Team Talk before extra time */}
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Team Talk</p>
-              <p className="text-[9px] text-muted-foreground/60">Rally the squad before extra time</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Team Talk</p>
+              <p className="text-micro text-muted-foreground/60">Rally the squad before extra time</p>
             </div>
             <div className="space-y-2">
               {TEAM_TALK_OPTIONS.map(talk => {
@@ -1571,15 +1571,15 @@ const MatchDayInner = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={cn("text-xs font-semibold", isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
-                        {isSelected && <span className="text-[10px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
+                        {isSelected && <span className="text-micro text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
+                      <p className="text-micro text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {talk.effects.map((effect, i) => (
                           <span
                             key={i}
                             className={cn(
-                              "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium",
+                              "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-micro font-medium",
                               effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
                               effect.type === 'negative' && 'bg-red-500/15 text-red-400',
                               effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
@@ -1602,7 +1602,7 @@ const MatchDayInner = () => {
           {/* Sub button before extra time */}
           {matchSubsUsed < MAX_SUBSTITUTIONS && (
             <GlassPanel className="p-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Substitutions</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Substitutions</p>
               <Button className="w-full min-h-11 gap-2" onClick={() => setSubSheetOpen(true)}>
                 <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
               </Button>
@@ -1614,14 +1614,14 @@ const MatchDayInner = () => {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-primary" />
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactics</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider">Tactics</p>
               </div>
-              <p className="text-[10px] text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
+              <p className="text-micro text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
             </div>
             <FormationPicker />
             <button
               onClick={() => setShowHalftimeCustomTactics(!showHalftimeCustomTactics)}
-              className="w-full min-h-11 text-[10px] text-muted-foreground/60 hover:text-muted-foreground mt-1 transition-colors flex items-center justify-center gap-1"
+              className="w-full min-h-11 text-micro text-muted-foreground/60 hover:text-muted-foreground mt-1 transition-colors flex items-center justify-center gap-1"
             >
               {showHalftimeCustomTactics ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               {showHalftimeCustomTactics ? 'Hide custom tactics' : 'Fine-tune tactics...'}
@@ -1687,18 +1687,18 @@ const MatchDayInner = () => {
                     <Pause className="w-4 h-4 text-primary" />
                     <p className="text-sm font-bold text-foreground tracking-wide">Match Paused</p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground tabular-nums">{currentMin}'</p>
+                  <p className="text-micro text-muted-foreground tabular-nums">{currentMin}'</p>
                 </div>
 
                 {/* Tactical sliders — same Liquid Glass control as the Tactics page */}
                 <div className="space-y-2">
-                  <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider font-semibold">Adjustments</p>
+                  <p className="text-micro text-muted-foreground/80 uppercase tracking-wider font-semibold">Adjustments</p>
                   <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
                 </div>
 
                 {/* Formation */}
                 <div className="space-y-2">
-                  <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider font-semibold">Formation</p>
+                  <p className="text-micro text-muted-foreground/80 uppercase tracking-wider font-semibold">Formation</p>
                   <FormationPicker />
                 </div>
 
@@ -1709,7 +1709,7 @@ const MatchDayInner = () => {
                     className="w-full min-h-11 py-2.5 rounded-xl bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.985] transition-all"
                   >
                     <RefreshCw className="w-4 h-4" /> Make Substitution
-                    <span className="text-[10px] font-medium opacity-70">({MAX_SUBSTITUTIONS - matchSubsUsed} left)</span>
+                    <span className="text-micro font-medium opacity-70">({MAX_SUBSTITUTIONS - matchSubsUsed} left)</span>
                   </button>
                 )}
 
@@ -1717,7 +1717,7 @@ const MatchDayInner = () => {
                 <div>
                   <button
                     onClick={() => setShowFitness(!showFitness)}
-                    className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider w-full"
+                    className="flex items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
                   >
                     <Users className="w-3 h-3" /> Squad Fitness
                     {showFitness ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
@@ -1741,7 +1741,7 @@ const MatchDayInner = () => {
                         {/* Drain context label */}
                         {(phase === 'second_half' || phase === 'extra_time') && totalMult !== 1 && (
                           <div className={cn(
-                            "flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium",
+                            "flex items-center gap-1 px-2 py-1 rounded text-micro font-medium",
                             totalMult > 1.05 ? 'bg-red-500/10 text-red-400' : totalMult < 0.95 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-muted/20 text-muted-foreground'
                           )}>
                             <Zap className="w-2.5 h-2.5" />
@@ -1762,7 +1762,7 @@ const MatchDayInner = () => {
                             const predicted = Math.max(0, Math.round(fit - remainingMin * FITNESS_DEGRADE_PER_MINUTE * totalMult));
                             const fitColor = fit > 70 ? 'bg-emerald-500' : fit > MATCH_LOW_FITNESS_THRESHOLD ? 'bg-amber-500' : 'bg-red-500';
                             return (
-                              <div key={pid} className="flex items-center gap-2 text-[10px]">
+                              <div key={pid} className="flex items-center gap-2 text-micro">
                                 <span className="w-5 text-muted-foreground">{p.position}</span>
                                 <span className="w-16 truncate text-foreground">{p.lastName}</span>
                                 <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
@@ -1770,7 +1770,7 @@ const MatchDayInner = () => {
                                 </div>
                                 <span className={cn('w-7 text-right tabular-nums', fit <= MATCH_LOW_FITNESS_THRESHOLD ? 'text-red-400' : 'text-muted-foreground')}>{Math.round(fit)}%</span>
                                 {remainingMin > 5 && (
-                                  <span className={cn('w-10 text-right tabular-nums text-[9px]', predicted <= MATCH_LOW_FITNESS_THRESHOLD ? 'text-red-400/70' : 'text-muted-foreground/50')}>
+                                  <span className={cn('w-10 text-right tabular-nums text-micro', predicted <= MATCH_LOW_FITNESS_THRESHOLD ? 'text-red-400/70' : 'text-muted-foreground/50')}>
                                     ~{predicted}%
                                   </span>
                                 )}
@@ -1787,7 +1787,7 @@ const MatchDayInner = () => {
                 <div>
                   <button
                     onClick={() => setShowStats(!showStats)}
-                    className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider w-full"
+                    className="flex items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
                   >
                     <BarChart3 className="w-3 h-3" /> Match Stats
                     {showStats ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
@@ -1803,7 +1803,7 @@ const MatchDayInner = () => {
                         const total = (stat.home as number) + (stat.away as number) || 1;
                         const homePct = ((stat.home as number) / total) * 100;
                         return (
-                          <div key={stat.label} className="text-[10px]">
+                          <div key={stat.label} className="text-micro">
                             <div className="flex justify-between text-muted-foreground mb-0.5">
                               <span className="tabular-nums">{stat.decimal ? (stat.home as number).toFixed(2) : stat.home}</span>
                               <span className="text-foreground/60">{stat.label}</span>
@@ -1860,13 +1860,13 @@ const MatchDayInner = () => {
                 return (
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
                     <TalkIcon className="w-3 h-3 text-primary shrink-0" />
-                    <span className="text-[9px] font-semibold text-primary">{activeTalk.label}</span>
+                    <span className="text-micro font-semibold text-primary">{activeTalk.label}</span>
                     <div className="flex flex-wrap gap-1 ml-auto">
                       {activeTalk.effects.map((effect, i) => (
                         <span
                           key={i}
                           className={cn(
-                            "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium",
+                            "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-micro font-medium",
                             effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
                             effect.type === 'negative' && 'bg-red-500/15 text-red-400',
                             effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
@@ -1894,7 +1894,7 @@ const MatchDayInner = () => {
                     className={cn(
                       // 44pt minimum — this is set mid-match with the clock
                       // running; the old py-1.5 gave a ~25px target.
-                      'relative z-10 flex-1 min-h-[44px] px-0.5 text-[9px] font-semibold capitalize transition-all',
+                      'relative z-10 flex-1 min-h-[44px] px-0.5 text-micro font-semibold capitalize transition-all',
                       idx === 0 && 'rounded-l-md',
                       idx === MENTALITIES.length - 1 && 'rounded-r-md',
                       tactics.mentality === m.value
@@ -1986,15 +1986,15 @@ const MatchDayInner = () => {
                     aria-pressed={activeShout?.type === s.type}
                   >
                     <s.Icon className="w-3.5 h-3.5" aria-hidden />
-                    <span className="text-[9px] font-semibold leading-none">{s.label}</span>
+                    <span className="text-micro font-semibold leading-none">{s.label}</span>
                   </button>
                 )) : (
-                  <span className="text-[9px] text-muted-foreground/40">
+                  <span className="text-micro text-muted-foreground/40">
                     {shoutsRemaining === 0 ? 'No shouts left' : `Cooldown (${SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0))}')`}
                   </span>
                 )}
                 {shoutsRemaining > 0 && !shoutOnCooldown && (
-                  <span className="text-[9px] text-muted-foreground/50 tabular-nums shrink-0 w-4 text-right">{shoutsRemaining}</span>
+                  <span className="text-micro text-muted-foreground/50 tabular-nums shrink-0 w-4 text-right">{shoutsRemaining}</span>
                 )}
               </div>
             </div>
@@ -2119,7 +2119,7 @@ const MatchDayInner = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-foreground">{choice.label}</p>
-                        <p className="text-[10px] text-muted-foreground">{choice.description}</p>
+                        <p className="text-micro text-muted-foreground">{choice.description}</p>
                       </div>
                     </button>
                   );
@@ -2130,7 +2130,7 @@ const MatchDayInner = () => {
             {/* Customize option — expand to full tactical panel */}
             <button
               onClick={() => setShowCustomTactics(!showCustomTactics)}
-              className="w-full min-h-11 text-[10px] text-muted-foreground/60 hover:text-muted-foreground mb-1 transition-colors"
+              className="w-full min-h-11 text-micro text-muted-foreground/60 hover:text-muted-foreground mb-1 transition-colors"
             >
               {showCustomTactics ? 'Hide custom tactics' : 'Customize tactics manually...'}
             </button>
@@ -2183,7 +2183,7 @@ const MatchDayInner = () => {
             <GlassPanel className="p-6 space-y-4 text-center">
               <div className="space-y-0.5">
                 <p className={cn('text-xs font-bold uppercase tracking-widest', headColor)}>{heading}</p>
-                {wcRound && <p className="text-[10px] text-muted-foreground uppercase tracking-wider">World Cup · {wcRound}</p>}
+                {wcRound && <p className="text-micro text-muted-foreground uppercase tracking-wider">World Cup · {wcRound}</p>}
               </div>
               {/* The score is already shown in the persistent scoreboard above —
                   surface the Player of the Match here instead of repeating it. */}
@@ -2204,7 +2204,7 @@ const MatchDayInner = () => {
                 return (
                   <div className="flex items-center justify-center gap-3">
                     <div className="min-w-0 text-right">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Player of the Match</p>
+                      <p className="text-micro text-muted-foreground uppercase tracking-wider">Player of the Match</p>
                       <p className="text-sm font-bold text-foreground truncate">{mvpPlayer.firstName} {mvpPlayer.lastName}</p>
                     </div>
                     <span className="text-2xl font-black font-display tabular-nums text-primary shrink-0">{mvp.rating.toFixed(1)}</span>

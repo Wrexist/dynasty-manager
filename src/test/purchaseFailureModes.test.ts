@@ -263,7 +263,9 @@ describe('free-trial offers come from the store, per product', () => {
   it('converts store periods to days and rejects shapes it cannot read', () => {
     expect(freeIntroOfferDays({ price: 0, cycles: 1, periodUnit: 'DAY', periodNumberOfUnits: 3 })).toBe(3);
     expect(freeIntroOfferDays({ price: 0, cycles: 2, periodUnit: 'WEEK', periodNumberOfUnits: 1 })).toBe(14);
-    expect(freeIntroOfferDays({ price: 0, cycles: 1, periodUnit: 'MONTH', periodNumberOfUnits: 1 })).toBe(30);
+    // A calendar month is 28-31 days; never state it as a day count.
+    expect(freeIntroOfferDays({ price: 0, cycles: 1, periodUnit: 'MONTH', periodNumberOfUnits: 1 })).toBeNull();
+    expect(freeIntroOfferDays({ price: 0, cycles: 1, periodUnit: 'YEAR', periodNumberOfUnits: 1 })).toBeNull();
     expect(freeIntroOfferDays({ price: 0, periodUnit: 'FORTNIGHT', periodNumberOfUnits: 1 })).toBeNull();
     expect(freeIntroOfferDays({ price: 0, periodUnit: 'DAY', periodNumberOfUnits: 0 })).toBeNull();
     expect(freeIntroOfferDays({ price: 1.99, periodUnit: 'DAY', periodNumberOfUnits: 7 })).toBeNull();

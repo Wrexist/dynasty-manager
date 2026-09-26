@@ -356,15 +356,15 @@ const CalendarView = () => {
       {stats.played > 0 && (
         <GlassPanel className="p-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">League Record</span>
+            <span className="text-micro text-muted-foreground uppercase tracking-wider">League Record</span>
             {recentForm.length > 0 && (
               <div className="flex gap-1 items-center">
-                <span className="text-[10px] text-muted-foreground mr-1">Form</span>
+                <span className="text-micro text-muted-foreground mr-1">Form</span>
                 {recentForm.map((r, i) => (
                   <span
                     key={i}
                     className={cn(
-                      'w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold',
+                      'w-5 h-5 flex items-center justify-center rounded text-micro font-bold',
                       r === 'W' && 'bg-emerald-500/20 text-emerald-400',
                       r === 'D' && 'bg-muted/50 text-muted-foreground',
                       r === 'L' && 'bg-destructive/20 text-destructive',
@@ -379,23 +379,23 @@ const CalendarView = () => {
           <div className="grid grid-cols-5 gap-2 text-center">
             <div>
               <span className="text-lg font-bold text-foreground">{stats.played}</span>
-              <p className="text-[10px] text-muted-foreground">P</p>
+              <p className="text-micro text-muted-foreground">P</p>
             </div>
             <div>
               <span className="text-lg font-bold text-emerald-400">{stats.wins}</span>
-              <p className="text-[10px] text-muted-foreground">W</p>
+              <p className="text-micro text-muted-foreground">W</p>
             </div>
             <div>
               <span className="text-lg font-bold text-muted-foreground">{stats.draws}</span>
-              <p className="text-[10px] text-muted-foreground">D</p>
+              <p className="text-micro text-muted-foreground">D</p>
             </div>
             <div>
               <span className="text-lg font-bold text-destructive">{stats.losses}</span>
-              <p className="text-[10px] text-muted-foreground">L</p>
+              <p className="text-micro text-muted-foreground">L</p>
             </div>
             <div>
               <span className="text-lg font-bold text-foreground">{stats.goalsFor}<span className="text-muted-foreground">-</span>{stats.goalsAgainst}</span>
-              <p className="text-[10px] text-muted-foreground">GF-GA</p>
+              <p className="text-micro text-muted-foreground">GF-GA</p>
             </div>
           </div>
         </GlassPanel>
@@ -404,21 +404,21 @@ const CalendarView = () => {
       {/* Transfer Window + Cup Status */}
       <div className="grid grid-cols-2 gap-2">
         <GlassPanel className="p-3">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Transfer Window</span>
+          <span className="text-micro text-muted-foreground uppercase tracking-wider">Transfer Window</span>
           <div className="mt-1">
             <span className={cn('text-xs font-bold px-2 py-0.5 rounded', transferWindowOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground')}>
               {transferWindowOpen ? 'Open' : 'Closed'}
             </span>
             {transferWindowOpen && (
-              <p className="text-[9px] text-emerald-400/70 mt-1">Closes week {week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd}</p>
+              <p className="text-micro text-emerald-400/70 mt-1">Closes week {week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd}</p>
             )}
             {!transferWindowOpen && week < tw.winterStart && week > tw.summerEnd && (
-              <p className="text-[9px] text-muted-foreground mt-1">Opens week {tw.winterStart}</p>
+              <p className="text-micro text-muted-foreground mt-1">Opens week {tw.winterStart}</p>
             )}
           </div>
         </GlassPanel>
         <GlassPanel className="p-3">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Dynasty Cup</span>
+          <span className="text-micro text-muted-foreground uppercase tracking-wider">Dynasty Cup</span>
           <div className="mt-1">
             {cupEliminated ? (
               <span className="text-xs font-bold px-2 py-0.5 rounded bg-destructive/20 text-destructive">Eliminated</span>
@@ -441,7 +441,7 @@ const CalendarView = () => {
               key={phase.id}
               onClick={() => scrollToPhase(phase.id)}
               className={cn(
-                'text-[10px] px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0 font-medium transition-colors',
+                'text-micro px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0 font-medium transition-colors',
                 phase.id === activePhaseId
                   ? 'bg-primary/20 text-primary border border-primary/30'
                   : 'bg-card/40 text-muted-foreground border border-transparent'
@@ -469,13 +469,13 @@ const CalendarView = () => {
               )} />
               <div className="flex items-center gap-1.5">
                 <span className={cn(
-                  'text-[10px] uppercase tracking-wider font-bold',
+                  'text-micro uppercase tracking-wider font-bold',
                   hasCurrentWeek ? 'text-primary' : allPast ? 'text-muted-foreground/50' : 'text-muted-foreground'
                 )}>
                   {phase.label}
                 </span>
                 {phaseSummary.total > 0 && (
-                  <span className="text-[9px] text-muted-foreground/60">
+                  <span className="text-micro text-muted-foreground/60">
                     {phaseSummary.wins}W {phaseSummary.draws}D {phaseSummary.losses}L
                   </span>
                 )}
@@ -510,11 +510,11 @@ const CalendarView = () => {
                       </span>
                       <span className="text-xs text-muted-foreground/50 italic flex-1">No match</span>
                       {isBoardReview && (
-                        <span className="text-[9px] text-amber-400/70 flex items-center gap-0.5">
+                        <span className="text-micro text-amber-400/70 flex items-center gap-0.5">
                           <Briefcase className="w-3 h-3" /> Board Review
                         </span>
                       )}
-                      {isCurrentWeek && <span className="text-[10px] text-primary font-bold">THIS WEEK</span>}
+                      {isCurrentWeek && <span className="text-micro text-primary font-bold">THIS WEEK</span>}
                     </div>
                   );
                 }
@@ -533,7 +533,7 @@ const CalendarView = () => {
                       <span className={cn('text-xs font-display tabular-nums w-10 shrink-0', isCurrentWeek ? 'text-blue-400 font-bold' : 'text-muted-foreground')}>
                         W{entry.week}
                       </span>
-                      <span className="text-[10px] w-6 shrink-0 font-bold rounded px-1 py-0.5 text-center bg-blue-500/15 text-blue-400">
+                      <span className="text-micro w-6 shrink-0 font-bold rounded px-1 py-0.5 text-center bg-blue-500/15 text-blue-400">
                         <Globe className="w-3 h-3 inline" />
                       </span>
                       <span className={cn('text-sm flex-1 min-w-0 truncate', isCurrentWeek ? 'text-foreground font-bold' : 'text-foreground/80')}>
@@ -564,7 +564,7 @@ const CalendarView = () => {
       {/* Season Progress */}
       <GlassPanel className="p-3 mt-2">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Season Progress</span>
+          <span className="text-micro text-muted-foreground uppercase tracking-wider">Season Progress</span>
           <span className="text-xs text-muted-foreground">{week} / {weekCount} weeks</span>
         </div>
         <div className="w-full h-2 bg-muted/30 rounded-full overflow-hidden">
@@ -626,7 +626,7 @@ const CalendarView = () => {
 
         {/* Home/Away badge */}
         <span className={cn(
-          'text-[10px] w-6 shrink-0 font-bold rounded px-1 py-0.5 text-center',
+          'text-micro w-6 shrink-0 font-bold rounded px-1 py-0.5 text-center',
           isHome ? 'bg-emerald-500/15 text-emerald-400' : 'bg-blue-500/15 text-blue-400'
         )}>
           {isHome ? 'H' : 'A'}
@@ -640,7 +640,7 @@ const CalendarView = () => {
           </span>
           {isDerby && <Flame className="w-3 h-3 text-amber-500 shrink-0" />}
           {strength && !isPast && (
-            <span className={cn('text-[9px] font-medium', strength.color)}>{strength.label}</span>
+            <span className={cn('text-micro font-medium', strength.color)}>{strength.label}</span>
           )}
         </div>
 
@@ -657,7 +657,7 @@ const CalendarView = () => {
         {/* Result / Status */}
         {isPast ? (
           <div className="flex items-center gap-1.5">
-            <span className={cn('text-[10px] font-bold rounded px-1 py-0.5',
+            <span className={cn('text-micro font-bold rounded px-1 py-0.5',
               resultLabel === 'W' && 'bg-emerald-500/15 text-emerald-400',
               resultLabel === 'D' && 'bg-muted/50 text-muted-foreground',
               resultLabel === 'L' && 'bg-destructive/15 text-destructive',
@@ -723,7 +723,7 @@ const CalendarView = () => {
         </span>
 
         {/* Cup round badge */}
-        <span className="text-[10px] w-6 shrink-0 font-bold rounded px-1 py-0.5 text-center bg-primary/15 text-primary">
+        <span className="text-micro w-6 shrink-0 font-bold rounded px-1 py-0.5 text-center bg-primary/15 text-primary">
           <Trophy className="w-3 h-3 inline" />
         </span>
 
@@ -736,10 +736,10 @@ const CalendarView = () => {
                 {opp?.shortName || '?'}
               </span>
               {strength && !isPast && (
-                <span className={cn('text-[9px] font-medium', strength.color)}>{strength.label}</span>
+                <span className={cn('text-micro font-medium', strength.color)}>{strength.label}</span>
               )}
             </div>
-            <span className="text-[10px] text-primary/70">{competitionLabel || getRoundName(tie.round as CupRound)}</span>
+            <span className="text-micro text-primary/70">{competitionLabel || getRoundName(tie.round as CupRound)}</span>
           </div>
         </div>
 
@@ -752,14 +752,14 @@ const CalendarView = () => {
         {isPast ? (
           <div className="flex flex-col items-end">
             <div className="flex items-center gap-1.5">
-              <span className={cn('text-[10px] font-bold rounded px-1 py-0.5',
+              <span className={cn('text-micro font-bold rounded px-1 py-0.5',
                 resultLabel === 'W' && 'bg-emerald-500/15 text-emerald-400',
                 resultLabel === 'L' && 'bg-destructive/15 text-destructive',
                 resultLabel === 'D' && 'bg-muted/50 text-muted-foreground',
               )}>{resultLabel}</span>
               <span className={cn('text-sm font-display tabular-nums font-bold', resultColor)}>{result}</span>
             </div>
-            {penaltyNote && <span className="text-[9px] text-muted-foreground">{penaltyNote}</span>}
+            {penaltyNote && <span className="text-micro text-muted-foreground">{penaltyNote}</span>}
           </div>
         ) : isCurrent ? (
           <span className="text-xs text-primary font-bold animate-pulse">CUP</span>

@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { isManagersLeagueTitle, calculatePrestigeStats } from '@/utils/prestige';
+import { isManagersLeagueTitle, isManagersPromotion, calculatePrestigeStats } from '@/utils/prestige';
 import { buildHallEntry } from '@/utils/hallOfManagers';
 import { seasonTrophyCount } from '@/utils/managerPassObserver';
 import { checkAchievements } from '@/utils/achievements';
@@ -72,6 +72,28 @@ describe('every title count reads the marker', () => {
     const managed = checkAchievements({ ...s, seasonHistory: [row(1, true), row(1, true)] }, []);
     expect(managed).toContain('league-champion');
     expect(managed).toContain('back-to-back');
+  });
+});
+
+describe('a promotion the ex-club won while the manager was out of work', () => {
+  const promotedRow = (managed?: boolean): SeasonHistory => ({ ...row(2, managed), promoted: true });
+
+  it('is not the manager\'s promotion', () => {
+    expect(isManagersPromotion(promotedRow(false))).toBe(false);
+    expect(isManagersPromotion(promotedRow(true))).toBe(true);
+    expect(isManagersPromotion(promotedRow())).toBe(true);
+    expect(isManagersPromotion(row(2, true))).toBe(false);
+  });
+
+  it('does not unlock Going Up! or count toward Ladder Climber', () => {
+    useGameStore.getState().resetGame();
+    useGameStore.getState().initGame(CLUB);
+    const s = useGameStore.getState();
+    const unmanaged = checkAchievements({ ...s, seasonHistory: [1, 2, 3].map(() => promotedRow(false)) }, []);
+    expect(unmanaged).not.toContain('promotion');
+    expect(unmanaged).not.toContain('promotions-3');
+    const managed = checkAchievements({ ...s, seasonHistory: [1, 2, 3].map(() => promotedRow(true)) }, []);
+    expect(managed).toContain('promotion');
   });
 });
 

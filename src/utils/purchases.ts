@@ -429,10 +429,16 @@ export async function getStoreAvailability(
   }
 }
 
-const INTRO_PERIOD_DAYS: Record<string, number> = { DAY: 1, WEEK: 7, MONTH: 30, YEAR: 365 };
+/** Only units with a fixed length in days. A MONTH or YEAR trial is billed a
+ *  calendar month/year later (28 to 31 days for a month), so describing it as
+ *  "30 days" would promise a length the store does not honour — the Apple
+ *  3.1.2(c) false-trial-terms class. Those offers read as "no trial we can
+ *  state" and every surface stays silent; the store sheet still states them. */
+const INTRO_PERIOD_DAYS: Record<string, number> = { DAY: 1, WEEK: 7 };
 
 /** Days of free access an introductory offer grants, or null when the offer
- *  is missing, paid, or has a shape we cannot read. Exported for tests. */
+ *  is missing, paid, measured in calendar months/years, or has a shape we
+ *  cannot read. Exported for tests. */
 export function freeIntroOfferDays(intro: StoreProductLike['introPrice']): number | null {
   if (!intro || intro.price !== 0) return null;
   const unitDays = INTRO_PERIOD_DAYS[String(intro.periodUnit || '').toUpperCase()];
@@ -813,6 +819,45 @@ function extractConfirmedLapse(customerInfo: CustomerInfo | null | undefined): S
   };
 }
 
+/** Durations RevenueCat promotional grants use that are a month or shorter. */
+const SHORT_PROMO_DURATION = /_(daily|three_day|weekly|monthly)$/;
+
+/**
+ * An active Pro entitlement granted from the RevenueCat dashboard (a comp for
+ * a tester, reviewer or influencer). RevenueCat reports it with the product ID
+ * `rc_promo_<entitlement>_<duration>` and store `PROMOTIONAL` — an ID that is
+ * in no store catalog, so the PRODUCTS lookup would drop it and the comp would
+ * grant nothing.
+ *
+ * The record is mapped onto a real Pro SKU so every reader keeps working: a
+ * lifetime grant (no expiry) looks exactly like a Lifetime owner's record; a
+ * bounded one is a subscription record that ends at the store's expiry date.
+ */
+function extractPromotionalGrant(
+  ent: CustomerInfo['entitlements']['active'][string],
+): SubscriptionInfo | null {
+  const rawId = String(ent?.productIdentifier ?? '');
+  const isPromo = rawId.startsWith('rc_promo_') || String(ent?.store ?? '') === 'PROMOTIONAL';
+  if (!isPromo) return null;
+  const expiresAt = ent.expirationDate || null;
+  const base = {
+    grantedAt: new Date().toISOString(),
+    isInGracePeriod: false,
+    willRenew: false,
+    isTrial: false,
+  };
+  if (!expiresAt && rawId.endsWith('_lifetime')) {
+    return { ...base, tier: 'lifetime', productId: 'com.dynastymanager.pro.lifetime', expiresAt: null };
+  }
+  const short = SHORT_PROMO_DURATION.test(rawId);
+  return {
+    ...base,
+    tier: short ? 'monthly' : 'annual',
+    productId: short ? 'com.dynastymanager.pro.monthly' : 'com.dynastymanager.pro.yearly',
+    expiresAt,
+  };
+}
+
 /**
  * Extract subscription info from RevenueCat CustomerInfo.
  *
@@ -828,6 +873,9 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
 
     const proEntitlement = PRO_ENTITLEMENT_IDS.map(id => activeEntitlements[id]).find(Boolean);
     if (!proEntitlement) return extractConfirmedLapse(customerInfo);
+
+    const promo = extractPromotionalGrant(proEntitlement);
+    if (promo) return promo;
 
     const productId = normalizeStoreProductId(proEntitlement.productIdentifier) as ProductId;
     const product = PRODUCTS[productId];

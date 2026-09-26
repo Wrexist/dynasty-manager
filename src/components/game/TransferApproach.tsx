@@ -116,7 +116,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
                 </p>
                 <div className="flex gap-1.5 mt-2">
                   {top3.map(attr => (
-                    <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
+                    <span key={attr.label} className="text-micro font-mono bg-muted/70 px-1.5 py-0.5 rounded">
                       <span className="text-muted-foreground">{attr.label}</span>{' '}
                       <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
                     </span>
@@ -129,15 +129,15 @@ export function TransferApproach({ playerId, onClose }: Props) {
             <div className="bg-muted/20 rounded-xl p-3 grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="text-xs font-bold text-foreground tabular-nums">{'\u00A3'}{(player.value / 1e6).toFixed(1)}M</p>
-                <p className="text-[10px] text-muted-foreground">Value</p>
+                <p className="text-micro text-muted-foreground">Value</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-foreground">{formatWage(player.wage)}</p>
-                <p className="text-[10px] text-muted-foreground">Wage</p>
+                <p className="text-micro text-muted-foreground">Wage</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-foreground tabular-nums">{player.overall}/{player.potential}</p>
-                <p className="text-[10px] text-muted-foreground">OVR/POT</p>
+                <p className="text-micro text-muted-foreground">OVR/POT</p>
               </div>
             </div>
 
@@ -153,7 +153,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-bold text-foreground">Transfer Offer</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     Make a bid to sign permanently · Est. {formatMoney(Math.round(player.value * UNLISTED_PLAYER_PREMIUM))}
                   </p>
                 </div>
@@ -169,7 +169,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-bold text-foreground">Loan Request</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     Borrow on a temporary deal · Negotiate terms
                   </p>
                 </div>

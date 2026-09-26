@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { PageHint } from '@/components/game/PageHint';
 import { SectionHeader } from '@/components/game/SectionHeader';
-import { isManagersLeagueTitle } from '@/utils/prestige';
+import { isManagersLeagueTitle, isManagersPromotion } from '@/utils/prestige';
 
 const TrophyCabinet = () => {
   const { t } = useTranslation();
@@ -34,7 +34,7 @@ const TrophyCabinet = () => {
     const ccw = seasonHistory.filter(h => h.championsCupResult === 'Winner').length;
     const scw = seasonHistory.filter(h => h.shieldCupResult === 'Winner').length;
     const confW = seasonHistory.filter(h => h.conferenceCupResult === 'Winner').length;
-    const pr = seasonHistory.filter(h => h.promoted);
+    const pr = seasonHistory.filter(isManagersPromotion);
     return { leagueTitles: lt, cupWins: cw, leagueCupWins: lcw, championsCupWins: ccw, shieldCupWins: scw, conferenceCupWins: confW, promotions: pr, totalTrophies: lt.length + cw + lcw + ccw + scw + confW + pr.length };
   }, [seasonHistory, clubRecords.cupWins]);
 
