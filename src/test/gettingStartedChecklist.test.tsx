@@ -155,10 +155,9 @@ function row(label: RegExp): HTMLElement {
 describe('Getting Started — one checklist that ticks as it goes', () => {
   beforeEach(() => freshCareer());
 
-  it('part 1 completes reading N/N: the unticked closing row is not in the count', () => {
-    // Plan set, no sponsor offer, a scout out: part 1 is done and hands over,
-    // with the match still to play. It read "3/4 done" under the "first week
-    // is set up" toast while the closing row was counted unticked.
+  /** Every tickable part-1 row done: plan set, no sponsor offer, a scout out,
+   *  and (when `packOpened`) the free pack opened. */
+  function finishPart1({ packOpened }: { packOpened: boolean }) {
     const s = useGameStore.getState();
     useGameStore.setState({
       matchGamePlan: 'sit_deep',
@@ -168,12 +167,28 @@ describe('Getting Started — one checklist that ticks as it goes', () => {
         maxAssignments: Math.max(1, s.scouting.maxAssignments),
         assignments: [{ id: 'scout-1' } as unknown as typeof s.scouting.assignments[number]],
       },
+      openedPacks: packOpened ? [{ id: 'pack-1' } as unknown as typeof s.openedPacks[number]] : [],
     });
+  }
+
+  it('part 1 completes reading N/N: the unticked closing row is not in the count', () => {
+    // Part 1 is done and hands over, with the match still to play. It read
+    // "3/4 done" under the "first week is set up" toast while the closing row
+    // was counted unticked.
+    finishPart1({ packOpened: true });
     render(<OnboardingChecklist />);
     expect(row(/play your first match/i).querySelector('.line-through')).toBeNull();
     const [done, total] = screen.getByText(/\d+\/\d+ done/).textContent!.match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
     expect(done).toBe(total);
     expect(total).toBe(screen.getAllByRole('listitem').length - 1);
+  });
+
+  it('the free-pack row, while a free open is available, has to be ticked to finish part 1', () => {
+    finishPart1({ packOpened: false });
+    render(<OnboardingChecklist />);
+    expect(row(/open your free pack/i).querySelector('.line-through')).toBeNull();
+    const [done, total] = screen.getByText(/\d+\/\d+ done/).textContent!.match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
+    expect(done).toBe(total - 1);
   });
 
   it('the first-match row ticks once the match is played (it stayed open after the final whistle)', () => {
