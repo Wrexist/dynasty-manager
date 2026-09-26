@@ -25,6 +25,9 @@ beforeAll(async () => {
   vi.spyOn(Math, 'random').mockImplementation(mulberry32(3));
   useGameStore.getState().resetGame();
   useGameStore.getState().initGame('liverpool');
+  // Match steps are seeded from the career id (liveMatchSeed), which initGame
+  // mints from crypto randomness — pin it so the harness is reproducible.
+  useGameStore.setState({ careerId: 'inbox-noise-harness' });
   for (let w = 0; w < WEEKS; w++) {
     useGameStore.getState().playCurrentMatch();
     await useGameStore.getState().advanceWeek();
@@ -48,6 +51,10 @@ describe(`inbox after ${WEEKS} weeks`, () => {
       || m.title.startsWith('Transfer Rumor')
       || m.title.startsWith('Bid Expired')
       || m.title === 'Sponsor Offer Expired'
+      || m.title === 'Transfer Window Open'
+      || m.title === 'Transfer Window Closed'
+      || m.title === 'Pre-Season Market Surge'
+      || m.title === 'The Board Believes in You'
       || m.type === 'match_result'
       || AI_MOVE.test(m.title)
     )).map(m => m.title);

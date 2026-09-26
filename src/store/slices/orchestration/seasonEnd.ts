@@ -34,7 +34,7 @@ import { applyRarityToPlayer } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
 import { isLegendWorthy, buildRetiredLegend, addLegendToArchive } from '@/utils/legends';
 import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
-import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance';
+import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE, INBOX_ARRIVES_READ } from '@/config/gameBalance';
 
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
@@ -1461,6 +1461,7 @@ function finalizeSeason(
   newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'transfer',
     title: 'Pre-Season Market Surge',
+    read: INBOX_ARRIVES_READ.windowNotices,
     body: 'The summer window is buzzing! Clubs are reshaping their squads during pre-season. Expect more transfer activity and higher-quality players before league fixtures resume.',
   });
 

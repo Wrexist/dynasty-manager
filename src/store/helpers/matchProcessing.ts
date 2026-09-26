@@ -311,7 +311,7 @@ export function processMatchResult(
   if (season === 1 && lost && week <= 10) {
     // First-season encouragement: soften the first early loss, once.
     if (!messages.some(m => m.title === 'The Board Believes in You')) {
-      newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'The Board Believes in You', body: 'It\'s early days. The board sees your potential and is giving you time to build. Keep pushing — better results will come.' });
+      newMessages = addMsg(newMessages, { week, season, type: 'board', read: INBOX_ARRIVES_READ.boardEncouragement, title: 'The Board Believes in You', body: 'It\'s early days. The board sees your potential and is giving you time to build. Keep pushing — better results will come.' });
     }
   } else if (confidence < CONFIDENCE_WARNING_THRESHOLD && prevConfidence >= CONFIDENCE_WARNING_THRESHOLD) {
     newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Board Warning', body: 'The board is growing concerned with recent performances. Results must improve soon or your position may be at risk.' });

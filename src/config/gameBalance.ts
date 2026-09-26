@@ -563,6 +563,11 @@ export const INBOX_ARRIVES_READ = {
   sponsorOfferExpired: true,
   /** The result of a match the manager played (not one simulated for them). */
   matchResult: true,
+  /** Transfer-window open/closed notices and the pre-season market note —
+   *  calendar facts the Dashboard already shows, nothing to act on. */
+  windowNotices: true,
+  /** "The Board Believes in You" — encouragement, not a decision. */
+  boardEncouragement: true,
 } as const;
 /** Fold a week's AI-to-AI transfers and loans into one round-up message
  *  instead of one message per move (the moves stay listed under Transfers). */

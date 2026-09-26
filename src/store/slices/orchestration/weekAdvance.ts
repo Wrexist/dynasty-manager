@@ -1946,7 +1946,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   if (newWeek === transferWindows.summerEnd + 1 || newWeek === transferWindows.winterEnd + 1) {
     const completedDeals = (state.transferNews || []).filter(n => n.week === newWeek - 1 && n.season === season).length;
     const expiredOffers = newOffers.filter(o => o.week <= newWeek - 1).length;
-    newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Transfer Window Closed', body: `The window is shut. ${completedDeals} deals were completed league-wide${expiredOffers > 0 ? ` and ${expiredOffers} offer${expiredOffers > 1 ? 's' : ''} expired` : ''}. No more transfers until the ${newWeek <= 10 ? 'January' : 'summer'} window.` });
+    newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', read: INBOX_ARRIVES_READ.windowNotices, title: 'Transfer Window Closed', body: `The window is shut. ${completedDeals} deals were completed league-wide${expiredOffers > 0 ? ` and ${expiredOffers} offer${expiredOffers > 1 ? 's' : ''} expired` : ''}. No more transfers until the ${newWeek <= 10 ? 'January' : 'summer'} window.` });
   }
 
   // Mid-season staff market refresh
