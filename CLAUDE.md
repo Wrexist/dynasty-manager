@@ -184,7 +184,7 @@ and you can re-run safely:
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
 
 ### When the user asks you to commit, push, ship, or create a PR:
-1. Run `npm run preflight` — lint + typecheck + docs drift + i18n ceiling + pack supply + fast tests + build + bundle budgets. Fix any failures before proceeding.
+1. Run `npm run preflight` — lint + typecheck + docs drift + i18n ceiling + type floor + pack supply + fast tests + build + bundle budgets. Fix any failures before proceeding.
    *Before a release, run `npm run preflight:full`* — the same gate with the
    long-running season/longevity suites (`SLOW_SUITES` in `vitest.config.ts`),
    which the per-commit gate skips so that it actually gets run. Test files run
@@ -217,11 +217,12 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 ### Available workflow commands:
 | Command | What it does |
 |---------|-------------|
-| `npm run preflight` | Lint + typecheck + docs:check + i18n:check + packs:supply + **fast** tests + build + size:check — run this per commit |
+| `npm run preflight` | Lint + typecheck + docs:check + i18n:check + type:check + packs:supply + **fast** tests + build + size:check — run this per commit |
 | `npm run preflight:full` | Same, with the long-running season/longevity suites. What CI enforces (`pr-checks.yml` runs it by name) |
 | `npm run test:fast` | Vitest minus the slow suites (see `SLOW_SUITES` in `vitest.config.ts`) |
 | `npm run docs:check` | Verify the countable claims in this file against the code (`-- --fix` to update) |
 | `npm run i18n:check` | Count player-facing strings still hardcoded in English; fails above the ceiling in `package.json` |
+| `npm run type:check` | Count sub-11px `text-[Npx]` copy in `src/pages` + `src/components` (lines marked `type-floor: graphic` excluded); fails above the ceiling (0) in `package.json` |
 | `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
 | `npm run branch -- name` | Create feature branch from latest origin/main |
 | `npm run typecheck` | Standalone TypeScript check |
@@ -853,7 +854,7 @@ npm run scrape:icons                 # SoFIFA Icons scrape (Playwright; also a G
 Quick reference:
 - `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
 - `npm run branch -- name` = new branch from origin/main
-- `npm run preflight` = lint + typecheck + docs:check + i18n:check + fast tests + build + size:check (per commit)
+- `npm run preflight` = lint + typecheck + docs:check + i18n:check + type:check + fast tests + build + size:check (per commit)
 - `npm run preflight:full` = the same with the long-running suites — run before a release
 - After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
 - `gh pr create` is FORBIDDEN — no GitHub API auth available. GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available where configured.
@@ -953,7 +954,8 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
 - NEVER hand-edit generated data (`src/data/communityPack/*`, `src/data/squads/*`, `nationalPlayerPool.ts`, `playerPortraits.ts`) — regenerate via scripts
 - NEVER import heavy data eagerly — `size:check` enforces the eager-bundle budget
 - NEVER break mobile-first layout — test at 375px. Tap targets are 44px; the
-  type floor is 11px (a crest monogram is a graphic, not copy)
+  type floor is 11px (a crest monogram is a graphic, not copy — mark such a
+  line `type-floor: graphic`; `npm run type:check` enforces the rest)
 - NEVER import `lucide-react` in a Sunday screen or Sunday component — icons
   come from `src/config/sundayIcons.ts`
 - NEVER drive motion from JS (rAF, timers, style changed over time) without
