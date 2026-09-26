@@ -99,7 +99,7 @@ export const BenchStrip = memo(function BenchStrip({
         <span
           title={statusLabel === 'INJ' ? 'Injured' : 'Suspended'}
           aria-label={statusLabel === 'INJ' ? 'Injured' : 'Suspended'}
-          className="absolute -top-1.5 -right-1.5 z-20 text-[7px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm"
+          className="absolute -top-1.5 -right-1.5 z-20 text-[7px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm" // type-floor: graphic — overlay on the bench chip
         >
           {statusLabel}
         </span>
@@ -120,7 +120,7 @@ export const BenchStrip = memo(function BenchStrip({
       {chemistryLinkCount > 0 && (
         <span
           aria-label={`${chemistryLinkCount} chemistry link${chemistryLinkCount === 1 ? '' : 's'}`}
-          className="absolute bottom-1 right-1 z-10 flex items-center gap-px text-[8px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]"
+          className="absolute bottom-1 right-1 z-10 flex items-center gap-px text-[8px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" // type-floor: graphic — overlay on the bench chip
         >
           <Link className="w-[7px] h-[7px]" aria-hidden />
           {chemDisplay}

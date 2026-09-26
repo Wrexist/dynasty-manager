@@ -210,7 +210,7 @@ export const PackShopCard = memo(function PackShopCard({
       <div className="absolute inset-x-1.5 top-1.5 flex items-start justify-between gap-1 z-10 pointer-events-none">
         {ribbon ? (
           <span className={cn(
-            'flex items-center gap-1 min-w-0 h-5 px-2 text-[9px] font-bold uppercase tracking-widest rounded-full border backdrop-blur',
+            'flex items-center gap-1 min-w-0 h-5 px-2 text-micro font-bold uppercase tracking-widest rounded-full border backdrop-blur',
             ribbonTone,
           )}>
             {bonusCards > 0
@@ -221,7 +221,7 @@ export const PackShopCard = memo(function PackShopCard({
             <span className="truncate">{ribbon}</span>
           </span>
         ) : <span />}
-        <span className="flex items-center gap-1 shrink-0 h-5 px-2 text-[10px] font-bold tabular-nums rounded-full text-white bg-black/55 border border-white/20 backdrop-blur">
+        <span className="flex items-center gap-1 shrink-0 h-5 px-2 text-micro font-bold tabular-nums rounded-full text-white bg-black/55 border border-white/20 backdrop-blur">
           <ShieldCheck className="w-2.5 h-2.5" />
           {tier.guaranteedMinOvr}+
         </span>
@@ -248,7 +248,7 @@ export const PackShopCard = memo(function PackShopCard({
         disabled
           ? 'bg-muted/30 border-border/50 text-muted-foreground cursor-not-allowed'
           : 'bg-primary/90 border-primary/60 text-primary-foreground active:scale-[0.98]',
-        featured ? 'h-10 px-4 text-xs gap-1.5' : 'h-8 px-2 text-[10px] gap-1',
+        featured ? 'h-10 px-4 text-xs gap-1.5' : 'h-8 px-2 text-micro gap-1',
       )}
       aria-label={ariaLabel}
     >
@@ -267,7 +267,7 @@ export const PackShopCard = memo(function PackShopCard({
       {/* `items-start`, not baseline: the contents line can wrap on a narrow
           tile and Odds should stay pinned to its first line. */}
       <div className="flex items-start justify-between gap-2">
-        <p className={cn('text-muted-foreground leading-snug min-w-0', featured ? 'text-xs' : 'text-[10px]')}>
+        <p className={cn('text-muted-foreground leading-snug min-w-0', featured ? 'text-xs' : 'text-micro')}>
           <span className="text-foreground/90 font-semibold tabular-nums">
             {totalCards} player{totalCards === 1 ? '' : 's'}
           </span>
@@ -302,12 +302,12 @@ export const PackShopCard = memo(function PackShopCard({
         </button>
       </div>
       {bonusCards > 0 && (
-        <p className={cn('text-primary font-semibold leading-snug', featured ? 'text-xs' : 'text-[10px]')}>
+        <p className={cn('text-primary font-semibold leading-snug', featured ? 'text-xs' : 'text-micro')}>
           Bonus: +{bonusCards} extra card{bonusCards === 1 ? '' : 's'}, guaranteed {tier.guaranteedMinOvr}+
         </p>
       )}
       {bonusCards > 0 && bonusCountdown && (
-        <span className="text-[10px] tabular-nums text-muted-foreground">Bonus ends in {bonusCountdown}</span>
+        <span className="text-micro tabular-nums text-muted-foreground">Bonus ends in {bonusCountdown}</span>
       )}
       {featured && weeklyCountdown && (
         <span className="flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums">

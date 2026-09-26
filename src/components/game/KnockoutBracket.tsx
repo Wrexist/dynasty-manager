@@ -95,14 +95,14 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs, compRing }: {
 
       {/* Penalty indicator */}
       {tie.penaltyShootout && (
-        <div className="text-[10px] text-center text-muted-foreground">
+        <div className="text-micro text-center text-muted-foreground">
           Pens: {tie.penaltyShootout.home}-{tie.penaltyShootout.away}
         </div>
       )}
 
       {/* Status */}
       {!tie.leg1Played && (
-        <div className="text-[10px] text-center text-muted-foreground">
+        <div className="text-micro text-center text-muted-foreground">
           Week {tie.week1}{!isFinal && ` & ${tie.week2}`}
         </div>
       )}
@@ -161,9 +161,9 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
                 {getKnockoutRoundName(round)}
               </h3>
               {isCurrent && (
-                <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium', cc.badge)}>Current</span>
+                <span className={cn('text-micro px-2 py-0.5 rounded-full font-medium', cc.badge)}>Current</span>
               )}
-              <span className="text-[10px] text-muted-foreground">{roundTies.length} {roundTies.length === 1 ? 'tie' : 'ties'}</span>
+              <span className="text-micro text-muted-foreground">{roundTies.length} {roundTies.length === 1 ? 'tie' : 'ties'}</span>
             </div>
 
             <div className={cn('grid gap-2', round === 'F' ? 'grid-cols-1' : 'grid-cols-2')}>

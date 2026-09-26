@@ -87,7 +87,7 @@ function StatCard({ icon, label, value, tone, valueClassName, delay }: StatCardP
       <div className={cn('font-black font-display tabular-nums leading-tight mt-1', tone, valueClassName ?? 'text-lg')}>
         {value}
       </div>
-      <div className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5 font-semibold">
+      <div className="text-micro uppercase tracking-[0.14em] text-muted-foreground mt-0.5 font-semibold">
         {label}
       </div>
     </motion.div>
@@ -191,7 +191,7 @@ export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalPr
                   <Sparkles className="absolute -top-1 -right-1 w-3.5 h-3.5 text-primary/90" />
                 </motion.div>
 
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary/80">
+                <p className="text-micro font-bold uppercase tracking-[0.24em] text-primary/80">
                   Smart Optimize
                 </p>
                 <h2 id="optimize-result-title" className="text-xl font-black font-display text-foreground leading-tight">

@@ -49,11 +49,11 @@ export function ProUpsell({ feature, className }: ProUpsellProps) {
       <Crown className="w-4 h-4 text-primary shrink-0" />
       <div className="text-left flex-1 min-w-0">
         <p className="text-xs font-semibold text-foreground">{feature}</p>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-micro text-muted-foreground">
           {trialDays ? t('proUpsell.trialLine', { days: trialDays }) : t('proUpsell.upgrade')}
         </p>
       </div>
-      <span className="text-[10px] text-primary font-semibold shrink-0">
+      <span className="text-micro text-primary font-semibold shrink-0">
         {trialDays ? t('proUpsell.tryFree') : t('proUpsell.unlock')}
       </span>
     </button>

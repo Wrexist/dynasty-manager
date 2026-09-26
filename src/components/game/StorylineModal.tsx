@@ -80,7 +80,7 @@ export function StorylineModal({ onClose }: { onClose: () => void }) {
             <h2 id="storyline-sheet-title" className="text-xs font-bold text-amber-400 uppercase tracking-wide">
               {chainContext ? chainContext.name : 'Storyline Event'}
             </h2>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               {chainContext
                 ? `${pendingStoryline.title} — Step ${chainContext.step} of ${chainContext.total}`
                 : pendingStoryline.title}
@@ -131,14 +131,14 @@ export function StorylineModal({ onClose }: { onClose: () => void }) {
                   <p className="text-xs text-muted-foreground leading-relaxed">{option.text}</p>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
-                  {option.effects.morale && option.effects.morale > 0 && <span className="text-[9px] text-emerald-400">Morale +{option.effects.morale}</span>}
-                  {option.effects.morale && option.effects.morale < 0 && <span className="text-[9px] text-destructive">Morale {option.effects.morale}</span>}
-                  {option.effects.boardConfidence && option.effects.boardConfidence > 0 && <span className="text-[9px] text-primary">Board +{option.effects.boardConfidence}</span>}
-                  {option.effects.boardConfidence && option.effects.boardConfidence < 0 && <span className="text-[9px] text-destructive">Board {option.effects.boardConfidence}</span>}
-                  {option.effects.playerMorale && option.effects.playerMorale > 0 && <span className="text-[9px] text-emerald-400">Player +{option.effects.playerMorale}</span>}
-                  {option.effects.playerMorale && option.effects.playerMorale < 0 && <span className="text-[9px] text-destructive">Player {option.effects.playerMorale}</span>}
-                  {option.effects.fanMood && option.effects.fanMood > 0 && <span className="text-[9px] text-amber-400">Fans +{option.effects.fanMood}</span>}
-                  {option.effects.fanMood && option.effects.fanMood < 0 && <span className="text-[9px] text-destructive">Fans {option.effects.fanMood}</span>}
+                  {option.effects.morale && option.effects.morale > 0 && <span className="text-micro text-emerald-400">Morale +{option.effects.morale}</span>}
+                  {option.effects.morale && option.effects.morale < 0 && <span className="text-micro text-destructive">Morale {option.effects.morale}</span>}
+                  {option.effects.boardConfidence && option.effects.boardConfidence > 0 && <span className="text-micro text-primary">Board +{option.effects.boardConfidence}</span>}
+                  {option.effects.boardConfidence && option.effects.boardConfidence < 0 && <span className="text-micro text-destructive">Board {option.effects.boardConfidence}</span>}
+                  {option.effects.playerMorale && option.effects.playerMorale > 0 && <span className="text-micro text-emerald-400">Player +{option.effects.playerMorale}</span>}
+                  {option.effects.playerMorale && option.effects.playerMorale < 0 && <span className="text-micro text-destructive">Player {option.effects.playerMorale}</span>}
+                  {option.effects.fanMood && option.effects.fanMood > 0 && <span className="text-micro text-amber-400">Fans +{option.effects.fanMood}</span>}
+                  {option.effects.fanMood && option.effects.fanMood < 0 && <span className="text-micro text-destructive">Fans {option.effects.fanMood}</span>}
                 </div>
               </div>
             </motion.button>

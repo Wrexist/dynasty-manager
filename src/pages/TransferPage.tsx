@@ -355,18 +355,18 @@ const TransferPage = () => {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {shortlist.length > 0 && (
-              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+              <span className="text-micro bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                 {shortlist.length} shortlisted
               </span>
             )}
             {scouting.assignments.length > 0 && (
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">
+              <span className="text-micro bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">
                 {scouting.assignments.length} scout{scouting.assignments.length !== 1 ? 's' : ''} active
               </span>
             )}
             <button
               onClick={() => setScreen('scouting')}
-              className="text-[10px] text-primary underline underline-offset-2 hover:text-primary/80"
+              className="text-micro text-primary underline underline-offset-2 hover:text-primary/80"
             >
               <Search className="w-3 h-3 inline mr-0.5" />Scout ahead
             </button>
@@ -396,7 +396,7 @@ const TransferPage = () => {
             <span className="truncate">{label}</span>
             {count != null && count > 0 && (
               <span className={cn(
-                'ml-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[10px] font-bold px-1',
+                'ml-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-micro font-bold px-1',
                 tab === id ? 'bg-primary-foreground/20' : 'bg-primary/20 text-primary'
               )}>
                 {count}
@@ -470,7 +470,7 @@ const TransferPage = () => {
                 className="min-h-11 min-w-9 flex items-center justify-center"
               >
                 <span className={cn(
-                  'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
+                  'px-2 py-0.5 rounded text-micro font-medium transition-all',
                   posFilter === i ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'
                 )}>
                   {f.label}
@@ -485,7 +485,7 @@ const TransferPage = () => {
                 className="min-h-11 min-w-9 shrink-0 flex items-center justify-center"
               >
                 <span className={cn(
-                  'px-1.5 py-0.5 rounded text-[10px] font-medium transition-all',
+                  'px-1.5 py-0.5 rounded text-micro font-medium transition-all',
                   hideUnaffordable ? 'bg-emerald-500/20 text-emerald-400' : 'text-muted-foreground hover:text-foreground'
                 )}>
                   {'\u00A3'}{hideUnaffordable ? '\u2713' : ''}
@@ -506,7 +506,7 @@ const TransferPage = () => {
               }}
               className="min-h-11 min-w-11 shrink-0 flex items-center justify-end"
             >
-              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground">
+              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-micro font-medium bg-muted/50 text-muted-foreground hover:text-foreground">
                 <ArrowUpDown className="w-2.5 h-2.5" />
                 {tab === 'freeAgents'
                   ? (faSortBy === 'overall' ? 'OVR' : faSortBy === 'age' ? 'Age' : faSortBy === 'potential' ? 'POT' : 'Wage')
@@ -532,7 +532,7 @@ const TransferPage = () => {
                   className="min-h-11 shrink-0 flex items-center"
                 >
                   <span className={cn(
-                    'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
+                    'px-2 py-0.5 rounded text-micro font-medium transition-all',
                     divFilter === d.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
                   )}>
                     {d.label}
@@ -546,7 +546,7 @@ const TransferPage = () => {
 
       {/* Market Stats Summary */}
       {tab === 'market' && (
-        <GlassPanel className="p-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+        <GlassPanel className="p-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-micro text-muted-foreground">
           <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
           <span>{marketStats.fromClubs} from clubs</span>
           <span className="text-border">|</span>
@@ -570,7 +570,7 @@ const TransferPage = () => {
                     ? showShortlistOnly ? 'No players in your shortlist' : 'No players match your filters'
                     : 'No players on the transfer market'}
                 </p>
-                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                <p className="text-micro text-muted-foreground/60 mt-1">
                   {hasFilters
                     ? showShortlistOnly ? 'Tap the bookmark icon on a player to add them' : 'Try adjusting your search, position, or division filters'
                     : 'Check back during the transfer window'}
@@ -599,7 +599,7 @@ const TransferPage = () => {
                       <>
                         <span className="text-amber-400">{t('econ.market.freeAgentFee')}</span>
                         {listing.divisionId && (
-                          <span className="ml-1 text-[10px] text-muted-foreground/60">
+                          <span className="ml-1 text-micro text-muted-foreground/60">
                             ({leagueInfo?.shortName || 'External'} tier)
                           </span>
                         )}
@@ -608,7 +608,7 @@ const TransferPage = () => {
                       <>
                         From: {seller?.shortName || '?'}
                         {listing.divisionId && (
-                          <span className="ml-1 text-[10px] text-muted-foreground/60">
+                          <span className="ml-1 text-micro text-muted-foreground/60">
                             ({leagueInfo?.shortName || 'External'})
                           </span>
                         )}
@@ -626,7 +626,7 @@ const TransferPage = () => {
                       )} />
                       <p className="text-sm font-bold text-primary">{formatMoney(listing.askingPrice)}</p>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
+                    <p className="text-micro text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
                   </>
                 }
                 actions={
@@ -680,21 +680,21 @@ const TransferPage = () => {
                     rightContent={
                       <>
                         <p className="text-sm font-bold text-primary">{formatMoney(offer.fee)}</p>
-                        <p className="text-[10px] text-muted-foreground">Value: {formatMoney(p.value)}</p>
+                        <p className="text-micro text-muted-foreground">Value: {formatMoney(p.value)}</p>
                         {pctDiff !== 0 && (
-                          <p className={cn('text-[10px] font-medium', pctDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                          <p className={cn('text-micro font-medium', pctDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
                             {pctDiff > 0 ? '+' : ''}{pctDiff}% {pctDiff > 0 ? 'above' : 'below'} value
                           </p>
                         )}
                         <div className="flex items-center justify-end gap-1 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground/70">Wk {offer.week}</span>
+                          <span className="text-micro text-muted-foreground/70">Wk {offer.week}</span>
                           {perfMult >= HOT_FORM_THRESHOLD ? (
-                            <span className="text-[9px] font-medium text-orange-500 bg-orange-500/10 px-1 rounded">Hot form</span>
+                            <span className="text-micro font-medium text-orange-500 bg-orange-500/10 px-1 rounded">Hot form</span>
                           ) : perfMult >= GOOD_FORM_THRESHOLD ? (
-                            <span className="text-[9px] font-medium text-blue-400 bg-blue-400/10 px-1 rounded">Good form</span>
+                            <span className="text-micro font-medium text-blue-400 bg-blue-400/10 px-1 rounded">Good form</span>
                           ) : null}
                           {week - offer.week >= OFFER_EXPIRY_WEEKS - OFFER_EXPIRY_WARNING_WEEKS && (
-                            <span className="text-[9px] font-medium text-amber-500 bg-amber-500/10 px-1 rounded">Expiring</span>
+                            <span className="text-micro font-medium text-amber-500 bg-amber-500/10 px-1 rounded">Expiring</span>
                           )}
                         </div>
                       </>
@@ -745,7 +745,7 @@ const TransferPage = () => {
                         <p className="text-sm font-bold text-primary">{formatMoney(listing ? listing.askingPrice : p.value)}</p>
                         <div className="flex items-center gap-1 mt-0.5 justify-end">
                           <Tag className="w-3 h-3 text-amber-400" />
-                          <span className="text-[10px] text-amber-400">Listed</span>
+                          <span className="text-micro text-amber-400">Listed</span>
                         </div>
                       </>
                     }
@@ -779,7 +779,7 @@ const TransferPage = () => {
                     subtitle={
                       <>
                         <div>From: <span className="text-foreground">{fromClub?.name || '?'}</span></div>
-                        <div className="flex gap-3 mt-1 text-[10px]">
+                        <div className="flex gap-3 mt-1 text-micro">
                           <span>{offer.durationWeeks} weeks</span>
                           <span>Wage: {offer.wageSplit}%</span>
                           {offer.recallClause && <span className="text-primary">Recall clause</span>}
@@ -836,7 +836,7 @@ const TransferPage = () => {
                     subtitle={
                       <>
                         <div>From: <span className="text-foreground">{ownerClub?.name || '?'}</span></div>
-                        <div className="flex gap-3 mt-1 text-[10px] items-center">
+                        <div className="flex gap-3 mt-1 text-micro items-center">
                           <span>{req.durationWeeks} weeks</span>
                           <span>Wage: {req.wageSplit}%</span>
                           {req.recallClause && <span className="text-blue-400">Recall</span>}
@@ -858,7 +858,7 @@ const TransferPage = () => {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); cancelLoanRequest(req.id); }}
-                            className="px-1.5 py-0.5 rounded border border-border/40 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50 text-[9px] uppercase tracking-wider"
+                            className="px-1.5 py-0.5 rounded border border-border/40 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50 text-micro uppercase tracking-wider"
                           >
                             {req.status === 'counter' ? 'Dismiss' : 'Clear'}
                           </button>
@@ -894,7 +894,7 @@ const TransferPage = () => {
                           subtitle={
                             <>
                               <div>At: <span className="text-foreground">{destClub?.name || '?'}</span></div>
-                              <div className="flex gap-3 mt-1 text-[10px] flex-wrap">
+                              <div className="flex gap-3 mt-1 text-micro flex-wrap">
                                 <span className="inline-flex items-center gap-1 text-blue-400"><Repeat2 className="w-3 h-3" />On loan</span>
                                 <span>{remaining}w left</span>
                                 <span>Wage: {loan.wageSplit}%</span>
@@ -937,7 +937,7 @@ const TransferPage = () => {
                           subtitle={
                             <>
                               <div>From: <span className="text-foreground">{parentClub?.name || '?'}</span></div>
-                              <div className="flex gap-3 mt-1 text-[10px] flex-wrap">
+                              <div className="flex gap-3 mt-1 text-micro flex-wrap">
                                 <span className="inline-flex items-center gap-1 text-blue-400"><Repeat2 className="w-3 h-3" />On loan</span>
                                 <span>{remaining}w left</span>
                                 <span>Wage: {loan.wageSplit}%</span>
@@ -994,7 +994,7 @@ const TransferPage = () => {
               rightContent={
                 <>
                   <p className="text-sm font-bold text-emerald-400">FREE</p>
-                  <p className="text-[10px] text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
+                  <p className="text-micro text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
                 </>
               }
               actions={

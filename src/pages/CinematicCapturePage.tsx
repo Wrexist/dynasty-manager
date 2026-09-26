@@ -207,7 +207,7 @@ const CinematicCapturePage = () => {
         type="button"
         onClick={() => navigate('/')}
         aria-label={t('cinematicCapturePage.exitCinematicCapture')}
-        className="fixed top-3 left-3 z-[9999] rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-white"
+        className="fixed top-3 left-3 z-[9999] rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3 py-1.5 text-micro tracking-[0.2em] uppercase text-white/70 hover:text-white"
         style={{ fontFamily: 'monospace' }}
       >
         ✕ exit · {beat} · loop {loopCount + 1}
@@ -222,7 +222,7 @@ const CinematicCapturePage = () => {
           if (beat === 'pack') handlePackClose(); else advance();
         }}
         aria-label={t('cinematicCapturePage.skipToNextBeat')}
-        className="fixed bottom-3 right-3 z-[9999] rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-white"
+        className="fixed bottom-3 right-3 z-[9999] rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3 py-1.5 text-micro tracking-[0.2em] uppercase text-white/70 hover:text-white"
         style={{ fontFamily: 'monospace' }}
       >
         next ▸

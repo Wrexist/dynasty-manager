@@ -206,7 +206,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                       </p>
                       <div className="flex gap-1.5 mt-2">
                         {top3.map(attr => (
-                          <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
+                          <span key={attr.label} className="text-micro font-mono bg-muted/70 px-1.5 py-0.5 rounded">
                             <span className="text-muted-foreground">{attr.label}</span>{' '}
                             <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
                           </span>
@@ -270,7 +270,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         className="range-touch range-touch-blue relative z-10"
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+                    <div className="flex justify-between text-micro text-muted-foreground tabular-nums">
                       <span>{LOAN_REQUEST_MIN_DURATION}w</span>
                       <span className="text-blue-400/70 font-medium">
                         {duration <= 12 ? 'Short-term' : duration <= 28 ? 'Half-season' : 'Full season'}
@@ -310,7 +310,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         className="range-touch relative z-10"
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+                    <div className="flex justify-between text-micro text-muted-foreground tabular-nums">
                       <span>{t('loanNegotiation.wageSplitNone')}</span>
                       <span className="font-medium text-foreground">
                         {formatWage(Math.round(player.wage * wageSplit / 100))}/w
@@ -334,7 +334,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                     >
                       <div>
                         <p className="text-xs font-medium text-foreground text-left">Recall Clause</p>
-                        <p className="text-[10px] text-muted-foreground text-left">Return player early if needed</p>
+                        <p className="text-micro text-muted-foreground text-left">Return player early if needed</p>
                       </div>
                       {recallClause
                         ? <ToggleRight className="w-7 h-7 text-blue-400 shrink-0" />
@@ -352,7 +352,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         {/* The underlying field is `obligatoryBuyFee` — a
                             committed purchase, not an option. Label honestly. */}
                         <p className="text-xs font-medium text-foreground text-left">Obligation to Buy</p>
-                        <p className="text-[10px] text-muted-foreground text-left">You commit to buying the player when the loan ends</p>
+                        <p className="text-micro text-muted-foreground text-left">You commit to buying the player when the loan ends</p>
                       </div>
                       {buyOption
                         ? <ToggleRight className="w-7 h-7 text-primary shrink-0" />
@@ -649,19 +649,19 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                 >
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-muted/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-muted-foreground mb-1">Your Terms</p>
+                      <p className="text-micro text-muted-foreground mb-1">Your Terms</p>
                       <p className="text-xs font-bold text-muted-foreground line-through tabular-nums">
                         {wageSplit}% wage · {duration}w
                       </p>
                     </div>
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-amber-400 mb-1">They Want</p>
+                      <p className="text-micro text-amber-400 mb-1">They Want</p>
                       <p className="text-xs font-black text-amber-400 tabular-nums">
                         {counterWageSplit ?? wageSplit}% wage · {counterDuration ?? duration}w
                       </p>
                     </div>
                   </div>
-                  <div className="text-[10px] text-muted-foreground px-1 text-center">
+                  <div className="text-micro text-muted-foreground px-1 text-center">
                     Weekly cost: {formatWage(Math.round(player.wage * (counterWageSplit ?? wageSplit) / 100))}/w
                   </div>
                 </motion.div>

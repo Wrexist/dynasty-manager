@@ -427,7 +427,7 @@ export function LineupEditor() {
                     <p className="text-xs font-semibold text-foreground">
                       <FlagIcon nationality={selectedPlayer.nationality} size={14} /> {selectedPlayer.firstName} {selectedPlayer.lastName}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-micro text-muted-foreground">
                       {selectedPlayer.position} · Age {selectedPlayer.age} · Fitness {selectedPlayer.fitness}%
                       {selectedPlayer.injured && ' · Injured'}
                     </p>
@@ -442,8 +442,8 @@ export function LineupEditor() {
               <div className="grid grid-cols-3 gap-x-3 gap-y-1 mb-2">
                 {(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const).map(attr => (
                   <div key={attr} className="flex items-center justify-between">
-                    <span className="text-[9px] text-muted-foreground capitalize">{attr.slice(0, 3)}</span>
-                    <span className={cn('text-[10px] font-bold tabular-nums', getRatingColor(selectedPlayer.attributes[attr]))}>
+                    <span className="text-micro text-muted-foreground capitalize">{attr.slice(0, 3)}</span>
+                    <span className={cn('text-micro font-bold tabular-nums', getRatingColor(selectedPlayer.attributes[attr]))}>
                       {selectedPlayer.attributes[attr]}
                     </span>
                   </div>
@@ -451,7 +451,7 @@ export function LineupEditor() {
               </div>
 
               {/* Morale + Form row */}
-              <div className="flex items-center gap-3 mb-1.5 text-[9px]">
+              <div className="flex items-center gap-3 mb-1.5 text-micro">
                 <span className="text-muted-foreground">
                   Morale: <span className={cn('font-bold',
                     selectedPlayer.morale >= 60 ? 'text-emerald-400' :
@@ -465,23 +465,23 @@ export function LineupEditor() {
                   )}>{selectedPlayer.form}</span>
                 </span>
                 {!isLineupSelected && (
-                  <span className="text-primary text-[8px] ml-auto">BENCH</span>
+                  <span className="text-primary text-micro ml-auto">BENCH</span>
                 )}
               </div>
 
               {/* Chemistry links for this player */}
               {selectedPlayerLinks.length > 0 && (
                 <div className="border-t border-border/30 pt-1.5">
-                  <p className="text-[9px] text-muted-foreground mb-1">Chemistry Links</p>
+                  <p className="text-micro text-muted-foreground mb-1">Chemistry Links</p>
                   <div className="space-y-0.5">
                     {selectedPlayerLinks.map((link) => {
                       const partnerId = link.playerIdA === selectedId ? link.playerIdB : link.playerIdA;
                       const partner = players[partnerId];
                       if (!partner) return null;
                       return (
-                        <div key={`${link.playerIdA}-${link.playerIdB}-${link.type}`} className="flex items-center gap-1.5 text-[9px]">
+                        <div key={`${link.playerIdA}-${link.playerIdB}-${link.type}`} className="flex items-center gap-1.5 text-micro">
                           <span className={cn(
-                            'px-1 py-px rounded text-[8px] font-medium',
+                            'px-1 py-px rounded text-micro font-medium',
                             link.type === 'nationality' ? 'bg-primary/15 text-primary' :
                             link.type === 'mentor' ? 'bg-emerald-400/15 text-emerald-400' :
                             link.type === 'partnership' ? 'bg-amber-400/15 text-amber-400' :
@@ -504,7 +504,7 @@ export function LineupEditor() {
 
       {/* Bench */}
       <div className="mt-3">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
+        <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 px-1">
           {subAndBench.map(id => {
             const p = players[id];
@@ -533,7 +533,7 @@ export function LineupEditor() {
       {/* Selection hint */}
       {selectedId && (
         <div className="mt-2 text-center">
-          <p className="text-[10px] text-primary animate-pulse">
+          <p className="text-micro text-primary animate-pulse">
             Tap another player to swap, or tap again to deselect
           </p>
         </div>

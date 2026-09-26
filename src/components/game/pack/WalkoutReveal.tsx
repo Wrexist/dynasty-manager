@@ -279,7 +279,7 @@ function AttributePill({
           : { duration: 0.35, delay: delay / 1000, ease: [0.22, 1, 0.36, 1] }
       }
     >
-      <span className="text-[8px] uppercase tracking-[0.2em] font-semibold" style={{ color: `${accent}cc` }}>
+      <span className="text-micro uppercase tracking-[0.2em] font-semibold" style={{ color: `${accent}cc` }}>
         {label}
       </span>
       <span
@@ -673,7 +673,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
             best-pull chip on the results screen. Star reinforces it's a
             top-tier (Gold / Legendary) walkout-grade pull. */}
         <motion.div
-          className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-full text-[9px] font-display font-bold uppercase tracking-[0.28em] text-white"
+          className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-full text-micro font-display font-bold uppercase tracking-[0.28em] text-white"
           style={{
             background: `linear-gradient(135deg, ${tier.gradientFrom}40, ${tier.gradientTo}26)`,
             border: `1px solid ${tier.gradientVia}80`,
@@ -766,7 +766,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           transition={{ duration: 0.4, delay: phase === 'hold' ? 0.15 : 0 }}
         >
           <div
-            className="flex items-center justify-between text-[10px] uppercase tracking-widest mb-1"
+            className="flex items-center justify-between text-micro uppercase tracking-widest mb-1"
             style={{ color: tier.gradientVia }}
           >
             <span>{t('walkoutReveal.potential')}</span>
@@ -794,7 +794,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
         className={cn(
           'absolute bottom-[max(env(safe-area-inset-bottom),18px)] left-1/2 -translate-x-1/2',
           'flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 rounded-full',
-          'text-[10px] uppercase tracking-[0.28em] font-semibold text-white/85',
+          'text-micro uppercase tracking-[0.28em] font-semibold text-white/85',
           'bg-white/[0.07] border border-white/20 backdrop-blur-md',
           'shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_24px_-12px_rgba(0,0,0,0.55)]',
           'active:scale-[0.96] transition-[transform,background-color] duration-150',

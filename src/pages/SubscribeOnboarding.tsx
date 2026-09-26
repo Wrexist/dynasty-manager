@@ -509,7 +509,7 @@ const SubscribeOnboarding = () => {
               </span>
               <div className="min-w-0 leading-snug">
                 <p className="text-[12px] font-semibold text-foreground leading-tight">{title}</p>
-                <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{description}</p>
+                <p className="text-micro text-muted-foreground leading-snug mt-0.5">{description}</p>
               </div>
             </li>
           ))}
@@ -604,7 +604,7 @@ const SubscribeOnboarding = () => {
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[13px] font-bold text-foreground truncate">{row.title}</span>
                     {badgeText && (
-                      <span className="text-[9px] font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
+                      <span className="text-micro font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
                         {badgeText}
                       </span>
                     )}
@@ -618,12 +618,12 @@ const SubscribeOnboarding = () => {
                       prominent pricing element, and the cadence is spelled out
                       in full by `lengthLabel` directly above. */}
                   {isAnnualBest && annualPerMonth && (
-                    <p className="text-[10px] text-muted-foreground/70 leading-snug mt-0.5">
+                    <p className="text-micro text-muted-foreground/70 leading-snug mt-0.5">
                       Works out at {annualPerMonth}/month
                     </p>
                   )}
                   {trials[row.productId] != null && (
-                    <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
+                    <p className="text-micro text-muted-foreground/80 leading-snug mt-0.5">
                       {trials[row.productId]}-day free trial included
                     </p>
                   )}
@@ -738,7 +738,7 @@ const SubscribeOnboarding = () => {
           </button>
         </div>
 
-        <p className="mt-0.5 text-center text-[10px] text-muted-foreground/70 leading-snug px-2">
+        <p className="mt-0.5 text-center text-micro text-muted-foreground/70 leading-snug px-2">
           Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
           Manage or cancel anytime in Settings → Apple ID → Subscriptions.
         </p>

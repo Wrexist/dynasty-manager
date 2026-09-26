@@ -179,7 +179,7 @@ export function BottomNav() {
                     />
                   )}
                 </span>
-                <span className="text-[10px] font-medium">{text}</span>
+                <span className="text-micro font-medium">{text}</span>
               </span>
             </button>
           );

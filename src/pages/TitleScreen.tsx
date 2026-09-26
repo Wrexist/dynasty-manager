@@ -251,7 +251,7 @@ const TitleScreen = () => {
         <p className="text-xl text-primary font-bold tracking-[0.38em] mt-1.5 font-display">MANAGER</p>
         <div className="flex items-center justify-center gap-2.5 mt-3.5">
           <span aria-hidden className="h-px w-8 bg-gradient-to-r from-transparent to-primary/40" />
-          <p className="text-[10px] text-muted-foreground tracking-[0.42em] uppercase font-display">Football Edition</p>
+          <p className="text-micro text-muted-foreground tracking-[0.42em] uppercase font-display">Football Edition</p>
           <span aria-hidden className="h-px w-8 bg-gradient-to-l from-transparent to-primary/40" />
         </div>
       </motion.div>
@@ -265,8 +265,8 @@ const TitleScreen = () => {
           animate="visible"
           className="flex items-center justify-between px-1 mb-1"
         >
-          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-semibold">Save Slots</p>
-          <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.3em] font-semibold">
+          <p className="text-micro text-muted-foreground uppercase tracking-[0.3em] font-semibold">Save Slots</p>
+          <p className="text-micro text-muted-foreground/50 uppercase tracking-[0.3em] font-semibold">
             {slots.filter(s => s.exists && !unreadSlots.has(s.slot)).length}/{slots.length}
           </p>
         </motion.div>
@@ -336,7 +336,7 @@ const TitleScreen = () => {
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-bold text-foreground truncate">{slot.clubName || t('title.damaged')}</p>
                         {slot.gameMode === 'career' && (
-                          <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-[1px] rounded-full font-semibold shrink-0 uppercase tracking-wider border border-primary/25">
+                          <span className="text-micro bg-primary/20 text-primary px-1.5 py-[1px] rounded-full font-semibold shrink-0 uppercase tracking-wider border border-primary/25">
                             Career
                           </span>
                         )}
@@ -475,7 +475,7 @@ const TitleScreen = () => {
         </motion.div>
       </div>
 
-      <p className="absolute bottom-5 text-[10px] text-muted-foreground/50 tracking-[0.4em] font-display">v{__APP_VERSION__}</p>
+      <p className="absolute bottom-5 text-micro text-muted-foreground/50 tracking-[0.4em] font-display">v{__APP_VERSION__}</p>
     </div>
   );
 };

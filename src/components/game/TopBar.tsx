@@ -89,14 +89,14 @@ export function TopBar() {
             <div className="flex items-center gap-2.5 min-w-0">
               <div
                 aria-hidden
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ring-1 ring-inset ring-white/10"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ring-1 ring-inset ring-white/10" // type-floor: graphic — crest monogram
                 style={{ backgroundColor: sunday.identity.color, color: sunday.identity.secondaryColor }}
               >
                 {sunday.identity.shortName.slice(0, 3).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground truncate">{sunday.identity.name}</p>
-                <p className="text-[10px] text-lime-400 truncate font-medium">
+                <p className="text-micro text-lime-400 truncate font-medium">
                   {getSundayDivision(sunday.divisionId).shortName} · {tr('sunday.hub.week', { week })}
                 </p>
               </div>
@@ -159,7 +159,7 @@ export function TopBar() {
             {managerNationality && <FlagIcon nationality={managerNationality} size={26} className="rounded-sm shrink-0" />}
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{managerNationality || 'World Cup'}</p>
-              <p className="text-[10px] text-amber-400 truncate font-medium">World Cup · {roundLabel}</p>
+              <p className="text-micro text-amber-400 truncate font-medium">World Cup · {roundLabel}</p>
             </div>
           </div>
           ) : (
@@ -285,7 +285,7 @@ export function TopBar() {
             showBack && SCREEN_TITLES[currentScreen] ? (
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
-                <p className="text-[10px] text-muted-foreground truncate">Between Jobs</p>
+                <p className="text-micro text-muted-foreground truncate">Between Jobs</p>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 min-w-0">
@@ -298,7 +298,7 @@ export function TopBar() {
           ) : showBack && SCREEN_TITLES[currentScreen] ? (
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
-              <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club?.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
+              <p className={cn('text-micro text-muted-foreground truncate', posFlash)}>{club?.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
@@ -306,7 +306,7 @@ export function TopBar() {
               {hasPlayedMatches && <FormGuide form={recentForm} size="sm" />}
               {hasPlayedMatches && pos !== '-' && league && (
                 <span className={cn(
-                  'text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0',
+                  'text-micro font-bold px-1.5 py-0.5 rounded-full shrink-0',
                   Number(pos) <= league.replacedSlots ? 'bg-emerald-500/20 text-emerald-400' :
                   Number(pos) <= league.replacedSlots + 4 ? 'bg-primary/20 text-primary' :
                   Number(pos) > league.teamCount - league.replacedSlots ? 'bg-destructive/20 text-destructive' :

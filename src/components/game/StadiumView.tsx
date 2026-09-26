@@ -254,7 +254,7 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
                 textAnchor="middle"
                 dominantBaseline="central"
                 className={cn(
-                  'text-[9px] font-semibold fill-current pointer-events-none select-none',
+                  'text-[9px] font-semibold fill-current pointer-events-none select-none', // type-floor: graphic — SVG user units, scales with the diagram
                   selectedStand === key ? 'text-primary' : 'text-foreground/80'
                 )}
               >
@@ -265,7 +265,7 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
                 y={pos.y + 11}
                 textAnchor="middle"
                 dominantBaseline="central"
-                className="text-[8px] fill-current text-muted-foreground pointer-events-none select-none"
+                className="text-[8px] fill-current text-muted-foreground pointer-events-none select-none" // type-floor: graphic — SVG user units; a wider label overruns the 40-unit side stands
               >
                 Lv.{stands[key]} {getStandTier(stands[key])}
               </text>

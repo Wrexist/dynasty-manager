@@ -18,7 +18,7 @@ export function TacticalPanel({ tactics, setTactics, variant }: TacticalPanelPro
   const isCompact = variant === 'compact';
   const labelClass = cn(
     'text-muted-foreground uppercase tracking-wider font-semibold',
-    isCompact ? 'text-[10px] mb-1' : 'text-xs mb-1.5',
+    isCompact ? 'text-micro mb-1' : 'text-xs mb-1.5',
   );
   const rowGap = isCompact ? 'space-y-3' : 'space-y-4';
 

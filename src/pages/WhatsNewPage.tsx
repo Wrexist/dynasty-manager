@@ -32,7 +32,7 @@ function ReleaseCard({ entry, isLatest }: { entry: ReleaseNote; isLatest: boolea
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1.5">
           <span className={cn(
-            'text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border',
+            'text-micro font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border',
             isLatest
               ? 'bg-primary/20 text-primary border-primary/30'
               : 'bg-white/5 text-muted-foreground border-white/10',
@@ -40,12 +40,12 @@ function ReleaseCard({ entry, isLatest }: { entry: ReleaseNote; isLatest: boolea
             v{entry.version}
           </span>
           {isLatest && (
-            <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
+            <span className="text-micro font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
               New
             </span>
           )}
         </div>
-        <span className="text-[9px] text-muted-foreground/80 uppercase tracking-wider">
+        <span className="text-micro text-muted-foreground/80 uppercase tracking-wider">
           {formatDate(entry.date)}
         </span>
       </div>
@@ -112,7 +112,7 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
         <h2 className="font-display text-base font-bold text-foreground tracking-tight">
           Update Log
         </h2>
-        <span className="ml-auto text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+        <span className="ml-auto text-micro text-muted-foreground/70 uppercase tracking-wider">
           {notes.length} {notes.length === 1 ? 'release' : 'releases'}
         </span>
       </div>
@@ -137,7 +137,7 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
         </GlassPanel>
       )}
 
-      <p className="text-[9px] text-muted-foreground/50 text-center pt-1 pb-3">
+      <p className="text-micro text-muted-foreground/50 text-center pt-1 pb-3">
         Updates ship via the App Store · restart to pull latest TestFlight build.
       </p>
     </div>

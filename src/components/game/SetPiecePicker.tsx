@@ -175,7 +175,7 @@ export function SetPiecePicker({ role, players, selectedId, onChange }: SetPiece
                         <span
                           key={a.label}
                           className={cn(
-                            'text-[9px] font-mono font-bold px-1 py-0.5 rounded bg-muted/40',
+                            'text-micro font-mono font-bold px-1 py-0.5 rounded bg-muted/40',
                             getRatingColor(p.attributes[a.key]),
                           )}
                         >
@@ -205,7 +205,7 @@ function SelectedRow({ player, role }: { player: Player; role: SetPieceRole }) {
       <span className="text-sm text-foreground truncate flex-1 text-left">
         {player.firstName[0]}. {player.lastName}
       </span>
-      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground shrink-0">
+      <span className="text-micro font-semibold px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground shrink-0">
         {player.position}
       </span>
     </>

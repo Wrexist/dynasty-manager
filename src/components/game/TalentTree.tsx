@@ -55,7 +55,7 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
         />
         {/* Capstone progress indicator */}
         {!isCapstoneUnlocked && (
-          <p className="text-[9px] text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             {highBranches}/{CAPSTONE_MIN_BRANCHES} branches at tier 4+
           </p>
         )}
@@ -95,8 +95,8 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
           return (
             <div key={branch.id} className="text-center">
               <DynamicIcon name={branch.icon} className={cn('w-4 h-4 mx-auto mb-0.5', branch.color)} />
-              <p className={cn('text-[9px] font-bold uppercase tracking-wider', branch.color)}>{branch.name}</p>
-              <p className="text-[8px] text-muted-foreground">
+              <p className={cn('text-micro font-bold uppercase tracking-wider', branch.color)}>{branch.name}</p>
+              <p className="text-micro text-muted-foreground">
                 {unlockedCount}/{branchPerks.length}
                 {hasHigh && !isCapstoneUnlocked && ' \u2713'}
               </p>
@@ -112,7 +112,7 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
           {row === 4 && getBranchPerks('tactician').some(p => p.row === 5) && (
             <div className="flex items-center gap-2 my-2 px-1">
               <div className="flex-1 h-px bg-primary/20" />
-              <span className="text-[8px] font-bold text-primary/50 uppercase tracking-widest">Prestige</span>
+              <span className="text-micro font-bold text-primary/50 uppercase tracking-widest">Prestige</span>
               <div className="flex-1 h-px bg-primary/20" />
             </div>
           )}
@@ -251,25 +251,25 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
       </div>
       {/* Name */}
       <p className={cn(
-        'text-[9px] font-semibold leading-tight text-center line-clamp-2 w-full',
+        'text-micro font-semibold leading-tight text-center line-clamp-2 w-full',
         isUnlocked ? (branchColor || 'text-primary') : canBuy ? 'text-foreground' : 'text-muted-foreground/50',
       )}>
         {perk.name}
       </p>
       {/* Cost / Status */}
       {!isUnlocked && prestigeLocked && (
-        <p className="text-[8px] text-amber-400/60">P{perk.prestigeRequired}</p>
+        <p className="text-micro text-amber-400/60">P{perk.prestigeRequired}</p>
       )}
       {!isUnlocked && !prestigeLocked && (
         <p className={cn(
-          'text-[8px]',
+          'text-micro',
           canBuy ? 'text-blue-400' : 'text-muted-foreground/40',
         )}>
           {perk.cost} XP
         </p>
       )}
       {isUnlocked && (
-        <p className={cn('text-[8px] font-bold', isPrestige ? 'text-amber-400' : 'text-emerald-400')}>Active</p>
+        <p className={cn('text-micro font-bold', isPrestige ? 'text-amber-400' : 'text-emerald-400')}>Active</p>
       )}
     </motion.button>
   );
@@ -361,17 +361,17 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
                 {perk.name}
               </h3>
               {branchMeta && (
-                <span className={cn('text-[9px] font-bold uppercase', branchMeta.color)}>
+                <span className={cn('text-micro font-bold uppercase', branchMeta.color)}>
                   {branchMeta.name}
                 </span>
               )}
               {isCapstone && (
-                <span className="text-[9px] font-bold uppercase text-primary">Capstone</span>
+                <span className="text-micro font-bold uppercase text-primary">Capstone</span>
               )}
             </div>
             <p className="text-sm text-muted-foreground">{perk.description}</p>
             {!isUnlocked && !isCapstone && perk.tier && (
-              <p className="text-[10px] text-muted-foreground/60 mt-1">Tier {perk.tier} &middot; {perk.cost} XP</p>
+              <p className="text-micro text-muted-foreground/60 mt-1">Tier {perk.tier} &middot; {perk.cost} XP</p>
             )}
           </div>
         </div>
@@ -381,41 +381,41 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
           {/* Prerequisite chain (only for locked perks with prerequisites) */}
           {!isUnlocked && prereqChain.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] text-muted-foreground">Path:</span>
+              <span className="text-micro text-muted-foreground">Path:</span>
               {prereqChain.map((p, i) => {
                 const unlocked = progression.unlockedPerks.includes(p.id);
                 return (
                   <span key={p.id} className="flex items-center gap-1">
                     <span className={cn(
-                      'text-[10px] font-medium',
+                      'text-micro font-medium',
                       unlocked ? 'text-emerald-400' : 'text-muted-foreground/60',
                     )}>
                       {p.name}
                     </span>
                     {i < prereqChain.length - 1 && (
-                      <span className="text-[10px] text-muted-foreground/30">&rarr;</span>
+                      <span className="text-micro text-muted-foreground/30">&rarr;</span>
                     )}
                   </span>
                 );
               })}
-              <span className="text-[10px] text-muted-foreground/30">&rarr;</span>
-              <span className="text-[10px] font-bold text-foreground">{perk.name}</span>
+              <span className="text-micro text-muted-foreground/30">&rarr;</span>
+              <span className="text-micro font-bold text-foreground">{perk.name}</span>
             </div>
           )}
 
           {/* Next perk in branch */}
           {isUnlocked && nextPerk && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Unlocks next:</span>
-              <span className="text-[10px] font-medium text-foreground">{nextPerk.name}</span>
-              <span className="text-[10px] text-muted-foreground/60">({nextPerk.cost} XP)</span>
+              <span className="text-micro text-muted-foreground">Unlocks next:</span>
+              <span className="text-micro font-medium text-foreground">{nextPerk.name}</span>
+              <span className="text-micro text-muted-foreground/60">({nextPerk.cost} XP)</span>
             </div>
           )}
 
           {/* Capstone branch progress */}
           {isCapstone && !isUnlocked && (
             <div className="space-y-1.5">
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 Requires {CAPSTONE_MIN_BRANCHES} branches at tier 4+: {highBranches}/{CAPSTONE_MIN_BRANCHES}
               </p>
               <div className="flex gap-1.5">
@@ -423,7 +423,7 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
                   const ready = branchHasHighTier(branch.id, progression);
                   return (
                     <div key={branch.id} className={cn(
-                      'flex-1 py-1 rounded text-center text-[9px] font-bold',
+                      'flex-1 py-1 rounded text-center text-micro font-bold',
                       ready ? 'bg-primary/15 text-primary' : 'bg-muted/20 text-muted-foreground/40',
                     )}>
                       {branch.name}
@@ -451,7 +451,7 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
             </Button>
           ) : canBuy && confirming ? (
             <div className="flex-1 space-y-2">
-              <p className="text-[10px] text-center text-muted-foreground">
+              <p className="text-micro text-center text-muted-foreground">
                 Spend {perk.cost} XP? You'll have {xpAfterUnlock} XP remaining.
               </p>
               <div className="flex gap-2">

@@ -104,7 +104,7 @@ export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
                   />
                 ))}
               </div>
-              <span className="text-[10px] text-muted-foreground">{safeStep + 1} of {STEPS.length}</span>
+              <span className="text-micro text-muted-foreground">{safeStep + 1} of {STEPS.length}</span>
             </div>
 
             <div className="flex items-center gap-2">

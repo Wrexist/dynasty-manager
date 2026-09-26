@@ -68,10 +68,10 @@ export function FestivalBanner() {
             <Trophy className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-primary/80 font-semibold">Live Event</p>
+            <p className="text-micro uppercase tracking-[0.16em] text-primary/80 font-semibold">Live Event</p>
             <p className="text-sm font-bold text-foreground font-display leading-tight truncate">{event.name}</p>
             {daysLeft !== null && daysLeft >= 0 && (
-              <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-foreground/65">
+              <span className="inline-flex items-center gap-1 mt-0.5 text-micro text-foreground/65">
                 <CalendarClock className="w-3 h-3" />
                 {daysLeft === 0 ? 'Final day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
               </span>

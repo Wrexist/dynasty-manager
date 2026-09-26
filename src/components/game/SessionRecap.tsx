@@ -117,7 +117,7 @@ export function SessionRecap() {
                   <Clock className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-bold text-foreground font-display">Welcome Back!</h3>
                 </div>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-micro text-muted-foreground">
                   {weeksElapsed} week{weeksElapsed !== 1 ? 's' : ''} since last session
                 </span>
               </div>

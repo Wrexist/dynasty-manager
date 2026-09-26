@@ -259,11 +259,11 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
               <MoreHorizontal className="w-5 h-5" />
               {(unread > 0 || (!isUnemployed && hasPendingCupMatch)) && (
                 <div className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-destructive rounded-full flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
+                  <span className="text-micro font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
                 </div>
               )}
             </span>
-            <span className="text-[10px] font-medium">More</span>
+            <span className="text-micro font-medium">More</span>
           </span>
         </button>
       </SheetTrigger>
@@ -333,7 +333,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                   {/* Contextual hints on pinned items */}
                   {screen === 'calendar' && hasMatchThisWeek && (
                     <span
-                      className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full text-emerald-100 relative"
+                      className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full text-emerald-100 relative"
                       style={{
                         background: 'linear-gradient(180deg, rgba(110,231,183,0.25) 0%, rgba(16,185,129,0.3) 100%)',
                         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px rgba(16,185,129,0.4), 0 0 8px rgba(16,185,129,0.35)',
@@ -344,7 +344,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                     </span>
                   )}
                   {screen === 'league-table' && leaguePosition && (
-                    <span className="text-[9px] text-muted-foreground relative">{leaguePosition}{getSuffix(leaguePosition)}</span>
+                    <span className="text-micro text-muted-foreground relative">{leaguePosition}{getSuffix(leaguePosition)}</span>
                   )}
                 </button>
               );
@@ -375,7 +375,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
             if (items.length === 0) return null;
             return (
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
+                <p className="text-micro text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
                   {t('moreDrawer.jumpTo')}
                 </p>
                 <div className="space-y-1.5">
@@ -415,7 +415,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
               if (items.length === 0) return null;
               return (
                 <div key={section.id}>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
+                  <p className="text-micro text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
                     {sectionTitle}
                   </p>
                   <div className="space-y-1.5">
@@ -461,7 +461,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                   <p className="text-[11px] text-muted-foreground uppercase tracking-[0.18em] font-semibold">
                     {sectionTitle}
                   </p>
-                  <span className="text-[10px] text-muted-foreground/50 tabular-nums">
+                  <span className="text-micro text-muted-foreground/50 tabular-nums">
                     {visibleItems.length}
                   </span>
                   <ChevronDown className={cn(
@@ -477,7 +477,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      className="text-[10px] text-muted-foreground/40 px-3 pb-1 truncate overflow-hidden"
+                      className="text-micro text-muted-foreground/40 px-3 pb-1 truncate overflow-hidden"
                     >
                       {visibleItems.map(i => i.label).join(' \u00b7 ')}
                     </motion.p>
@@ -566,7 +566,7 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
           {screen === 'manager-pass' && <CountBadge count={passClaimable} tone="primary" cap={99} />}
           {screen === 'competitions' && (hasPendingCupMatch || hasPendingLeagueCupMatch) && (
             <span
-              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
+              className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
               style={{
                 background: 'linear-gradient(180deg, #FB7185 0%, #E11D48 60%, #9F1239 100%)',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 8px rgba(239,68,68,0.55)',

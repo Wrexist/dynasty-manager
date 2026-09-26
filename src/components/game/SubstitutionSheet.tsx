@@ -270,7 +270,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 {/* Injury badge — top right */}
                 {isInjuredInMatch && !isSelectedOut && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center z-10">
-                    <span className="text-[6px] text-white font-bold">!</span>
+                    <span className="text-[6px] text-white font-bold">!</span>{/* type-floor: graphic — alert glyph inside a 12px dot */}
                   </div>
                 )}
                 {/* Card badge — top left */}
@@ -323,7 +323,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           <Zap className="w-4 h-4 text-primary shrink-0" />
           <div className="flex-1 text-left min-w-0">
             <p className="text-xs font-bold text-primary">Smart Sub</p>
-            <p className="text-[10px] text-muted-foreground truncate">{smartSub.reason}</p>
+            <p className="text-micro text-muted-foreground truncate">{smartSub.reason}</p>
           </div>
           <ArrowRight className="w-3.5 h-3.5 text-primary shrink-0" />
         </button>
@@ -494,14 +494,14 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           <Wand2 className={cn('w-4 h-4 text-primary shrink-0', autoFilling && 'animate-spin')} />
           <div className="flex-1 text-left min-w-0">
             <p className="text-xs font-bold text-primary">{autoFilling ? 'Optimizing...' : 'Optimize Lineup'}</p>
-            <p className="text-[10px] text-muted-foreground">Best XI from starters & bench (uses subs)</p>
+            <p className="text-micro text-muted-foreground">Best XI from starters & bench (uses subs)</p>
           </div>
         </button>
       )}
 
       {/* Bench section */}
       <div className="mt-2">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">
+        <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">
           {selectedOutId ? 'Select Replacement' : 'Tap a player on the pitch to sub them out'}
         </p>
 
@@ -544,7 +544,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                   compatRing={benchCompat}
                   onClick={() => selectedOutId && handleBenchClick(id)}
                 />
-                <span className={cn('text-[7px] font-semibold mt-0.5', formInfo.className)}>{formInfo.text}</span>
+                <span className={cn('text-micro font-semibold mt-0.5', formInfo.className)}>{formInfo.text}</span>
               </div>
             );
           })}
@@ -555,7 +555,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
       {selectedOutId && !selectedInId && (
         <button
           onClick={handleCancel}
-          className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-2 text-micro text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           <ArrowLeft className="w-3 h-3" /> Back to full lineup
         </button>
@@ -661,7 +661,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               <div className="flex items-center gap-3 bg-card/60 border border-border/50 rounded-xl p-3">
                 {/* OUT */}
                 <div className="flex-1 text-center">
-                  <p className="text-[9px] text-destructive uppercase tracking-wider font-semibold mb-1">Out</p>
+                  <p className="text-micro text-destructive uppercase tracking-wider font-semibold mb-1">Out</p>
                   <div className={cn(
                     'w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold mx-auto mb-1',
                     getRatingBadgeClasses(selectedOutPlayer.overall)
@@ -671,15 +671,15 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                   <p className="text-xs font-semibold text-foreground truncate">
                     <FlagIcon nationality={selectedOutPlayer.nationality} size={14} /> {selectedOutPlayer.lastName}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position}</p>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedOutPlayer.fitness)}%</p>
+                  <p className="text-micro text-muted-foreground">{selectedOutPlayer.position}</p>
+                  <p className="text-micro text-muted-foreground mt-0.5">FIT {Math.round(selectedOutPlayer.fitness)}%</p>
                 </div>
 
                 <ArrowRightLeft className="w-5 h-5 text-primary shrink-0" />
 
                 {/* IN */}
                 <div className="flex-1 text-center">
-                  <p className="text-[9px] text-emerald-400 uppercase tracking-wider font-semibold mb-1">In</p>
+                  <p className="text-micro text-emerald-400 uppercase tracking-wider font-semibold mb-1">In</p>
                   <div className={cn(
                     'w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold mx-auto mb-1',
                     getRatingBadgeClasses(selectedInPlayer.overall)
@@ -689,22 +689,22 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                   <p className="text-xs font-semibold text-foreground truncate">
                     <FlagIcon nationality={selectedInPlayer.nationality} size={14} /> {selectedInPlayer.lastName}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">{selectedInPlayer.position}</p>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedInPlayer.fitness)}%</p>
+                  <p className="text-micro text-muted-foreground">{selectedInPlayer.position}</p>
+                  <p className="text-micro text-muted-foreground mt-0.5">FIT {Math.round(selectedInPlayer.fitness)}%</p>
                 </div>
               </div>
 
               {/* Attribute comparison — side by side bars */}
               <div className="bg-card/40 border border-border/30 rounded-lg px-3 py-2 space-y-1.5">
-                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Key Stats Comparison</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold mb-1">Key Stats Comparison</p>
                 {(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const).map(attr => {
                   const outVal = selectedOutPlayer.attributes[attr];
                   const inVal = selectedInPlayer.attributes[attr];
                   const diff = inVal - outVal;
                   const maxVal = Math.max(outVal, inVal, 1);
                   return (
-                    <div key={attr} className="flex items-center gap-1.5 text-[10px]">
-                      <span className="w-7 text-muted-foreground uppercase text-[8px] shrink-0">{attr.slice(0, 3)}</span>
+                    <div key={attr} className="flex items-center gap-1.5 text-micro">
+                      <span className="w-7 text-muted-foreground uppercase text-micro shrink-0">{attr.slice(0, 3)}</span>
                       <span className="w-5 text-right text-foreground font-semibold shrink-0">{outVal}</span>
                       {/* OUT bar (left, red) */}
                       <div className="flex-1 flex items-center gap-0.5">
@@ -716,7 +716,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                         </div>
                       </div>
                       <span className="w-5 text-foreground font-semibold shrink-0">{inVal}</span>
-                      <span className={cn('w-7 text-[9px] font-bold text-right shrink-0', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                      <span className={cn('w-7 text-micro font-bold text-right shrink-0', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-destructive' : 'text-muted-foreground')}>
                         {diff > 0 ? `+${diff}` : diff === 0 ? '=' : diff}
                       </span>
                     </div>
@@ -729,7 +729,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 const slotPos = selectedSlotPos || selectedOutPlayer.position as Position;
                 return selectedInPlayer.position !== slotPos ? (
                 <p className={cn(
-                  'text-[10px] text-center px-2',
+                  'text-micro text-center px-2',
                   canPlayPosition(selectedInPlayer, slotPos)
                     ? 'text-amber-400' : 'text-destructive'
                 )}>

@@ -133,7 +133,7 @@ const WorldCupSetup = () => {
                 <span className="text-2xl leading-none shrink-0">{getFlag(n.name)}</span>
                 <div className="min-w-0">
                   <p className={cn('text-sm font-semibold truncate', isSel ? 'text-amber-300' : 'text-foreground')}>{n.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{CONFED_LABEL[n.confederation] ?? n.confederation}</p>
+                  <p className="text-micro text-muted-foreground truncate">{CONFED_LABEL[n.confederation] ?? n.confederation}</p>
                 </div>
               </motion.button>
             );

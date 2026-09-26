@@ -176,7 +176,7 @@ export function LiquidGlassSlider<T extends string | number>({
       </div>
 
       {/* Labels row */}
-      <div className="relative mt-2 h-4 text-[10px]">
+      <div className="relative mt-2 h-4 text-micro">
         {options.map((o, i) => {
           const p = n > 1 ? (i / (n - 1)) * 100 : 50;
           const isActive = i === activeIndex;

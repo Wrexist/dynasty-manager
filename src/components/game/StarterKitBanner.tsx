@@ -41,11 +41,11 @@ export function StarterKitBanner() {
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-foreground">
             {STARTER_KIT.name}
-            <span className="ml-2 text-[9px] font-semibold uppercase tracking-wider text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] px-1.5 py-0.5 rounded-full">
+            <span className="ml-2 text-micro font-semibold uppercase tracking-wider text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] px-1.5 py-0.5 rounded-full">
               {daysLeft} day{daysLeft === 1 ? '' : 's'} left
             </span>
           </p>
-          <p className="text-[10px] text-muted-foreground leading-snug truncate">
+          <p className="text-micro text-muted-foreground leading-snug truncate">
             Manager identity cosmetics for new managers — view in Shop
           </p>
         </div>

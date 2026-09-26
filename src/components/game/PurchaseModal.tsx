@@ -145,7 +145,7 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground/50 text-center">
+          <p className="text-micro text-muted-foreground/50 text-center">
             {isSubscription && product.billingPeriod !== 'one-time'
               ? 'Auto-renews until cancelled. Manage in your App Store or Play Store settings.'
               : 'One-time purchase. Works offline. No recurring charges.'}

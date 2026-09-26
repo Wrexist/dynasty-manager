@@ -105,13 +105,13 @@ function FestivalHub() {
             <Trophy className="w-6 h-6" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-primary/80 font-semibold">Live Event</p>
+            <p className="text-micro uppercase tracking-[0.18em] text-primary/80 font-semibold">Live Event</p>
             <h1 className="text-lg font-bold text-foreground font-display leading-tight">{event.name}</h1>
             <p className="text-[11px] text-foreground/70 leading-snug mt-0.5">{event.tagline}</p>
             {daysLeft !== null && daysLeft >= 0 && (
               <div className="inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-full bg-white/5 border border-white/10">
                 <CalendarClock className="w-3 h-3 text-primary" />
-                <span className="text-[10px] font-semibold text-foreground/80 tabular-nums">
+                <span className="text-micro font-semibold text-foreground/80 tabular-nums">
                   {daysLeft === 0 ? 'Final day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
                 </span>
               </div>
@@ -130,7 +130,7 @@ function FestivalHub() {
         {upcoming && (
           <div className="relative mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2">
             <CalendarClock className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-            <p className="text-[10px] text-foreground/70 leading-snug">
+            <p className="text-micro text-foreground/70 leading-snug">
               <span className="font-semibold text-foreground/85">{upcoming.event.name}</span>{' '}
               starts in {upcoming.startsInDays} day{upcoming.startsInDays === 1 ? '' : 's'}.
             </p>
@@ -157,7 +157,7 @@ function FestivalHub() {
             transition={{ type: 'spring', stiffness: 200, damping: 28 }}
           />
         </div>
-        <p className="text-[10px] text-foreground/55 mb-1">
+        <p className="text-micro text-foreground/55 mb-1">
           {nextTier
             ? `${nextTier.tier.points - progress.points} pts to ${nextTier.tier.label}`
             : 'All reward tiers unlocked — nice run!'}
@@ -223,7 +223,7 @@ function FestivalHub() {
                 <p className={cn('text-xs font-semibold', claimed ? 'text-foreground/60' : 'text-foreground')}>
                   {tier.label}
                 </p>
-                <p className="text-[10px] text-foreground/55 tabular-nums">{tier.points} pts · +{tier.xp} XP</p>
+                <p className="text-micro text-foreground/55 tabular-nums">{tier.points} pts · +{tier.xp} XP</p>
               </div>
               {claimable ? (
                 <button
@@ -239,7 +239,7 @@ function FestivalHub() {
                 </button>
               ) : (
                 <span className={cn(
-                  'shrink-0 text-[10px] font-semibold uppercase tracking-wide',
+                  'shrink-0 text-micro font-semibold uppercase tracking-wide',
                   claimed ? 'text-emerald-300/80' : 'text-foreground/35',
                 )}>
                   {claimed ? 'Claimed' : 'Locked'}

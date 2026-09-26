@@ -647,7 +647,7 @@ const PacksPage = () => {
             featured pack image is visible above the fold on a 375px
             phone (audit finding). */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest">
+          <div className="flex flex-wrap items-center gap-2 text-micro uppercase tracking-widest">
             <span className={cn(
               'px-2 py-1 rounded-md border flex items-center gap-1',
               squadSize >= MAX_SQUAD_SIZE
@@ -688,7 +688,7 @@ const PacksPage = () => {
         <section aria-labelledby="market-deals">
           <div className="mb-2 flex items-center justify-between">
             <h3 id="market-deals" className="text-xs font-semibold uppercase tracking-widest">Limited deals</h3>
-            <span className="text-[10px] text-muted-foreground">Same price. More cards.</span>
+            <span className="text-micro text-muted-foreground">Same price. More cards.</span>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
             {deals.map(deal => (
@@ -705,11 +705,11 @@ const PacksPage = () => {
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <div className="flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 text-primary" />
-              <h3 id="market-week" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <h3 id="market-week" className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
                 This Week
               </h3>
             </div>
-            <span className="text-[10px] text-muted-foreground tabular-nums flex items-center gap-1">
+            <span className="text-micro text-muted-foreground tabular-nums flex items-center gap-1">
               <Clock className="w-3 h-3" /> {weeklyCountdown} left
             </span>
           </div>
@@ -729,7 +729,7 @@ const PacksPage = () => {
             weeklyCountdown={weeklyCountdown}
           />
           {featuredBonus === 0 && (
-            <p className="text-[10px] text-muted-foreground mt-1 px-0.5">
+            <p className="text-micro text-muted-foreground mt-1 px-0.5">
               This week&apos;s bonus card is claimed. The pack is still available at its
               normal contents — the next bonus arrives in {weeklyCountdown}.
             </p>
@@ -743,7 +743,7 @@ const PacksPage = () => {
         <section aria-labelledby="market-free">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Gift className="w-3.5 h-3.5 text-emerald-400" />
-            <h3 id="market-free" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <h3 id="market-free" className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
               Free Today
             </h3>
           </div>
@@ -764,7 +764,7 @@ const PacksPage = () => {
                 escalation is invisible and the player has no reason to know
                 tomorrow is worth more than today. */}
             <GlassPanel className="p-3 flex flex-col justify-center gap-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <p className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
                 Login streak
               </p>
               <p className="text-2xl font-display font-bold text-foreground tabular-nums leading-none">
@@ -783,7 +783,7 @@ const PacksPage = () => {
         <section aria-labelledby="market-packs">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Store className="w-3.5 h-3.5 text-muted-foreground" />
-            <h3 id="market-packs" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <h3 id="market-packs" className="text-micro font-semibold uppercase tracking-widest text-muted-foreground">
               Always available
             </h3>
           </div>
@@ -847,7 +847,7 @@ const PacksPage = () => {
                 <div className="flex items-center gap-1.5">
                   <span
                     className={cn(
-                      'font-display font-bold uppercase tracking-[0.16em] text-[10px]',
+                      'font-display font-bold uppercase tracking-[0.16em] text-micro',
                       ready ? 'text-amber-200' : 'text-foreground/90',
                     )}
                   >
@@ -958,11 +958,11 @@ const PacksPage = () => {
                             className="w-5 h-6 rounded-sm object-cover shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
                           />
                         )}
-                        <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
+                        <span className="text-micro font-semibold uppercase tracking-widest text-muted-foreground truncate">
                           {tier.label}
                         </span>
                       </span>
-                      <span className="text-[9px] tabular-nums text-muted-foreground/80 shrink-0">
+                      <span className="text-micro tabular-nums text-muted-foreground/80 shrink-0">
                         S{rec.season} · W{rec.week}
                       </span>
                     </div>
@@ -978,7 +978,7 @@ const PacksPage = () => {
                         <p className="text-sm font-bold text-foreground leading-tight truncate">
                           {best.firstName.charAt(0)}. {best.lastName}
                         </p>
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight mt-0.5 truncate">
+                        <p className="text-micro uppercase tracking-widest text-muted-foreground leading-tight mt-0.5 truncate">
                           {best.legendId ? 'Hall of Legends' : ptier.label}
                         </p>
                       </div>
@@ -987,13 +987,13 @@ const PacksPage = () => {
                     {/* Footer — top pull badge + pack pull count. */}
                     <div className="relative flex items-center justify-between mt-2.5">
                       <span className={cn(
-                        'text-[9px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded',
+                        'text-micro font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded',
                         ptier.badgeClass,
                       )}>
                         Top Pull
                       </span>
                       {pulled.length > 1 && (
-                        <span className="text-[9px] text-muted-foreground tabular-nums">
+                        <span className="text-micro text-muted-foreground tabular-nums">
                           +{pulled.length - 1} more
                         </span>
                       )}
@@ -1098,7 +1098,7 @@ const PacksPage = () => {
           <div className="flex flex-col items-center gap-3 bg-card/90 border border-border/50 rounded-2xl px-6 py-5 shadow-xl">
             <Loader2 className="w-7 h-7 text-primary animate-spin" />
             <p className="text-xs font-medium text-foreground">Processing…</p>
-            <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">Do not close the app until this finishes.</p>
+            <p className="text-micro text-muted-foreground text-center max-w-[200px]">Do not close the app until this finishes.</p>
           </div>
         </div>
       )}

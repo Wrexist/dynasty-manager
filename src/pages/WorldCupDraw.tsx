@@ -54,7 +54,7 @@ const WorldCupDraw = () => {
         transition={{ type: 'spring', stiffness: 200, damping: 22 }}
         className="text-center"
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] border bg-primary/10 border-primary/30 text-primary mb-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-[0.2em] border bg-primary/10 border-primary/30 text-primary mb-3">
           <Trophy className="w-3 h-3" /> World Cup 2026
         </div>
         <h1 className="text-3xl font-black font-display leading-tight bg-gradient-to-b from-foreground to-amber-300/80 bg-clip-text text-transparent">
@@ -78,7 +78,7 @@ const WorldCupDraw = () => {
               transition={{ delay: 0.08 + gi * 0.05, type: 'spring', stiffness: 240, damping: 20 }}
             >
               <GlassPanel className={cn('p-3 h-full', isMyGroup && 'border-primary/50 ring-1 ring-primary/40')}>
-                <p className={cn('text-[10px] font-bold uppercase tracking-[0.16em] mb-2', isMyGroup ? 'text-primary' : 'text-muted-foreground')}>
+                <p className={cn('text-micro font-bold uppercase tracking-[0.16em] mb-2', isMyGroup ? 'text-primary' : 'text-muted-foreground')}>
                   {g.name}
                 </p>
                 <div className="space-y-1.5">

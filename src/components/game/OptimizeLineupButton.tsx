@@ -35,7 +35,7 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize, l
   return (
     <div className="space-y-1">
       {potentialGain > 0 && (
-        <p className="text-[10px] text-center text-primary">
+        <p className="text-micro text-center text-primary">
           ~+{potentialGain} overall rating potential
         </p>
       )}
@@ -83,7 +83,7 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize, l
         </span>
         {/* PRO badge — signals that this is a paid Dynasty Pro feature */}
         <span
-          className="relative ml-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#3a2a05]"
+          className="relative ml-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-micro font-bold uppercase tracking-wider text-[#3a2a05]"
           style={{
             background: 'linear-gradient(180deg, #FFF1B8 0%, #FCD34D 50%, #B45309 100%)',
             boxShadow:

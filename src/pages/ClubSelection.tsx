@@ -355,12 +355,12 @@ const ClubSelection = () => {
                 {step === 'nationality' ? (
                   <>
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Your Nationality</h1>
-                    <p className="text-[10px] text-muted-foreground">Sets your national team, which you can manage too</p>
+                    <p className="text-micro text-muted-foreground">Sets your national team, which you can manage too</p>
                   </>
                 ) : step === 'league' ? (
                   <>
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Choose League</h1>
-                    <p className="text-[10px] text-muted-foreground truncate">
+                    <p className="text-micro text-muted-foreground truncate">
                       {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
                       {new Set(visibleLeagues.map(l => l.countryId)).size} countries · {visibleLeagues.length} divisions
                     </p>
@@ -370,7 +370,7 @@ const ClubSelection = () => {
                     <h1 ref={headingRef} tabIndex={-1} className={cn('text-lg font-bold font-display outline-none', leagueInfo?.colorClass)}>
                       {leagueInfo?.name}
                     </h1>
-                    <p className="text-[10px] text-muted-foreground truncate">
+                    <p className="text-micro text-muted-foreground truncate">
                       {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
                       {leagueClubs.length} clubs
                     </p>
@@ -397,7 +397,7 @@ const ClubSelection = () => {
                   key={s.key}
                   aria-hidden="true"
                   className={cn(
-                    'relative flex-1 px-3 py-1.5 rounded-full text-[10px] font-semibold text-center transition-colors',
+                    'relative flex-1 px-3 py-1.5 rounded-full text-micro font-semibold text-center transition-colors',
                     isActive ? 'text-primary-foreground' : isComplete ? 'text-primary' : 'text-muted-foreground/60',
                   )}
                 >
@@ -451,7 +451,7 @@ const ClubSelection = () => {
 
               {nationsByConfederation.map(({ conf, label, nations }) => (
                 <div key={conf}>
-                  <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                  <h3 className="text-micro font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                     {label}
                   </h3>
                   <div className="space-y-2">
@@ -498,7 +498,7 @@ const ClubSelection = () => {
                                   <span className="text-[11px] font-medium text-muted-foreground/50">#</span>
                                   <span className={cn('text-2xl font-display font-bold', rankClass)}>{nation.baseRanking}</span>
                                 </div>
-                                <span className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-wider">World</span>
+                                <span className="text-micro font-semibold text-muted-foreground/50 uppercase tracking-wider">World</span>
                               </div>
                             </div>
                             {starPlayers.length > 0 && (
@@ -558,7 +558,7 @@ const ClubSelection = () => {
                   const regionLeagues = region.ids.map(id => LEAGUES.find(l => l.id === id)).filter(Boolean);
                   return (
                     <div key={region.label}>
-                      <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 flex items-center gap-1.5">
+                      <h3 className="text-micro font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 flex items-center gap-1.5">
                         <Globe className="w-3 h-3" />
                         {region.label}
                       </h3>
@@ -592,18 +592,18 @@ const ClubSelection = () => {
                   <div className="relative flex items-center gap-3">
                     <FlagIcon nationality={leagueInfo.country} size={32} className="rounded-sm shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold leading-none">{leagueInfo.country}</p>
+                      <p className="text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold leading-none">{leagueInfo.country}</p>
                       <h3 className="text-sm font-semibold text-foreground mt-1 leading-tight">{leagueInfo.totalWeeks} week season</h3>
                     </div>
                   </div>
                   <div className="relative grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/[0.08]">
                     <div className="text-center">
                       <p className="text-sm font-bold text-primary tabular-nums leading-none">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(leagueInfo.prizeMoney >= 1_000_000 ? 0 : 1)}M</p>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Prize</p>
+                      <p className="text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Prize</p>
                     </div>
                     <div className="text-center border-l border-white/[0.08]">
                       <p className="text-sm font-bold text-foreground tabular-nums leading-none">{leagueClubs.length}</p>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Clubs</p>
+                      <p className="text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Clubs</p>
                     </div>
                     <div className="text-center border-l border-white/[0.08] flex flex-col items-center justify-center">
                       <DifficultyPips difficulty={leagueInfo.difficulty} />
@@ -660,7 +660,7 @@ const ClubSelection = () => {
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground text-sm leading-tight truncate">{club.name}</p>
                             {club.stadiumName && (
-                              <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{club.stadiumName}</p>
+                              <p className="text-micro text-muted-foreground/60 truncate mt-0.5">{club.stadiumName}</p>
                             )}
                             <div className="mt-1.5">
                               <ReputationDots value={club.reputation} />
@@ -677,7 +677,7 @@ const ClubSelection = () => {
                             )}>
                               {'\u00A3'}{(club.budget / 1_000_000).toFixed(0)}M
                             </span>
-                            <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider font-semibold mt-0.5">Budget</p>
+                            <p className="text-micro text-muted-foreground/50 uppercase tracking-wider font-semibold mt-0.5">Budget</p>
                           </div>
                         </div>
                       </button>
@@ -707,7 +707,7 @@ const ClubSelection = () => {
               {/* Club header */}
               <div className="flex items-center gap-3">
                 <div
-                  className="w-11 h-11 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_12px_-2px_rgba(0,0,0,0.55)]"
+                  className="w-11 h-11 rounded-lg flex items-center justify-center text-micro font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_12px_-2px_rgba(0,0,0,0.55)]"
                   style={{ backgroundColor: selectedClub.color, color: selectedClub.secondaryColor }}
                 >
                   {selectedClub.shortName}
@@ -717,7 +717,7 @@ const ClubSelection = () => {
                   <div className="flex items-center gap-2 mt-1">
                     <ReputationDots value={selectedClub.reputation} />
                     {selectedClub.stadiumName && (
-                      <span className="text-[10px] text-muted-foreground/50 truncate">
+                      <span className="text-micro text-muted-foreground/50 truncate">
                         {selectedClub.stadiumName} ({(selectedClub.stadiumCapacity / 1000).toFixed(0)}k)
                       </span>
                     )}
@@ -732,7 +732,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Wallet className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{'\u00A3'}{(selectedClub.budget / 1e6).toFixed(0)}M</div>
-                    <div className="text-[8px] text-muted-foreground">Budget</div>
+                    <div className="text-micro text-muted-foreground">Budget</div>
                   </div>
                 </div>
                 <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
@@ -740,7 +740,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Users className="w-3.5 h-3.5 text-blue-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.fanBase}</div>
-                    <div className="text-[8px] text-muted-foreground">Fans</div>
+                    <div className="text-micro text-muted-foreground">Fans</div>
                   </div>
                 </div>
                 <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
@@ -748,7 +748,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Building2 className="w-3.5 h-3.5 text-amber-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.facilities}</div>
-                    <div className="text-[8px] text-muted-foreground">Facilities</div>
+                    <div className="text-micro text-muted-foreground">Facilities</div>
                   </div>
                 </div>
                 <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
@@ -756,7 +756,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Sprout className="w-3.5 h-3.5 text-teal-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.youthRating}</div>
-                    <div className="text-[8px] text-muted-foreground">Youth</div>
+                    <div className="text-micro text-muted-foreground">Youth</div>
                   </div>
                 </div>
               </div>
@@ -888,7 +888,7 @@ function DifficultyPips({ difficulty }: { difficulty: string }) {
           />
         ))}
       </div>
-      <span className={cn('text-[8px] font-semibold', config?.color)}>{config?.label}</span>
+      <span className={cn('text-micro font-semibold', config?.color)}>{config?.label}</span>
     </div>
   );
 }
@@ -931,7 +931,7 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
         <div className="flex items-center gap-3">
           {isLowerTier ? (
             <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-bold text-muted-foreground tabular-nums">T{league.tier}</span>
+              <span className="text-micro font-bold text-muted-foreground tabular-nums">T{league.tier}</span>
             </div>
           ) : (
             <FlagIcon nationality={league.country} size={32} className="rounded-sm shrink-0" />
@@ -956,7 +956,7 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
                 />
               ))}
             </div>
-            <span className={cn('text-[10px] font-semibold leading-none', difficulty?.color)}>
+            <span className={cn('text-micro font-semibold leading-none', difficulty?.color)}>
               {difficulty?.label}
             </span>
           </div>

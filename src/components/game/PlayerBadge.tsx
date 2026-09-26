@@ -39,10 +39,10 @@ const RATING_SIZE = {
 } as const;
 
 const POS_SIZE = {
-  sm: 'text-[7px] px-1 py-px',
-  md: 'text-[8px] px-1.5 py-0.5',
-  lg: 'text-[9px] px-2 py-0.5',
-  xl: 'text-[10px] px-2 py-0.5',
+  sm: 'text-micro px-1 py-px',
+  md: 'text-micro px-1.5 py-0.5',
+  lg: 'text-micro px-2 py-0.5',
+  xl: 'text-micro px-2 py-0.5',
 } as const;
 
 export const PlayerBadge = memo(function PlayerBadge({
@@ -101,7 +101,7 @@ export const PlayerBadge = memo(function PlayerBadge({
 
           {/* Jersey number */}
           {showJersey && (
-            <span className="relative text-[9px] font-medium text-white/90 tabular-nums leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]">
+            <span className="relative text-micro font-medium text-white/90 tabular-nums leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]">
               #{jerseyNumber}
             </span>
           )}
