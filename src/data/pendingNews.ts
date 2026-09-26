@@ -60,6 +60,11 @@ export const PENDING_NEWS: PendingRelease = {
     'Back always returns to where you came from, and Android\'s back button works.',
     'Free trials are shown on every plan that offers one.',
     'Youth intake previews now show exactly who joins.',
+    'Cup finals, Super Cups and playoff finals are played at neutral venues.',
+    'Every simulated league now plays all its fixtures within the season.',
+    'A cleaner inbox: routine news arrives read and AI transfers come as one weekly round-up.',
+    'Finance and the Weekly Digest now show the same numbers.',
+    'Text is easier to read, and buttons are easier to tap across the game.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
@@ -68,8 +73,12 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed a slow launch that could make a saved career look empty.',
     'Fixed the season stalling for an out-of-work manager who still runs a national team.',
     'Fixed storylines repeating the very next season.',
+    'Fixed a save that could roll back after the app was closed.',
+    'Fixed free pack players being lost if the app closed during the reveal.',
+    'Fixed reloading mid-match giving a different result.',
+    'Fixed unattached players being listed with transfer fees.',
   ],
-  headline: null,
+  headline: 'Manager Pass, a cleaner Home screen, and free Skip to full time.',
   summary: null,
 };
 
