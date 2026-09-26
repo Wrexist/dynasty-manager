@@ -180,6 +180,16 @@ captions, titles and store fields (rung 4 unchanged). Recorded here so the
 next session does not relitigate it. Apple's acceptance is not rights
 clearance, so the risk stays accepted, not removed.
 
+**Owner decision, 2026-09-27 (supersedes the names clause above for organic
+posts):** real players' names may appear in hooks, captions and hashtags of
+**organic** posts, and a named star may be the hero of a headless-captured
+walkout (the capture harness pins the hero with `hero=`). Two limits stand:
+(1) a pinned or re-rolled capture is a **showcase**, never framed as "my pull"
+or "rate my pull" — presenting a rigged outcome as luck misrepresents the odds
+of a paid randomised item (CAP code, EU UCPD, TikTok ad policy); (2) paid ads
+and store fields stay at rung 3/4 rules above. The owner accepts the
+personality-rights risk this adds; it is accepted, not cleared.
+
 **Still open (log it in `ads/RELEASE-READINESS.md` §1.1):**
 (a) stay at rung ≤ 2 — this playbook works fully at rung 2; or
 (b) get the lawyer's opinion and, if favourable, unlock rung 3 for store assets
