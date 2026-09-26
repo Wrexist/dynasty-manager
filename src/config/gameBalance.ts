@@ -16,6 +16,14 @@ export const LINEUP_SIZE = 11;
  *  engine's real-football target band; see `resolveCatchUpFixture`. */
 export const CATCH_UP_EXPECTED_GOALS = 2.7;
 export const LOW_FITNESS_THRESHOLD = 65;
+// ── econ: pre-season boundary (R2) ──
+/** Pre-season is the weeks before the club's first league fixture. When the
+ *  caller does not pass that week, this is the assumed start. Round 1 falls in
+ *  week 1 in almost every league (week 2 where the calendar is longer than the
+ *  round count), so with a default of 1 no league week reads "Pre-Season".
+ *  It used to be every week up to the summer window's close, so weeks 1-7 of
+ *  a 46-week season said "Pre-Season" while league matches were played. */
+export const PRESEASON_DEFAULT_FIRST_LEAGUE_WEEK = 1;
 
 // ── First Match Confidence Boost (Season 1 only) ──
 export const FIRST_MATCH_ATTACK_BOOST = 0.08;
@@ -193,9 +201,19 @@ export const MORALE_LOSS_CHANGE = -10;
 // made defeats morale-neutral or positive; the win-side narrative boost is
 // already capped at +5, so the loss side must be bounded too.
 export const NARRATIVE_MORALE_LOSS_REDUCTION_CAP = 6;
+// Form moves SYMMETRICALLY with the result. It used to be +5 / -2 / -8, which
+// across any league (wins and defeats are equal in number) is a net -1.6 per
+// match — before the rating term's own -1.4 bias below. Nothing pulled it back,
+// so AI form ratcheted down from ~65 at kickoff to 25 / 22 / 19 at the end of
+// seasons one to three (matchCalibration harness), and every AI side's
+// conversion fell with it (form is 15% of shot quality in the engine). That was
+// most of the season-on-season scoring decline measured on real saves (audit
+// S6). See
+// `nextMatchForm` in orchestration/helpers.ts for the reversion that holds the
+// league mean at FORM_NEUTRAL.
 export const FORM_WIN_CHANGE = 5;
-export const FORM_LOSS_CHANGE = -8;
-export const FORM_DRAW_CHANGE = -2;
+export const FORM_LOSS_CHANGE = -5;
+export const FORM_DRAW_CHANGE = 0;
 
 // ── Match Rating → Morale / Form ──
 // Layered ON TOP of the team result above, never replacing it. The team result
@@ -203,14 +221,42 @@ export const FORM_DRAW_CHANGE = -2;
 // loses morale and form (just less), and an anonymous 4.5 in a win still gains
 // (just less). Before this existed, the MOTM and the player sent off took an
 // identical morale hit.
-/** Per-match rating that produces zero adjustment (league-wide mean). */
-export const RATING_MORALE_BASELINE = 7.0;
+/** Per-match rating that produces zero adjustment: the MEASURED league-wide
+ *  mean engine rating, so an average performance is morale-neutral.
+ *
+ *  simfinish: measured with a seeded harness over real saves (the real loop —
+ *  `advanceWeek` + `playCurrentMatch` — 20 weeks each of arsenal, coventry-city
+ *  and getafe, every engine-rated participant of every match, ~115k ratings):
+ *  6.238 / 6.242 / 6.247. It was 7.0, which put the average player 0.76 below
+ *  baseline and cost him ~1.9 morale a match from the rating term alone — a
+ *  steady downward pull on the player's squad (AI squads take no rating term).
+ *  Pinned by `moraleRatingBaseline.test.ts`; re-measure if the engine's rating
+ *  scale (RATING_BASE_*, bonuses, variance) is retuned. */
+export const RATING_MORALE_BASELINE = 6.24;
 export const MORALE_PER_RATING_POINT = 2.5;
 /** Cap must stay below |MORALE_LOSS_CHANGE| (10) or a good game inverts a defeat. */
 export const MORALE_RATING_ADJ_CAP = 5;
 export const FORM_PER_RATING_POINT = 2.0;
-/** Cap must stay below |FORM_LOSS_CHANGE| (8) for the same reason. */
+/** Cap must stay below |FORM_LOSS_CHANGE| (5) for the same reason. */
 export const FORM_RATING_ADJ_CAP = 4;
+
+// ── simcal: form mean reversion ──
+/** The form every player drifts back toward. 50 is what the engine treats as
+ *  neutral (`pickAttacker` weights `form - 50`). */
+export const FORM_NEUTRAL = 50;
+/** Fraction of the gap to FORM_NEUTRAL closed on every match played, so form
+ *  reads roughly the last ten games. A side that wins 60% and loses 20% settles
+ *  near 70, one that loses 60% near 30 — form stays a signal and the league no
+ *  longer bottoms out at 10. A side winning ~85% still sits in the 90s: a win
+ *  always adds at least 1 (`nextMatchForm`), which outweighs the pull there. */
+export const FORM_MEAN_REVERSION = 0.1;
+/** Match rating that moves form neither way. This is the MEASURED league-mean
+ *  rating (the same number development centres on). RATING_MORALE_BASELINE was
+ *  7.0 at the time: centred there, the average player lost 1.4 form per match
+ *  from the rating term alone. */
+export const FORM_RATING_BASELINE = DEV_RATING_BASELINE;
+export const FORM_MIN = 10;
+export const FORM_MAX = 100;
 
 // ── Match Fitness Carry-Over ──
 /** When true, the per-minute fitness the engine already computed is written back
@@ -464,6 +510,28 @@ export const REGEN_DESIGN_WEIGHT = 0.55;
  */
 export const REGEN_PLAYER_CLUB_MARGIN = 6;
 
+/**
+ * Regen fills are anchored to squad DEPTH as well as stature.
+ *
+ * The design blend above has no ceiling of its own, so at the elite clubs
+ * (designed ~90) a season-end top-up generated players at 85-95 — including
+ * academy teenagers. Measured on one rollover from a fresh save: 137 generated
+ * players rated 85+, 63 of them 21 or under, the best 97 against a best real
+ * player of 94; world U21s at 85+ went 3 -> 52. A top-up is squad cover and
+ * academy intake, not a signing.
+ *
+ * - `REGEN_DEPTH_RANK`: the squad's Nth-best player is "first-team level".
+ * - `REGEN_DEPTH_MARGIN`: position-gap fills land this far below it (rotation).
+ * - `REGEN_YOUTH_QUALITY_GAP`: academy intake lands this far below THAT, with
+ *   room to grow (`YOUNG_POTENTIAL_BOOST_BASE` potential on top).
+ * - `REGEN_FILL_QUALITY_CAP`: no regen is generated above this quality, well
+ *   under the best real players, whatever the anchors say.
+ */
+export const REGEN_DEPTH_RANK = 11;
+export const REGEN_DEPTH_MARGIN = 3;
+export const REGEN_YOUTH_QUALITY_GAP = 12;
+export const REGEN_FILL_QUALITY_CAP = 84;
+
 // ── Transfer Market Listing ──
 export const LISTING_PRICE_MIN_MULTIPLIER = 1.1;
 export const LISTING_PRICE_RANDOM_RANGE = 0.4;
@@ -479,6 +547,33 @@ export const STARTING_TACTICAL_FAMILIARITY = 45;
 
 // ── Max Messages ──
 export const MAX_MESSAGES = 200;
+// ── econ: inbox noise (R18) ──
+/**
+ * Information-only inbox messages that arrive already read. The playthrough
+ * had 67 unread after seven weeks, most of them routine: other clubs'
+ * transfers, rumours, expired bids and sponsor offers, and the result of the
+ * match the manager had just watched. They stay in the inbox; they just do
+ * not ask for attention. Anything that needs a decision (a bid for one of your
+ * players, a sponsor offer, a contract, the board) still arrives unread.
+ */
+export const INBOX_ARRIVES_READ = {
+  aiTransferRoundup: true,
+  transferRumours: true,
+  bidExpired: true,
+  sponsorOfferExpired: true,
+  /** The result of a match the manager played (not one simulated for them). */
+  matchResult: true,
+  /** Transfer-window open/closed notices and the pre-season market note —
+   *  calendar facts the Dashboard already shows, nothing to act on. */
+  windowNotices: true,
+  /** "The Board Believes in You" — encouragement, not a decision. */
+  boardEncouragement: true,
+} as const;
+/** Fold a week's AI-to-AI transfers and loans into one round-up message
+ *  instead of one message per move (the moves stay listed under Transfers). */
+export const INBOX_AI_TRANSFER_ROUNDUP = true;
+/** Moves the round-up lists by name before "and N more". */
+export const INBOX_ROUNDUP_MAX_LINES = 8;
 
 // ── State Growth Caps ──
 export const MAX_FINANCE_HISTORY = 200;
@@ -678,6 +773,11 @@ export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview 
  *  `pressConferences.ts` — were unreachable. Kept a minority of conferences so
  *  the result still dominates the room, which is what a post-match presser is. */
 export const PRESS_SITUATIONAL_POST_MATCH_CHANCE = 0.35;
+// ── content: personalised press questions ──
+/** A squad's top league scorer is named in a press question ("{scorer} is on
+ *  N goals this season") only once he has at least this many — below it the line
+ *  would praise a player for one goal. */
+export const PRESS_SCORER_MIN_GOALS = 3;
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';
@@ -1085,6 +1185,21 @@ export const REP_INTL_FINAL = 40;
 export const REP_INTL_SEMI = 20;
 /** Reputation bonus for reaching knockouts */
 export const REP_INTL_KNOCKOUT = 10;
+// ── econ: national-team offers scale with the nation (R7) ──
+/**
+ * Reputation a career manager needs before a nation's FA approaches them, by
+ * the nation's base ranking (first band whose `maxRanking` covers it wins).
+ * A rookie starts at 30, so day one only the smaller nations call. Before this,
+ * every career opened with an offer from the manager's own nation, which made
+ * a rookie at Keflavík the England manager on day one. The 11-25 band keeps
+ * the old single threshold, `NT_JOB_MIN_REPUTATION`.
+ */
+export const NT_OFFER_REPUTATION_BY_RANKING: ReadonlyArray<{ maxRanking: number; minReputation: number }> = [
+  { maxRanking: 10, minReputation: 600 },
+  { maxRanking: 25, minReputation: NT_JOB_MIN_REPUTATION },
+  { maxRanking: 40, minReputation: 150 },
+  { maxRanking: Infinity, minReputation: 0 },
+];
 /** Reputation penalty for group stage exit */
 export const REP_INTL_GROUP_EXIT = -15;
 /** Consecutive group-stage exits before sacking */
@@ -1103,6 +1218,47 @@ export const FAN_RALLY_MORALE_BOOST = 5;
 export const SPONSOR_BONUS_MULTIPLIER = 0.10;
 /** Extra board confidence penalty during media scrutiny */
 export const MEDIA_SCRUTINY_CONFIDENCE_HIT = 3;
+// ── content: more random event templates ──
+// Every magnitude below sits inside the band the original six events set:
+// one player ±10 morale / −15 fitness / +10 form, the squad ±5 morale,
+// board confidence ±3, budget +10%.
+/** Squad morale lift from a community visit. */
+export const CHARITY_VISIT_MORALE_BOOST = 3;
+/** Fitness lost by each player a sickness bug goes through. */
+export const SICKNESS_FITNESS_LOSS = 10;
+/** How many players a sickness bug reaches (at most). */
+export const SICKNESS_MAX_PLAYERS = 3;
+/** Weeks in which a sickness bug is likelier (the winter run). */
+export const SICKNESS_PEAK_WEEKS: readonly [number, number] = [14, 26];
+/** Veteran mentor: the youngster's form and morale lift… */
+export const MENTOR_YOUTH_FORM_BOOST = 8;
+export const MENTOR_YOUTH_MORALE_BOOST = 5;
+/** …and the veteran's own morale lift. */
+export const MENTOR_VETERAN_MORALE_BOOST = 3;
+/** A player's training clip goes viral. */
+export const VIRAL_CLIP_MORALE_BOOST = 8;
+export const VIRAL_CLIP_FORM_BOOST = 5;
+/** An agent's comments unsettle the squad's best player. */
+export const AGENT_UNSETTLE_MORALE_HIT = 8;
+/** The chairman praises the manager after a good run. */
+export const BOARDROOM_PRAISE_CONFIDENCE_BOOST = 3;
+/** Shirt-sales spike: budget bonus as a fraction of the budget (half a sponsor windfall). */
+export const SHIRT_SALES_BUDGET_MULTIPLIER = 0.05;
+/** A player fined for a late night: his morale, and the board's view. */
+export const LATE_NIGHT_MORALE_HIT = 8;
+export const LATE_NIGHT_CONFIDENCE_HIT = 1;
+/** A club legend visits training: squad morale and one youngster's form. */
+export const LEGEND_VISIT_MORALE_BOOST = 2;
+export const LEGEND_VISIT_YOUTH_FORM_BOOST = 6;
+/** A new signing is homesick. */
+export const HOMESICK_MORALE_HIT = 8;
+/** Sports-science recovery day: fitness regained by anyone below the threshold. */
+export const RECOVERY_DAY_FITNESS_GAIN = 8;
+export const RECOVERY_DAY_FITNESS_THRESHOLD = 80;
+/** Players-only meeting after a bad run lifts the squad. */
+export const PLAYERS_MEETING_MORALE_BOOST = 4;
+/** A youngster's under-21 international call-up. */
+export const YOUTH_CALLUP_MORALE_BOOST = 8;
 
 // ── Player Match History ──
 export const MAX_PLAYER_MATCH_HISTORY = 20;
@@ -1336,3 +1492,40 @@ export const BALLON_DOR_CONTINENTAL_BONUS = {
   shield_cup: { group: 2, R16: 5, QF: 8, SF: 12, F: 15, winner: 20 },
   conference_cup: { group: 1, R16: 3, QF: 5, SF: 8, F: 10, winner: 14 },
 } as const;
+
+// ── iap: redeem-code caps ──
+/**
+ * Largest reward one redeem code may carry. Codes are comp/giveaway rewards
+ * minted offline, and the app verifies them offline — so this cap, not the
+ * signature, is what bounds the damage if a signing secret ever leaks. The
+ * money cap equals the largest budget reward the game grants outside play
+ * (the £1M season-end bonus ceiling); the XP cap is about three festival
+ * top-tier claims. `scripts/gen-redeem-code.mjs` mirrors these values (a test
+ * pins the parity) and refuses to mint above them; the app rejects a code above
+ * them even when its signature is valid.
+ */
+export const REDEEM_CODE_MAX_REWARD = {
+  money: 1_000_000,
+  xp: 500,
+} as const;
+// ── home: Dashboard rules (see src/utils/dashboardSelectors.ts) ──
+/** Final stretch (weeks left in the season) in which the Dashboard flags a
+ *  title race or a relegation battle. */
+export const RACE_MODE_WINDOW_WEEKS = 10;
+/** Title race: in the top N places… */
+export const TITLE_RACE_MAX_POSITION = 2;
+/** …and within this many points of the leader. */
+export const TITLE_RACE_MAX_POINTS_GAP = 6;
+/** Relegation battle: within this many places of the bottom. Only offered in a
+ *  league that actually relegates — the bottom of the lowest tier is safe. */
+export const RELEGATION_BATTLE_BOTTOM_PLACES = 3;
+/** Blocking popups (distinct overlays) one advance may put on screen. Past
+ *  this, informational popups are filed to the inbox and offers wait for the
+ *  next advance; decisions always show (see `utils/presentationQueue.ts`). */
+export const BLOCKING_POPUPS_PER_ADVANCE = 2;
+/** The Getting Started checklist's coach tasks run through this season. */
+export const COACH_CHECKLIST_MAX_SEASON = 2;
+/** "Needs your attention": board confidence at or below this is a critical row
+ *  (red); up to `CONFIDENCE_CRITICAL_THRESHOLD` it is a warning. Mirrors the
+ *  old BoardWarning's "Final Warning" tier. */
+export const BOARD_ATTENTION_CRITICAL_CONFIDENCE = 25;

@@ -9,7 +9,7 @@
  * Bugs here corrupt long-term player stats permanently — coverage is critical.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   applyBallonDorTop10Boost,
   revertBallonDorTop10Boost,
@@ -20,6 +20,7 @@ import { calculateOverall } from '@/utils/playerGen';
 import { BALLON_DOR_TOP10_ATTR_BOOST } from '@/config/gameBalance';
 import type { Player } from '@/types/game';
 import { buildPlayer } from './helpers/seasonFixtures';
+import { recomputeDerivedEconomics } from '@/utils/playerEconomics';
 
 function makeStarPlayer(overrides: Partial<Player> = {}): Player {
   // Use ST so shooting (35% weight) drives overall — keeps the test
@@ -164,6 +165,69 @@ describe('revertBallonDorTop10Boost', () => {
     applyBallonDorTop10Boost(p, 5);
     revertBallonDorTop10Boost(p);
     expect(p.overall).toBe(beforeOverall);
+  });
+});
+
+describe('real players rated above the formula', () => {
+  // Community-pack players carry authored ratings well above what
+  // `calculateOverall` returns from their attributes. The boost used to
+  // recompute overall from the formula — an 89 became a 77 on the boost and a
+  // 74 on the revert, and his wage fell with it.
+  // Wage carries a random factor — pin it so wage comparisons are exact.
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  function makeRealStar(): Player {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const p = makeStarPlayer();
+    const formula = calculateOverall(p.attributes, p.position);
+    p.overall = formula + 8;
+    p.potential = p.overall;
+    recomputeDerivedEconomics(p);
+    return p;
+  }
+
+  it('gains (never loses) overall and wage on the boost', () => {
+    const p = makeRealStar();
+    const before = { overall: p.overall, wage: p.wage, value: p.value };
+    const formulaGain = calculateOverall(
+      Object.fromEntries(Object.entries(p.attributes).map(([k, v]) => [k, v + BALLON_DOR_TOP10_ATTR_BOOST])) as Player['attributes'],
+      p.position,
+    ) - calculateOverall(p.attributes, p.position);
+    applyBallonDorTop10Boost(p, 5);
+    expect(p.overall).toBe(before.overall + formulaGain);
+    expect(p.overall).toBeGreaterThan(before.overall);
+    expect(p.ballonDOrTop10OverallDelta).toBe(formulaGain);
+    expect(p.value).toBeGreaterThan(before.value);
+    expect(p.wage).toBeGreaterThan(before.wage);
+  });
+
+  it('returns to his exact prior overall on revert', () => {
+    const p = makeRealStar();
+    const before = p.overall;
+    applyBallonDorTop10Boost(p, 5);
+    applyBallonDorTop10Boost(p, 6); // refresh, no double-up
+    revertBallonDorTop10Boost(p);
+    expect(p.overall).toBe(before);
+    expect(p.ballonDOrTop10OverallDelta).toBeUndefined();
+  });
+
+  it('keeps development made during the reign when reverting', () => {
+    const p = makeRealStar();
+    const before = p.overall;
+    applyBallonDorTop10Boost(p, 5);
+    p.overall += 1; // a development tick during the reign
+    revertBallonDorTop10Boost(p);
+    expect(p.overall).toBe(before + 1);
+  });
+
+  it('reverts a boost from an older save (no stored overall delta) by the formula delta', () => {
+    const p = makeRealStar();
+    applyBallonDorTop10Boost(p, 5);
+    const boosted = p.overall;
+    const applied = p.ballonDOrTop10OverallDelta!;
+    delete p.ballonDOrTop10OverallDelta;
+    revertBallonDorTop10Boost(p);
+    expect(p.overall).toBe(boosted - applied);
   });
 });
 

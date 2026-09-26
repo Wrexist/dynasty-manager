@@ -2,6 +2,8 @@ import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, Tra
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { PostSeasonSnapshot } from '@/store/slices/orchestration/seasonEnd';
 import type { HalfState } from '@/engine/match';
+// ── home: popup cap ──
+import type { InboxNote } from '@/types/game';
 
 export interface GameState {
   // Core
@@ -9,6 +11,10 @@ export interface GameState {
   playerClubId: string;
   currentScreen: GameScreen;
   previousScreen: GameScreen | null;
+  /** The screen `previousScreen` was recorded on arrival at. Transient (not
+   *  in the save whitelist): lets back tell a live trail from a stale one left
+   *  by flows that assign `currentScreen` directly. See utils/backNavigation. */
+  previousScreenFor: GameScreen | null;
   selectedPlayerId: string | null;
   selectedClubId: string | null;
   season: number;
@@ -33,6 +39,11 @@ export interface GameState {
   seasonHistory: SeasonHistory[];
   settings: GameSettings;
   activeSlot: number;
+  /** Stable id of the career in this save, minted by `initGame` (schema v93).
+   *  Keys this career's Hall of Managers entry so a new career started in the
+   *  same slot adds a row instead of overwriting the previous career's.
+   *  Null for saves that predate v93 — those keep the legacy `slot-N` key. */
+  careerId: string | null;
 
   // Autosave status (UI-only — not persisted)
   saveStatus: 'idle' | 'saving' | 'saved' | 'failed';
@@ -240,6 +251,11 @@ export interface GameState {
     scoutReportsCompleted: number;
     contractWarnings: string[];
     objectiveProgress: { title: string; completed: boolean; xpEarned: number }[];
+    // ── econ: realised gate for the week (R1) ──
+    /** Gate receipts actually paid this week: 2x the weekly average on a home
+     *  week, 0 on an away week. Lets the Digest say why the net swings.
+     *  Absent on digests written before v1.6.2. */
+    matchdayIncome?: number;
   } | null;
 
   /**
@@ -355,6 +371,8 @@ export interface GameState {
   initGame: (clubId: string, options?: { communityPackEnabled?: boolean }) => Promise<void> | void;
   initializeLeague: (leagueId: string) => void;
   setScreen: (screen: GameScreen) => void;
+  /** In-game back: the screen you came from, else the BACK_TARGET table. */
+  goBack: () => void;
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;
   advanceWeek: () => Promise<void> | void;
@@ -704,4 +722,27 @@ export interface GameState {
     lastMarketRefreshWeek: number;
     lastSeedSeason: number;
   };
+
+  // ── home: popup cap ──
+  /** File popups that went past the per-advance cap as inbox messages, and
+   *  clear the pending state of the store-backed ones (`weeklyDigest`,
+   *  `gemReveal`, `farewell`) so they stop asking for the screen. Overlays
+   *  whose state lives in a component clear it themselves. */
+  fileOverflowToInbox: (overlayId: string, notes: InboxNote[]) => void;
+  // ── legacy: Manager Pass ──
+  /** Render cache of the DEVICE-GLOBAL Manager Pass record (localStorage).
+   *  Not in the save payload. Every action re-reads storage first. */
+  managerPass: import('@/types/game').ManagerPassRecord;
+  /** Re-read storage and roll into the current season. */
+  refreshManagerPass: () => import('@/types/game').ManagerPassRecord;
+  /** Daily check-in: Pass XP gained, or null if already taken today. */
+  checkInManagerPass: () => number | null;
+  /** Collect one reward; null if not claimable (Pro rewards need `isPro()`). */
+  claimManagerPassReward: (tier: number, track: import('@/types/game').ManagerPassTrack) => import('@/types/game').CosmeticItem | null;
+  /** Collect every claimable reward; returns what was collected. */
+  claimAllManagerPassRewards: () => import('@/types/game').CosmeticItem[];
+  /** Apply observed game events; returns Pass XP gained. */
+  recordManagerPassEvents: (events: import('@/types/game').ManagerPassEvent[]) => number;
+  /** Wear an owned earned cosmetic (Pass or Legacy). */
+  equipEarnedCosmetic: (cosmeticId: string) => boolean;
 }

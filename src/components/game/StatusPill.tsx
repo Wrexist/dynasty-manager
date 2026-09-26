@@ -37,7 +37,7 @@ export function StatusPill({ tone, Icon, label, title }: StatusPillProps) {
       role={accessibleName ? 'img' : undefined}
       aria-label={accessibleName}
       className={cn(
-        'flex items-center gap-0.5 rounded-md text-[9px] font-bold tracking-wide px-1.5 py-[2px] backdrop-blur-sm border shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none',
+        'flex items-center gap-0.5 rounded-md text-micro font-bold tracking-wide px-1.5 py-[2px] backdrop-blur-sm border shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none',
         PILL_TONE[tone],
       )}
     >

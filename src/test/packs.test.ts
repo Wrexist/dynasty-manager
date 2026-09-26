@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { useGameStore } from '@/store/gameStore';
 import { writeDailyPackOpens, currentDayIndex } from '@/store/helpers/persistence';
@@ -11,6 +11,7 @@ import {
   PACK_TIERS,
   PACK_PITY_THRESHOLD,
   PACK_PITY_MAX_OVERSHOOT,
+  PACK_PITY_MIN_OVR,
   PACK_STOREFRONT_ORDER,
   PACK_STREAK_BANDS,
   PACK_RARITY_BANDS,
@@ -147,6 +148,25 @@ describe('Pack opening — generation', () => {
         expect(topOvr).toBeGreaterThanOrEqual(tier.guaranteedMinOvr);
       }
     }
+  });
+
+  it('the tracker promises 80+ only where pity delivers it: the next PAID pack', () => {
+    // Pity caps at the tier's own ceiling + PACK_PITY_MAX_OVERSHOOT, so a
+    // day-1 Daily pity open tops out below 80 — "Guaranteed 80+ Next Pack" was
+    // false whenever the next pack was the free one. A free pity open that
+    // misses keeps the counter armed, so the promise holds for the next paid
+    // pack, and the copy says exactly that.
+    for (const key of PAID_PACK_TIERS) {
+      for (let run = 0; run < 30; run++) {
+        const top = Math.max(...generatePackContents(key, 1, { forceLegendRoll: false, pityTriggered: true }).map(p => p.overall));
+        expect(top, `${key} pity pull`).toBeGreaterThanOrEqual(PACK_PITY_MIN_OVR);
+      }
+    }
+    const freeTop = Math.max(...generatePackContents(FREE_PACK_TIER, 1, { pityTriggered: true, freeOpen: true, streak: 1 }).map(p => p.overall));
+    expect(freeTop).toBeLessThan(PACK_PITY_MIN_OVR);
+    const page = readFileSync(path.resolve(__dirname, '../pages/PacksPage.tsx'), 'utf8');
+    expect(page).not.toMatch(/Guaranteed 80\+ Next Pack'/);
+    expect(page).toContain("'80+ on next paid pack'");
   });
 
   it('pity measurably improves a pack that has headroom above it', () => {

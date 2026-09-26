@@ -6,42 +6,43 @@ globs: ["**/*.tsx"]
 # Component Rules
 
 ## Structure
-- Functional components only. Use hooks.
-- Pages: default export. Shared components: named export.
-- Props interface defined above the component or inline.
+- Functional components with hooks. Pages: default export. Shared components:
+  named export.
+- In-game screens are `GameScreen` ids rendered by `GameShell`
+  (`src/config/navigation.ts`); app routes use HashRouter (`#/route`).
 
 ## State
-- Components NEVER contain game logic. They read from `useGameStore()` and call actions.
-- Use Zustand selectors to avoid unnecessary re-renders: `const week = useGameStore(s => s.week)`
+- Components hold NO game logic. Read with selectors
+  (`useGameStore(s => s.week)`) and call slice actions.
 - Local UI state (modals, tabs, filters) is fine with `useState`.
+- Storage only via `src/store/helpers/persistence.ts`.
 
-## Styling
-- Tailwind classes only. Use `cn()` for conditionals.
-- Glass panel pattern: use `<GlassPanel>` component, not raw classes.
-- Mobile-first: design for 375px. Use `max-w-lg mx-auto`.
-- Never use inline `style={}` except for dynamic colors (club colors) or computed widths.
+## Copy
+- Player-facing strings: `const { t } = useTranslation()` and a key in
+  `src/i18n/locales/en.ts`. `npm run i18n:check` holds a ceiling on hardcoded copy.
 
 ## Imports
 ```tsx
 // 1. External
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-// 2. UI components
+// 2. UI primitives
 import { Button } from '@/components/ui/button';
 // 3. Game components
 import { GlassPanel } from '@/components/game/GlassPanel';
-// 4. Store/utils/types
+// 4. Store/utils/types/config
 import { useGameStore } from '@/store/gameStore';
-import { Player } from '@/types/game';
+import type { Player } from '@/types/game';
 ```
 
 ## Patterns
-- Use `cn()` not string concatenation for class merging
-- Use `lucide-react` for icons (already installed)
-- Use `framer-motion` for page transitions and animations
-- Ratings: ≥80 `text-emerald-400`, ≥70 `text-primary`, ≥60 `text-amber-400`, <60 `text-muted-foreground`
+- `cn()` for class merging; `GlassPanel` for card containers.
+- Icons from `lucide-react` — except Sunday League screens, which use
+  `src/config/sundayIcons.ts`.
+- Motion: framer-motion respects `MotionConfig`, but a Tailwind `transition-*`
+  utility does not — ask `useReducedMotionPref()` and drop it yourself.
+- Heavy data (community pack, national pool) only through dynamic `import()`;
+  `npm run size:check` enforces the eager-bundle budget.
 
 ## Don'ts
-- Don't modify anything in `src/components/ui/` — those are shadcn generated
-- Don't use `useEffect` for game logic — that belongs in store actions
-- Don't create new component files without a clear reason — check if existing ones can be extended
+- Don't modify `src/components/ui/` unless asked.
+- Don't use `useEffect` for game logic — that belongs in slice actions.

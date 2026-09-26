@@ -9,6 +9,9 @@ import {
   getTrackStatus,
   applyTierClaim,
   applyMatchWin,
+  matchWinPointsFor,
+  awardFestivalMatchWin,
+  readActiveFestivalProgress,
 } from '@/utils/liveEvents';
 import { SPECIAL_EVENTS, LIVE_EVENTS, generateMonthlyEvent, MATCH_WIN_POINTS_DAILY_CAP } from '@/config/liveEvents';
 
@@ -88,6 +91,43 @@ describe('liveEvents — match-win points', () => {
     p = applyMatchWin(p, wc, day(20)); // next day
     expect(p.points).toBe(before + wc.matchWinPoints);
     expect(p.matchWinCount).toBe(1);
+  });
+});
+
+describe('liveEvents — Derby Days derby multiplier', () => {
+  const derbyDays = SPECIAL_EVENTS.find(e => e.id === 'derby-days-2026')!;
+  const oct = (d: number) => at(2026, 10, d);
+
+  it('Derby Days declares a x2 derby multiplier and is the live event in its window', () => {
+    expect(derbyDays.derbyWinMultiplier).toBe(2);
+    expect(getActiveLiveEvent(oct(20)).id).toBe('derby-days-2026');
+  });
+
+  it('a derby win scores double during Derby Days; an ordinary win does not', () => {
+    const derby = applyMatchWin(freshProgress(derbyDays), derbyDays, oct(20), true);
+    expect(derby.points).toBe(derbyDays.matchWinPoints * 2);
+    const plain = applyMatchWin(freshProgress(derbyDays), derbyDays, oct(20), false);
+    expect(plain.points).toBe(derbyDays.matchWinPoints);
+  });
+
+  it('a derby win in an event without the flag scores like any other win', () => {
+    expect(matchWinPointsFor(wc, true)).toBe(wc.matchWinPoints);
+    // March's festival declares no derby mechanic. (September's Autumn
+    // Rivalries festival now does — its tagline promises derby season.)
+    expect(matchWinPointsFor(generateMonthlyEvent(at(2026, 3, 10)), true)).toBe(5);
+    expect(matchWinPointsFor(generateMonthlyEvent(at(2026, 9, 10)), true)).toBe(10);
+  });
+
+  it('a derby win still uses one of the day\'s capped awards', () => {
+    let p = freshProgress(derbyDays);
+    for (let i = 0; i < MATCH_WIN_POINTS_DAILY_CAP; i++) p = applyMatchWin(p, derbyDays, oct(21), true);
+    expect(applyMatchWin(p, derbyDays, oct(21), true)).toBe(p);
+  });
+
+  it('awardFestivalMatchWin passes the derby flag through to storage', () => {
+    localStorage.clear();
+    awardFestivalMatchWin(true, true, oct(22));
+    expect(readActiveFestivalProgress(derbyDays).points).toBe(derbyDays.matchWinPoints * 2);
   });
 });
 

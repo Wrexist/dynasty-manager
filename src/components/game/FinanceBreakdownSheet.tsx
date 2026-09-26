@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { getFinanceBreakdown } from '@/utils/financeHelpers';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
 export type FinanceSheetMode = 'income' | 'expenses' | 'budget' | 'all';
@@ -22,7 +23,8 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
   // and both the open and close animations keep working.
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="bg-background/95 backdrop-blur-xl border-t border-border/50 rounded-t-2xl max-h-[85vh] overflow-y-auto">
+      {/* The breakdown is its own description; this tells Radix so (R19). */}
+      <SheetContent aria-describedby={undefined} side="bottom" className="bg-background/95 backdrop-blur-xl border-t border-border/50 rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <SheetTitle className="sr-only">Finance Breakdown</SheetTitle>
         <FinanceBreakdownBody mode={mode} />
       </SheetContent>
@@ -31,6 +33,7 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
 }
 
 function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
+  const { t } = useTranslation();
   const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision, careerManager, totalWeeks } = useGameStore(
     useShallow(s => ({
       clubs: s.clubs,
@@ -90,9 +93,10 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
                 <TrendingDown className="w-3.5 h-3.5 text-destructive" />
               )}
               <span className={cn('text-xs font-semibold', breakdown.net >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-                {formatMoney(breakdown.net, { signed: true, suffix: '/week net' })}
+                {t('econ.finance.perWeekProjected', { amount: formatMoney(breakdown.net, { signed: true }) })}
               </span>
             </div>
+            <p className="text-micro text-muted-foreground mt-1">{t('econ.finance.projectionNote')}</p>
           </div>
         )}
 
@@ -101,7 +105,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
           <div className="mb-4">
             <div className="flex items-center gap-1.5 mb-2">
               <ArrowUpRight className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Weekly Income</span>
+              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">{t('econ.finance.avgIncome')}</span>
               <span className="ml-auto text-sm font-bold text-emerald-400 tabular-nums">
                 {formatMoney(breakdown.totalIncome)}
               </span>
@@ -132,7 +136,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
           <div className="mb-4">
             <div className="flex items-center gap-1.5 mb-2">
               <ArrowDownRight className="w-4 h-4 text-destructive" />
-              <span className="text-xs font-semibold text-destructive uppercase tracking-wider">Weekly Expenses</span>
+              <span className="text-xs font-semibold text-destructive uppercase tracking-wider">{t('econ.finance.avgExpenses')}</span>
               <span className="ml-auto text-sm font-bold text-destructive tabular-nums">
                 {formatMoney(breakdown.totalExpenses)}
               </span>

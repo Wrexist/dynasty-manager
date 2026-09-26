@@ -1,5 +1,5 @@
 import type { SlotSummary, MatchViewMode } from '@/types/game';
-import { idbGet, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
+import { idbGet, idbRead, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { fnv1a } from '@/utils/hashString';
 
@@ -60,6 +60,31 @@ let hydrated = false;
 const slotHydrated: boolean[] = [false, false, false, false];
 let hydratePromise: Promise<void> | null = null;
 
+/** Listeners told whenever a slot's IDB read lands or hydration settles. The
+ *  title screen subscribes so a read that arrives AFTER the 3 s timeout still
+ *  replaces the "still loading" row with the real career. */
+const saveStorageListeners = new Set<() => void>();
+
+export function subscribeSaveStorage(listener: () => void): () => void {
+  saveStorageListeners.add(listener);
+  return () => { saveStorageListeners.delete(listener); };
+}
+
+function notifySaveStorage(): void {
+  for (const listener of [...saveStorageListeners]) {
+    try { listener(); } catch { /* a UI listener must never break hydration */ }
+  }
+}
+
+/** True while hydration has started but this slot's IDB read has not
+ *  completed. Only then can a write race the read and clobber a save we have
+ *  not seen. Before `hydrateSaveStorage` is first called there is no read in
+ *  flight to race — production calls it at module load in main.tsx, and unit
+ *  tests that never hydrate exercise the raw write path. */
+function slotReadPending(slot: number): boolean {
+  return hydratePromise !== null && !slotHydrated[slot];
+}
+
 /** Hydrate the in-memory save cache from IndexedDB. Called once at app
  *  start; subsequent calls return the same promise. A marked newer mirror
  *  takes precedence over stale IDB. Otherwise, if IDB is empty for
@@ -94,15 +119,33 @@ export function hydrateSaveStorage(): Promise<void> {
       ]);
     } finally {
       hydrated = true;
+      notifySaveStorage();
     }
   })();
   return hydratePromise;
 }
 
+/** Re-attempt the IDB read for a slot whose read has not completed (timed
+ *  out, blocked, or wedged). Safe to call repeatedly: every branch of
+ *  `hydrateOneSlot` only fills empty cache entries. Resolves true once the
+ *  slot has been read. */
+export async function retrySlotHydration(slot: number): Promise<boolean> {
+  if (slotHydrated[slot]) return true;
+  try { await hydrateOneSlot(slot); } catch { /* stays unread; the caller can retry */ }
+  return slotHydrated[slot] === true;
+}
+
 async function hydrateOneSlot(slot: number): Promise<void> {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
-  const [idbMain, idbBackup] = await Promise.all([idbGet(mainKey), idbGet(backupKey)]);
+  const [mainRead, backupRead] = await Promise.all([idbRead(mainKey), idbRead(backupKey)]);
+  // IDB did not answer (open timed out / blocked, request failed or stalled).
+  // That is NOT "this slot is empty": leave it unread so the title screen
+  // keeps it off-limits to New Game and the write path refuses to overwrite
+  // it, and let a retry finish the job.
+  if (!mainRead.ok || !backupRead.ok) return;
+  const idbMain = mainRead.value;
+  const idbBackup = backupRead.value;
   // Never clobber a save written in-session while this async hydrate was in
   // flight — the memory cache is newer than whatever IDB held at app start,
   // and overwriting it would also rotate the stale data into the backup slot
@@ -115,7 +158,7 @@ async function hydrateOneSlot(slot: number): Promise<void> {
       memSlots[slot] = newerMirror ? ls : idbMain || ls;
       if (ls && (newerMirror || !idbMain)) {
         void idbPut(mainKey, ls).then(ok => {
-          if (ok) clearPendingIdb(slot, ls);
+          if (ok) clearPendingIdb(slot, () => saveFingerprint(ls));
         });
       }
     }
@@ -133,9 +176,10 @@ async function hydrateOneSlot(slot: number): Promise<void> {
       }
     } catch { /* storage unavailable */ }
   }
-  // Reached only when both IDB reads resolved. A timed-out or rejected read
+  // Reached only when both IDB reads completed. A timed-out or failed read
   // leaves this false, which is exactly what the write path needs to know.
   slotHydrated[slot] = true;
+  notifySaveStorage();
 }
 
 /** True once `hydrateSaveStorage` has resolved. UI code that lists slots
@@ -156,6 +200,7 @@ export function __resetSaveStorageForTests(): void {
   hydrated = false;
   hydratePromise = null;
   analyticsConsentMirror = null;
+  saveStorageListeners.clear();
 }
 
 /** True once IndexedDB has actually been read for this slot. Distinct from
@@ -283,10 +328,10 @@ export const STORAGE_KEYS = {
   PACK_DEAL_UPSELL: 'dynasty-pack-deal-upsell',
   /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
   ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
-  /** sessionStorage: per-tab dismissal of the week-1 onboarding checklist.
-   *  Cleared on tab close so reopening the app brings it back while the
-   *  career is still in week 1. Not save-scoped — same checklist applies
-   *  to every new career, dismiss state is intentionally not persisted. */
+  /** sessionStorage: the Getting Started checklist's first-session rows were
+   *  completed this tab, so the card has handed over to the coach tasks.
+   *  (Key name predates the merge — dismissing the checklist is now the
+   *  persisted `settings.hideOnboarding`.) Cleared on tab close. */
   ONBOARDING_CHECKLIST_DISMISSED: 'dynasty-onboarding-checklist-dismissed',
   /** localStorage flag (getFlag/setFlag): the one-off XP reward for finishing
    *  the first-session checklist has been paid. Device-global so a player who
@@ -410,6 +455,11 @@ export const STORAGE_KEYS = {
    *  new event starts fresh. Not save-scoped — Festival Points are a
    *  device-level engagement reward, not part of any career. */
   LIVE_EVENT_PROGRESS: 'dynasty-live-event-progress',
+  /** legacy: localStorage — device-global Manager Pass progress (JSON
+   *  ManagerPassRecord). Not save-scoped for the same reason Festival points
+   *  are not: the pass belongs to the player, so a new career neither resets
+   *  it nor earns it twice, and collected cosmetics show in every slot. */
+  MANAGER_PASS: 'dynasty-manager-pass',
   /** localStorage: device-global opt-in for local notification reminders.
    *  '1' = on, '0' = off, missing = never asked. Device-level (not save-scoped)
    *  and paired with the OS permission, which is the ultimate gate. */
@@ -424,6 +474,18 @@ export const STORAGE_KEYS = {
    *  any career save — deliberately NOT save-scoped, so it persists across new
    *  careers and slot deletion. Badges are cosmetic labels, never entitlements. */
   COMPLETED_CHALLENGES: 'dynasty-completed-challenges',
+  // ── home: Dashboard ──
+  /** localStorage flag (getFlag/setFlag): the Dashboard's collapsed "More"
+   *  section is expanded. A per-device layout preference, not save-scoped. */
+  DASHBOARD_MORE_EXPANDED: 'dynasty-dashboard-more-expanded',
+  // ── content: press conference recency ──
+  /** localStorage: device-global memory of the press questions asked most
+   *  recently, per context (JSON `Record<context, string[]>` of short question
+   *  hashes, a few per context). Lived in module memory, so it reset on every
+   *  cold launch — exactly when a repeated question is most noticeable. Device-
+   *  level rather than save-level: it is a variety aid, not game state, and a
+   *  persisted GameState field would need a schema bump. */
+  PRESS_RECENT_QUESTIONS: 'dynasty-press-recent',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -626,6 +688,16 @@ export interface LiveEventProgress {
   matchWinDate?: string;
   /** Number of match-win awards taken on `matchWinDate`. */
   matchWinCount?: number;
+  // ── content: signing awards (events with `signingPoints`) ──
+  /** Local day key of the last signing award (for its own daily cap). */
+  signingDate?: string;
+  /** Number of signing awards taken on `signingDate`. */
+  signingCount?: number;
+  /** Local day key of the last match-bonus award (draw, clean sheet, goals,
+   *  academy — see `MATCH_BONUS_POINTS_DAILY_CAP`), capped apart from wins. */
+  matchBonusDate?: string;
+  /** Number of match-bonus awards taken on `matchBonusDate`. */
+  matchBonusCount?: number;
 }
 
 export function readLiveEventProgress(): LiveEventProgress | null {
@@ -642,6 +714,10 @@ export function readLiveEventProgress(): LiveEventProgress | null {
       claimedTierIds: Array.isArray(parsed.claimedTierIds) ? parsed.claimedTierIds.filter((t: unknown) => typeof t === 'string') : [],
       matchWinDate: typeof parsed.matchWinDate === 'string' ? parsed.matchWinDate : undefined,
       matchWinCount: typeof parsed.matchWinCount === 'number' ? parsed.matchWinCount : undefined,
+      signingDate: typeof parsed.signingDate === 'string' ? parsed.signingDate : undefined,
+      signingCount: typeof parsed.signingCount === 'number' ? parsed.signingCount : undefined,
+      matchBonusDate: typeof parsed.matchBonusDate === 'string' ? parsed.matchBonusDate : undefined,
+      matchBonusCount: typeof parsed.matchBonusCount === 'number' ? parsed.matchBonusCount : undefined,
     };
   } catch (err) {
     if (raw !== null) breadcrumbCorruption('readLiveEventProgress', raw, err);
@@ -652,6 +728,43 @@ export function readLiveEventProgress(): LiveEventProgress | null {
 export function writeLiveEventProgress(record: LiveEventProgress): void {
   try { localStorage.setItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS, JSON.stringify(record)); }
   catch { /* storage unavailable — non-fatal */ }
+}
+
+// ── legacy: Manager Pass (device-global) ──
+
+/** Raw Manager Pass JSON, or null. Parsing and validation live in
+ *  `utils/managerPass.ts` (`parsePassRecord`), which also memoises on this
+ *  string — ownership checks run on every render of a cosmetic surface. */
+export function readManagerPassData(): string | null {
+  try { return localStorage.getItem(STORAGE_KEYS.MANAGER_PASS); }
+  catch { return null; }
+}
+
+/** False when storage refused the write (quota / unavailable). The caller
+ *  (`savePassRecord`) then keeps the record in memory for the session. */
+export function writeManagerPassData(json: string): boolean {
+  try { localStorage.setItem(STORAGE_KEYS.MANAGER_PASS, json); return true; }
+  catch { return false; }
+}
+
+// ── uifinish: Manager Pass IndexedDB mirror ──
+// The Pass record is the ONLY copy of collected Pass cosmetics, and
+// localStorage is a best-effort store on iOS: WKWebView can evict it and its
+// ~5MB quota is shared with the save mirror. The record is written through to
+// IndexedDB under the same key; `utils/managerPass.ts` decides which copy is
+// newer at start-up (`hydratePassStorage`). Still device-level, never in a
+// save slot, and wiped with everything else by `deleteAllDynastyData`.
+
+/** The IndexedDB copy of the Pass record. `ok: false` when IDB did not
+ *  answer (a timed-out open), which is NOT the same as "no copy". */
+export function readManagerPassMirror(): Promise<{ ok: true; value: string | null } | { ok: false }> {
+  return idbRead(STORAGE_KEYS.MANAGER_PASS).catch(() => ({ ok: false as const }));
+}
+
+/** Write-through to the IndexedDB copy. Resolves false when IDB refused or is
+ *  unavailable; never rejects. */
+export function writeManagerPassMirror(json: string): Promise<boolean> {
+  return idbPut(STORAGE_KEYS.MANAGER_PASS, json).catch(() => false);
 }
 
 // ── Completed Challenges (device-global) ──
@@ -776,6 +889,9 @@ export interface PendingPackCredit {
    *            can only have been written by the old binary, so they are still
    *            honoured; new code always writes the flag. */
   charged?: boolean;
+  /** The store reported the payment as pending approval (Ask to Buy / SCA).
+   *  Such a marker waits longer before an unconfirmed release. */
+  deferred?: boolean;
   /** Stable grant id, persisted before generation and reused after a crash. */
   recordId?: string;
 }
@@ -799,6 +915,7 @@ export function readPendingPackCredit(): PendingPackCredit | null {
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
       slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
       ...(parsed.reported === true ? { reported: true } : {}),
+      ...(parsed.deferred === true ? { deferred: true } : {}),
       ...(typeof parsed.recordId === 'string' ? { recordId: parsed.recordId } : {}),
       // Preserved as a tri-state: `undefined` (legacy marker) must stay
       // distinguishable from an explicit `false` (written, never charged).
@@ -1022,6 +1139,9 @@ export function migrateLegacySave() {
   try {
     const legacy = localStorage.getItem('dynasty-save');
     if (!legacy) return;
+    // Slot 1 may hold an IDB-only career we have not read yet; keep the legacy
+    // key for a later call rather than writing over it.
+    if (slotReadPending(1)) return;
     if (!readSaveSlot(1)) {
       memSlots[1] = legacy;
       void idbPut(STORAGE_KEYS.saveSlot(1), legacy);
@@ -1043,7 +1163,14 @@ export function readSaveSlot(slot: number): string | null {
   if (cached) return cached;
   try {
     const ls = localStorage.getItem(STORAGE_KEYS.saveSlot(slot));
-    if (ls) memSlots[slot] = ls;
+    // Never cache the mirror while this slot's IDB read is in flight. The
+    // title screen reads every slot on its first render, before hydration
+    // lands; caching here made `hydrateOneSlot` see a filled cache, take it
+    // for an in-session write, and keep it over IndexedDB. The browser writes
+    // the mirror to disk lazily, so after an app kill it can be OLDER than the
+    // save IDB committed — the career silently rolled back to it (reproduced
+    // in Chromium: a played match vanished after a restart).
+    if (ls && !slotReadPending(slot)) memSlots[slot] = ls;
     return ls;
   } catch { return null; }
 }
@@ -1071,6 +1198,11 @@ export interface SaveWriteResult {
   /** IDB write outcome. Resolves true on success, false on quota / IDB
    *  unavailable / transaction abort. Never rejects — `idbPut` swallows. */
   idbPromise: Promise<boolean>;
+  /** Set when nothing was written at all — no memory, IDB or localStorage —
+   *  because this slot's IDB read has not completed. `lsOk` is false and
+   *  `idbPromise` resolves false, so callers that only check those still see
+   *  a failed save; this field lets them say why. */
+  refused?: 'slot-not-read';
 }
 
 export interface WriteSaveSlotOptions {
@@ -1085,22 +1217,40 @@ export interface WriteSaveSlotOptions {
    *  and risk an import cycle. Omit for raw writes (tests, legacy callers),
    *  which keeps the always-rotate behaviour. */
   validateOutgoing?: (raw: string) => boolean;
+  /** `fnv1a(json)` when the caller already computed it (performSave does, for
+   *  change detection), so the pending-IDB marker does not re-hash a
+   *  multi-MB payload. Must be the hash of exactly `json`. */
+  payloadHash?: number;
 }
 
 // A small marker distinguishes a newer fallback mirror from a stale mirror.
 // It is a consistency fingerprint, not an authenticity/security check.
-function saveFingerprint(raw: string): string {
-  return `${raw.length}:${fnv1a(raw)}`;
+function saveFingerprint(raw: string, hash: number = fnv1a(raw)): string {
+  return `${raw.length}:${hash}`;
 }
 
-function clearPendingIdb(slot: number, raw: string): void {
+function clearPendingIdb(slot: number, fingerprint: () => string): void {
   try {
     const key = STORAGE_KEYS.saveSlotPendingIdb(slot);
-    if (localStorage.getItem(key) === saveFingerprint(raw)) localStorage.removeItem(key);
+    // No marker is the common case for saves too big for the mirror — don't
+    // hash the payload just to compare it against nothing.
+    const marker = localStorage.getItem(key);
+    if (marker !== null && marker === fingerprint()) localStorage.removeItem(key);
   } catch { /* retaining the marker is safe: hydration retries synchronization */ }
 }
 
 export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOptions): SaveWriteResult {
+  // Refuse outright while this slot's IDB read is outstanding. Saves are
+  // ~7 MB, so the localStorage mirror rarely holds the main copy and an unread
+  // slot looks empty; writing here overwrote the IDB main of a career nobody
+  // had loaded yet, and the late hydrate then skipped it because memory was
+  // already filled. Memory is left untouched too, so a late read still lands,
+  // and no localStorage mirror / pending marker is written — a marked mirror
+  // would win over the real IDB save on the next launch.
+  if (slotReadPending(slot)) {
+    addGameBreadcrumb('save', 'Save refused: slot not read from IDB yet', { slot, bytes: json.length });
+    return { lsOk: false, idbPromise: Promise.resolve(false), refused: 'slot-not-read' };
+  }
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
@@ -1124,12 +1274,17 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // doesn't get salvaged later as a phantom older save.
   try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
 
+  // Computed at most once per write, and not at all when the caller passed
+  // the hash it already had.
+  let fingerprint: string | null = null;
+  const fingerprintOf = () => (fingerprint ??= saveFingerprint(json, opts?.payloadHash ?? fnv1a(json)));
+
   // Step 3: fire IDB writes. We capture the main-write Promise (and ignore
   // the backup-write outcome — the main write is what determines whether
   // the slot survives a reload). The caller can use this to detect the
   // "both disk paths failed" case and surface a Save Failed warning.
   const idbPromise = idbPut(mainKey, json).then(ok => {
-    if (ok) clearPendingIdb(slot, json);
+    if (ok) clearPendingIdb(slot, fingerprintOf);
     return ok;
   });
   if (rotate) void idbPut(backupKey, oldMain as string);
@@ -1169,7 +1324,7 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // else: preserve the existing backup mirror for the invalid-main case.
   try {
     localStorage.setItem(mainKey, json);
-    localStorage.setItem(STORAGE_KEYS.saveSlotPendingIdb(slot), saveFingerprint(json));
+    localStorage.setItem(STORAGE_KEYS.saveSlotPendingIdb(slot), fingerprintOf());
   } catch {
     // Quota exceeded — drop the main mirror only. The caller sees `lsOk: false`
     // and can await `idbPromise` to decide whether to warn the user. Whatever
@@ -1203,6 +1358,8 @@ export function recoverStaleSaveTmp(): void {
       const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
       const tmp = localStorage.getItem(tmpKey);
       if (tmp === null) continue;
+      // Unread slot: IDB may hold the primary. Decide once it has been read.
+      if (slotReadPending(slot)) continue;
       const hasPrimary = memSlots[slot] !== null || localStorage.getItem(STORAGE_KEYS.saveSlot(slot)) !== null;
       if (!hasPrimary) {
         try {
@@ -1223,7 +1380,9 @@ export function readSaveSlotBackup(slot: number): string | null {
   if (cached) return cached;
   try {
     const ls = localStorage.getItem(STORAGE_KEYS.saveSlotBackup(slot));
-    if (ls) memSlotBackups[slot] = ls;
+    // Same rule as readSaveSlot: a read before hydration must not pin a
+    // possibly stale mirror over the IDB backup that is about to land.
+    if (ls && !slotReadPending(slot)) memSlotBackups[slot] = ls;
     return ls;
   } catch { return null; }
 }
@@ -1232,7 +1391,9 @@ export function readSaveSlotBackup(slot: number): string | null {
  *  IDB, and localStorage so subsequent reads/writes treat the recovered
  *  data as the new source of truth. */
 export function promoteSaveBackup(slot: number, raw: string): void {
-  writeSaveSlot(slot, raw, { validateOutgoing: () => false });
+  // A refused write left the main untouched — the backup is then the only
+  // copy we hold, so it must not be cleared.
+  if (writeSaveSlot(slot, raw, { validateOutgoing: () => false }).refused) return;
   memSlotBackups[slot] = null;
   void idbDel(STORAGE_KEYS.saveSlotBackup(slot));
   lsRemoveSafe(STORAGE_KEYS.saveSlotBackup(slot));
@@ -1369,4 +1530,51 @@ export function recordPackUpsell(now: number, maxPerDay: number): boolean {
     }));
     return true;
   } catch { return false; }
+}
+
+// ── content: press conference recency (device-global) ──
+
+/** Hard caps on what the press-recency record may hold, whatever is on disk:
+ *  it is keyed by press context (12 today) and each list is a handful of hashes. */
+const PRESS_RECENT_MAX_KEYS = 32;
+const PRESS_RECENT_MAX_PER_KEY = 8;
+const PRESS_RECENT_MAX_ID_LENGTH = 16;
+
+/** The persisted recently-asked press questions, sanitised and bounded. An
+ *  unreadable or malformed record reads as empty (and is breadcrumbed). */
+export function readPressRecentQuestions(): Record<string, string[]> {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.PRESS_RECENT_QUESTIONS);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const out: Record<string, string[]> = {};
+    for (const [key, list] of Object.entries(parsed).slice(0, PRESS_RECENT_MAX_KEYS)) {
+      if (!Array.isArray(list)) continue;
+      out[key] = list
+        .filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= PRESS_RECENT_MAX_ID_LENGTH)
+        .slice(-PRESS_RECENT_MAX_PER_KEY);
+    }
+    return out;
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readPressRecentQuestions', raw, err);
+    return {};
+  }
+}
+
+/** Persist the recently-asked press questions (bounded the same way as reads). */
+export function writePressRecentQuestions(record: Record<string, string[]>): void {
+  try {
+    const bounded: Record<string, string[]> = {};
+    for (const [key, list] of Object.entries(record).slice(0, PRESS_RECENT_MAX_KEYS)) {
+      bounded[key] = list.filter(x => x.length <= PRESS_RECENT_MAX_ID_LENGTH).slice(-PRESS_RECENT_MAX_PER_KEY);
+    }
+    localStorage.setItem(STORAGE_KEYS.PRESS_RECENT_QUESTIONS, JSON.stringify(bounded));
+  } catch { /* storage unavailable — variety falls back to this session only */ }
+}
+
+export function clearPressRecentQuestions(): void {
+  try { localStorage.removeItem(STORAGE_KEYS.PRESS_RECENT_QUESTIONS); }
+  catch { /* storage unavailable */ }
 }

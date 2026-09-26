@@ -40,7 +40,7 @@ function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: 
       transition={{ delay: 0.15 + index * 0.1 }}
     >
       <GlassPanel className={cn('p-4', isPlayer && 'ring-1 ring-amber-400/40')}>
-        <div className="text-center text-[10px] text-muted-foreground mb-3 uppercase tracking-wider">
+        <div className="text-center text-micro text-muted-foreground mb-3 uppercase tracking-wider">
           {match.type === 'domestic' ? 'Domestic Super Cup' : 'Continental Super Cup'}
         </div>
 
@@ -51,7 +51,7 @@ function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: 
             <p className={cn('text-sm font-medium truncate', match.homeClubId === playerClubId && 'text-primary')}>
               {home?.shortName || '???'}
             </p>
-            <p className="text-[10px] text-muted-foreground">{homeLabel}</p>
+            <p className="text-micro text-muted-foreground">{homeLabel}</p>
           </div>
 
           {/* Score */}
@@ -67,7 +67,7 @@ function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: 
                   {match.homeGoals} - {match.awayGoals}
                 </motion.span>
                 {match.penaltyShootout && (
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                  <div className="text-micro text-muted-foreground mt-0.5">
                     Pens: {match.penaltyShootout.home}-{match.penaltyShootout.away}
                   </div>
                 )}
@@ -75,7 +75,7 @@ function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: 
             ) : (
               <div>
                 <span className="text-lg text-muted-foreground">vs</span>
-                <div className="text-[10px] text-muted-foreground mt-0.5">Week {match.week}</div>
+                <div className="text-micro text-muted-foreground mt-0.5">Week {match.week}</div>
               </div>
             )}
           </div>
@@ -86,7 +86,7 @@ function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: 
             <p className={cn('text-sm font-medium truncate', match.awayClubId === playerClubId && 'text-primary')}>
               {away?.shortName || '???'}
             </p>
-            <p className="text-[10px] text-muted-foreground">{awayLabel}</p>
+            <p className="text-micro text-muted-foreground">{awayLabel}</p>
           </div>
         </div>
 

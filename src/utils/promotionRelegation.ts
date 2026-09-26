@@ -49,13 +49,29 @@ export function determineZones(table: LeagueTableEntry[], league: LeagueInfo) {
 // ── Run a simple playoff tournament (best 2 of the playoff candidates) ──
 
 /**
- * Decide one playoff tie. `homeClubId` is the better-placed side, which hosts.
- * Returns the winner's club id.
+ * Decide one playoff tie. `homeClubId` is the better-placed side, which hosts
+ * (the final excepted — see `isNeutralPlayoffRound`). Returns the winner's
+ * club id.
  *
  * Injected rather than imported so this module stays free of the match engine
  * (and so the existing pure tests can keep running it without squads).
  */
-export type PlayoffTieResolver = (homeClubId: string, awayClubId: string) => string;
+export type PlayoffTieResolver = (
+  homeClubId: string,
+  awayClubId: string,
+  /** Clubs left in the bracket for this tie's round (2 = the final, which is
+   *  played at a neutral venue). Optional so existing resolvers keep working. */
+  teamsInRound?: number,
+) => string;
+
+/** The playoff FINAL (two clubs left in the bracket) is played at a neutral
+ *  ground; the earlier rounds are hosted by the better-placed side. ONE rule
+ *  for the interactive bracket (`playoff.ts`) and rollover's resolver
+ *  (`seasonEnd.ts`), so the same final cannot be neutral in one and hosted in
+ *  the other. */
+export function isNeutralPlayoffRound(teamsInRound: number | undefined): boolean {
+  return teamsInRound != null && teamsInRound <= 2;
+}
 
 /** Fallback when no resolver is supplied: the better-placed side goes through
  *  this often. Only used by callers that have no squads to simulate with. */
@@ -77,9 +93,9 @@ export const PLAYOFF_HIGHER_SEED_WIN_CHANCE = 0.6;
  * with access to players — should pass one.
  */
 export function simulatePlayoff(candidates: string[], resolveTie?: PlayoffTieResolver): string | null {
-  const outcome = stepPlayoff(candidates, (home, away) =>
+  const outcome = stepPlayoff(candidates, (home, away, teamsInRound) =>
     resolveTie
-      ? resolveTie(home, away)
+      ? resolveTie(home, away, teamsInRound)
       : (Math.random() < PLAYOFF_HIGHER_SEED_WIN_CHANCE ? home : away));
   return outcome.kind === 'decided' ? outcome.winner : null;
 }
@@ -112,7 +128,7 @@ export type PlayoffOutcome =
  */
 export function stepPlayoff(
   candidates: string[],
-  resolveStep: (homeClubId: string, awayClubId: string) => string | null,
+  resolveStep: (homeClubId: string, awayClubId: string, teamsInRound: number) => string | null,
 ): PlayoffOutcome {
   if (candidates.length === 0) return { kind: 'decided', winner: null };
   if (candidates.length === 1) return { kind: 'decided', winner: candidates[0] };
@@ -131,7 +147,7 @@ export function stepPlayoff(
     while (lo < hi) {
       const home = remaining[lo];
       const away = remaining[hi];
-      const winner = resolveStep(home, away);
+      const winner = resolveStep(home, away, teamsInRound);
       if (winner === null) {
         return { kind: 'pending', tie: { homeClubId: home, awayClubId: away, teamsInRound } };
       }
@@ -155,7 +171,7 @@ export function resumePlayoff(
   candidates: string[],
   resolved: PlayoffTieResult[],
   pauseForClubId: string,
-  simulateTie: (homeClubId: string, awayClubId: string) => string,
+  simulateTie: (homeClubId: string, awayClubId: string, teamsInRound: number) => string,
 ): PlayoffOutcome {
   const key = (a: string, b: string) => [a, b].sort().join('|');
   const decided = new Map<string, string>();
@@ -165,11 +181,11 @@ export function resumePlayoff(
       : (r.homeGoals > r.awayGoals ? r.homeClubId : r.awayClubId);
     decided.set(key(r.homeClubId, r.awayClubId), winner);
   }
-  return stepPlayoff(candidates, (home, away) => {
+  return stepPlayoff(candidates, (home, away, teamsInRound) => {
     const known = decided.get(key(home, away));
     if (known) return known;
     if (home === pauseForClubId || away === pauseForClubId) return null;
-    return simulateTie(home, away);
+    return simulateTie(home, away, teamsInRound);
   });
 }
 

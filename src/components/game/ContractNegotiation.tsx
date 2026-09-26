@@ -133,13 +133,13 @@ export function ContractNegotiation() {
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <FlagIcon nationality={player.nationality} size={14} />
                 <span className="text-xs text-muted-foreground truncate">{player.firstName} {player.lastName}</span>
-                <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded leading-none', posBadgeColor(player.position))}>
+                <span className={cn('text-micro font-bold px-1 py-0.5 rounded leading-none', posBadgeColor(player.position))}>
                   {player.position}
                 </span>
-                <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
-                <span className="text-[10px] text-muted-foreground">· R{activeNegotiation.round}/3</span>
+                <span className="text-micro text-muted-foreground tabular-nums">{player.age}y</span>
+                <span className="text-micro text-muted-foreground">· R{activeNegotiation.round}/3</span>
                 {strikes > 0 && (
-                  <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded leading-none', strikes >= CONTRACT_MAX_STRIKES ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400')}>
+                  <span className={cn('text-micro font-bold px-1 py-0.5 rounded leading-none', strikes >= CONTRACT_MAX_STRIKES ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400')}>
                     {strikes}/{CONTRACT_MAX_STRIKES}
                   </span>
                 )}
@@ -147,7 +147,7 @@ export function ContractNegotiation() {
             </div>
           </div>
           {!isComplete && (
-            <button type="button" onClick={cancelNegotiation} aria-label="Cancel negotiation" className="p-1.5 rounded-lg hover:bg-muted/50">
+            <button type="button" onClick={cancelNegotiation} aria-label="Cancel negotiation" className="min-w-11 min-h-11 -my-1 -mr-2 flex items-center justify-center rounded-lg hover:bg-muted/50">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
@@ -172,9 +172,9 @@ export function ContractNegotiation() {
                 <p className="text-sm font-bold text-destructive">Negotiations Collapsed</p>
                 <p className="text-xs text-muted-foreground">{player.lastName} has rejected the offer and walked away.</p>
                 {strikes >= CONTRACT_MAX_STRIKES ? (
-                  <p className="text-[10px] text-red-400 mt-1">Max attempts reached — player locked for cooldown period.</p>
+                  <p className="text-micro text-red-400 mt-1">Max attempts reached — player locked for cooldown period.</p>
                 ) : strikes > 0 ? (
-                  <p className="text-[10px] text-amber-400 mt-1">Attempt {strikes}/{CONTRACT_MAX_STRIKES} — {CONTRACT_MAX_STRIKES - strikes} more before cooldown.</p>
+                  <p className="text-micro text-amber-400 mt-1">Attempt {strikes}/{CONTRACT_MAX_STRIKES} — {CONTRACT_MAX_STRIKES - strikes} more before cooldown.</p>
                 ) : null}
               </div>
             </div>
@@ -193,7 +193,7 @@ export function ContractNegotiation() {
               {/* Player demand vs your offer */}
               <div className="grid grid-cols-2 gap-3">
                 <GlassPanel className="p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Player Demands</p>
+                  <p className="text-micro text-muted-foreground mb-1 uppercase tracking-wider">Player Demands</p>
                   <p
                     className={cn(
                       'text-xl font-black tabular-nums rounded px-1 transition-colors',
@@ -203,14 +203,14 @@ export function ContractNegotiation() {
                   >
                     {formatWage(activeNegotiation.demandedWage)}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-1">for {preferredYears} yr{preferredYears !== 1 ? 's' : ''}</p>
+                  <p className="text-micro text-muted-foreground mt-1">for {preferredYears} yr{preferredYears !== 1 ? 's' : ''}</p>
                 </GlassPanel>
                 <GlassPanel className="p-3 text-center ring-1 ring-primary/30">
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Your Offer</p>
+                  <p className="text-micro text-muted-foreground mb-1 uppercase tracking-wider">Your Offer</p>
                   <p className="text-xl font-black tabular-nums bg-gradient-to-b from-primary to-primary/70 bg-clip-text text-transparent">
                     {formatWage(customWage ?? activeNegotiation.offeredWage)}
                   </p>
-                  <p className={cn('text-[10px] mt-1 font-medium', yearsDiff === 0 ? 'text-emerald-400' : yearsDiff > 0 ? 'text-emerald-400' : 'text-destructive')}>
+                  <p className={cn('text-micro mt-1 font-medium', yearsDiff === 0 ? 'text-emerald-400' : yearsDiff > 0 ? 'text-emerald-400' : 'text-destructive')}>
                     for {currentYears} yr{currentYears !== 1 ? 's' : ''}
                   </p>
                 </GlassPanel>
@@ -238,21 +238,32 @@ export function ContractNegotiation() {
                     <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-muted-foreground">Contract Length</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* 44px hit areas around a compact 28px chip. The negative
+                      margin keeps the row as tall as the old 24px buttons made
+                      it; the overhang sits inside the card's p-3 padding. */}
+                  <div className="flex items-center -my-2.5">
                     <button
+                      type="button"
                       onClick={() => setCustomYears(Math.max(CONTRACT_MIN_YEARS, currentYears - 1))}
                       disabled={currentYears <= CONTRACT_MIN_YEARS}
-                      className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center hover:bg-muted/80 disabled:opacity-30 transition-colors"
+                      aria-label={t('contractNegotiation.shorterContract')}
+                      className="group w-11 h-11 flex items-center justify-center disabled:opacity-30"
                     >
-                      <Minus className="w-3 h-3" />
+                      <span aria-hidden className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center group-hover:bg-muted/80 transition-colors">
+                        <Minus className="w-3.5 h-3.5" />
+                      </span>
                     </button>
-                    <span className="text-foreground font-bold w-14 text-center text-sm">{currentYears} yr{currentYears !== 1 ? 's' : ''}</span>
+                    <span className="text-foreground font-bold w-14 text-center text-sm" aria-live="polite">{currentYears} yr{currentYears !== 1 ? 's' : ''}</span>
                     <button
+                      type="button"
                       onClick={() => setCustomYears(Math.min(CONTRACT_MAX_YEARS, currentYears + 1))}
                       disabled={currentYears >= CONTRACT_MAX_YEARS}
-                      className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center hover:bg-muted/80 disabled:opacity-30 transition-colors"
+                      aria-label={t('contractNegotiation.longerContract')}
+                      className="group w-11 h-11 flex items-center justify-center disabled:opacity-30"
                     >
-                      <Plus className="w-3 h-3" />
+                      <span aria-hidden className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center group-hover:bg-muted/80 transition-colors">
+                        <Plus className="w-3.5 h-3.5" />
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -274,7 +285,7 @@ export function ContractNegotiation() {
                           )}
                         />
                         {yr === preferredYears && (
-                          <span className="text-[8px] text-muted-foreground leading-none">wanted</span>
+                          <span className="text-micro text-muted-foreground leading-none">wanted</span>
                         )}
                       </div>
                     );
@@ -282,7 +293,7 @@ export function ContractNegotiation() {
                 </div>
 
                 {/* Years feedback */}
-                <div className="flex items-center justify-between text-[10px]">
+                <div className="flex items-center justify-between text-micro">
                   <span className={cn(
                     'font-medium',
                     yearsDiff === 0 ? 'text-emerald-400' :
@@ -355,7 +366,7 @@ export function ContractNegotiation() {
                       {/* Demand marker */}
                       <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${pctDemand}%` }}>
                         <div className="absolute left-0 top-3 bottom-3 w-px bg-primary/50" />
-                        <span className="absolute top-0 text-[9px] font-semibold text-primary/70 -translate-x-1/2 whitespace-nowrap">
+                        <span className="absolute top-0 text-micro font-semibold text-primary/70 -translate-x-1/2 whitespace-nowrap">
                           Demand
                         </span>
                       </div>
@@ -376,7 +387,7 @@ export function ContractNegotiation() {
                     </div>
                   );
                 })()}
-                <div className="flex justify-between text-[10px] text-muted-foreground -mt-2">
+                <div className="flex justify-between text-micro text-muted-foreground -mt-2">
                   <span>{formatWage(Math.round(activeNegotiation.demandedWage * 0.5))}</span>
                   <span className={cn('font-semibold', gap >= 0.95 ? 'text-emerald-400' : gap >= 0.8 ? 'text-amber-400' : 'text-destructive')}>
                     {Math.round(gap * 100)}% of demand
@@ -384,7 +395,7 @@ export function ContractNegotiation() {
                   <span>{formatWage(Math.round(activeNegotiation.demandedWage * 1.5))}</span>
                 </div>
                 {/* Acceptance hint — accounts for both wage AND years */}
-                <p className={cn('text-[10px] text-right', acceptanceHint.colorClass)}>
+                <p className={cn('text-micro text-right', acceptanceHint.colorClass)}>
                   {acceptanceHint.text}
                 </p>
               </div>
@@ -398,7 +409,7 @@ export function ContractNegotiation() {
                 const totalCost = activeNegotiation.agentFee + (activeNegotiation.loyaltyBonus || 0);
                 return (
                   <GlassPanel className="p-3 space-y-1.5 text-xs">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Budget Impact</p>
+                    <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Budget Impact</p>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Wage bill change</span>
                       <span className={cn('font-semibold tabular-nums', wageDiff > 0 ? 'text-amber-400' : wageDiff < 0 ? 'text-emerald-400' : 'text-foreground')}>

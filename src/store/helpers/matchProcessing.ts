@@ -1,14 +1,14 @@
 import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMatchRecord } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
-import { awardFestivalMatchWin } from '@/utils/liveEvents';
+import { awardFestivalMatchResult } from '@/utils/liveEvents';
+import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { signalFirstWinForNotifications } from '@/utils/notifications';
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
 import {
   FITNESS_DRAIN_PER_MATCH, FITNESS_MIN_POST_MATCH,
   MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE, NARRATIVE_MORALE_LOSS_REDUCTION_CAP,
-  FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
   MATCH_INJURY_WEEKS_MIN, MATCH_INJURY_WEEKS_RANGE,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
   CONFIDENCE_WIN_CHANGE, CONFIDENCE_LOSS_CHANGE, CONFIDENCE_DRAW_CHANGE,
@@ -20,13 +20,16 @@ import {
   getExpectedPosition,
   MAX_PLAYER_MATCH_HISTORY,
   RATING_MORALE_BASELINE, MORALE_PER_RATING_POINT, MORALE_RATING_ADJ_CAP,
-  FORM_PER_RATING_POINT, FORM_RATING_ADJ_CAP,
   MATCH_FITNESS_CARRY_ENABLED, MATCH_FITNESS_CARRY_SCALE,
 } from '@/config/gameBalance';
+import { INBOX_ARRIVES_READ } from '@/config/gameBalance';
 import {
   computeMinutesPlayed,
   extractFinalMatchFitness,
   getYellowAccumulationBanWeek,
+  nextMatchForm,
+  suspensionEndWeek,
+  buildFixtureWeeksByClub,
 } from '@/store/slices/orchestration/helpers';
 import { DEMAND_MORALE_WIN_BONUS, DEMAND_MORALE_LOSS_PENALTY, MOTIVATE_FATIGUE_MULTIPLIER, CALM_FATIGUE_MULTIPLIER, DEMAND_FATIGUE_MULTIPLIER } from '@/config/teamTalk';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
@@ -75,6 +78,11 @@ export function processMatchResult(
     };
   }
 
+  // Both clubs' upcoming fixtures, so a card ban counts MATCHES missed rather
+  // than calendar weeks (see `suspensionEndWeek`).
+  const banWeek = getWeek() || 1;
+  const fixtureWeeksByClub = buildFixtureWeeksByClub(state, banWeek, new Set([match.homeClubId, match.awayClubId]));
+
   // Process events: goals, assists, injuries, cards
   result.events.forEach(ev => {
     const isGoalEv = (GOAL_EVENT_TYPES as readonly string[]).includes(ev.type);
@@ -94,7 +102,8 @@ export function processMatchResult(
       const nextYellows = prevYellows + 1;
       // Yellow-card accumulation ban (5/10/15 by default) — yellows used to be
       // counted and then ignored entirely.
-      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, getWeek() || 1);
+      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, banWeek,
+        fixtureWeeksByClub[newPlayers[ev.playerId].clubId]);
       newPlayers[ev.playerId] = {
         ...newPlayers[ev.playerId],
         yellowCards: nextYellows,
@@ -105,7 +114,14 @@ export function processMatchResult(
       };
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: (getWeek() || 1) + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
+      const banMatches = RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE);
+      const banUntil = suspensionEndWeek(banWeek, banMatches, fixtureWeeksByClub[newPlayers[ev.playerId].clubId]);
+      newPlayers[ev.playerId] = {
+        ...newPlayers[ev.playerId],
+        redCards: newPlayers[ev.playerId].redCards + 1,
+        // Never shorten a longer ban already in force.
+        suspendedUntilWeek: Math.max(newPlayers[ev.playerId].suspendedUntilWeek ?? 0, banUntil),
+      };
     }
   });
 
@@ -161,7 +177,12 @@ export function processMatchResult(
   }
 
   // Player club fitness/morale/form
+  // `isHome` is the SIDE of the fixture (whose goals are ours). `atHomeVenue`
+  // is where it was played: a neutral ground (finals, Super Cups, the playoff
+  // final, tournaments — `Match.neutral`) is nobody's home, so no effect that
+  // rewards playing at home may fire there.
   const isHome = match.homeClubId === playerClubId;
+  const atHomeVenue = isHome && !(match.neutral || result.neutral);
   const drawnOnGoals = result.homeGoals === result.awayGoals;
   const won = shootoutWinnerId && drawnOnGoals
     ? shootoutWinnerId === playerClubId
@@ -231,8 +252,9 @@ export function processMatchResult(
       // Iron Will perk: no morale penalty from defeats. Clamped rather than
       // zeroed so a good individual game still earns its boost.
       if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = Math.max(0, moraleDelta);
-      // Fortress Mentality perk: home wins give extra morale
-      if (won && isHome && hasPerk(state.managerProgression, 'fortress_mentality')) moraleDelta += 3;
+      // Fortress Mentality perk: home wins give extra morale — at the club's
+      // own ground, not as the nominal home side of a neutral final.
+      if (won && atHomeVenue && hasPerk(state.managerProgression, 'fortress_mentality')) moraleDelta += 3;
       // Team talk morale effects: "demand" is high risk/reward
       if (state.matchTeamTalk === 'demand') {
         moraleDelta += won ? DEMAND_MORALE_WIN_BONUS : lost ? -DEMAND_MORALE_LOSS_PENALTY : 0;
@@ -243,12 +265,9 @@ export function processMatchResult(
         : 1;
       const moraleStability = getMoraleStability(p.personality);
       p.morale = Math.min(100, Math.max(10, p.morale + Math.round(moraleDelta * moraleStability * motivationMod)));
-      let formDelta = won ? FORM_WIN_CHANGE : lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
-      if (rating != null) {
-        formDelta += Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
-          (rating - RATING_MORALE_BASELINE) * FORM_PER_RATING_POINT));
-      }
-      p.form = Math.min(100, Math.max(10, p.form + Math.round(formDelta)));
+      // One form rule for every club — `nextMatchForm` (mean-reverting, result
+      // dominant). This block used to carry its own copy of the AI formula.
+      p.form = nextMatchForm(p.form, won, lost, rating);
       newPlayers[pid] = p;
     }
   });
@@ -281,6 +300,8 @@ export function processMatchResult(
     body: won ? `A great result against ${oppName}! The fans are delighted.`
       : lost ? `A disappointing result against ${oppName}. The board will want to see improvement.`
       : `A hard-fought draw against ${oppName}. Onwards.`,
+    // The manager has just watched it — information, not a to-do (R18).
+    read: INBOX_ARRIVES_READ.matchResult,
   });
 
   // Board reaction messages fire only when confidence CROSSES a threshold,
@@ -290,7 +311,7 @@ export function processMatchResult(
   if (season === 1 && lost && week <= 10) {
     // First-season encouragement: soften the first early loss, once.
     if (!messages.some(m => m.title === 'The Board Believes in You')) {
-      newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'The Board Believes in You', body: 'It\'s early days. The board sees your potential and is giving you time to build. Keep pushing — better results will come.' });
+      newMessages = addMsg(newMessages, { week, season, type: 'board', read: INBOX_ARRIVES_READ.boardEncouragement, title: 'The Board Believes in You', body: 'It\'s early days. The board sees your potential and is giving you time to build. Keep pushing — better results will come.' });
     }
   } else if (confidence < CONFIDENCE_WARNING_THRESHOLD && prevConfidence >= CONFIDENCE_WARNING_THRESHOLD) {
     newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Board Warning', body: 'The board is growing concerned with recent performances. Results must improve soon or your position may be at risk.' });
@@ -315,7 +336,20 @@ export function processMatchResult(
 
   // Live-event hook: a win during an active festival window earns Festival
   // Points (device-global, capped per day). No-op off-window; never throws.
-  awardFestivalMatchWin(won);
+  // A derby win is worth more in events that declare `derbyWinMultiplier`
+  // (Derby Days). Same derby test the match itself was played under:
+  // pre-match rivalries, so this result's grudge change doesn't count.
+  // Events may also pay for draws, clean sheets, goals and academy graduates
+  // who played (see `LiveEvent`); a match that earns nothing uses no award.
+  const isDerbyMatch = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId) > 0;
+  awardFestivalMatchResult({
+    won,
+    drawn: !won && !lost,
+    isDerby: isDerbyMatch,
+    goalsFor: isHome ? result.homeGoals : result.awayGoals,
+    goalsAgainst: isHome ? result.awayGoals : result.homeGoals,
+    academyAppearances: participantIds.filter(pid => newPlayers[pid]?.clubId === playerClubId && newPlayers[pid]?.isFromYouthAcademy).length,
+  });
 
   // Career milestones
   const newMilestones: CareerMilestone[] = [];

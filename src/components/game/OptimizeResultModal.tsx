@@ -1,7 +1,10 @@
+import { useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Wand2, TrendingUp, TrendingDown, Minus, Users, Sparkles, Check } from 'lucide-react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
 
@@ -84,7 +87,7 @@ function StatCard({ icon, label, value, tone, valueClassName, delay }: StatCardP
       <div className={cn('font-black font-display tabular-nums leading-tight mt-1', tone, valueClassName ?? 'text-lg')}>
         {value}
       </div>
-      <div className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5 font-semibold">
+      <div className="text-micro uppercase tracking-[0.14em] text-muted-foreground mt-0.5 font-semibold">
         {label}
       </div>
     </motion.div>
@@ -94,6 +97,11 @@ function StatCard({ icon, label, value, tone, valueClassName, delay }: StatCardP
 export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalProps) {
   const { t } = useTranslation();
   useScrollLock(!!result);
+  // A read-only result card: Escape, the backdrop and Done all just dismiss.
+  const dismiss = useCallback(() => { hapticLight(); onDismiss(); }, [onDismiss]);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, !!result);
+  useEscapeClose(dismiss, !!result);
 
   return (
     <AnimatePresence>
@@ -104,19 +112,22 @@ export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalPr
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          aria-modal="true"
-          role="dialog"
-          aria-label={t('optimizeResultModal.lineupOptimizationResult')}
         >
           <motion.div
             className="absolute inset-0 bg-background/70 backdrop-blur-md"
             style={{ touchAction: 'none' }}
-            onClick={() => { hapticLight(); onDismiss(); }}
+            onClick={dismiss}
           />
 
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="optimize-result-title"
+            aria-describedby="optimize-result-caption"
+            tabIndex={-1}
             className={cn(
-              'relative w-full max-w-sm transform-gpu overflow-hidden rounded-3xl text-center',
+              'relative w-full max-w-sm transform-gpu overflow-hidden rounded-3xl text-center focus:outline-none',
               'bg-gradient-to-br from-[hsl(222_35%_14%/0.78)] via-[hsl(222_28%_10%/0.82)] to-[hsl(222_40%_7%/0.88)]',
               'backdrop-blur-2xl backdrop-saturate-150',
               'shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,inset_0_1px_0_rgba(255,255,255,0.20),inset_0_-1px_0_rgba(0,0,0,0.40),0_30px_80px_-30px_rgba(0,0,0,0.7),0_0_60px_-20px_hsl(var(--primary)/0.35)]',
@@ -180,10 +191,10 @@ export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalPr
                   <Sparkles className="absolute -top-1 -right-1 w-3.5 h-3.5 text-primary/90" />
                 </motion.div>
 
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary/80">
+                <p className="text-micro font-bold uppercase tracking-[0.24em] text-primary/80">
                   Smart Optimize
                 </p>
-                <h2 className="text-xl font-black font-display text-foreground leading-tight">
+                <h2 id="optimize-result-title" className="text-xl font-black font-display text-foreground leading-tight">
                   {result.changes === 0 ? 'Already Optimal' : 'Lineup Optimised'}
                 </h2>
               </div>
@@ -216,6 +227,7 @@ export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalPr
               )}
 
               <motion.p
+                id="optimize-result-caption"
                 className="text-xs text-muted-foreground leading-relaxed px-1"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -225,9 +237,10 @@ export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalPr
               </motion.p>
 
               <motion.button
-                onClick={() => { hapticLight(); onDismiss(); }}
+                type="button"
+                onClick={dismiss}
                 className={cn(
-                  'relative overflow-hidden w-full py-2.5 rounded-2xl font-semibold text-sm',
+                  'relative overflow-hidden w-full h-11 rounded-2xl font-semibold text-sm',
                   'flex items-center justify-center gap-2 transition-all active:scale-[0.985]',
                   'backdrop-blur-xl backdrop-saturate-150',
                   'bg-gradient-to-b from-primary to-[hsl(var(--primary)/0.85)] text-primary-foreground',

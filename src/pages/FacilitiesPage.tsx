@@ -188,15 +188,15 @@ const FacilitiesPage = () => {
             {/* Stadium Stats */}
             <div className="grid grid-cols-3 gap-2">
               <GlassPanel className="p-3 text-center">
-                <p className="text-[10px] text-muted-foreground mb-0.5">Overall</p>
+                <p className="text-micro text-muted-foreground mb-0.5">Overall</p>
                 <p className="text-sm font-bold tabular-nums">{effectiveLevel}<span className="text-muted-foreground font-normal text-xs">/{FACILITY_MAX_LEVEL}</span></p>
               </GlassPanel>
               <GlassPanel className="p-3 text-center">
-                <p className="text-[10px] text-muted-foreground mb-0.5">Revenue</p>
-                <p className="text-sm font-bold tabular-nums text-emerald-400">£{(weeklyRevenue / 1000).toFixed(0)}K<span className="text-muted-foreground font-normal text-[10px]">/wk</span></p>
+                <p className="text-micro text-muted-foreground mb-0.5">Revenue</p>
+                <p className="text-sm font-bold tabular-nums text-emerald-400">£{(weeklyRevenue / 1000).toFixed(0)}K<span className="text-muted-foreground font-normal text-micro">/wk</span></p>
               </GlassPanel>
               <GlassPanel className="p-3 text-center">
-                <p className="text-[10px] text-muted-foreground mb-0.5">Capacity</p>
+                <p className="text-micro text-muted-foreground mb-0.5">Capacity</p>
                 <p className="text-sm font-bold tabular-nums">{club?.stadiumCapacity ? (getStadiumCapacity(club.stadiumCapacity, facilities.stadiumStands) / 1000).toFixed(1) + 'K' : '—'}</p>
               </GlassPanel>
             </div>
@@ -228,12 +228,12 @@ const FacilitiesPage = () => {
             {/* Quick upgrade hint if no stand selected */}
             {!selectedStand && (
               recommendedStand ? (
-                <p className="text-[10px] text-center">
+                <p className="text-micro text-center">
                   <span className="text-emerald-400 font-semibold">Recommended:</span>{' '}
                   <span className="text-muted-foreground">tap the {STAND_INFO[recommendedStand].label} to upgrade next</span>
                 </p>
               ) : (
-                <p className="text-[10px] text-muted-foreground text-center">Tap a stand to view details and upgrade</p>
+                <p className="text-micro text-muted-foreground text-center">Tap a stand to view details and upgrade</p>
               )
             )}
           </motion.div>
@@ -321,7 +321,7 @@ function StandUpgradePanel({
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">{info.label}</h3>
-          <p className="text-[10px] text-muted-foreground">{info.subtitle}</p>
+          <p className="text-micro text-muted-foreground">{info.subtitle}</p>
         </div>
         <span className="text-lg font-bold tabular-nums">{level}<span className="text-sm text-muted-foreground font-normal">/{FACILITY_MAX_LEVEL}</span></span>
       </div>
@@ -330,7 +330,7 @@ function StandUpgradePanel({
       <div className="flex items-center gap-3 mb-3">
         <div className="flex items-center gap-1.5">
           <TrendingUp className="w-3 h-3 text-emerald-400" />
-          <span className="text-[10px] text-muted-foreground">£{((level * incomePerLevel) / 1000).toFixed(0)}K/wk from this stand</span>
+          <span className="text-micro text-muted-foreground">£{((level * incomePerLevel) / 1000).toFixed(0)}K/wk from this stand</span>
         </div>
       </div>
 
@@ -359,7 +359,7 @@ function StandUpgradePanel({
               />
             </div>
           </div>
-          <span className="text-[10px] text-muted-foreground">{weeksRemaining}w left</span>
+          <span className="text-micro text-muted-foreground">{weeksRemaining}w left</span>
         </div>
       )}
 
@@ -381,10 +381,10 @@ function StandUpgradePanel({
         </button>
       )}
       {upgradeProgress === null && !isMax && !canUpgrade && upgradeInProgress && (
-        <p className="text-[10px] text-muted-foreground text-center mt-1">Another upgrade in progress</p>
+        <p className="text-micro text-muted-foreground text-center mt-1">Another upgrade in progress</p>
       )}
       {upgradeProgress === null && !isMax && !canUpgrade && !upgradeInProgress && budget < cost && (
-        <p className="text-[10px] text-muted-foreground text-center mt-1">Insufficient funds</p>
+        <p className="text-micro text-muted-foreground text-center mt-1">Insufficient funds</p>
       )}
       {isMax && (
         <p className="text-center text-xs text-amber-400 font-semibold">Max Level</p>

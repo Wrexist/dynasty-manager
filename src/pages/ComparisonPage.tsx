@@ -70,7 +70,7 @@ const ComparisonPage = () => {
         <h2 className="text-lg font-display font-bold text-foreground">Player Comparison</h2>
         <GlassPanel className="p-8 text-center space-y-3">
           <p className="text-sm text-muted-foreground">Nothing to compare yet</p>
-          <p className="text-[10px] text-muted-foreground/60">
+          <p className="text-micro text-muted-foreground/60">
             You need at least two players. Shortlist a transfer target or scout a region,
             then come back to weigh him against your current starter.
           </p>
@@ -137,7 +137,7 @@ const ComparisonPage = () => {
       {/* Player Selectors */}
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-3">
-          <label htmlFor="compare-a" className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">Player A</label>
+          <label htmlFor="compare-a" className="text-micro text-muted-foreground uppercase tracking-wider mb-1 block">Player A</label>
           <select
             id="compare-a"
             value={playerAId}
@@ -148,7 +148,7 @@ const ComparisonPage = () => {
           </select>
         </GlassPanel>
         <GlassPanel className="p-3">
-          <label htmlFor="compare-b" className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">Player B</label>
+          <label htmlFor="compare-b" className="text-micro text-muted-foreground uppercase tracking-wider mb-1 block">Player B</label>
           <select
             id="compare-b"
             value={playerBId}
@@ -213,7 +213,7 @@ const ComparisonPage = () => {
                 return (
                   <div key={label} className="flex items-center text-xs">
                     <span className={cn('w-16 tabular-nums text-right', aWins ? 'text-primary font-bold' : 'text-muted-foreground')}>{fmt(a)}</span>
-                    <span className="flex-1 text-center text-muted-foreground text-[10px]">{label}</span>
+                    <span className="flex-1 text-center text-muted-foreground text-micro">{label}</span>
                     <span className={cn('w-16 tabular-nums', bWins ? 'text-emerald-400 font-bold' : 'text-muted-foreground')}>{fmt(b)}</span>
                   </div>
                 );

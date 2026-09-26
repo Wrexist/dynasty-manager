@@ -51,7 +51,12 @@ export function getRatingDevelopmentBonus(p: Player): number {
   return Math.max(DEV_RATING_BONUS_MIN, Math.min(DEV_RATING_BONUS_MAX, raw));
 }
 
-export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorBonus: number = 0, trainingGroundBoost: number = 0): Player {
+/**
+ * `declineRate` scales the per-pass decline roll so squads that take more passes
+ * per season don't age faster (see `playerClubDeclineRate`). Growth is not
+ * scaled — it is capped per season by `MAX_SEASON_GROWTH`.
+ */
+export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorBonus: number = 0, trainingGroundBoost: number = 0, declineRate: number = 1): Player {
   // Preserve any upstream growthDelta (set by applyWeeklyTraining when it ran
   // earlier in the week pipeline). Previously this function overwrote that
   // delta with just the development gain, so the UI showed only half the
@@ -96,7 +101,7 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
     for (const attr of attrs) {
       // Physical/pace decline faster, mental declines slowest
       const attrMult = DECLINE_ATTR_MULTIPLIERS[attr];
-      const declineChance = (DECLINE_BASE_CHANCE + ageFactor) * attrMult;
+      const declineChance = (DECLINE_BASE_CHANCE + ageFactor) * attrMult * declineRate;
       if (Math.random() < declineChance) {
         updated.attributes[attr] = clamp(updated.attributes[attr] - 1);
       }

@@ -12,9 +12,9 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout } from 'lucide-react';
+import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
+import type { ClubData, LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { readSessionJson, writeSessionJson, removeSessionKey, readCommunityPackSlotPref, writeCommunityPackSlotPref, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { hapticLight } from '@/utils/haptics';
@@ -22,6 +22,8 @@ import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { CommunityPackToggle } from '@/components/game/CommunityPackToggle';
 import { errorToast } from '@/utils/gameToast';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { detectLocaleNation } from '@/utils/localeNation';
+import { pickQuickStartClub, type QuickStartPick } from '@/utils/quickStart';
 
 
 
@@ -100,7 +102,12 @@ const ClubSelection = () => {
   // Hydrate once from sessionStorage draft (if user refreshed mid-onboarding)
   const initialDraft = useMemo(readOnboardingDraft, []);
   const [step, setStep] = useState<OnboardingStep>(initialDraft.step);
-  const [selectedNationality, setSelectedNationality] = useState<string | null>(initialDraft.nation);
+  // Device-locale nationality (`sv-SE` → Sweden). Only a default: it
+  // pre-selects a row and heads the list, and a draft the player already made
+  // always wins. `null` when the locale maps to nothing — the list then opens
+  // unselected, as it always did.
+  const [localeNation] = useState<string | null>(() => detectLocaleNation());
+  const [selectedNationality, setSelectedNationality] = useState<string | null>(initialDraft.nation ?? localeNation);
   const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(initialDraft.league);
   // Community-pack opt-in is now chosen inline on this page (the cold-open
   // popup is gone). Seed from any per-slot pref the player set before, else
@@ -138,7 +145,14 @@ const ClubSelection = () => {
   }, [step, selectedNationality, selectedLeague]);
 
   const handleStart = () => {
-    if (!selected || !selectedNationality || !selectedLeague || loading) return;
+    if (!selected || !selectedNationality || !selectedLeague) return;
+    startCareer(selected, selectedNationality);
+  };
+
+  // Shared by the club-list Start button and Quick Start, so the one-tap path
+  // runs the exact same setup, save and navigation as the three-step one.
+  const startCareer = (clubId: string, nationality: string) => {
+    if (!clubId || !nationality || loading) return;
     hapticLight();
     setLoading(true);
     requestAnimationFrame(async () => {
@@ -151,8 +165,8 @@ const ClubSelection = () => {
         // imports the pack datasets). Must await so gameStarted is true
         // before saveGame runs — otherwise performSave's seatbelt bails out
         // and the new save never reaches localStorage, leaving the slot empty.
-        await initGame(selected, { communityPackEnabled });
-        initNationalTeam(selectedNationality);
+        await initGame(clubId, { communityPackEnabled });
+        initNationalTeam(nationality);
         useGameStore.setState({ activeSlot: pendingSlot });
         try {
           useGameStore.getState().saveGame(pendingSlot);
@@ -227,6 +241,17 @@ const ClubSelection = () => {
 
   const selectedClub = CLUBS_DATA.find(c => c.id === selected);
 
+  // Quick Start: one recommended club for the highlighted nationality, from
+  // the leagues this player can currently see (community-pack clubs only when
+  // the pack is on). Re-picks as the highlighted nation changes.
+  const quickStart = useMemo(
+    () => pickQuickStartClub(
+      selectedNationality,
+      leagueId => communityPackEnabled || !COMMUNITY_PACK_LEAGUE_IDS.has(leagueId),
+    ),
+    [selectedNationality, communityPackEnabled],
+  );
+
   // Visible league pool — drops community-pack leagues unless the user has
   // opted in. Used by both search and the regions render path so the gate
   // can never leak through one but not the other.
@@ -266,14 +291,20 @@ const ClubSelection = () => {
   // Memoize nation filtering to avoid inline recomputation
   const nationsByConfederation = useMemo(() => {
     const q = nationSearch.toLowerCase();
-    return Object.entries(CONFEDERATION_LABELS).map(([conf, label]) => {
+    const groups = Object.entries(CONFEDERATION_LABELS).map(([conf, label]) => {
       const nations = NATIONS
         .filter(n => n.confederation === conf)
         .filter(n => !nationSearch || n.name.toLowerCase().includes(q))
         .sort((a, b) => a.baseRanking - b.baseRanking);
       return { conf, label, nations };
     }).filter(g => g.nations.length > 0);
-  }, [nationSearch]);
+    // The device's own nation heads the list so nobody scrolls past 60 rows
+    // to find it. Not while searching — a search is the player choosing.
+    const detected = localeNation && !nationSearch ? NATIONS.find(n => n.name === localeNation) : null;
+    return detected
+      ? [{ conf: 'device', label: t('clubSelection.suggestedNation'), nations: [detected] }, ...groups]
+      : groups;
+  }, [nationSearch, localeNation, t]);
 
   // Redirecting to the title screen (no slot in nav state) — render nothing.
   // Placed after all hooks to satisfy the Rules of Hooks.
@@ -309,7 +340,7 @@ const ClubSelection = () => {
             <button
               onClick={handleBack}
               aria-label={backLabel}
-              className="p-1.5 -ml-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              className="shrink-0 w-11 h-11 -ml-3 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -325,12 +356,12 @@ const ClubSelection = () => {
                 {step === 'nationality' ? (
                   <>
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Your Nationality</h1>
-                    <p className="text-[10px] text-muted-foreground">Sets your national team, which you can manage too</p>
+                    <p className="text-micro text-muted-foreground">Sets your national team, which you can manage too</p>
                   </>
                 ) : step === 'league' ? (
                   <>
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Choose League</h1>
-                    <p className="text-[10px] text-muted-foreground truncate">
+                    <p className="text-micro text-muted-foreground truncate">
                       {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
                       {new Set(visibleLeagues.map(l => l.countryId)).size} countries · {visibleLeagues.length} divisions
                     </p>
@@ -340,7 +371,7 @@ const ClubSelection = () => {
                     <h1 ref={headingRef} tabIndex={-1} className={cn('text-lg font-bold font-display outline-none', leagueInfo?.colorClass)}>
                       {leagueInfo?.name}
                     </h1>
-                    <p className="text-[10px] text-muted-foreground truncate">
+                    <p className="text-micro text-muted-foreground truncate">
                       {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
                       {leagueClubs.length} clubs
                     </p>
@@ -367,7 +398,7 @@ const ClubSelection = () => {
                   key={s.key}
                   aria-hidden="true"
                   className={cn(
-                    'relative flex-1 px-3 py-1.5 rounded-full text-[10px] font-semibold text-center transition-colors',
+                    'relative flex-1 px-3 py-1.5 rounded-full text-micro font-semibold text-center transition-colors',
                     isActive ? 'text-primary-foreground' : isComplete ? 'text-primary' : 'text-muted-foreground/60',
                   )}
                 >
@@ -403,6 +434,16 @@ const ClubSelection = () => {
               transition={{ duration: 0.25 }}
               className="space-y-4"
             >
+              {/* Quick Start — one tap from here to the first kickoff. Hidden
+                  while searching: a search is the player choosing by hand. */}
+              {quickStart && !nationSearch && (
+                <QuickStartCard
+                  pick={quickStart}
+                  loading={loading}
+                  onStart={() => startCareer(quickStart.club.id, quickStart.nation)}
+                />
+              )}
+
               <SearchInput
                 placeholder={t('common.searchNations')}
                 value={nationSearch}
@@ -411,7 +452,7 @@ const ClubSelection = () => {
 
               {nationsByConfederation.map(({ conf, label, nations }) => (
                 <div key={conf}>
-                  <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                  <h3 className="text-micro font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                     {label}
                   </h3>
                   <div className="space-y-2">
@@ -458,7 +499,7 @@ const ClubSelection = () => {
                                   <span className="text-[11px] font-medium text-muted-foreground/50">#</span>
                                   <span className={cn('text-2xl font-display font-bold', rankClass)}>{nation.baseRanking}</span>
                                 </div>
-                                <span className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-wider">World</span>
+                                <span className="text-micro font-semibold text-muted-foreground/50 uppercase tracking-wider">World</span>
                               </div>
                             </div>
                             {starPlayers.length > 0 && (
@@ -518,7 +559,7 @@ const ClubSelection = () => {
                   const regionLeagues = region.ids.map(id => LEAGUES.find(l => l.id === id)).filter(Boolean);
                   return (
                     <div key={region.label}>
-                      <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 flex items-center gap-1.5">
+                      <h3 className="text-micro font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 flex items-center gap-1.5">
                         <Globe className="w-3 h-3" />
                         {region.label}
                       </h3>
@@ -552,18 +593,18 @@ const ClubSelection = () => {
                   <div className="relative flex items-center gap-3">
                     <FlagIcon nationality={leagueInfo.country} size={32} className="rounded-sm shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold leading-none">{leagueInfo.country}</p>
+                      <p className="text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold leading-none">{leagueInfo.country}</p>
                       <h3 className="text-sm font-semibold text-foreground mt-1 leading-tight">{leagueInfo.totalWeeks} week season</h3>
                     </div>
                   </div>
                   <div className="relative grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/[0.08]">
                     <div className="text-center">
                       <p className="text-sm font-bold text-primary tabular-nums leading-none">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(leagueInfo.prizeMoney >= 1_000_000 ? 0 : 1)}M</p>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Prize</p>
+                      <p className="text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Prize</p>
                     </div>
                     <div className="text-center border-l border-white/[0.08]">
                       <p className="text-sm font-bold text-foreground tabular-nums leading-none">{leagueClubs.length}</p>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Clubs</p>
+                      <p className="text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Clubs</p>
                     </div>
                     <div className="text-center border-l border-white/[0.08] flex flex-col items-center justify-center">
                       <DifficultyPips difficulty={leagueInfo.difficulty} />
@@ -615,7 +656,7 @@ const ClubSelection = () => {
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground text-sm leading-tight truncate">{club.name}</p>
                             {club.stadiumName && (
-                              <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{club.stadiumName}</p>
+                              <p className="text-micro text-muted-foreground/60 truncate mt-0.5">{club.stadiumName}</p>
                             )}
                             <div className="mt-1.5">
                               <ReputationDots value={club.reputation} />
@@ -632,7 +673,7 @@ const ClubSelection = () => {
                             )}>
                               {'\u00A3'}{(club.budget / 1_000_000).toFixed(0)}M
                             </span>
-                            <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider font-semibold mt-0.5">Budget</p>
+                            <p className="text-micro text-muted-foreground/50 uppercase tracking-wider font-semibold mt-0.5">Budget</p>
                           </div>
                         </div>
                       </button>
@@ -667,7 +708,7 @@ const ClubSelection = () => {
                   <div className="flex items-center gap-2 mt-1">
                     <ReputationDots value={selectedClub.reputation} />
                     {selectedClub.stadiumName && (
-                      <span className="text-[10px] text-muted-foreground/50 truncate">
+                      <span className="text-micro text-muted-foreground/50 truncate">
                         {selectedClub.stadiumName} ({(selectedClub.stadiumCapacity / 1000).toFixed(0)}k)
                       </span>
                     )}
@@ -682,7 +723,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Wallet className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{'\u00A3'}{(selectedClub.budget / 1e6).toFixed(0)}M</div>
-                    <div className="text-[8px] text-muted-foreground">Budget</div>
+                    <div className="text-micro text-muted-foreground">Budget</div>
                   </div>
                 </div>
                 <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
@@ -690,7 +731,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Users className="w-3.5 h-3.5 text-blue-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.fanBase}</div>
-                    <div className="text-[8px] text-muted-foreground">Fans</div>
+                    <div className="text-micro text-muted-foreground">Fans</div>
                   </div>
                 </div>
                 <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
@@ -698,7 +739,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Building2 className="w-3.5 h-3.5 text-amber-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.facilities}</div>
-                    <div className="text-[8px] text-muted-foreground">Facilities</div>
+                    <div className="text-micro text-muted-foreground">Facilities</div>
                   </div>
                 </div>
                 <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
@@ -706,7 +747,7 @@ const ClubSelection = () => {
                   <div className="relative">
                     <Sprout className="w-3.5 h-3.5 text-teal-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.youthRating}</div>
-                    <div className="text-[8px] text-muted-foreground">Youth</div>
+                    <div className="text-micro text-muted-foreground">Youth</div>
                   </div>
                 </div>
               </div>
@@ -725,6 +766,56 @@ const ClubSelection = () => {
     </div>
   );
 };
+
+// ── Quick Start card ──
+// The recommended club, its league, and the nationality the career will start
+// with — named on the card so the one tap is an informed one.
+function QuickStartCard({ pick, loading, onStart }: { pick: QuickStartPick; loading: boolean; onStart: () => void }) {
+  const { t } = useTranslation();
+  const club: ClubData = pick.club;
+  const leagueName = LEAGUES.find(l => l.id === club.divisionId)?.name ?? club.league;
+  return (
+    <section
+      aria-labelledby="quick-start-heading"
+      className="relative overflow-hidden rounded-2xl border border-primary/40 bg-primary/[0.07] backdrop-blur-xl p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_32px_-14px_hsl(var(--primary)/0.5)]"
+    >
+      <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-2/3" style={LIQUID_SPECULAR_STYLE} />
+      <div className="relative">
+        <h2 id="quick-start-heading" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+          <Zap className="w-3.5 h-3.5" aria-hidden="true" /> {t('clubSelection.quickStart.title')}
+        </h2>
+        <div className="mt-3 flex items-center gap-3">
+          <div
+            className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.5)]"
+            style={{ backgroundColor: club.color, color: club.secondaryColor }}
+            aria-hidden="true"
+          >
+            {club.shortName}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-foreground text-base leading-tight truncate">{club.name}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+              {t('clubSelection.quickStart.clubLine', { league: leagueName })}
+            </p>
+          </div>
+        </div>
+        <Button
+          className="mt-3 w-full h-12 text-sm font-bold rounded-full bg-primary/90 text-primary-foreground border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_10px_28px_-8px_hsl(var(--primary)/0.55)] hover:bg-primary"
+          onClick={onStart}
+          disabled={loading}
+        >
+          {loading
+            ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('clubSelection.quickStart.loading')}</>
+            : t('clubSelection.quickStart.cta', { club: club.name })}
+        </Button>
+        <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <FlagIcon nationality={pick.nation} size={14} className="rounded-sm shrink-0" />
+          <span className="truncate">{t('clubSelection.quickStart.nationLine', { nation: pick.nation })}</span>
+        </p>
+      </div>
+    </section>
+  );
+}
 
 // ── Reusable Search Input with Clear Button ──
 function SearchInput({ placeholder, value, onChange }: { placeholder: string; value: string; onChange: (v: string) => void }) {
@@ -788,7 +879,7 @@ function DifficultyPips({ difficulty }: { difficulty: string }) {
           />
         ))}
       </div>
-      <span className={cn('text-[8px] font-semibold', config?.color)}>{config?.label}</span>
+      <span className={cn('text-micro font-semibold', config?.color)}>{config?.label}</span>
     </div>
   );
 }
@@ -831,7 +922,7 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
         <div className="flex items-center gap-3">
           {isLowerTier ? (
             <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-bold text-muted-foreground tabular-nums">T{league.tier}</span>
+              <span className="text-micro font-bold text-muted-foreground tabular-nums">T{league.tier}</span>
             </div>
           ) : (
             <FlagIcon nationality={league.country} size={32} className="rounded-sm shrink-0" />
@@ -856,7 +947,7 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
                 />
               ))}
             </div>
-            <span className={cn('text-[10px] font-semibold leading-none', difficulty?.color)}>
+            <span className={cn('text-micro font-semibold leading-none', difficulty?.color)}>
               {difficulty?.label}
             </span>
           </div>

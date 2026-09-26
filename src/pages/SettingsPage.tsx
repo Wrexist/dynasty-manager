@@ -5,7 +5,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -19,20 +19,21 @@ import {
   deleteAllDynastyData,
   readCommunityPackSlotPref,
   writeCommunityPackSlotPref,
-  readAnalyticsConsent,
-  writeAnalyticsConsent,
   readNotificationsEnabled,
   writeNotificationsEnabled,
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
-import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
+import { openSubscriptionManagement } from '@/utils/purchases';
+import { restoreAndSync } from '@/utils/purchaseSync';
+import { isRedeemEnabled } from '@/utils/redeemCodes';
 import { triggerTestError } from '@/utils/sentry';
-import { refreshAnalyticsConsent, track } from '@/utils/analytics';
+import { track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
-import { isPro, isSubscriptionActive } from '@/utils/monetization';
+import { isPro, hasRecurringSubscription } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { Capacitor } from '@capacitor/core';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
@@ -84,33 +85,40 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
         <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="min-w-0">
           <p className="text-sm text-foreground leading-tight">{label}</p>
-          <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{description}</p>
+          <p className="text-micro text-muted-foreground leading-snug mt-0.5">{description}</p>
         </div>
       </div>
+      {/* The switch is a 44x44 target around the 44x24 track (the track
+          alone was the hit area); -my-2.5 keeps the row height unchanged. */}
       <button
         role="switch"
         aria-checked={value}
         aria-label={label}
         onClick={onChange}
-        className={cn(
-          'relative w-11 h-6 rounded-full shrink-0 transition-colors border backdrop-blur-md',
-          value
-            ? 'bg-gradient-to-b from-primary/90 to-primary/70 border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.3),0_0_18px_-4px_hsl(43_96%_46%/0.55)]'
-            : 'bg-white/5 border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]',
-        )}
+        className="shrink-0 min-h-11 min-w-11 -my-2.5 flex items-center justify-center"
       >
         <span
+          aria-hidden
           className={cn(
-            // `left-0` anchors the knob at the track's inner-left edge.
-            // Without it, buttons' default `text-align: center` lands the
-            // knob's static x-position in the middle of the track, and the
-            // translate then pushes it past the right rim on the ON state.
-            'absolute left-0 top-[2px] w-[18px] h-[18px] rounded-full transition-transform',
-            'bg-gradient-to-b from-white to-white/80',
-            'shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_2px_4px_-1px_rgba(0,0,0,0.35)]',
-            value ? 'translate-x-[22px]' : 'translate-x-[2px]',
+            'relative block w-11 h-6 rounded-full transition-colors border backdrop-blur-md',
+            value
+              ? 'bg-gradient-to-b from-primary/90 to-primary/70 border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.3),0_0_18px_-4px_hsl(43_96%_46%/0.55)]'
+              : 'bg-white/5 border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]',
           )}
-        />
+        >
+          <span
+            className={cn(
+              // `left-0` anchors the knob at the track's inner-left edge.
+              // Without it, buttons' default `text-align: center` lands the
+              // knob's static x-position in the middle of the track, and the
+              // translate then pushes it past the right rim on the ON state.
+              'absolute left-0 top-[2px] w-[18px] h-[18px] rounded-full transition-transform',
+              'bg-gradient-to-b from-white to-white/80',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_2px_4px_-1px_rgba(0,0,0,0.35)]',
+              value ? 'translate-x-[22px]' : 'translate-x-[2px]',
+            )}
+          />
+        </span>
       </button>
     </div>
   );
@@ -129,8 +137,6 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
   const setScreen = useGameStore(s => s.setScreen);
-  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const resetEntitlementsForTesting = useGameStore(s => s.resetEntitlementsForTesting);
   const startCaptureScenario = useGameStore(s => s.startCaptureScenario);
   const gameStarted = useGameStore(s => s.gameStarted);
@@ -197,6 +203,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const redeemCode = useGameStore(s => s.redeemCode);
+  const redeemEnabled = isRedeemEnabled();
   const [redeemInput, setRedeemInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const handleRedeem = async () => {
@@ -228,32 +235,21 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   // (Analytics consent toggle removed — no first-party stats leave the device;
   // see docs/growth-overhaul-plan.md §1.2.)
   const userIsPro = isPro(monetization);
-  const hasActiveSub = isSubscriptionActive(monetization);
+  // Only a store subscription has a renewal date and a Manage button; a
+  // Lifetime record in the subscription slot is shown as the Pro badge alone.
+  const hasActiveSub = hasRecurringSubscription(monetization);
 
   const handleRestorePurchases = async () => {
     setRestoringPurchases(true);
     try {
-      const granted = await restorePurchases();
-      if (granted.length > 0) restoreEntitlements(granted);
-
-      // Sync the subscription BEFORE deciding what to tell the user.
-      // `mapEntitlements` deliberately excludes subscription SKUs (they'd
-      // outlive the sub in `entitlements`), so a monthly/annual customer's
-      // restore legitimately returns `[]` — their Pro is recoverable only
-      // through extractSubscriptionInfo. Toasting off `granted.length` alone
-      // told every subscription-only customer "No Purchases Found" moments
-      // before their sub was actually restored. This is the primary Restore
-      // entry point for existing users, and the one App Review exercises.
-      // SubscribeOnboarding already got this treatment; Settings never did.
-      // Only write a confirmed, non-null sub so a transient/empty customerInfo
-      // can't clear an active subscription.
-      const info = await getCustomerInfo();
-      const sub = extractSubscriptionInfo(info);
-      if (sub) updateSubscription(sub);
-
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0) {
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      // The primary Restore entry point for existing users, and the one App
+      // Review exercises. Shares one implementation with the paywall and the
+      // Shop (utils/purchaseSync): it always syncs the subscription record, so
+      // a subscription-only customer — whose restore returns no entitlement
+      // IDs — is told their Pro is active rather than "No Purchases Found".
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0) {
+        successToast('Purchases Restored', `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`);
       } else if (proActive) {
         successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
@@ -418,7 +414,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               <Zap className="w-4 h-4 text-muted-foreground" />
               <div>
                 <p className="text-sm text-foreground">Match Speed</p>
-                <p className="text-[10px] text-muted-foreground">How fast match events play out</p>
+                <p className="text-micro text-muted-foreground">How fast match events play out</p>
               </div>
             </div>
             <div className="flex p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.28)]">
@@ -437,7 +433,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                       updateSettings({ matchSpeed: s.value });
                     }}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-1 py-2 rounded-full text-xs font-semibold transition-all',
+                      'flex-1 min-h-11 flex items-center justify-center gap-1 py-2 rounded-full text-xs font-semibold transition-all',
                       locked
                         ? 'text-muted-foreground/40 cursor-default'
                         : active
@@ -497,10 +493,10 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <div className="flex gap-2.5">
             <ShieldAlert className="w-4 h-4 flex-shrink-0 text-amber-300 mt-0.5" />
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+              <p className="text-micro font-semibold uppercase tracking-wider text-amber-200">
                 Community-sourced — not our data
               </p>
-              <p className="text-[10px] leading-snug text-amber-100/85">
+              <p className="text-micro leading-snug text-amber-100/85">
                 Player data is community-sourced. Dynasty Manager didn't create
                 the real-player pool; it's a community-compiled dataset loaded
                 offline on your device. This app is <strong>not affiliated with
@@ -512,7 +508,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           </div>
         </div>
 
-        <p className="text-[10px] text-muted-foreground/70 leading-snug mt-3">
+        <p className="text-micro text-muted-foreground/70 leading-snug mt-3">
           Changing this applies to new games only — existing saves keep the setting they were started with.
         </p>
       </SettingsSection>
@@ -691,7 +687,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       {variant === 'in-game' && (
       <SettingsSection title={t('settings.backupRestore')}>
         <div className="space-y-3">
-          <p className="text-[10px] text-muted-foreground leading-snug">
+          <p className="text-micro text-muted-foreground leading-snug">
             Save a copy of this career to a file you control, or restore one on a
             new device. Importing overwrites the current slot — export first if
             you want to keep it.
@@ -712,7 +708,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               </LiquidButton>
             ) : (
               <div className="space-y-2">
-                <p className="text-[10px] text-amber-400/90 leading-snug flex items-start gap-1.5">
+                <p className="text-micro text-amber-400/90 leading-snug flex items-start gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
                   This replaces the save in slot {activeSlot}. This can't be undone.
                 </p>
@@ -765,7 +761,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             <span className="flex items-center justify-start gap-3 px-3 w-full">
               <Sparkles className="w-4 h-4" />
               <span className="flex-1 text-left">What&apos;s New</span>
-              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium tabular-nums">
+              <span className="flex items-center gap-1.5 text-micro text-muted-foreground font-medium tabular-nums">
                 <span>v{LATEST_RELEASE.version}</span>
                 {hasUnseenWhatsNew() && (
                   <span
@@ -779,35 +775,41 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
-      <SettingsSection title={t('settings.redeemCode')}>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={redeemInput}
-            onChange={(e) => setRedeemInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
-            placeholder={t('settings.enterCode')}
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            aria-label={t('settings.redeemCodeAria')}
-            className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
-          />
-          <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
-            {redeeming ? 'Redeeming…' : 'Redeem'}
-          </LiquidButton>
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-2 px-1">
-          Got a code? Redeem it for in-game rewards. Each code works once per device.
-        </p>
-      </SettingsSection>
+      {/* Redeem codes are verified offline against a build-time secret. A
+          production build without VITE_REDEEM_SECRET redeems nothing, so the
+          entry point is hidden rather than offering a field that can only say
+          "Invalid Code" (see utils/redeemCodes.getRedeemSecret). */}
+      {redeemEnabled && (
+        <SettingsSection title={t('settings.redeemCode')}>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={redeemInput}
+              onChange={(e) => setRedeemInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
+              placeholder={t('settings.enterCode')}
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label={t('settings.redeemCodeAria')}
+              className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
+            />
+            <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
+              {redeeming ? 'Redeeming…' : 'Redeem'}
+            </LiquidButton>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 px-1">
+            Got a code? Redeem it for in-game rewards. Each code works once per device.
+          </p>
+        </SettingsSection>
+      )}
 
       {/* ─── Purchases & Subscription ─── */}
       <SettingsSection>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Purchases</h3>
           {userIsPro && (
-            <span className="text-[10px] bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
+            <span className="text-micro bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
               <Crown className="w-3 h-3" /> Pro
             </span>
           )}
@@ -820,18 +822,18 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               <span className="text-xs font-semibold text-foreground">
                 {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
               </span>
-              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize border border-primary/30">
+              <span className="text-micro bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize border border-primary/30">
                 {monetization.subscription.tier}
               </span>
             </div>
             {monetization.subscription.expiresAt && (
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
                 {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
               </p>
             )}
             {monetization.subscription.isInGracePeriod && (
-              <p className="text-[10px] text-amber-400">
+              <p className="text-micro text-amber-400">
                 Payment issue detected. Please update your payment method.
               </p>
             )}
@@ -854,7 +856,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </span>
           </LiquidButton>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+        <p className="text-micro text-muted-foreground mt-2 leading-snug">
           Restore previously purchased items from your App Store or Play Store account.
         </p>
       </SettingsSection>
@@ -877,7 +879,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </span>
           </LiquidButton>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+        <p className="text-micro text-muted-foreground mt-2 leading-snug">
           Report a bug, request a feature, or get help with a purchase.
         </p>
       </SettingsSection>
@@ -891,7 +893,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               Privacy Policy
             </span>
           </LiquidButton>
-          <LiquidButton onClick={() => { void openExternalUrl(TERMS_URL); }}>
+          <LiquidButton onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}>
             <span className="flex items-center justify-start gap-3 px-3">
               <FileText className="w-4 h-4" />
               Terms of Service
@@ -916,7 +918,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <div className="space-y-3">
             <div className="rounded-2xl p-3 bg-destructive/10 border border-destructive/30 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.3)]">
               <p className="text-xs text-red-300 font-semibold mb-1">This cannot be undone</p>
-              <p className="text-[10px] text-muted-foreground leading-snug">
+              <p className="text-micro text-muted-foreground leading-snug">
                 This will permanently delete all save games, career history, Hall of Managers records, and preferences from this device.
               </p>
             </div>
@@ -930,7 +932,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </div>
           </div>
         )}
-        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+        <p className="text-micro text-muted-foreground mt-2 leading-snug">
           Remove all game data stored on this device. Subscription status is managed by your App Store or Play Store account.
         </p>
       </SettingsSection>
@@ -943,7 +945,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           save. A marketing capture tool is not a player-facing feature. */}
       {DEV_TOOLS_ENABLED && (
       <SettingsSection title={t('settings.captureStudio')}>
-        <p className="text-[10px] text-muted-foreground leading-snug mb-3">
+        <p className="text-micro text-muted-foreground leading-snug mb-3">
           Staged World Cup finals for screen-recording promo videos. Each scenario
           runs as a throwaway session — nothing in it is ever saved, and your
           saved games stay exactly as they are on disk.
@@ -954,7 +956,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             pendingCaptureId === sc.id ? (
               <div key={sc.id} className="rounded-2xl p-3 bg-primary/10 border border-primary/30 backdrop-blur-md space-y-2">
                 <p className="text-xs font-semibold text-foreground">{sc.title}</p>
-                <p className="text-[10px] text-muted-foreground leading-snug">{sc.tagline}</p>
+                <p className="text-micro text-muted-foreground leading-snug">{sc.tagline}</p>
                 <div className="flex gap-2">
                   <LiquidButton className="flex-1" onClick={() => {
                     const ok = startCaptureScenario(sc);
@@ -976,7 +978,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                   <Clapperboard className="w-4 h-4 shrink-0" />
                   <span className="min-w-0">
                     <span className="block text-sm leading-tight">{sc.title}</span>
-                    <span className="block text-[10px] text-muted-foreground leading-snug font-normal">{sc.tagline}</span>
+                    <span className="block text-micro text-muted-foreground leading-snug font-normal">{sc.tagline}</span>
                   </span>
                 </span>
               </LiquidButton>
@@ -995,7 +997,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               Reset Pro &amp; open paywall
             </span>
           </LiquidButton>
-          <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+          <p className="text-micro text-muted-foreground mt-2 leading-snug">
             Clears local Pro/entitlement state and opens the subscribe screen so
             the purchase &amp; restore flow can be re-tested. Non-destructive —
             store-owned products re-restore on the next app launch.
@@ -1007,7 +1009,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                 Throw test error (Sentry)
               </span>
             </LiquidButton>
-            <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+            <p className="text-micro text-muted-foreground mt-2 leading-snug">
               Fires an uncaught error to verify the crash-reporting pipeline.
             </p>
           </div>
@@ -1022,7 +1024,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           className="w-12 h-12 drop-shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
         />
         <p className="text-xs text-foreground/80 font-semibold tracking-wide">Dynasty Manager</p>
-        <p className="text-[10px] text-muted-foreground">{APP_VERSION}</p>
+        <p className="text-micro text-muted-foreground">{APP_VERSION}</p>
       </div>
 
       {/* Feedback Sheet — matching liquid-glass treatment.
@@ -1034,6 +1036,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           smoothly into place. */}
       <Sheet open={feedbackOpen} onOpenChange={setFeedbackOpen}>
         <SheetContent
+          aria-describedby={undefined}
           side="bottom"
           style={{
             paddingBottom: keyboardInset > 0 ? keyboardInset + 24 : undefined,

@@ -7,28 +7,29 @@ import {
 import { buildLeagueTable } from '@/data/league';
 
 import type { GameState } from '../../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, isAwayOnLoan } from '@/utils/helpers';
 
 import { hasPerk } from '@/utils/managerPerks';
 
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_MIN_MATCH_PLAYERS } from '@/config/aiSimulation';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
-import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM, clubMedicalLevel } from '@/config/gameBalance';
+import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM, clubMedicalLevel, INBOX_ARRIVES_READ } from '@/config/gameBalance';
 import { recordPlayerPlayoffResult } from '@/store/slices/orchestration/playoff';
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
 import { mergeGamePlanMods } from '@/config/gamePlan';
-import { advanceCupRound, getRoundName } from '@/data/cup';
+import { advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { pickAiMatchSquad, stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
 import { getEffectiveMatchIntensity } from '@/utils/rivalries';
-import { generatePressConference, getPostMatchPressContext } from '@/data/pressConferences';
+import { generatePressConference, getPostMatchPressContext, buildPressQuestionVars } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
+import { neutralVenue } from '@/engine/match/helpers';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
-import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
+import { aiMatchTactics, applyAIMatchEvents, buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
 import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
@@ -38,6 +39,7 @@ import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, 
 import { dynastyMult } from '@/utils/managerPerks';
 import { isPro } from '@/utils/monetization';
 import { updateEloRatings } from '@/utils/teamRankings';
+import { fnv1a, installSeededRandom } from '@/utils/hashString';
 /**
  * Match-action pipeline extracted from orchestrationSlice.ts.
  *
@@ -490,7 +492,8 @@ function pressExtrasFor(state: GameState): {
  * (Feyenoord, S4 W16 League Cup at home to a PSV carrying 8 injured in a 22-man
  * squad) and reproduced here in `matchStartability.test.ts`.
  *
- * A player out on loan is never picked, in any tier — he is at another club.
+ * A player out on loan AWAY from this club is never picked, in any tier — he is
+ * at another club. A player loaned IN is part of this squad and plays.
  */
 export function buildPlayerMatchXI(
   club: Club,
@@ -498,7 +501,7 @@ export function buildPlayerMatchXI(
   week: number,
 ): Player[] {
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  const isAvailable = (p: Player) => !isSuspended(p) && !p.injured && !p.onLoan;
+  const isAvailable = (p: Player) => !isSuspended(p) && !p.injured && !isAwayOnLoan(p, club.id);
   const xi: Player[] = [];
   const picked = new Set<string>();
   const push = (p: Player) => {
@@ -527,7 +530,7 @@ export function buildPlayerMatchXI(
   const reserves = (club.playerIds || [])
     .map(id => players[id])
     .filter(Boolean)
-    .filter(p => !picked.has(p.id) && !p.onLoan)
+    .filter(p => !picked.has(p.id) && !isAwayOnLoan(p, club.id))
     .sort((a, b) =>
       (a.injuryDetails?.weeksRemaining ?? 1) - (b.injuryDetails?.weeksRemaining ?? 1) ||
       b.overall - a.overall);
@@ -536,6 +539,74 @@ export function buildPlayerMatchXI(
     push(p);
   }
   return xi;
+}
+
+/**
+ * The XI and bench each side takes into the USER's match.
+ *
+ * The user's club plays the manager's selection (`buildPlayerMatchXI` + the
+ * named bench). An AI club picks exactly as it does against anyone else —
+ * `pickAiMatchSquad`, position-aware, fit and eligible players only. Reading an
+ * AI club's `club.lineup` instead fielded a stale XI: that field is written only
+ * at game start and season end, so every opponent the user faced played his
+ * August team with holes filled in squad-list order, ignoring position, while
+ * the same club fielded its real best XI in every AI-vs-AI fixture.
+ */
+export function buildMatchSquad(
+  club: Club,
+  players: Record<string, Player>,
+  week: number,
+  playerClubId: string,
+): { xi: Player[]; bench: Player[] } {
+  if (club.id !== playerClubId) return pickAiMatchSquad(club, players, week);
+  const xi = buildPlayerMatchXI(club, players, week);
+  const inXi = new Set(xi.map(p => p.id));
+  const bench = (club.subs || []).map(id => players[id]).filter(Boolean)
+    .filter(p => !inXi.has(p.id) && !p.injured && !(p.suspendedUntilWeek != null && p.suspendedUntilWeek > week));
+  return { xi, bench };
+}
+
+/**
+ * The seed a live match's random draws come from (R14).
+ *
+ * Closing or reloading mid-match discarded it and the replay from kickoff was
+ * a fresh simulation, so a bad first half could be re-rolled. The seed is
+ * derived from what the save already holds — the career, the season, the
+ * match's own id and the stage — so nothing new has to be persisted and there
+ * is no window where a kill loses it: the replay re-derives the same seed and,
+ * for the same decisions, produces the same events and score.
+ *
+ * A used Invincible rewind is part of the key, so the perk's replay is still a
+ * genuinely new match; replays after that are deterministic again.
+ *
+ * The week is part of the key because the two legs of a continental knockout
+ * tie share one id (`tie.id`): without it both legs drew the same stream with
+ * the venues swapped, so the second leg echoed the first.
+ */
+export function liveMatchSeed(
+  state: Pick<GameState, 'careerId' | 'activeSlot' | 'playerClubId' | 'season' | 'week' | 'invincibleUsedThisSeason'>,
+  matchId: string,
+  stage: string,
+): number {
+  const career = state.careerId ?? `slot-${state.activeSlot}:${state.playerClubId}`;
+  return fnv1a(`${career}|${state.season}|${state.week}|${matchId}|${state.invincibleUsedThisSeason ? 'rewound' : ''}|${stage}`);
+}
+
+/** Run a synchronous match step with `Math.random` on the match's seed. Steps
+ *  with no current match (`matchId` missing) run unseeded. */
+export function withLiveMatchRandom<T>(
+  state: Parameters<typeof liveMatchSeed>[0],
+  matchId: string | null | undefined,
+  stage: string,
+  fn: () => T,
+): T {
+  if (!matchId) return fn();
+  const restore = installSeededRandom(liveMatchSeed(state, matchId, stage));
+  try {
+    return fn();
+  } finally {
+    restore();
+  }
 }
 
 export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
@@ -581,6 +652,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Build match object from the detected source
   let match: Match | null = null;
   let ephemeralClub: { club: Club; players: Record<string, Player> } | null = null;
+  let ephemeralOppId: string | null = null;
   let effectiveClubs = clubs;
   let effectivePlayers = players;
 
@@ -591,9 +663,10 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   } else if (leagueMatch) {
     match = leagueMatch;
   } else if (cupTie) {
-    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(cupTie.round)) } as Match;
   } else if (continentalMatch && continentalTourney) {
     let homeId: string, awayId: string, matchId: string;
+    let continentalFinal = false;
     if (continentalMatch.type === 'group') {
       const gm = continentalTourney.groups[continentalMatch.groupIdx].matches[continentalMatch.matchIdx];
       homeId = gm.homeClubId; awayId = gm.awayClubId; matchId = gm.id;
@@ -605,6 +678,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
         homeId = tie.awayClubId; awayId = tie.homeClubId;
       }
       matchId = tie.id;
+      continentalFinal = tie.round === 'F';
     }
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
@@ -613,26 +687,31 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     // qualifier), `clubs[oppId]` is the real club — generating an ephemeral
     // copy would overwrite its real squad/budget on `set({ clubs })` and the
     // post-match `vc-*` player sweep would then strand its `playerIds`.
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
-    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
+    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(continentalFinal) } as Match;
   } else if (leagueCupTie) {
-    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(leagueCupTie.round)) } as Match;
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
-    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
+    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
   }
 
   if (!match) return null;
+
+  // R14: every random draw from here on comes from this match's seed, so a
+  // replay after a reload (or a kill mid-match) plays out exactly as before
+  // for the same decisions — a bad half can no longer be re-rolled.
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, 'full-match'));
+  try {
+  if (ephemeralOppId) {
+    ephemeralClub = createEphemeralClub((state.virtualClubs || {})[ephemeralOppId], season, state.communityPackEnabled);
+    effectiveClubs = { ...clubs, [ephemeralOppId]: ephemeralClub.club };
+    effectivePlayers = { ...players, ...ephemeralClub.players };
+  }
 
   // Determine competition metadata
   const isFriendly = !!friendlyMatch;
@@ -649,13 +728,14 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const hc = effectiveClubs[match.homeClubId];
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
-  const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  // Saved XI -> bench -> rest of the squad -> emergency cover. See
+  // User: saved XI -> bench -> rest of the squad -> emergency cover (see
   // `buildPlayerMatchXI`: this used to be a bench-only backfill, which is how a
   // club with a full squad but a long injury list could take the guard below
-  // and make this function return null.
-  let hp = buildPlayerMatchXI(hc, effectivePlayers, week);
-  let ap = buildPlayerMatchXI(ac, effectivePlayers, week);
+  // and make this function return null). AI: `pickAiMatchSquad`.
+  const hSquad = buildMatchSquad(hc, effectivePlayers, week, playerClubId);
+  const aSquad = buildMatchSquad(ac, effectivePlayers, week, playerClubId);
+  let hp = hSquad.xi;
+  let ap = aSquad.xi;
 
   // Only reachable now when a club has fewer than seven registered players who
   // are not out on loan. The callers report it — never fail silently here.
@@ -693,8 +773,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Build bench for both teams
   const hpIdSet = new Set(hp.map(p => p.id));
   const apIdSet = new Set(ap.map(p => p.id));
-  const hBenchCM = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
-  const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
+  const hBenchCM = hSquad.bench.filter(p => !hpIdSet.has(p.id));
+  const aBenchCM = aSquad.bench.filter(p => !apIdSet.has(p.id));
   // Capture pre-match snapshot for Invincible perk (match rewind on loss).
   // Must include EVERYTHING the post-match processing writes — a partial
   // snapshot lets the replay double-count manager stats, XP, rivalries,
@@ -843,23 +923,23 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     if (cupTie) {
       const roundName = getRoundName(cupTie.round);
       if (processed.won) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the cup!` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the cup!` , read: INBOX_ARRIVES_READ.matchResult });
       } else if (processed.lost) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` , read: INBOX_ARRIVES_READ.matchResult });
       }
     } else if (leagueCupTie) {
       const roundName = getRoundName(leagueCupTie.round);
       if (processed.won) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the League Cup!` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the League Cup!` , read: INBOX_ARRIVES_READ.matchResult });
       } else if (processed.lost) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` , read: INBOX_ARRIVES_READ.matchResult });
       }
     } else if (continentalMatch) {
       const compName = continentalComp === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
       if (processed.won) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Victory`, body: `A great result against ${oppName} (${fScore}) in the ${compName}!` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Victory`, body: `A great result against ${oppName} (${fScore}) in the ${compName}!` , read: INBOX_ARRIVES_READ.matchResult });
       } else if (processed.lost) {
-        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Defeat`, body: `A tough loss against ${oppName} (${fScore}) in the ${compName}.` });
+        cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Defeat`, body: `A tough loss against ${oppName} (${fScore}) in the ${compName}.` , read: INBOX_ARRIVES_READ.matchResult });
       }
     }
 
@@ -885,7 +965,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       currentContinentalMatchId: null,
       currentContinentalCompetition: null,
       lastMatchCompetition: matchCompetition,
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       preMatchLeaguePosition: prePos,
@@ -946,7 +1026,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
 
     const pe = pressExtrasFor(get());
     const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
-    const press = generatePressConference(pressContext, isPro(get().monetization));
+    const press = generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match));
     const drama = detectMatchDrama(result, playerClubId, clubs);
     const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
 
@@ -991,6 +1071,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const eloRankings = { ...(state.clubPowerRankings || {}) };
   // Update ELO for the player's own match
   updateEloRatings(eloRankings, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  // Bans from these AI matches count MATCHES, not weeks (S11).
+  const aiFixtureWeeks = buildFixtureWeeksByClub(state, week);
   for (const m of aiWeekMatches) {
     const idx = fullFixtures.findIndex(f => f.id === m.id);
     const hc2 = clubs[m.homeClubId];
@@ -1004,9 +1086,11 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
+    // Same counter-tactics every other AI-vs-AI path uses (see `aiMatchTactics`).
+    const aiTactics = aiMatchTactics(hc2, ac2);
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, aiTactics.home, aiTactics.away, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
     fullFixtures[idx] = stripAiMatchDetail(aiResult, playerClubId);
-    applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+    applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId, aiFixtureWeeks);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
   const divClubIds = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
@@ -1018,7 +1102,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Generate post-match press conference
   const pe = pressExtrasFor(get());
     const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
-  const press = generatePressConference(pressContext, isPro(get().monetization));
+  const press = generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match));
 
   // Update session stats for wins/losses
   const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
@@ -1088,6 +1172,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     }
     return null;
   }
+  } finally {
+    restoreRandom();
+  }
 }
 
 export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
@@ -1132,6 +1219,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // Build match object from the detected source
   let match: Match | null = null;
   let ephemeralClub: { club: Club; players: Record<string, Player> } | null = null;
+  let ephemeralOppId: string | null = null;
   let effectiveClubs = clubs;
   let effectivePlayers = players;
 
@@ -1142,9 +1230,10 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   } else if (leagueMatch) {
     match = leagueMatch;
   } else if (cupTie) {
-    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(cupTie.round)) } as Match;
   } else if (continentalMatch && continentalTourney) {
     let homeId: string, awayId: string, matchId: string;
+    let continentalFinal = false;
     if (continentalMatch.type === 'group') {
       const gm = continentalTourney.groups[continentalMatch.groupIdx].matches[continentalMatch.matchIdx];
       homeId = gm.homeClubId; awayId = gm.awayClubId; matchId = gm.id;
@@ -1157,42 +1246,49 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
         homeId = tie.awayClubId; awayId = tie.homeClubId; // Leg 2: reversed
       }
       matchId = tie.id;
+      continentalFinal = tie.round === 'F';
     }
     // Create ephemeral club for the continental opponent — only when the
     // opponent isn't already a loaded real club (see playCurrentMatchImpl).
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
-    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
+    match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(continentalFinal) } as Match;
   } else if (leagueCupTie) {
-    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(leagueCupTie.round)) } as Match;
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc && !clubs[oppId]) {
-      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
-      effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
-      effectivePlayers = { ...players, ...ephemeralClub.players };
-    }
-    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    // Generated inside the match's seeded scope below (R14).
+    if (vc && !clubs[oppId]) ephemeralOppId = oppId;
+    match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
   }
 
   if (!match) return null;
 
+  // R14: every random draw from here on comes from this match's seed, so a
+  // replay after a reload (or a kill mid-match) plays out exactly as before
+  // for the same decisions — a bad half can no longer be re-rolled.
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, 'first-half'));
+  try {
+  if (ephemeralOppId) {
+    ephemeralClub = createEphemeralClub((state.virtualClubs || {})[ephemeralOppId], season, state.communityPackEnabled);
+    effectiveClubs = { ...clubs, [ephemeralOppId]: ephemeralClub.club };
+    effectivePlayers = { ...players, ...ephemeralClub.players };
+  }
+
   const hc = effectiveClubs[match.homeClubId];
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
-  const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  // Saved XI -> bench -> rest of the squad -> emergency cover. See
+  // User: saved XI -> bench -> rest of the squad -> emergency cover (see
   // `buildPlayerMatchXI`: this used to be a bench-only backfill, which is how a
   // club with a full squad but a long injury list could take the guard below
-  // and make this function return null.
-  let hp = buildPlayerMatchXI(hc, effectivePlayers, week);
-  let ap = buildPlayerMatchXI(ac, effectivePlayers, week);
+  // and make this function return null). AI: `pickAiMatchSquad`.
+  const hSquad = buildMatchSquad(hc, effectivePlayers, week, playerClubId);
+  const aSquad = buildMatchSquad(ac, effectivePlayers, week, playerClubId);
+  let hp = hSquad.xi;
+  let ap = aSquad.xi;
 
   // Only reachable now when a club has fewer than seven registered players who
   // are not out on loan. The callers report it — never fail silently here.
@@ -1227,8 +1323,8 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // Build bench arrays for AI substitution logic
   const hpIds = new Set(hp.map(p => p.id));
   const apIds = new Set(ap.map(p => p.id));
-  const hBench = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIds.has(p.id) && !p.injured && !isSuspended(p));
-  const aBench = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIds.has(p.id) && !p.injured && !isSuspended(p));
+  const hBench = hSquad.bench.filter(p => !hpIds.has(p.id));
+  const aBench = aSquad.bench.filter(p => !apIds.has(p.id));
 
   const halfDerbyIntensity = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId);
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
@@ -1246,7 +1342,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // is dismissed (clearMatchResult).
   const preMatchTalkMods = mergeGamePlanMods(teamTalkModifiers(state.matchTeamTalk), state.matchGamePlan);
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus);
+  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus, match.neutral);
 
   // Determine which cup tracking IDs to set
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
@@ -1290,6 +1386,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
       Sentry.captureException(cleanupErr, { tags: { context: 'matchCleanup' } });
     }
     return null;
+  }
+  } finally {
+    restoreRandom();
   }
 }
 
@@ -1335,16 +1434,16 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
           const tie = tourney.knockoutTies[matchInfo.tieIdx];
           const homeId = matchInfo.leg === 1 || tie.round === 'F' ? tie.homeClubId : tie.awayClubId;
           const awayId = matchInfo.leg === 1 || tie.round === 'F' ? tie.awayClubId : tie.homeClubId;
-          tournamentMatch = { id: tie.id, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+          tournamentMatch = { id: tie.id, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(tie.round === 'F') } as Match;
         }
       }
     } else if (state.currentLeagueCupTieId) {
       const lcTie = state.leagueCup?.ties.find(t => t.id === state.currentLeagueCupTieId);
-      if (lcTie) tournamentMatch = { id: lcTie.id, week, homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+      if (lcTie) tournamentMatch = { id: lcTie.id, week, homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(lcTie.round)) } as Match;
     } else {
       // Super cup — same catch-up rule as every other selection site.
       const sc = pendingSuperCup(state, week, playerClubId);
-      if (sc) tournamentMatch = { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+      if (sc) tournamentMatch = { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], neutral: true } as Match;
     }
   }
 
@@ -1360,7 +1459,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const match: Match | null = isTournamentMatch
     ? tournamentMatch
     : cupTie
-      ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match
+      ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [], ...neutralVenue(isNeutralCupRound(cupTie.round)) } as Match
       : (playoffMatch || friendlyMatch || leagueMatch || null);
 
   // Tournament rebuild can return null if the tournament state mutated
@@ -1375,6 +1474,11 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   }
   if (!match) return null;
 
+  // R14: seeded per segment start, so the same decisions at the same moments
+  // replay the same second half after a reload.
+  const segmentStart = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, `second-half:${segmentStart}`));
+  try {
   const hc = clubs[match.homeClubId];
   const ac = clubs[match.awayClubId];
   if (!hc || !ac) return null;
@@ -1425,7 +1529,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const resumeFrom = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
   const segmentEnd = Math.max(resumeFrom, Math.min(90, Math.round(untilMin)));
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
+  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H, match.neutral);
 
   // Partial segment: bank the state and hand control back so the player can act
   // before the next stretch is simulated. Deliberately does NOT finalise — no
@@ -1515,7 +1619,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time',
       lastMatchCompetition: 'Pre-Season Friendly',
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       lastMatchXPGain: Math.round((processed.xpGain || 0) * 0.5),
@@ -1544,7 +1648,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
       currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
@@ -1572,6 +1676,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const playersWithAI2 = { ...processed.newPlayers };
   const eloRankings2 = { ...(state.clubPowerRankings || {}) };
   updateEloRatings(eloRankings2, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  // Bans from these AI matches count MATCHES, not weeks (S11).
+  const aiFixtureWeeks2 = buildFixtureWeeksByClub(state, week);
   for (const m of aiWeekMatches2) {
     const idx = fullFixtures2.findIndex(f => f.id === m.id);
     const hc2 = clubs[m.homeClubId];
@@ -1585,9 +1691,11 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
+    // Same counter-tactics every other AI-vs-AI path uses (see `aiMatchTactics`).
+    const aiTactics = aiMatchTactics(hc2, ac2);
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, aiTactics.home, aiTactics.away, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
     fullFixtures2[idx] = stripAiMatchDetail(aiResult, playerClubId);
-    applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId);
+    applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId, aiFixtureWeeks2);
     updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
   const divClubIds2 = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
@@ -1598,7 +1706,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   // Generate post-match press conference
   const pe2 = pressExtrasFor(get());
   const pressContext2 = getPostMatchPressContext(processed.won, processed.lost, pe2.recentForm, pe2.hasListedPlayers, pe2.extras);
-  const press2 = generatePressConference(pressContext2, isPro(get().monetization));
+  const press2 = generatePressConference(pressContext2, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, match));
 
   const syncedDivFixtures2 = { ...state.divisionFixtures, [state.playerDivision]: fullFixtures2 };
   set({
@@ -1624,6 +1732,9 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   // already do this).
   if (get().settings.autoSave) get().saveGame();
   return result;
+  } finally {
+    restoreRandom();
+  }
   } catch (err) {
     Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
     try {
@@ -1688,7 +1799,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
   const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const etWeather = state.currentMatchWeather;
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hcMedical, acMedical, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET);
+  const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hcMedical, acMedical, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET, currentMatchResult.neutral);
 
   // Build the extended match result
   const etResult: Match = {
@@ -1717,7 +1828,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
         halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
         currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
@@ -1772,7 +1883,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         boardConfidence: processed.confidence, managerStats: processed.managerStats,
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
         managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
-        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
         lastMatchDrama: etDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       });
       // Persist the played match immediately — autosave otherwise only fires
@@ -2074,7 +2185,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
       currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
@@ -2117,7 +2228,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       boardConfidence: processed.confidence, managerStats: processed.managerStats,
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
-      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+      pendingPressConference: generatePressConference(press, isPro(get().monetization), buildPressQuestionVars({ ...get(), players: processed.newPlayers }, result)),
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
     });

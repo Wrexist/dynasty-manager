@@ -155,7 +155,7 @@ export interface RedeemResult {
   amount?: number;
 }
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries' | 'competitions' | 'career-retired' | 'sunday-hub' | 'sunday-teamsheet' | 'sunday-match' | 'sunday-squad' | 'sunday-clubhouse' | 'sunday-table' | 'sunday-recruit' | 'sunday-history';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'manager-pass' | 'world-cup-draw' | 'world-cup-result' | 'rivalries' | 'competitions' | 'career-retired' | 'sunday-hub' | 'sunday-teamsheet' | 'sunday-match' | 'sunday-squad' | 'sunday-clubhouse' | 'sunday-table' | 'sunday-recruit' | 'sunday-history';
 
 /** Static display assets; never serialized into a career save. */
 export interface PlayerPortraitAsset {
@@ -376,6 +376,12 @@ export interface Player {
    * progression stays intact.
    */
   ballonDOrTop10BoostDeltas?: Partial<PlayerAttributes>;
+  /**
+   * The change the active Ballon d'Or top-10 boost made to `overall`, so the
+   * revert takes back exactly that. Absent on boosts from older saves — the
+   * revert then falls back to the formula's view of the attribute deltas.
+   */
+  ballonDOrTop10OverallDelta?: number;
 }
 
 export interface PlayerAppearance {
@@ -560,6 +566,14 @@ export interface Match {
   stats?: MatchStats;
   penaltyShootout?: { home: number; away: number };
   weather?: MatchWeather;
+  // ── simfinish: neutral venues ──
+  /** Played at a neutral ground: nobody gets HOME_ADVANTAGE. Set when the
+   *  engine's Match is built for a domestic Cup / League Cup final, either
+   *  Super Cup, a continental final, the promotion-playoff final and every
+   *  international tournament match (no host nation is modelled). Absent on
+   *  league fixtures and on anything saved before v93 — absent reads as "home
+   *  venue", which is what every such match was. */
+  neutral?: boolean;
 }
 
 // ── Match Choreography (2.5D pitch visualization) ──
@@ -987,6 +1001,14 @@ export interface SeasonHistory {
    *  scorelines here at least tells them what occurred and against whom.
    *  Absent when the club was not in a playoff. Save schema v81. */
   playoffRun?: PlayoffTieResult[];
+  // ── econ: title credit follows the manager (item 9) ──
+  /** Whether the manager was in charge of this club when the season ended.
+   *  False for a career manager who was out of work at season end — the row
+   *  still records the ex-club's season (`playerClubId` keeps naming it), but
+   *  a league title in it is the ex-club's, not the manager's. Every title
+   *  count reads it through `isManagersLeagueTitle`. Save schema v94; the v94
+   *  migration sets it to true on every older row. */
+  managed?: boolean;
 }
 
 /** One promotion-playoff tie the player's club took part in. `homeClubId` is
@@ -1815,7 +1837,16 @@ export interface StorylineChainDef {
   name: string;
   steps: StorylineChainStep[];
   /** Condition function is evaluated at runtime; chain definitions just store the id */
+  // ── content: storyline chain targets ──
+  /** The squad player the chain is about — resolved once when the chain starts
+   *  (stored as `ActiveStorylineChain.targetPlayerId`) and substituted for
+   *  `{playerName}`. A targeted chain is only eligible when a player fits. */
+  target?: StorylineChainTarget;
 }
+
+// ── content: storyline chain targets ──
+/** Who a player-focused storyline chain is about (see `pickChainTarget`). */
+export type StorylineChainTarget = 'star' | 'youth' | 'injured' | 'new-signing' | 'striker';
 
 export interface ActiveStorylineChain {
   chainId: string;
@@ -1961,16 +1992,27 @@ export type ProFeature =
   | 'historical_records'
   | 'instant_sim'
   | 'optimize_lineup'
-  | 'pro_badge';
+  | 'pro_badge'
+  // uifinish: the Manager Pass Pro reward row (cosmetic only).
+  | 'manager_pass_pro';
 
-export type CosmeticCategory = 'avatar' | 'title_badge' | 'celebration_text' | 'stadium_theme' | 'pitch_skin' | 'confetti_style' | 'cabinet_style' | 'prestige_badge' | 'hom_frame';
+export type CosmeticCategory = 'avatar' | 'title_badge' | 'celebration_text' | 'stadium_theme' | 'pitch_skin' | 'confetti_style' | 'cabinet_style' | 'prestige_badge' | 'hom_frame'
+  // legacy: the manager banner behind the Manager Pass / Legacy heroes. Earned only.
+  | 'profile_banner';
 
 export interface CosmeticItem {
   id: string;
   category: CosmeticCategory;
   name: string;
   description: string;
-  pack: ProductId;
+  /** The cosmetic pack that sells this item. Absent on an EARNED item — one
+   *  that no product grants (see `earnedBy`). Exactly one of the two is set;
+   *  `monetization.test.ts` pins that. */
+  pack?: ProductId;
+  /** legacy: set on items unlocked by play, never by purchase — the Manager
+   *  Pass track or a Legacy tier. Ownership lives outside `entitlements`
+   *  (see `isEarnedCosmeticOwned` in utils/managerPass.ts). */
+  earnedBy?: CosmeticEarnSource;
 }
 
 // NOTE: `xp_double` was removed. Manager XP feeds the perk tree, and perks
@@ -3725,4 +3767,118 @@ export interface SundayValidationResult {
   ok: boolean;
   /** Every invariant violation found, most severe first. Empty when ok. */
   problems: string[];
+}
+
+// ── home: popup cap ──
+/** An inbox message filed in place of a popup that went past the per-advance
+ *  cap (see `utils/presentationQueue.ts`). Week/season are stamped on filing. */
+export type InboxNote = Pick<Message, 'type' | 'title' | 'body' | 'playerId'>;
+// ── legacy: Manager Pass + Legacy unlocks ──
+
+/** How an earned (non-purchasable) cosmetic is unlocked. */
+export type CosmeticEarnSource = 'manager_pass' | 'legacy';
+
+/** The two reward rows of the Manager Pass. `pro` is claimable only while
+ *  `isPro()` is true; rewards already claimed stay owned after Pro lapses. */
+export type ManagerPassTrack = 'free' | 'pro';
+
+/** One tier of the Manager Pass track. Rewards are COSMETIC_ITEMS ids. */
+export interface ManagerPassTierDef {
+  /** 1-based tier number. */
+  tier: number;
+  /** Free-track reward, if this tier has one. */
+  free?: string;
+  /** Pro-track reward. Every tier has one. */
+  pro: string;
+}
+
+/** A real-calendar Manager Pass season (two calendar months). */
+export interface ManagerPassSeason {
+  /** Stable id (`pass-YYYY-B`, B = 1..6), namespacing season progress. */
+  id: string;
+  /** Monotonic ordinal (year * 6 + bimonth) — later seasons compare greater. */
+  ordinal: number;
+  /** 0..5 — which bimonth theme (Jan–Feb … Nov–Dec). */
+  themeIndex: number;
+  /** Inclusive local start day, 'YYYY-MM-DD'. */
+  start: string;
+  /** Inclusive local end day, 'YYYY-MM-DD'. */
+  end: string;
+}
+
+/** Device-global Manager Pass progress (localStorage, `STORAGE_KEYS.MANAGER_PASS`).
+ *  NOT part of any save slot: the pass belongs to the player, so a new career
+ *  or another slot neither resets it nor multiplies it. */
+export interface ManagerPassRecord {
+  /** Record format version (not the save schema). */
+  v: 1;
+  /** Season this progress belongs to. A different current season rolls it. */
+  seasonId: string;
+  seasonOrdinal: number;
+  /** Pass XP earned this season. Its own currency: NEVER manager XP, which
+   *  feeds perks and therefore the simulation. */
+  xp: number;
+  /** Tiers whose free / pro reward has been collected this season. */
+  claimedFree: number[];
+  claimedPro: number[];
+  /** Local day key of the last daily check-in. */
+  lastCheckInDate: string;
+  /** Local day key + count for the daily match-XP cap. */
+  matchXpDate: string;
+  matchXpCount: number;
+  /** Dedupe ledger of awarded event keys (match N of career C, season S of
+   *  career C, objective O of month M). Bounded; oldest dropped first. */
+  awardedKeys: string[];
+  /** Every pass cosmetic ever collected, across seasons. */
+  ownedRewardIds: string[];
+  /** Seasons in which the final tier was reached. */
+  completedSeasonIds: string[];
+}
+
+/** A Manager Pass XP award observed from game state (see `diffPassEvents`). */
+export type ManagerPassEvent =
+  | { source: 'match'; key: string; outcome: 'win' | 'draw' | 'loss' }
+  | { source: 'objective'; key: string }
+  | { source: 'season'; key: string; trophies: number };
+// ── uifinish: Manager Pass durability ──
+/** Pro-track rewards reached but not collected when a Pass season closed
+ *  while `isPro()` read false (e.g. a renewed subscription whose saved expiry
+ *  was stale at that moment). Collectable once Pro is confirmed, during the
+ *  season right after the one they were earned in only. */
+export interface ManagerPassProCarry {
+  /** The closed season these rewards were reached in. */
+  seasonId: string;
+  seasonOrdinal: number;
+  /** COSMETIC_ITEMS ids on the Pro track, not owned when that season closed. */
+  rewardIds: string[];
+}
+// Merged into ManagerPassRecord above (interface declaration merging), so the
+// shared section only grows at its end.
+export interface ManagerPassRecord {
+  /** Write counter, +1 on every save. Decides which of the localStorage and
+   *  IndexedDB copies is newer at start-up. Absent on records written before
+   *  the mirror existed (reads as 0). */
+  rev?: number;
+  /** Last season's uncollected Pro rewards (see ManagerPassProCarry). */
+  proCarry?: ManagerPassProCarry | null;
+}
+// ── onboarding: MatchDay playback phase ──
+/** MatchDay's LOCAL playback phase — what the screen is showing, not the
+ *  store's `matchPhase`. The two differ on purpose: the store finalises a half
+ *  while the clock is still running through it. Not persisted. */
+export type MatchDayPhase =
+  | 'pre' | 'first_half' | 'half_time' | 'second_half'
+  | 'extra_time_break' | 'extra_time' | 'penalties' | 'post';
+// ── uipolish: odds rows carry their rarity's own band ──
+// Merged into PackOddsRow above (interface declaration merging), so the shared
+// section only grows at its end.
+export interface PackOddsRow {
+  /** The rarity rung this row is, e.g. 'silver'. */
+  rarity?: keyof PackRarityWeights;
+  /** The rung's name without a band, e.g. `Silver`. */
+  rarityName?: string;
+  /** The rung's own band, the same in every pack (`PACK_RARITY_BANDS`), e.g.
+   *  70–79 — as opposed to `minOvr`/`maxOvr`, the part of it THIS pack deals. */
+  rarityMinOvr?: number;
+  rarityMaxOvr?: number;
 }

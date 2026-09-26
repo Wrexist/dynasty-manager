@@ -273,7 +273,9 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
   },
   matchPrep: {
     title: 'Match Prep Guide',
-    body: 'Review opponent formation, key threats, and form. Rotate tired players before kick-off. Tap "Edit Lineup" to make changes.',
+    // Match Prep edits the XI on its own pitch — there is no "Edit Lineup"
+    // button here (that one lives on the Squad screen).
+    body: 'Review opponent formation, key threats, and form. Rotate tired players before kick-off: tap a player on the pitch, then the one to swap in.',
   },
   matchDay: {
     title: 'Match Day Guide',
@@ -504,3 +506,11 @@ export const TEAM_TALK_OPTIONS = [
     ],
   },
 ] as const;
+
+// ── Mode Select ──
+/** Render `comingSoon` tiles on the mode picker. Off for release: a tile that
+ *  only toasts "coming soon" is App Review 2.1 (completeness) risk and
+ *  first-session noise. The Online definition stays in ModeSelect's `modes`
+ *  so flipping this back on (or dropping `comingSoon` when it ships) is the
+ *  whole re-enable. */
+export const SHOW_COMING_SOON_MODES = false;

@@ -15,9 +15,10 @@ import type {
   Player,
   Position,
 } from '@/types/game';
-import { NATIONS, getNation, CONTINENTAL_TOURNAMENT_NAMES } from '@/data/nations';
-import { TOTAL_WEEKS, INTL_PENALTY_GK_BASE, INTL_PENALTY_GK_SCALE } from '@/config/gameBalance';
+import { NATIONS, getNation, getNationRanking, CONTINENTAL_TOURNAMENT_NAMES } from '@/data/nations';
+import { TOTAL_WEEKS, INTL_PENALTY_GK_BASE, INTL_PENALTY_GK_SCALE, NT_OFFER_REPUTATION_BY_RANKING } from '@/config/gameBalance';
 import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
+import { INTERNATIONAL_HOME_BONUS } from '@/config/matchEngine';
 import {
   WORLD_CUP_TEAMS_PER_GROUP,
   CONTINENTAL_CUP_GROUPS,
@@ -321,12 +322,15 @@ function nationPenaltyGKQuality(nationName: string): number {
 function simulateInternationalMatch(
   homeNation: string,
   awayNation: string,
+  /** Neutral venue. Every tournament match is one: the game models no host
+   *  nation, so the nation drawn "home" is just the first name in the fixture. */
+  neutral: boolean,
 ): { homeGoals: number; awayGoals: number } {
   const homeStrength = nationStrength(homeNation);
   const awayStrength = nationStrength(awayNation);
 
-  // Home advantage
-  const homeAdv = 0.08;
+  // Home advantage — none at a neutral venue.
+  const homeAdv = neutral ? 0 : INTERNATIONAL_HOME_BONUS;
 
   const homeAttack = homeStrength + homeAdv + (Math.random() * 0.3 - 0.15);
   const awayAttack = awayStrength + (Math.random() * 0.3 - 0.15);
@@ -377,8 +381,8 @@ export function processGroupWeek(
         return fix;
       }
 
-      // AI vs AI: simulate
-      const result = simulateInternationalMatch(fix.homeNation, fix.awayNation);
+      // AI vs AI: simulate (tournament ground — neutral)
+      const result = simulateInternationalMatch(fix.homeNation, fix.awayNation, true);
       return { ...fix, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals };
     });
 
@@ -593,8 +597,8 @@ export function processKnockoutRound(
       return tie;
     }
 
-    // AI vs AI
-    const result = simulateInternationalMatch(tie.homeNation, tie.awayNation);
+    // AI vs AI (tournament ground — neutral)
+    const result = simulateInternationalMatch(tie.homeNation, tie.awayNation, true);
     let updated = { ...tie, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals };
 
     // If draw, penalty shootout — canonical GK-quality-aware sim, not a coin
@@ -923,4 +927,15 @@ export function generateNationalTeamPool(
   }
 
   return newPlayers;
+}
+
+/**
+ * Reputation a career manager needs before `nationality`'s FA offers them the
+ * job, from the nation's ranking (`NT_OFFER_REPUTATION_BY_RANKING`). Unknown
+ * nations use `getNationRanking`'s default.
+ */
+export function nationalTeamOfferReputation(nationality: string): number {
+  const ranking = getNationRanking(nationality);
+  const band = NT_OFFER_REPUTATION_BY_RANKING.find(b => ranking <= b.maxRanking);
+  return band ? band.minReputation : 0;
 }

@@ -55,7 +55,10 @@ const claimedNames = new Set<string>();
 // Also cleared when the lazy pool finally lands — otherwise we'd cache
 // an empty dedupe list built while the pool was still loading.
 let allPoolsCache: PlayerTemplate[] | null = null;
-onNationalPoolLoaded(() => { allPoolsCache = null; });
+// Same memo per preferred nationality (it used to rebuild the merged, deduped
+// list on every call — once per generated player), with the same lifetime.
+const nationPoolCache = new Map<string, PlayerTemplate[]>();
+onNationalPoolLoaded(() => { allPoolsCache = null; nationPoolCache.clear(); });
 
 function nameKey(fn: string, ln: string): string {
   return `${fn.toLowerCase()}|${ln.toLowerCase()}`;
@@ -67,6 +70,7 @@ export function resetRealPlayerClaims(): void {
   // Drop the merged-pool memo too so any test or dev tool that mutates
   // NATIONAL_PLAYER_POOL between resets sees the fresh data on next call.
   allPoolsCache = null;
+  nationPoolCache.clear();
 }
 
 /**
@@ -136,8 +140,12 @@ function dedupedPool(aliases: string[]): PlayerTemplate[] {
 }
 
 function poolFor(nationality: string): PlayerTemplate[] {
+  const cached = nationPoolCache.get(nationality);
+  if (cached) return cached;
   const aliases = POOL_NATIONALITY_ALIASES[nationality] ?? [nationality];
-  return dedupedPool(aliases);
+  const pool = dedupedPool(aliases);
+  nationPoolCache.set(nationality, pool);
+  return pool;
 }
 
 function poolForAll(): PlayerTemplate[] {
@@ -159,26 +167,73 @@ function pickFromList(list: PlayerTemplate[]): PlayerTemplate | null {
   return choice;
 }
 
+/**
+ * A pool's templates bucketed by position, each bucket in POOL ORDER:
+ *   - `byPos[p]`  — `t.pos === p`
+ *   - `byAlt[p]`  — `t.altPos` includes `p`
+ *   - `either[p]` — either of the above (each template once)
+ *
+ * WHY. Every phase of `tryPickFromPool` used to filter the WHOLE pool — on the
+ * all-nations fallback that is ~16k templates, up to five times per generated
+ * player, and the season-end regen fill generates hundreds. It was the
+ * largest single cost of `endSeason`. A bucket holds exactly the templates the
+ * old position predicate accepted, in the same order, so the band/claim filter
+ * over it yields the same list and `pick` draws the same template.
+ */
+interface PoolIndex {
+  byPos: Map<Position, PlayerTemplate[]>;
+  byAlt: Map<Position, PlayerTemplate[]>;
+  either: Map<Position, PlayerTemplate[]>;
+}
+const poolIndexCache = new WeakMap<PlayerTemplate[], PoolIndex>();
+
+function indexPool(pool: PlayerTemplate[]): PoolIndex {
+  const cached = poolIndexCache.get(pool);
+  if (cached) return cached;
+  const index: PoolIndex = { byPos: new Map(), byAlt: new Map(), either: new Map() };
+  const add = (bucket: Map<Position, PlayerTemplate[]>, pos: Position, t: PlayerTemplate) => {
+    const list = bucket.get(pos);
+    if (list) list.push(t); else bucket.set(pos, [t]);
+  };
+  for (const t of pool) {
+    add(index.byPos, t.pos, t);
+    add(index.either, t.pos, t);
+    const alts = t.altPos;
+    if (!alts) continue;
+    for (let i = 0; i < alts.length; i++) {
+      const a = alts[i];
+      if (alts.indexOf(a) !== i) continue; // a repeated alt still matches once
+      add(index.byAlt, a, t);
+      if (a !== t.pos) add(index.either, a, t);
+    }
+  }
+  poolIndexCache.set(pool, index);
+  return index;
+}
+
 function tryPickFromPool(
   pool: PlayerTemplate[],
   position: Position,
   options?: PickRealPlayerOptions,
 ): PlayerTemplate | null {
   if (pool.length === 0) return null;
+  const index = indexPool(pool);
 
-  const tryPhase = (matches: (t: PlayerTemplate) => boolean): PlayerTemplate | null => {
-    const inBand = pool.filter((t) => matches(t) && !isClaimed(t) && inOvrRange(t, options));
+  const tryPhase = (candidates: PlayerTemplate[] | undefined): PlayerTemplate | null => {
+    if (!candidates) return null;
+    // Band before claim: `isClaimed` builds two keys per template.
+    const inBand = candidates.filter((t) => inOvrRange(t, options) && !isClaimed(t));
     return pickFromList(inBand);
   };
 
-  const strict = tryPhase((t) => t.pos === position);
+  const strict = tryPhase(index.byPos.get(position));
   if (strict) return strict;
 
-  const alt = tryPhase((t) => Boolean(t.altPos?.includes(position)));
+  const alt = tryPhase(index.byAlt.get(position));
   if (alt) return alt;
 
   for (const fallbackPos of POSITION_FALLBACK[position] ?? []) {
-    const fb = tryPhase((t) => t.pos === fallbackPos || Boolean(t.altPos?.includes(fallbackPos)));
+    const fb = tryPhase(index.either.get(fallbackPos));
     if (fb) return fb;
   }
 

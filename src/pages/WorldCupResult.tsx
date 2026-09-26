@@ -40,7 +40,7 @@ function AwardRow({ icon, label, name, detail, gold }: {
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.16em] font-bold leading-none">{label}</p>
+        <p className="text-micro text-muted-foreground uppercase tracking-[0.16em] font-bold leading-none">{label}</p>
         <p className="text-sm font-bold text-foreground truncate mt-0.5">{name}</p>
       </div>
       <span className="text-xs font-semibold text-muted-foreground tabular-nums shrink-0">{detail}</span>
@@ -203,11 +203,11 @@ const WorldCupResult = () => {
       {run && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-bold mb-3">Your Road</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-[0.18em] font-bold mb-3">Your Road</p>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="text-xl font-black font-display text-foreground tabular-nums">{run.played}</p>
-                <p className="text-[10px] text-muted-foreground">Played</p>
+                <p className="text-micro text-muted-foreground">Played</p>
               </div>
               <div>
                 <p className="text-xl font-black font-display text-foreground tabular-nums">
@@ -217,11 +217,11 @@ const WorldCupResult = () => {
                   <span className="text-muted-foreground/50 text-base">·</span>
                   <span className="text-destructive">{run.lost}</span>
                 </p>
-                <p className="text-[10px] text-muted-foreground">W · D · L</p>
+                <p className="text-micro text-muted-foreground">W · D · L</p>
               </div>
               <div>
                 <p className="text-xl font-black font-display text-foreground tabular-nums">{run.gf}<span className="text-muted-foreground/50 text-base">:</span>{run.ga}</p>
-                <p className="text-[10px] text-muted-foreground">Goals</p>
+                <p className="text-micro text-muted-foreground">Goals</p>
               </div>
             </div>
             {run.topScorer && (
@@ -238,7 +238,7 @@ const WorldCupResult = () => {
       {awards && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-bold mb-3">Tournament Awards</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-[0.18em] font-bold mb-3">Tournament Awards</p>
             <div className="space-y-2.5">
               <AwardRow
                 icon={<Award className="w-4 h-4" />}

@@ -45,7 +45,7 @@ export function DynastyStatusChip() {
         <Medal className="w-3.5 h-3.5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] uppercase tracking-[0.16em] text-primary/80 font-semibold leading-none">Legacy</p>
+        <p className="text-micro uppercase tracking-[0.16em] text-primary/80 font-semibold leading-none">Legacy</p>
         <p className="text-sm font-bold text-foreground leading-tight">{tier}</p>
       </div>
       {streak > 0 && (

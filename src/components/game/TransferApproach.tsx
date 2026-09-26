@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
@@ -36,6 +38,14 @@ export function TransferApproach({ playerId, onClose }: Props) {
   const top3 = useMemo(() => player ? getTop3Attributes(player.attributes) : [], [player]);
 
   useScrollLock(mode === 'choose');
+  // The choice screen is a modal of its own; once a mode is picked the
+  // negotiation component takes over with its own trap + Escape handling, so
+  // these are gated to 'choose'. Nothing is committed on this screen, so
+  // Escape / backdrop closing it is always safe.
+  const choosing = mode === 'choose' && !!player && !!club;
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, choosing);
+  useEscapeClose(onClose, choosing);
 
   if (!player || !club) return null;
 
@@ -73,16 +83,21 @@ export function TransferApproach({ playerId, onClose }: Props) {
 
         {/* Modal */}
         <motion.div
-          className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden"
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="transfer-approach-title"
+          tabIndex={-1}
+          className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden focus:outline-none"
           initial={{ scale: 0.85, opacity: 0, y: 40 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/30">
-            <p className="text-sm font-bold text-foreground font-display">Approach Player</p>
-            <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border/30">
+            <h2 id="transfer-approach-title" className="text-sm font-bold text-foreground font-display">Approach Player</h2>
+            <button type="button" onClick={onClose} aria-label="Close" className="min-w-11 min-h-11 -mr-2 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
@@ -101,7 +116,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
                 </p>
                 <div className="flex gap-1.5 mt-2">
                   {top3.map(attr => (
-                    <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
+                    <span key={attr.label} className="text-micro font-mono bg-muted/70 px-1.5 py-0.5 rounded">
                       <span className="text-muted-foreground">{attr.label}</span>{' '}
                       <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
                     </span>
@@ -114,15 +129,15 @@ export function TransferApproach({ playerId, onClose }: Props) {
             <div className="bg-muted/20 rounded-xl p-3 grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="text-xs font-bold text-foreground tabular-nums">{'\u00A3'}{(player.value / 1e6).toFixed(1)}M</p>
-                <p className="text-[10px] text-muted-foreground">Value</p>
+                <p className="text-micro text-muted-foreground">Value</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-foreground">{formatWage(player.wage)}</p>
-                <p className="text-[10px] text-muted-foreground">Wage</p>
+                <p className="text-micro text-muted-foreground">Wage</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-foreground tabular-nums">{player.overall}/{player.potential}</p>
-                <p className="text-[10px] text-muted-foreground">OVR/POT</p>
+                <p className="text-micro text-muted-foreground">OVR/POT</p>
               </div>
             </div>
 
@@ -138,7 +153,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-bold text-foreground">Transfer Offer</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     Make a bid to sign permanently · Est. {formatMoney(Math.round(player.value * UNLISTED_PLAYER_PREMIUM))}
                   </p>
                 </div>
@@ -154,7 +169,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-bold text-foreground">Loan Request</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     Borrow on a temporary deal · Negotiate terms
                   </p>
                 </div>

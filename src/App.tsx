@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RouteScrollReset } from "@/components/RouteScrollReset";
 import TitleScreen from "./pages/TitleScreen";
 // SaveRecoveryDialog is a Radix Dialog that appears on a CONDITION — a corrupt
 // save — yet importing it eagerly pulled @radix-ui/react-dialog into the boot
@@ -53,6 +54,17 @@ const App = () => {
     root.classList.toggle('perf-mode', !!performanceMode);
     return () => root.classList.remove('perf-mode');
   }, [performanceMode]);
+  // The in-app Reduced Motion setting reaches CSS through this root class.
+  // MotionConfig below only governs framer-motion, and index.css used to
+  // listen to the OS preference alone — so every `animate-pulse` badge and
+  // Tailwind `transition-*` kept moving for a player who had switched motion
+  // off in Settings. Performance mode implies reduced motion, exactly as it
+  // does for MotionConfig and useReducedMotionPref.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('reduce-motion', !!reducedMotion || !!performanceMode);
+    return () => root.classList.remove('reduce-motion');
+  }, [reducedMotion, performanceMode]);
   // Note: the first-launch analytics consent modal was removed — product
   // analytics travel via RevenueCat + App Store Connect (decision in
   // docs/growth-overhaul-plan.md §1.2), so no first-party stats leave the
@@ -64,6 +76,7 @@ const App = () => {
       <TooltipProvider>
         <Sonner />
         <HashRouter>
+          <RouteScrollReset />
           <Suspense fallback={null}><SaveRecoveryDialog /></Suspense>
           <Suspense fallback={<LoadingFallback />}>
             <Routes>

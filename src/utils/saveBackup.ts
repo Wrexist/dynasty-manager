@@ -109,7 +109,7 @@ export async function exportSlotJson(slot: number): Promise<ExportResult> {
   return { ok: false, error: 'unsupported' };
 }
 
-export type ImportError = 'parse' | 'future' | 'migrate' | 'invalid';
+export type ImportError = 'parse' | 'future' | 'migrate' | 'invalid' | 'not-ready';
 
 /** Flat optional shape (see `ExportResult` note). `slot` is set when `ok`;
  *  `error` + `message` when not. */
@@ -170,11 +170,15 @@ export function importJsonToSlot(slot: number, text: string): ImportResult {
   // Persist the migrated payload (stamped at CURRENT_VERSION) so the slot is
   // immediately current. Gate the backup rotation on the outgoing main's
   // validity, matching the autosave path.
-  writeSaveSlot(slot, JSON.stringify(migrated), {
+  const write = writeSaveSlot(slot, JSON.stringify(migrated), {
     validateOutgoing: (raw) => {
       try { return validateSaveShape(JSON.parse(raw)).ok === true; }
       catch { return false; }
     },
   });
+  // The slot's stored save has not been read yet, so nothing was written.
+  if (write.refused) {
+    return { ok: false, error: 'not-ready', message: 'Your saves are still loading. Try again in a moment.' };
+  }
   return { ok: true, slot };
 }

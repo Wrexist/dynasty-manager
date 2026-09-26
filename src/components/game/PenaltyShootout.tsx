@@ -96,8 +96,8 @@ function ChargeMeter({ active, frozenAt, powerRef, cycleMs }: {
   return (
     <div className="w-36 rounded-xl bg-black/75 border border-white/15 px-2.5 py-1.5 pointer-events-none">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-black tracking-[0.14em] text-white/80">POWER</span>
-        <span className="text-[10px] font-display font-black tabular-nums text-white">{Math.round(value * 100)}%</span>
+        <span className="text-micro font-black tracking-[0.14em] text-white/80">POWER</span>
+        <span className="text-micro font-display font-black tabular-nums text-white">{Math.round(value * 100)}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
         <div
@@ -183,7 +183,7 @@ function TakerCard({ player, selected, onSelect }: {
       </div>
       <span
         className={cn(
-          'absolute -bottom-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-[2px] text-[8px] font-black tracking-wide leading-none border backdrop-blur-sm',
+          'absolute -bottom-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-[2px] text-micro font-black tracking-wide leading-none border backdrop-blur-sm',
           selected
             ? 'bg-primary text-primary-foreground border-primary/60 shadow-[0_0_10px_-2px_hsl(43_96%_46%/0.9)]'
             : 'bg-black/70 text-primary border-white/15',
@@ -491,7 +491,7 @@ export function PenaltyShootout() {
             <motion.span key={`h${displayProgress.homeTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
               {displayProgress.homeTotal}
             </motion.span>
-            <span className="text-[10px] text-white/50 leading-none">–</span>
+            <span className="text-micro text-white/50 leading-none">–</span>
             <motion.span key={`a${displayProgress.awayTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
               {displayProgress.awayTotal}
             </motion.span>
@@ -503,7 +503,7 @@ export function PenaltyShootout() {
         <div className="absolute top-9 inset-x-0 flex items-center justify-center gap-2 pointer-events-none">
           {inSuddenDeath && !progress.decided && (
             <motion.span
-              className="text-[9px] uppercase tracking-widest font-bold text-red-300 bg-red-950/80 border border-red-500/35 rounded-full px-2 py-0.5"
+              className="text-micro uppercase tracking-widest font-bold text-red-300 bg-red-950/80 border border-red-500/35 rounded-full px-2 py-0.5"
               animate={reducedMotion ? undefined : { opacity: [1, 0.55, 1] }}
               transition={{ duration: 1.4, repeat: Infinity }}
             >
@@ -515,7 +515,7 @@ export function PenaltyShootout() {
           <button
             type="button"
             onClick={() => { hapticLight(); skipAll(); }}
-            className="absolute top-9 right-2 flex items-center gap-1 text-[9px] text-white/60 hover:text-white bg-black/60 border border-white/10 rounded-full px-2 py-0.5 transition-colors"
+            className="absolute top-9 right-2 flex items-center gap-1 text-micro text-white/60 hover:text-white bg-black/60 border border-white/10 rounded-full px-2 py-0.5 transition-colors"
           >
             <SkipForward className="w-2.5 h-2.5" /> Skip
           </button>
@@ -544,7 +544,7 @@ export function PenaltyShootout() {
               exit={{ opacity: 0 }}
             >
               <motion.span
-                className="flex items-center gap-1.5 rounded-xl bg-black/75 border border-white/15 px-2.5 py-1.5 text-[10px] font-semibold text-white"
+                className="flex items-center gap-1.5 rounded-xl bg-black/75 border border-white/15 px-2.5 py-1.5 text-micro font-semibold text-white"
                 animate={reducedMotion ? undefined : { y: [0, -3, 0] }}
                 transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
               >
@@ -587,7 +587,7 @@ export function PenaltyShootout() {
             >
               <motion.span
                 className={cn(
-                  'block rounded-full px-2.5 py-1 text-[9px] font-black tracking-[0.14em] uppercase border',
+                  'block rounded-full px-2.5 py-1 text-micro font-black tracking-[0.14em] uppercase border',
                   (stakes === 'score_to_win' || stakes === 'save_to_win')
                     ? 'text-primary bg-black/75 border-primary/40 shadow-[0_0_16px_-4px_hsl(43_96%_46%/0.8)]'
                     : 'text-red-300 bg-red-950/80 border-red-500/40 shadow-[0_0_16px_-4px_rgba(239,68,68,0.7)]',
@@ -610,7 +610,7 @@ export function PenaltyShootout() {
             animate={{ opacity: 1, x: 0 }}
           >
             <PlayerCard player={keeper} size="sm" interactive="none" showConditionView={false} />
-            <span className="flex items-center gap-1 rounded-full bg-black/75 border border-white/15 px-1.5 py-[2px] text-[8px] font-black uppercase tracking-widest text-white leading-none">
+            <span className="flex items-center gap-1 rounded-full bg-black/75 border border-white/15 px-1.5 py-[2px] text-micro font-black uppercase tracking-widest text-white leading-none">
               <Hand className="w-2.5 h-2.5 text-primary" /> In goal
             </span>
           </motion.div>
@@ -643,9 +643,9 @@ export function PenaltyShootout() {
                 <p className="text-xs font-bold text-foreground">
                   Round {progress.nextRound}{inSuddenDeath ? ' · Sudden death' : ''} — who steps up?
                 </p>
-                <p className="text-[10px] text-muted-foreground">{aim ? 'Hold Shoot to power up' : 'Swipe the goal to aim'}</p>
+                <p className="text-micro text-muted-foreground">{aim ? 'Hold Shoot to power up' : 'Swipe the goal to aim'}</p>
               </div>
-              <p className={cn('text-[10px] italic -mt-1', keeperTaunt ? 'text-red-300/90 font-semibold not-italic' : 'text-muted-foreground/80')}>
+              <p className={cn('text-micro italic -mt-1', keeperTaunt ? 'text-red-300/90 font-semibold not-italic' : 'text-muted-foreground/80')}>
                 {keeperTaunt ? "The keeper's playing mind games — your taker looks rattled." : commentary}
               </p>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -686,10 +686,10 @@ export function PenaltyShootout() {
                   <p className="text-xs font-bold text-foreground truncate">
                     {nextOppTaker.lastName || nextOppTaker.firstName} steps up…
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     {keeper ? `${keeper.lastName || keeper.firstName} guards your goal.` : 'Your keeper sets himself.'}
                   </p>
-                  <p className="text-[10px] italic text-muted-foreground/70 mt-0.5">{commentary}</p>
+                  <p className="text-micro italic text-muted-foreground/70 mt-0.5">{commentary}</p>
                 </div>
                 <motion.div
                   className="ml-auto w-2 h-2 rounded-full bg-primary"
@@ -749,11 +749,11 @@ export function PenaltyShootout() {
           {rounds.map(r => (
             <div key={r.round} className="contents">
               <div className="flex items-center gap-1.5 min-w-0 justify-end">
-                <span className="text-[10px] text-foreground/85 truncate">{r.home?.takerName ?? ''}</span>
+                <span className="text-micro text-foreground/85 truncate">{r.home?.takerName ?? ''}</span>
                 <KickResultChip kick={r.home} />
               </div>
               <span className={cn(
-                'text-[9px] tabular-nums w-6 text-center self-center rounded-full',
+                'text-micro tabular-nums w-6 text-center self-center rounded-full',
                 r.round > 5 ? 'text-red-300 font-bold' : 'text-muted-foreground',
                 !displayProgress.decided && r.round === displayProgress.nextRound && 'bg-primary/20 text-primary font-bold shadow-[0_0_8px_-2px_hsl(43_96%_46%/0.7)]',
               )}>
@@ -761,7 +761,7 @@ export function PenaltyShootout() {
               </span>
               <div className="flex items-center gap-1.5 min-w-0">
                 <KickResultChip kick={r.away} />
-                <span className="text-[10px] text-foreground/85 truncate">{r.away?.takerName ?? ''}</span>
+                <span className="text-micro text-foreground/85 truncate">{r.away?.takerName ?? ''}</span>
               </div>
             </div>
           ))}

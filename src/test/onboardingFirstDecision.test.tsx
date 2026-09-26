@@ -56,13 +56,13 @@ describe('onboarding — the first task is a football decision', () => {
 
   it('does not offer a plan there is no match to plan for', () => {
     // A club with a week-1 bye must not get a row it can never tick — the
-    // orphan-row problem the scout row already avoids.
+    // orphan-row problem the scout row already avoids. (Modelled as a bye —
+    // no fixture this week. A match already PLAYED this week keeps the row,
+    // ticked: rows tick as they happen rather than vanishing.)
     const s = useGameStore.getState();
     useGameStore.setState({
-      fixtures: s.fixtures.map(f => (
-        f.homeClubId === s.playerClubId || f.awayClubId === s.playerClubId
-          ? { ...f, played: true }
-          : f
+      fixtures: s.fixtures.filter(f => !(
+        f.week === s.week && (f.homeClubId === s.playerClubId || f.awayClubId === s.playerClubId)
       )),
     });
     render(<OnboardingChecklist />);

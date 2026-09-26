@@ -1,5 +1,6 @@
-import type { ChallengeScenario } from '@/types/game';
-import { LEAGUES } from '@/data/league';
+import type { ChallengeScenario, LeagueInfo } from '@/types/game';
+import { LEAGUES, CLUBS_DATA } from '@/data/league';
+import { isManagersLeagueTitle } from '@/utils/prestige';
 
 /** Manager XP paid on completion, scaled by difficulty. Consistent with the
  *  season-end / trophy XP scale in `managerPerks.XP_REWARDS` (title = 100). */
@@ -31,7 +32,7 @@ export const CHALLENGES: ChallengeScenario[] = [
     startingClubId: undefined,
     seasonLimit: 1,
     winCondition: 'Finish above the relegation zone at the end of the season',
-    constraints: ['Lowest-reputation club in the league', 'Budget reduced by 50%'],
+    constraints: ['Lowest-reputation club in a league with relegation', 'Budget reduced by 50%'],
     budgetModifier: 0.5,
   },
   {
@@ -52,12 +53,16 @@ export const CHALLENGES: ChallengeScenario[] = [
     rewardXp: CHALLENGE_XP_BY_DIFFICULTY.hard,
     badgeId: 'badge-youth-guru',
     name: 'Youth Revolution',
-    description: 'Build a squad entirely from players under 23. Finish in the top half.',
+    // Copy states what is ENFORCED: `checkChallengeBlock` / `signFreeAgent` /
+    // the loan and pack gates stop every signing over 23. It used to promise
+    // an all-U23 starting XI, a £5M fee cap and U21-only buys, none of which
+    // anything checked.
+    description: 'Rebuild with youth: every signing must be 23 or under. Finish in the top half.',
     icon: 'sprout',
     difficulty: 'hard',
     seasonLimit: 3,
-    winCondition: 'Finish in the top 10 using only U23 players in the starting lineup',
-    constraints: ['Starting lineup must be all under 23', 'No transfers over £5M', 'Can only buy players under 21'],
+    winCondition: 'Finish in the top half of the league within 3 seasons',
+    constraints: ['Signings (transfers, loans, free agents) must be 23 or under', 'Player packs disabled', 'Budget reduced by 30%'],
     budgetModifier: 0.7,
     youthOnly: true,
   },
@@ -189,6 +194,28 @@ export function getDifficultyColor(difficulty: ChallengeScenario['difficulty']):
   }
 }
 
+/** True when finishing low in `league` actually costs you something — it has
+ *  relegation spots, or bottom slots replaced from outside the pyramid. The
+ *  single-tier leagues without either make "avoid relegation" an auto-win. */
+export function leagueHasRelegation(league: Pick<LeagueInfo, 'relegationSpots' | 'replacedSlots'> | undefined): boolean {
+  return !!league && (league.relegationSpots || league.replacedSlots || 0) > 0;
+}
+
+/** The club a scenario forces you to take, or null when the player picks.
+ *  Giant Killer takes the lowest-reputation club in the game; The Great
+ *  Escape takes the lowest-reputation club in a league that can relegate it —
+ *  the global lowest (Almere City, Eredivisie) sits in a league with no
+ *  relegation, which made the challenge an auto-win. */
+export function getChallengeStartClubId(scenario: ChallengeScenario): string | null {
+  if (scenario.startingClubId) return scenario.startingClubId;
+  if (scenario.id !== 'giant-killer' && scenario.id !== 'great-escape') return null;
+  const eligible = scenario.id === 'great-escape'
+    ? CLUBS_DATA.filter(c => leagueHasRelegation(LEAGUES.find(l => l.id === c.divisionId)))
+    : CLUBS_DATA;
+  const lowest = [...eligible].sort((a, b) => a.reputation - b.reputation)[0];
+  return lowest?.id ?? null;
+}
+
 /** Check if a challenge's win condition has been met */
 export function checkChallengeComplete(
   challengeId: string,
@@ -205,19 +232,25 @@ export function checkChallengeComplete(
       // division used by 'promotion-express'). The old hardcoded `<= 17`
       // was an auto-win in 10-18-team leagues and wrong in 24-team ones.
       const league = LEAGUES.find(l => l.id === (extraData?.seasonDivisionId ?? extraData?.divisionId));
-      if (!league) return false;
+      // No relegation zone = nothing to escape; never an auto-win.
+      if (!league || !leagueHasRelegation(league)) return false;
       const dropSpots = league.relegationSpots || league.replacedSlots || 0;
       const safeLine = league.teamCount - dropSpots;
       return leaguePosition > 0 && leaguePosition <= safeLine;
     }
     case 'invincibles':
       return !hasLost && leaguePosition > 0;
-    case 'youth-revolution':
-      return leaguePosition <= 10;
+    case 'youth-revolution': {
+      // Top half of the division the season was played in. A flat "top 10"
+      // was an auto-win in the 10-team leagues and half the table in 20.
+      const league = LEAGUES.find(l => l.id === (extraData?.seasonDivisionId ?? extraData?.divisionId));
+      if (!league) return false;
+      return leaguePosition > 0 && leaguePosition <= Math.floor(league.teamCount / 2);
+    }
     case 'penny-pincher':
       return leaguePosition === 1;
     case 'giant-killer':
-      return seasonHistory.some(h => h.position === 1);
+      return seasonHistory.some(isManagersLeagueTitle);
     case 'cup-specialist':
       return cupWinner;
     case 'fortress':

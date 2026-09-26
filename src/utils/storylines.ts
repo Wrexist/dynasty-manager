@@ -1,5 +1,6 @@
-import { Player, Message, Club, StorylineEvent } from '@/types/game';
+import { Player, Message, Club, StorylineEvent, ActiveStorylineChain } from '@/types/game';
 import { safeRandomUUID } from '@/utils/helpers';
+import { STORYLINE_CHAIN_COOLDOWN_SEASONS } from '@/config/playoffs';
 
 interface StorylineContext {
   week: number;
@@ -235,4 +236,33 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
     messages: [chosen.message],
     event: chosen.event || null,
   };
+}
+
+/** Carry storyline-chain cooldown markers (`chainId@season`) across a season
+ *  rollover. The markers are what enforce `STORYLINE_CHAIN_COOLDOWN_SEASONS`
+ *  in the weekly trigger, so season end must NOT wipe them — it used to, which
+ *  let a chain finished in May open again in September. Only markers whose
+ *  cooldown has already run out by `nextSeason` are pruned (bare legacy ids
+ *  count as long expired), which keeps the array bounded by the chain count.
+ *
+ *  Chains still in progress at season end are dropped (their steps are
+ *  anchored to a week of the ending season), and are stamped as done in
+ *  `endingSeason` so the same opening scene cannot replay next season. */
+export function carryStorylineCooldowns(
+  completedMarkers: string[] | undefined,
+  droppedChains: ActiveStorylineChain[] | undefined,
+  endingSeason: number,
+): string[] {
+  const nextSeason = endingSeason + 1;
+  const markers = [
+    ...(completedMarkers || []),
+    ...(droppedChains || []).map(c => `${c.chainId}@${endingSeason}`),
+  ];
+  const kept = markers.filter(marker => {
+    const at = marker.lastIndexOf('@');
+    if (at < 0) return false;
+    const doneSeason = Number(marker.slice(at + 1));
+    return Number.isFinite(doneSeason) && nextSeason < doneSeason + STORYLINE_CHAIN_COOLDOWN_SEASONS;
+  });
+  return Array.from(new Set(kept));
 }

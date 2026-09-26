@@ -1,5 +1,16 @@
 # LEARNINGS.md — Dynasty Manager
 
+## Full-game audit + fix batch (2026-09-25)
+
+- The audit and its execution status live in `docs/audit-2026-09-25.md`; IAP coverage and the device checklist in `docs/iap-verification.md`.
+- **Zero trials, diagnosed from git, not dashboards:** the live 1.4.0 (TestFlight run 182) predated the `.annual`→`.yearly` ID fix, so Yearly never reached its paywall. Always check which commit a live build came from (`actions` run head_sha) before reasoning about live behaviour. Both Yearly and Monthly carry a free 1-week intro offer in ASC (owner-confirmed).
+- **Trial copy must follow the store per plan:** `resolvePaywallTrials` (store free intro offer on that product AND confirmed eligibility; unknown never counts) drives the paywall, Shop and in-game `ProUpsell` via `utils/trialOffer.ts`. Never hardcode "7-day".
+- **Un-charged pack markers must be able to die:** the Market refuses a purchase while any marker exists, so a marker the store never confirmed is released after a settle window (30 min; 72 h Ask to Buy; 7 d legacy). `PAYMENT_PENDING` (RC code 20) is deferred, not failed.
+- **Real players sit above `calculateOverall`:** any path that recomputes `overall` from attributes (Ballon d'Or boost, loan development) silently drops stars by 4–15. Apply deltas.
+- **Balance tests on cloned 70-rated squads lie:** real saves measured 1.4–2.1 goals / 28–41% draws until a real-game-loop harness (`matchCalibration*.test.ts`) drove calibration.
+- **Worktree agents:** `isolation: 'worktree'` bases on the default branch, not HEAD. Create worktrees explicitly (`git worktree add <path> -b <branch> <sha>` + symlink `node_modules`) when agents must build on unmerged work. With 4 CPUs, parallel test runs cause 120 s timeouts in heavy suites; run preflight at `nice -n 19` while agents work, and re-run a failure alone before blaming code.
+- **Statistical tests must be seeded:** `sundayStoriesV3` (tactic fit) and `liveEventMechanics` (free-agent pool drained by earlier weeks) failed intermittently in full runs.
+
 ## Player portrait feasibility audit (2026-09-21)
 
 - 2026-09-23: Portrait catalog now contains 844 entries with alpha WebP runtime assets. Full squads replace the earlier 80+ cutoff for the six strongest clubs in each of the five leagues, selected from checked-in squad ratings. Coverage is 770/785 selected players; 15 recorded generation rejections retain fallback cards. See `artifacts/player-portrait-rollout/TOP-CLUB-COVERAGE.md`. Full-resolution sources stay local; committed receipts preserve prompts and provenance. Preview all large batches in pages of 25 to avoid overwhelming simultaneous image decoding. Three ambiguous likenesses needed official references and versioned v2 corrections; visual review does not establish reference-verified identity for every portrait.

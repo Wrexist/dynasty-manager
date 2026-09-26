@@ -24,6 +24,7 @@ export function TitleSettingsSheet({ open, onOpenChange }: TitleSettingsSheetPro
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        aria-describedby={undefined}
         side="bottom"
         className="bg-background border-border/50 rounded-t-2xl h-[85vh] max-h-[85vh] flex flex-col"
       >

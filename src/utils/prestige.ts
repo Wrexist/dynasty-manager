@@ -1,5 +1,29 @@
 import { SeasonHistory } from '@/types/game';
 
+/**
+ * A league title that belongs on the MANAGER's record: first place in a
+ * season they were in charge of at the end. A career manager sacked mid-season
+ * still gets a season-history row for the ex-club (`playerClubId` keeps naming
+ * it), and that club winning the league used to count as the manager's title
+ * in achievements, prestige, the Hall of Managers, the Trophy Cabinet, the
+ * Manager Profile and the Manager Pass. `managed` is absent only on rows the
+ * v94 migration has not seen, which were all managed.
+ */
+export function isManagersLeagueTitle(h: Pick<SeasonHistory, 'position' | 'managed'>): boolean {
+  return h.position === 1 && h.managed !== false;
+}
+
+/**
+ * A promotion that belongs on the manager's record — the same leak
+ * `isManagersLeagueTitle` closes for titles: an out-of-work career manager's
+ * row is written from the ex-club's table, so that club going up used to
+ * unlock 'Going Up!' and fill the Trophy Cabinet with a promotion the
+ * manager had no part in.
+ */
+export function isManagersPromotion(h: Pick<SeasonHistory, 'promoted' | 'managed'>): boolean {
+  return !!h.promoted && h.managed !== false;
+}
+
 export interface PrestigeOption {
   id: 'rival' | 'drop-division' | 'restart-perks';
   label: string;
@@ -58,7 +82,7 @@ export function calculatePrestigeStats(
   const totalMatches = managerStats.totalWins + managerStats.totalDraws + managerStats.totalLosses;
   return {
     totalSeasons: seasonHistory.length,
-    titles: seasonHistory.filter(h => h.position === 1).length,
+    titles: seasonHistory.filter(isManagersLeagueTitle).length,
     cupWins: seasonHistory.filter(h => h.cupResult === 'Winner').length,
     bestPosition: seasonHistory.length > 0 ? seasonHistory.reduce((m, h) => h.position < m ? h.position : m, Infinity) : 20,
     totalWins: managerStats.totalWins,

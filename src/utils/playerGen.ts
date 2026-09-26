@@ -1,6 +1,6 @@
 import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
 import { generatePersonality } from '@/utils/personality';
-import { pick, clamp, safeRandomUUID } from '@/utils/helpers';
+import { pick, clamp, safeRandomUUID, isAwayOnLoan } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
 import { recomputeDerivedEconomics, recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import {
@@ -17,6 +17,7 @@ import {
   GENERATED_PLAYER_OVERALL_CAP, GENERATED_PLAYER_POTENTIAL_CAP,
   REAL_FILLER_OVR_FLOOR, REAL_FILLER_OVR_CEIL, REAL_FILLER_OVR_BAND_BELOW, REAL_FILLER_OVR_BAND_ABOVE,
   EFFECTIVE_RATING_OVERALL_WEIGHT, EFFECTIVE_RATING_FORM_WEIGHT, EFFECTIVE_RATING_FITNESS_WEIGHT,
+  STARTING_XI_OUT_OF_POSITION_PENALTY,
   MAX_SUBS, MIN_TEAM_STRENGTH, TEAM_STRENGTH_BASE, TEAM_STRENGTH_FITNESS_SCALE, TEAM_STRENGTH_MORALE_SCALE,
   TEAM_STRENGTH_QUALITY_PIVOT, TEAM_STRENGTH_QUALITY_SCALE,
   NATIONALITY_DISTRIBUTION,
@@ -618,31 +619,95 @@ export function generateSquad(clubId: string, quality: number, season: number, d
   return squad;
 }
 
-export function selectBestLineup(players: Player[], formation: FormationType, currentWeek?: number): { lineup: Player[]; subs: Player[] } {
-  const isAvailable = (p: Player) => !p.injured && !p.onLoan && !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek);
+export interface SelectBestLineupOptions {
+  /** Pick the XI position-first: every (slot, player) pair is scored as the
+   *  player's effective rating, less `STARTING_XI_OUT_OF_POSITION_PENALTY`
+   *  (in overall points) when the slot is not his own position, and the best
+   *  pairs are seated first across the whole formation. The default greedy
+   *  pass walks the slots in formation order and takes the best COMPATIBLE
+   *  player, so in a 4-3-3 the LW slot (filled first) took the best striker,
+   *  the ST slot the best right winger, and the real left winger sat out
+   *  (R5: Salah at ST, Isak and Ekitiké on the wings). A much better player
+   *  still plays out of position (a 90 CDM starts at CM over a 75 CM).
+   *  Used for the manager's own XI at game start; AI selection is unchanged. */
+  preferNaturalPositions?: boolean;
+}
+
+/** Seat the best (slot, player) pairs first across the whole formation — see
+ *  `SelectBestLineupOptions.preferNaturalPositions`. `ranked` is best-first,
+ *  which with a stable sort makes ties deterministic. Marks seated players in
+ *  `used`; slots nobody compatible can fill stay null for the filler pass. */
+function seatByPositionScore(
+  ranked: Player[],
+  slotPositions: Position[],
+  effectiveRating: (p: Player) => number,
+  used: Set<string>,
+): (Player | null)[] {
+  const penalty = STARTING_XI_OUT_OF_POSITION_PENALTY * EFFECTIVE_RATING_OVERALL_WEIGHT;
+  const pairs: { slot: number; player: Player; score: number }[] = [];
+  slotPositions.forEach((pos, slot) => {
+    for (const player of ranked) {
+      if (!canPlayPosition(player, pos)) continue;
+      const r = effectiveRating(player);
+      const base = Number.isFinite(r) ? r : -Infinity;
+      pairs.push({ slot, player, score: base - (player.position === pos ? 0 : penalty) });
+    }
+  });
+  pairs.sort((a, b) => (b.score === a.score ? a.slot - b.slot : b.score - a.score));
+  const seated: (Player | null)[] = slotPositions.map(() => null);
+  for (const { slot, player } of pairs) {
+    if (seated[slot] || used.has(player.id)) continue;
+    seated[slot] = player;
+    used.add(player.id);
+  }
+  return seated;
+}
+
+export function selectBestLineup(
+  players: Player[],
+  formation: FormationType,
+  currentWeek?: number,
+  options: SelectBestLineupOptions = {},
+): { lineup: Player[]; subs: Player[] } {
+  const isAvailable = (p: Player) => !p.injured && !isAwayOnLoan(p) && !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek);
   const slots = FORMATION_POSITIONS[formation];
   const used = new Set<string>();
 
   // Effective rating: overall weighted with form and fitness for smarter selection
   const effectiveRating = (p: Player) => p.overall * EFFECTIVE_RATING_OVERALL_WEIGHT + (p.form / 100) * EFFECTIVE_RATING_FORM_WEIGHT + (p.fitness / 100) * EFFECTIVE_RATING_FITNESS_WEIGHT;
 
+  // Rank the available pool ONCE, best first. Each pass below used to filter
+  // and re-sort `players` — once per formation slot, again for the fillers and
+  // again for the bench, 13 sorts of the squad per call — and this runs for
+  // both sides of every fixture in the world every week. `Array#sort` is
+  // stable, so the first eligible player in this ranking is exactly the head
+  // of the old per-slot sort: highest rating, ties to whoever comes first in
+  // `players`. (A non-finite rating — corrupt form/fitness — ranks last
+  // instead of poisoning the comparator.)
+  const ranked = players
+    .filter(isAvailable)
+    .map(p => {
+      const r = effectiveRating(p);
+      return { p, r: Number.isFinite(r) ? r : -Infinity };
+    })
+    .sort((a, b) => (b.r === a.r ? 0 : b.r - a.r))
+    .map(e => e.p);
+
   // Pass 1: best natural fit per slot, kept in slot order — lineup[i] must map
   // to formation slot i (chemistry links + formation rendering align players to
   // slots by index, so the array order is load-bearing, not just a set).
-  const slotted: (Player | null)[] = slots.map(slot => {
-    const best = players
-      .filter(p => !used.has(p.id) && canPlayPosition(p, slot.pos) && isAvailable(p))
-      .sort((a, b) => effectiveRating(b) - effectiveRating(a))[0];
-    if (best) used.add(best.id);
-    return best ?? null;
-  });
+  const slotted: (Player | null)[] = options.preferNaturalPositions
+    ? seatByPositionScore(ranked, slots.map(slot => slot.pos), effectiveRating, used)
+    : slots.map(slot => {
+      const best = ranked.find(p => !used.has(p.id) && canPlayPosition(p, slot.pos));
+      if (best) used.add(best.id);
+      return best ?? null;
+    });
 
   // Pass 2: backfill any slot with no natural fit (e.g. a 5-3-2 with only four
   // defenders) using the best remaining available player, IN PLACE so slot
   // alignment is preserved. Without this a club could kick off with 10.
-  const fillers = players
-    .filter(p => !used.has(p.id) && isAvailable(p))
-    .sort((a, b) => effectiveRating(b) - effectiveRating(a));
+  const fillers = ranked.filter(p => !used.has(p.id));
   let fillerIdx = 0;
   for (let i = 0; i < slotted.length && fillerIdx < fillers.length; i++) {
     if (slotted[i]) continue;
@@ -653,9 +718,8 @@ export function selectBestLineup(players: Player[], formation: FormationType, cu
 
   const selected = slotted.filter(Boolean) as Player[];
 
-  const subs = players
-    .filter(p => !used.has(p.id) && isAvailable(p))
-    .sort((a, b) => effectiveRating(b) - effectiveRating(a))
+  const subs = ranked
+    .filter(p => !used.has(p.id))
     .slice(0, MAX_SUBS);
 
   return { lineup: selected, subs };

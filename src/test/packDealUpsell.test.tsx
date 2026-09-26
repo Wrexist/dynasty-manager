@@ -40,3 +40,24 @@ it('contains keyboard focus, locks scroll, and supports Escape and explicit dism
   unmount();
   expect(document.body.style.overflow).not.toBe('hidden');
 });
+
+// Playthrough 2026-09 (R15). Recorded as "closes only via X / Maybe later, not
+// the backdrop" — the harness actually clicked (195, 420), inside the sheet
+// (its top edge sits near y=310 at 390x844), so Chromium was right not to
+// close it. The backdrop does close; these pin that, and the iOS affordance.
+it('a backdrop tap closes the offer; a tap inside the sheet does not', () => {
+  const close = vi.fn();
+  render(<PackDealUpsell deals={[deal]} onClose={close} onView={vi.fn()} />);
+  fireEvent.click(screen.getByText('Boost your squad.'));
+  fireEvent.click(screen.getByRole('dialog'));
+  expect(close).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByTestId('pack-deal-backdrop'));
+  expect(close).toHaveBeenCalledOnce();
+});
+
+it('the backdrop is marked clickable, so iOS WebKit delivers the tap to the delegated listener', () => {
+  render(<PackDealUpsell deals={[deal]} onClose={vi.fn()} onView={vi.fn()} />);
+  expect(screen.getByTestId('pack-deal-backdrop').className).toContain('cursor-pointer');
+  // …and the sheet itself is not.
+  expect(screen.getByRole('dialog').className).toContain('cursor-auto');
+});

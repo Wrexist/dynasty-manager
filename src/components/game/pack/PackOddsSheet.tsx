@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, ShieldCheck, Info } from 'lucide-react';
 import type { PackTierDefinition } from '@/types/game';
@@ -10,6 +10,7 @@ import {
   PACK_PITY_MIN_OVR,
   PACK_STREAK_BANDS,
   packLegendChance,
+  packRarityLegend,
 } from '@/config/packs';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
@@ -179,25 +180,38 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
 
         {/* What you get — the outcomes that are not probabilities at all. */}
         <div className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 mb-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-1.5">
+          <h3 className="text-micro font-semibold uppercase tracking-widest text-primary mb-1.5">
             What you get
           </h3>
           <div className="flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-px" />
             <div className="space-y-1 text-xs text-foreground">
-              <p>
+              {/* The standard pack first, in the same terms as the blurb above
+                  and the storefront card; a limited bonus is its own line. The
+                  box used to fold both into "4 cards are guaranteed 84+" under
+                  a blurb that says "one card guaranteed 84 or better"
+                  (playthrough 2026-09, R11). */}
+              <p data-testid="pack-guide-standard">
+                {bonusCards > 0 && <span className="font-semibold">Standard pack: </span>}
                 <span className="font-semibold tabular-nums">
-                  {totalCards} player{totalCards === 1 ? '' : 's'}.
+                  {tier.cards} player{tier.cards === 1 ? '' : 's'}.
                 </span>{' '}
                 <span className="font-semibold">
-                  {guaranteed === 1
-                    ? `1 card is guaranteed ${tier.guaranteedMinOvr}+ OVR.`
-                    : `${guaranteed} cards are guaranteed ${tier.guaranteedMinOvr}+ OVR.`}
+                  {tier.cards === 1
+                    ? `Guaranteed ${tier.guaranteedMinOvr}+ OVR.`
+                    : `1 card is guaranteed ${tier.guaranteedMinOvr}+ OVR.`}
                 </span>{' '}
                 {random === 0
                   ? ''
                   : `${random === 1 ? 'The other card rolls' : `The other ${random} roll`} at the rates below.`}
               </p>
+              {bonusCards > 0 && (
+                <p data-testid="pack-guide-bonus">
+                  <span className="font-semibold">Limited-time bonus: </span>
+                  +{bonusCards} extra card{bonusCards === 1 ? '' : 's'}, {bonusCards === 1 ? 'guaranteed' : 'each guaranteed'} {tier.guaranteedMinOvr}+ OVR
+                  {' '}— {totalCards} players and {guaranteed} guaranteed {tier.guaranteedMinOvr}+ in this open.
+                </p>
+              )}
               {versionBoost > 0 && (
                 <p className="text-foreground/90">
                   Every card is a {versionName} version: +{versionBoost} to every stat and overall
@@ -215,13 +229,15 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
           <GlassPanel className="px-3 py-2.5 mb-3 text-xs">
             <div className="flex items-center justify-between gap-3">
               <span className="text-foreground/90">
-                The guaranteed card is a <span className="font-semibold text-foreground">Hall of Legends</span> icon —
+                Chance the standard pack&apos;s guaranteed card is a{' '}
+                <span className="font-semibold text-foreground">Hall of Legends</span> icon instead —
                 a retired great at his career peak, no version boost needed.
               </span>
               <span className="tabular-nums font-semibold text-foreground shrink-0">{pct(legendChance)}</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
               Drawn from the hall&apos;s founding class and the greats who have retired in your own save.
+              {bonusCards > 0 && ` Bonus cards are never icons: they always come from the ${tier.guaranteedMinOvr}–${tier.ovrMax} OVR range.`}
             </p>
           </GlassPanel>
         )}
@@ -240,14 +256,17 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
           </div>
         )}
 
-        {tier.cards + bonusCards === 1 ? (
+        {random === 0 ? (
           /* A one-card pack IS its guaranteed slot: the filler loop that rolls
              the rarity table never executes, so publishing weight percentages
              would disclose a roll that never happens (audit finding — the
              Legends table said 45/55 while the card draws uniformly across the
-             band from whichever real players live there). One honest row. */
+             band from whichever real players live there). One honest row.
+             Keyed on the generator's model (no rarity-rolled cards), not on the
+             card count: bonus cards also roll in the band, so a bonus on a
+             one-card pack used to flip this sheet back to the rarity table. */
           <div className="text-xs">
-            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground pb-1.5">
+            <div className="flex items-center justify-between text-micro uppercase tracking-widest text-muted-foreground pb-1.5">
               <span className="font-semibold">Rating</span>
               <span className="font-semibold">Chance</span>
             </div>
@@ -275,20 +294,45 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
         <table className="w-full text-xs">
           <caption className="sr-only">Per-card drop rates for the {tier.label}</caption>
           <thead>
-            <tr className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr className="text-micro uppercase tracking-widest text-muted-foreground">
               <th scope="col" className="text-left font-semibold pb-1.5">Rarity</th>
               <th scope="col" className="text-right font-semibold pb-1.5">Chance per card</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(row => (
-              <tr key={row.label} className="border-t border-border/40">
-                <td className="py-2 text-foreground/90">{row.label}</td>
-                <td className="py-2 text-right tabular-nums font-semibold text-foreground">{pct(row.chance)}</td>
-              </tr>
-            ))}
+            {rows.map(row => {
+              // The rarity's own band leads, identical in every pack; the part
+              // of it this pack can deal follows only when it is narrower.
+              const own = `${row.rarityMinOvr}–${row.rarityMaxOvr}`;
+              const here = row.minOvr === row.maxOvr ? `${row.minOvr}` : `${row.minOvr}–${row.maxOvr}`;
+              const narrower = row.minOvr !== row.rarityMinOvr || row.maxOvr !== row.rarityMaxOvr;
+              return (
+                <tr key={row.label} className="border-t border-border/40">
+                  <td className="py-2 text-foreground/90">
+                    <span className="block tabular-nums">{`${row.rarityName} (${own} OVR)`}</span>
+                    {narrower && (
+                      <span className="block text-[11px] text-muted-foreground tabular-nums">This pack deals {here} OVR</span>
+                    )}
+                  </td>
+                  <td className="py-2 text-right tabular-nums font-semibold text-foreground align-top">{pct(row.chance)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        )}
+        {random > 0 && (
+          <p className="mt-1 text-[11px] text-muted-foreground" data-testid="pack-guide-rarity-key">
+            Rarity names mean the same range in every pack:{' '}
+            {packRarityLegend().map((r, i, all) => (
+              // One unbreakable unit per rung ("45–\n59" split a range in
+              // two); the space between rungs stays outside it, breakable.
+              <Fragment key={r.rarity}>
+                <span className="whitespace-nowrap">{`${r.name} ${r.minOvr}–${r.maxOvr}`}{i < all.length - 1 ? ' ·' : '.'}</span>
+                {i < all.length - 1 ? ' ' : ''}
+              </Fragment>
+            ))}
+          </p>
         )}
 
         {/* Streak ladder — only the Daily Pack has one. Shown as what today's
@@ -296,7 +340,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose, 
             visible promise rather than a surprise. */}
         {ladder && ladder.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+            <h3 className="text-micro font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
               Streak ladder
             </h3>
             <ul className="space-y-1">

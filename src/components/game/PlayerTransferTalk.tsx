@@ -69,7 +69,7 @@ export function PlayerTransferTalk() {
           </div>
           <div>
             <p className="text-xs font-bold text-orange-400 uppercase tracking-wide">Transfer Request</p>
-            <p className="text-[10px] text-muted-foreground">{pendingTransferTalk.playerName}</p>
+            <p className="text-micro text-muted-foreground">{pendingTransferTalk.playerName}</p>
           </div>
         </div>
         <button
@@ -89,7 +89,7 @@ export function PlayerTransferTalk() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{player.firstName} {player.lastName}</p>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 text-micro text-muted-foreground">
               <span>{player.position}</span>
               <span>Age {player.age}</span>
               <span className={cn(
@@ -135,11 +135,11 @@ export function PlayerTransferTalk() {
                 <p className="text-xs text-muted-foreground leading-relaxed">{option.text}</p>
               </div>
               <div className="flex flex-col items-end gap-0.5 shrink-0">
-                {option.effects.morale && option.effects.morale > 0 && <span className="text-[9px] text-emerald-400">Morale +{option.effects.morale}</span>}
-                {option.effects.morale && option.effects.morale < 0 && <span className="text-[9px] text-destructive">Morale {option.effects.morale}</span>}
-                {option.effects.teamMorale && option.effects.teamMorale < 0 && <span className="text-[9px] text-destructive">Team {option.effects.teamMorale}</span>}
-                {option.effects.listForSale && <span className="text-[9px] text-amber-400">Lists player</span>}
-                {option.effects.withdrawChance && <span className="text-[9px] text-emerald-400 font-bold">{Math.round(option.effects.withdrawChance * 100)}% chance</span>}
+                {option.effects.morale && option.effects.morale > 0 && <span className="text-micro text-emerald-400">Morale +{option.effects.morale}</span>}
+                {option.effects.morale && option.effects.morale < 0 && <span className="text-micro text-destructive">Morale {option.effects.morale}</span>}
+                {option.effects.teamMorale && option.effects.teamMorale < 0 && <span className="text-micro text-destructive">Team {option.effects.teamMorale}</span>}
+                {option.effects.listForSale && <span className="text-micro text-amber-400">Lists player</span>}
+                {option.effects.withdrawChance && <span className="text-micro text-emerald-400 font-bold">{Math.round(option.effects.withdrawChance * 100)}% chance</span>}
               </div>
             </div>
           </motion.button>

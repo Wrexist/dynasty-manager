@@ -79,7 +79,7 @@ export function FacilityCard({
             <span className={cn('text-lg font-bold tabular-nums', isMax ? 'text-amber-400' : 'text-foreground')}>
               {level}
             </span>
-            <span className="text-[9px] text-muted-foreground leading-none">/ {FACILITY_MAX_LEVEL}</span>
+            <span className="text-micro text-muted-foreground leading-none">/ {FACILITY_MAX_LEVEL}</span>
           </div>
         </div>
 
@@ -91,20 +91,20 @@ export function FacilityCard({
             </div>
             <h3 className="text-sm font-semibold text-foreground truncate">{label}</h3>
           </div>
-          <p className="text-[10px] text-muted-foreground mb-2">{benefit}</p>
+          <p className="text-micro text-muted-foreground mb-2">{benefit}</p>
 
           {/* Milestones */}
           <div className="space-y-1 mb-2">
             {reachedMilestones.slice(-2).map(m => (
               <div key={m.level} className="flex items-center gap-1.5">
                 <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                <span className="text-[10px] text-emerald-400/80 truncate">{m.label}</span>
+                <span className="text-micro text-emerald-400/80 truncate">{m.label}</span>
               </div>
             ))}
             {nextMilestone && (
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full border border-muted-foreground/40 shrink-0" />
-                <span className="text-[10px] text-muted-foreground truncate">Lv.{nextMilestone.level}: {nextMilestone.label}</span>
+                <span className="text-micro text-muted-foreground truncate">Lv.{nextMilestone.level}: {nextMilestone.label}</span>
               </div>
             )}
           </div>
@@ -123,7 +123,7 @@ export function FacilityCard({
               />
             </div>
           </div>
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{upgradeWeeks}w left</span>
+          <span className="text-micro text-muted-foreground whitespace-nowrap">{upgradeWeeks}w left</span>
         </div>
       )}
       {upgradeProgress === null && !isMax && (
@@ -146,7 +146,7 @@ export function FacilityCard({
         <p className="text-center text-xs text-amber-400 font-semibold mt-3">Max Level</p>
       )}
       {!canUpgrade && upgradeProgress === null && !isMax && upgradeInProgress && (
-        <p className="text-[10px] text-muted-foreground text-center mt-1">Another upgrade in progress</p>
+        <p className="text-micro text-muted-foreground text-center mt-1">Another upgrade in progress</p>
       )}
     </GlassPanel>
   );

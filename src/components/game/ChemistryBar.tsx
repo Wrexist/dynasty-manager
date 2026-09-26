@@ -14,7 +14,7 @@ export function ChemistryBar({ bonus, label, labelColor }: ChemistryBarProps) {
   return (
     <div className="flex items-center gap-2 px-1">
       <Users className="w-3 h-3 text-muted-foreground shrink-0" />
-      <span className="text-[9px] text-muted-foreground shrink-0">Chemistry</span>
+      <span className="text-micro text-muted-foreground shrink-0">Chemistry</span>
       <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
         <div
           className={cn(
@@ -27,8 +27,8 @@ export function ChemistryBar({ bonus, label, labelColor }: ChemistryBarProps) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={cn('text-[9px] font-bold shrink-0', labelColor)}>{label}</span>
-      <span className="text-[8px] text-muted-foreground tabular-nums shrink-0">
+      <span className={cn('text-micro font-bold shrink-0', labelColor)}>{label}</span>
+      <span className="text-micro text-muted-foreground tabular-nums shrink-0">
         +{(bonus * 100).toFixed(1)}%
       </span>
     </div>

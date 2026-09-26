@@ -1,4 +1,4 @@
-import type { Message, Club, VirtualClub } from '@/types/game';
+import type { Message, Club, VirtualClub, Player } from '@/types/game';
 import { MAX_MESSAGES } from '@/config/gameBalance';
 
 export const pick = <T>(arr: T[]): T => {
@@ -32,6 +32,17 @@ export const clamp = (v: number, min = 1, max = 99) => Math.max(min, Math.min(ma
 
 export const clamp100 = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
+/**
+ * True when the player is out on loan AWAY from `clubId` and so cannot play
+ * for it. `onLoan` alone is not that: every loan moves the player into the
+ * BORROWER's squad (`clubId === loanToClubId`) with `onLoan` still set, so
+ * treating the flag as "unavailable" meant a loanee could never play for the
+ * club that borrowed him. Defaults to the club the player is registered at.
+ */
+export function isAwayOnLoan(p: Pick<Player, 'onLoan' | 'loanToClubId' | 'clubId'>, clubId: string = p.clubId): boolean {
+  return !!p.onLoan && p.loanToClubId !== clubId;
+}
+
 export function getSuffix(n: number): string {
   const lastTwo = n % 100;
   if (lastTwo >= 11 && lastTwo <= 13) return 'th';
@@ -43,8 +54,10 @@ export function getSuffix(n: number): string {
   }
 }
 
-export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'>): Message[] {
-  const newMsg: Message = { ...msg, id: safeRandomUUID(), read: false };
+/** Prepend a message (newest first), capped at MAX_MESSAGES. Unread unless the
+ *  caller marks an information-only message `read` (see INBOX_ARRIVES_READ). */
+export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'> & { read?: boolean }): Message[] {
+  const newMsg: Message = { ...msg, id: safeRandomUUID(), read: msg.read ?? false };
   const updated = [newMsg, ...messages];
   return updated.slice(0, MAX_MESSAGES);
 }

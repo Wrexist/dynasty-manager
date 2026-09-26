@@ -120,15 +120,15 @@ const HelpPage = () => {
         <div className="space-y-2">
           <button type="button" onClick={() => setScreen('squad')} className="w-full text-left rounded-lg bg-muted/25 border border-border/40 px-3 py-2 hover:bg-muted/40 transition-colors">
             <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Rocket className="w-3.5 h-3.5 text-primary" /> 1) Set lineup first</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Auto-fill, then tweak captain and bench so you are match-ready.</p>
+            <p className="text-micro text-muted-foreground mt-0.5">Auto-fill, then tweak captain and bench so you are match-ready.</p>
           </button>
           <button type="button" onClick={() => setScreen('training')} className="w-full text-left rounded-lg bg-muted/25 border border-border/40 px-3 py-2 hover:bg-muted/40 transition-colors">
             <p className="text-xs font-semibold text-foreground">2) Pick training focus</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Use Fitness for busy weeks, Attacking/Defending when targeting results.</p>
+            <p className="text-micro text-muted-foreground mt-0.5">Use Fitness for busy weeks, Attacking/Defending when targeting results.</p>
           </button>
           <button type="button" onClick={() => setScreen('dashboard')} className="w-full text-left rounded-lg bg-muted/25 border border-border/40 px-3 py-2 hover:bg-muted/40 transition-colors">
             <p className="text-xs font-semibold text-foreground">3) Advance week with confidence</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Follow Manager Tips and Checklist cards on Dashboard each week.</p>
+            <p className="text-micro text-muted-foreground mt-0.5">Follow Manager Tips and Checklist cards on Dashboard each week.</p>
           </button>
         </div>
         <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 flex gap-2">

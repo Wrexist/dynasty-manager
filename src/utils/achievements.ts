@@ -1,6 +1,7 @@
 import type { GameState } from '@/store/storeTypes';
 import { ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { LEAGUES } from '@/data/league';
+import { isManagersLeagueTitle, isManagersPromotion } from '@/utils/prestige';
 
 type AchievementTier = 'bronze' | 'silver' | 'gold';
 
@@ -54,13 +55,13 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   // ── League ──
   { id: 'league-champion', title: 'League Champion', description: 'Win the league title', icon: 'medal', tier: 'gold',
-    check: (s) => s.seasonHistory.some(h => h.position === 1) },
+    check: (s) => s.seasonHistory.some(isManagersLeagueTitle) },
   { id: 'top-3', title: 'Podium Finish', description: 'Finish in the top 3', icon: 'medal', tier: 'bronze',
     check: (s) => s.seasonHistory.some(h => h.position <= 3) },
   { id: 'back-to-back', title: 'Back to Back', description: 'Win the league two seasons in a row', icon: 'medal', tier: 'gold', hidden: true,
     check: (s) => {
       const h = s.seasonHistory;
-      return h.length >= 2 && h[h.length - 1]?.position === 1 && h[h.length - 2]?.position === 1;
+      return h.length >= 2 && isManagersLeagueTitle(h[h.length - 1]) && isManagersLeagueTitle(h[h.length - 2]);
     } },
 
   // ── Streaks ──
@@ -183,7 +184,7 @@ export const ACHIEVEMENTS: Achievement[] = [
       return h.position <= league.teamCount - dropSpots && h.boardVerdict === 'poor';
     }) },
   { id: 'promotion', title: 'Going Up!', description: 'Get promoted to a higher division', icon: 'rocket', tier: 'silver',
-    check: (s) => s.seasonHistory.some(h => h.promoted) },
+    check: (s) => s.seasonHistory.some(isManagersPromotion) },
 
   // ── Cup ──
   { id: 'cup-winner', title: 'Cup Winner', description: 'Win the Dynasty Cup', icon: 'medal', tier: 'gold',
@@ -202,7 +203,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     check: (s) => !!((s.championsCup && !s.championsCup.playerEliminated) || (s.shieldCup && !s.shieldCup.playerEliminated) || (s.conferenceCup && !s.conferenceCup.playerEliminated)) },
   { id: 'continental-treble', title: 'The Treble', description: 'Win League + Domestic Cup + Champions Cup in one season', icon: 'star', tier: 'gold', hidden: true,
     check: (s) => {
-      return s.seasonHistory.some(h => h.position === 1 && h.cupResult === 'Winner' && h.championsCupResult === 'Winner');
+      return s.seasonHistory.some(h => isManagersLeagueTitle(h) && h.cupResult === 'Winner' && h.championsCupResult === 'Winner');
     } },
 
   // ── Staff ──
@@ -275,8 +276,8 @@ export const ACHIEVEMENTS: Achievement[] = [
       return { current: won, target: 3, label: 'cups' };
     } },
   { id: 'promotions-3', title: 'Ladder Climber', description: 'Earn 3 promotions', icon: 'rocket', tier: 'gold',
-    check: (s) => s.seasonHistory.filter(h => h.promoted).length >= 3,
-    progress: (s) => ({ current: Math.min(s.seasonHistory.filter(h => h.promoted).length, 3), target: 3, label: 'promotions' }) },
+    check: (s) => s.seasonHistory.filter(isManagersPromotion).length >= 3,
+    progress: (s) => ({ current: Math.min(s.seasonHistory.filter(isManagersPromotion).length, 3), target: 3, label: 'promotions' }) },
   { id: 'dynasty-20', title: 'The Immortal', description: 'Manage for 20+ seasons', icon: 'crown', tier: 'gold', hidden: true,
     check: (s) => s.season >= 21,
     progress: (s) => ({ current: Math.min(s.season - 1, 20), target: 20, label: 'seasons' }) },
@@ -284,7 +285,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 /** League titles across the whole career (season history). */
 function countLeagueTitles(s: GameState): number {
-  return s.seasonHistory.filter(h => h.position === 1).length;
+  return s.seasonHistory.filter(isManagersLeagueTitle).length;
 }
 
 export function checkAchievements(state: GameState, unlockedIds: string[]): string[] {

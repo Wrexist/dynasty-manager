@@ -182,3 +182,75 @@ export function getFlagUrl(nationality: string, width: number = 40): string {
   if (!iso) return '';
   return `https://flagcdn.com/w${width}/${iso}.png`;
 }
+
+// ── Offline / no-emoji flag fallback ──
+//
+// Flags load from flagcdn.com. Offline, the <img> errors and FlagIcon falls
+// back to the emoji flag — which renders as an empty box on any platform whose
+// fonts have no flag glyphs (Windows, most Linux/Chromium; the 2026-09
+// playthrough saw a blank square on every non-England nation: England's
+// fallback is a black-flag tag sequence that does render). iOS and Android
+// have flag glyphs, so the emoji stays the fallback there; elsewhere the
+// nation's three-letter code is shown instead. Never a blank square.
+
+let flagEmojiSupport: boolean | null = null;
+
+/** Whether this platform draws a regional-indicator pair as a flag (colour
+ *  pixels), not as two letters or an empty box. Measured once, on first need,
+ *  on a scratch canvas; false wherever it cannot be measured. */
+export function supportsFlagEmoji(): boolean {
+  if (flagEmojiSupport !== null) return flagEmojiSupport;
+  flagEmojiSupport = measureFlagEmojiSupport();
+  return flagEmojiSupport;
+}
+
+function measureFlagEmojiSupport(): boolean {
+  if (typeof document === 'undefined') return false;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 20;
+    canvas.height = 20;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D | null;
+    if (!ctx) return false;
+    ctx.textBaseline = 'top';
+    ctx.font = '16px sans-serif';
+    ctx.fillText('\u{1F1EB}\u{1F1F7}', 0, 0); // 🇫🇷 — blue, white, red when drawn as a flag
+    const { data } = ctx.getImageData(0, 0, 20, 20);
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] > 0 && (Math.abs(data[i] - data[i + 1]) > 16 || Math.abs(data[i + 1] - data[i + 2]) > 16)) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/** Test hook: pin the measured answer (jsdom has no canvas). `null` re-measures. */
+export function __setFlagEmojiSupportForTests(value: boolean | null): void {
+  flagEmojiSupport = value;
+}
+
+/** The short text shown when neither the image nor an emoji flag can be drawn:
+ *  the nation's code ("FRA"), or the first letters of an unknown nationality. */
+export function getFlagFallbackCode(nationality: string): string {
+  return NATIONALITY_DATA[nationality]?.code
+    || nationality.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase()
+    || '?';
+}
+
+/** Flag image URLs that have already failed this session. Offline, every row
+ *  of a nation list would otherwise request (and flash) the same dead image. */
+const failedFlagUrls = new Set<string>();
+
+export function hasFlagUrlFailed(url: string): boolean {
+  return failedFlagUrls.has(url);
+}
+
+export function markFlagUrlFailed(url: string): void {
+  failedFlagUrls.add(url);
+}
+
+/** Test hook: forget remembered failures. */
+export function __resetFlagFailuresForTests(): void {
+  failedFlagUrls.clear();
+}

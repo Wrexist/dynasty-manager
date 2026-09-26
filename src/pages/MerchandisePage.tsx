@@ -109,12 +109,12 @@ const MerchandisePage = () => {
         </p>
         <div className="flex items-center gap-4 mt-2">
           <div>
-            <span className="text-[10px] text-muted-foreground">Season Total</span>
+            <span className="text-micro text-muted-foreground">Season Total</span>
             <p className="text-sm font-bold tabular-nums">{formatMoney(merchandise.currentSeasonRevenue)}</p>
           </div>
           {merchandise.lastSeasonRevenue > 0 && (
             <div>
-              <span className="text-[10px] text-muted-foreground">vs Last Season</span>
+              <span className="text-micro text-muted-foreground">vs Last Season</span>
               <div className="flex items-center gap-1">
                 {seasonChange >= 0
                   ? <TrendingUp className="w-3 h-3 text-emerald-400" />
@@ -154,11 +154,11 @@ const MerchandisePage = () => {
                   style={{ width: `${((merchandise.activeCampaign.totalWeeks - merchandise.activeCampaign.weeksRemaining) / merchandise.activeCampaign.totalWeeks) * 100}%` }}
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground tabular-nums">
+              <span className="text-micro text-muted-foreground tabular-nums">
                 {merchandise.activeCampaign.weeksRemaining}w left
               </span>
             </div>
-            <span className="text-[10px] text-emerald-400 font-semibold">
+            <span className="text-micro text-emerald-400 font-semibold">
               +{Math.round(merchandise.activeCampaign.revenueBoost * 100)}% revenue boost
             </span>
           </div>
@@ -219,9 +219,9 @@ const MerchandisePage = () => {
                   style={{ width: `${((merchandise.signatureDrop.totalWeeks - merchandise.signatureDrop.weeksRemaining) / merchandise.signatureDrop.totalWeeks) * 100}%` }}
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground tabular-nums">{merchandise.signatureDrop.weeksRemaining}w left</span>
+              <span className="text-micro text-muted-foreground tabular-nums">{merchandise.signatureDrop.weeksRemaining}w left</span>
             </div>
-            <span className="text-[10px] text-amber-300 font-semibold tabular-nums">
+            <span className="text-micro text-amber-300 font-semibold tabular-nums">
               +{formatMoney(merchandise.signatureDrop.weeklyBonus)}/wk
             </span>
           </div>
@@ -264,7 +264,7 @@ const MerchandisePage = () => {
                   <p className={cn('text-sm font-semibold', isActive ? 'text-foreground' : 'text-muted-foreground')}>
                     {def.label}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     {unlocked
                       ? `${def.baseRevenueFactor}× revenue · ${formatMoney(def.weeklyOperatingCost)}/wk`
                       : getUnlockText(line)
@@ -307,7 +307,7 @@ const MerchandisePage = () => {
                 </p>
                 <p className="text-lg font-black tabular-nums mt-0.5">{def.revenueMultiplier}×</p>
                 <p className={cn(
-                  'text-[10px] font-semibold mt-1',
+                  'text-micro font-semibold mt-1',
                   def.fanMoodImpact > 0 ? 'text-emerald-400' : def.fanMoodImpact < 0 ? 'text-amber-400' : 'text-muted-foreground',
                 )}>
                   {def.fanMoodImpact > 0 ? `+${def.fanMoodImpact}` : def.fanMoodImpact} mood/wk
@@ -324,7 +324,7 @@ const MerchandisePage = () => {
           <Zap className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Campaigns</span>
           {merchandise.campaignCooldownWeeks > 0 && (
-            <span className="ml-auto flex items-center gap-1 text-[10px] text-amber-400 font-medium">
+            <span className="ml-auto flex items-center gap-1 text-micro text-amber-400 font-medium">
               <Clock className="w-3 h-3" /> Cooldown: {merchandise.campaignCooldownWeeks}w
             </span>
           )}
@@ -358,12 +358,12 @@ const MerchandisePage = () => {
                 >
                   <p className="text-xs font-bold text-foreground leading-tight">{def.label}</p>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-[10px] text-emerald-400 font-semibold">+{Math.round(def.revenueBoost * 100)}%</span>
-                    <span className="text-[10px] text-muted-foreground">{def.durationWeeks}w</span>
+                    <span className="text-micro text-emerald-400 font-semibold">+{Math.round(def.revenueBoost * 100)}%</span>
+                    <span className="text-micro text-muted-foreground">{def.durationWeeks}w</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">{formatMoney(def.setupCost)} setup</p>
+                  <p className="text-micro text-muted-foreground mt-1">{formatMoney(def.setupCost)} setup</p>
                   {!check.eligible && check.reason && (
-                    <p className="text-[9px] text-destructive/70 mt-1 leading-tight">{check.reason}</p>
+                    <p className="text-micro text-destructive/70 mt-1 leading-tight">{check.reason}</p>
                   )}
                 </button>
               );
@@ -378,7 +378,7 @@ const MerchandisePage = () => {
           <Star className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Star Player Merch</span>
         </div>
-        <p className="text-[10px] text-muted-foreground mb-3">
+        <p className="text-micro text-muted-foreground mb-3">
           Drop a {SIGNATURE_DROP_WEEKS}-week signature line for £{Math.round(SIGNATURE_DROP_COST / 1000)}K to spike weekly revenue.
         </p>
         {starPlayers.length === 0 ? (
@@ -409,13 +409,13 @@ const MerchandisePage = () => {
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{sp.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-micro text-muted-foreground">
                         {player.position} · OVR {player.overall} · {player.goals}G {player.assists}A
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xs font-bold text-primary tabular-nums">{formatMoney(sp.merchBonus)}/wk</p>
-                      <p className="text-[10px] text-muted-foreground">Score: {sp.marketability}</p>
+                      <p className="text-micro text-muted-foreground">Score: {sp.marketability}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                   </button>
@@ -429,7 +429,7 @@ const MerchandisePage = () => {
                     }}
                     disabled={!canDrop}
                     className={cn(
-                      'mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all min-h-[36px]',
+                      'mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-micro font-bold uppercase tracking-wider transition-all min-h-[36px]',
                       canDrop
                         ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 active:scale-[0.97]'
                         : 'bg-muted/20 text-muted-foreground/60 cursor-not-allowed',

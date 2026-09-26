@@ -16,6 +16,7 @@ import {
 } from '@/config/gameBalance';
 import { getMatchdayIncome, getCommercialIncome, getLeaguePositionPrize } from '@/utils/financeHelpers';
 import { LEAGUES } from '@/data/league';
+import { getAIStyleTactics } from '@/config/aiManager';
 import {
   AI_INCOME_MULTIPLIER, AI_STAFF_COST_PER_REP,
   AI_MAX_WAGE_TO_INCOME_RATIO, AI_EMERGENCY_SELL_WAGE_RATIO,
@@ -40,6 +41,7 @@ import {
   AI_TRANSFER_PRESEASON_MULTIPLIER,
 } from '@/config/aiSimulation';
 import { TOTAL_WEEKS } from '@/config/gameBalance';
+import { INBOX_AI_TRANSFER_ROUNDUP, INBOX_ARRIVES_READ, INBOX_ROUNDUP_MAX_LINES } from '@/config/gameBalance';
 import { PRE_SEASON_END } from '@/config/transfers';
 import { detachPlayerFromAllClubs } from '@/store/helpers/rosterOps';
 
@@ -252,7 +254,7 @@ function processAIContractRenewals(
   playerClubId: string,
 ): { clubs: Record<string, Club>; players: Record<string, Player> } {
   const updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
 
   for (const clubId of Object.keys(updClubs)) {
     if (clubId === playerClubId) continue;
@@ -315,7 +317,7 @@ function processAIListings(
   week: number,
   season: number,
 ): { clubs: Record<string, Club>; players: Record<string, Player>; transferMarket: TransferListing[] } {
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   const updMarket = [...transferMarket];
   const listedPlayerIds = new Set(updMarket.map(l => l.playerId));
 
@@ -369,7 +371,7 @@ function processAIBuying(
   transferNews: TransferNewsEntry[];
 } {
   let updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   let updMarket = [...transferMarket];
   let updMessages = messages;
   const updNews = [...transferNews];
@@ -592,7 +594,7 @@ function processAILoans(
   transferNews: TransferNewsEntry[];
 } {
   let updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   const updLoans = [...activeLoans];
   let updMessages = messages;
   const updNews = [...transferNews];
@@ -717,7 +719,7 @@ function processAIFreeAgents(
   transferNews: TransferNewsEntry[];
 } {
   let updClubs = { ...clubs };
-  const updPlayers = { ...players };
+  const updPlayers = players; // processAIWeekly's working copy — see there
   let updFreeAgents = [...freeAgents];
   const updNews = [...transferNews];
 
@@ -804,8 +806,10 @@ function processAIFreeAgents(
 const MENTALITY_OPTIONS: Mentality[] = ['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'];
 const FORMATION_OPTIONS: FormationType[] = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '4-1-4-1', '5-3-2'];
 
-/** AI clubs adapt tactics based on recent form — losing streaks trigger formation/mentality changes */
-function processAITacticalAdaptation(
+/** AI clubs adapt tactics based on recent form — losing streaks trigger
+ *  formation/mentality changes, winning streaks embolden, and once the streak
+ *  is over the manager drifts back toward his own style. */
+export function processAITacticalAdaptation(
   clubs: Record<string, Club>,
   divisionTables: Record<LeagueId, LeagueTableEntry[]>,
   playerClubId: string,
@@ -868,6 +872,26 @@ function processAITacticalAdaptation(
           },
         };
       }
+    } else {
+      // No streak either way: drift one step back toward the manager's own
+      // style. Without this the adaptation was a one-way ratchet — three
+      // defeats ALWAYS stepped the mentality down, two in three did so 30% of
+      // the time, three wins stepped it up only 20% of the time, and nothing
+      // ever undid either. Measured on a real save (Arsenal, community pack,
+      // seeded) the world's `defensive` managers went 54 at kickoff -> 97 ->
+      // 113 -> 120 of 168 over three seasons, and league scoring fell with them
+      // (audit S6 — mutual caution is the engine's lowest-scoring matchup).
+      const baseIdx = MENTALITY_OPTIONS.indexOf(getAIStyleTactics(profile.style).mentality);
+      const currentIdx = MENTALITY_OPTIONS.indexOf(profile.defaultTactics.mentality as Mentality);
+      if (baseIdx >= 0 && currentIdx >= 0 && currentIdx !== baseIdx) {
+        updClubs[clubId] = {
+          ...club,
+          aiManagerProfile: {
+            ...profile,
+            defaultTactics: { ...profile.defaultTactics, mentality: MENTALITY_OPTIONS[currentIdx + (baseIdx > currentIdx ? 1 : -1)] },
+          },
+        };
+      }
     }
   }
 
@@ -895,7 +919,15 @@ export function processAIWeekly(
   let updClubs = processAIIncome(clubs, playerClubId, divisionTables);
 
   // 2. Contract Renewals — every week
-  const renewResult = processAIContractRenewals(updClubs, players, season, playerClubId);
+  //
+  // ONE working copy of the player map for the whole AI week. Every stage below
+  // used to spread the full record again on entry — five copies of a
+  // ~5,000-entry map per window week, ~2 ms each on desktop Node before GC. Each
+  // stage reads and writes players only through the map it is handed, and runs
+  // strictly after the previous one, so they can share this copy; the caller's
+  // `players` is never mutated.
+  const workingPlayers = { ...players };
+  const renewResult = processAIContractRenewals(updClubs, workingPlayers, season, playerClubId);
   updClubs = renewResult.clubs;
   let updPlayers = renewResult.players;
   let updMessages = messages;
@@ -905,6 +937,9 @@ export function processAIWeekly(
   let updNews = [...transferNews];
 
   // 3. Transfer Window activities
+  // Messages already in the inbox before the AI's moves, so the moves' own
+  // messages can be folded into one round-up below (R18).
+  const messagesBeforeMoves = new Set(updMessages.map(m => m.id));
   if (transferWindowOpen) {
     // 3a. AI clubs list players for sale
     const listingResult = processAIListings(updClubs, updPlayers, updMarket, playerClubId, week, season);
@@ -926,6 +961,26 @@ export function processAIWeekly(
     updLoans = loanResult.activeLoans;
     updMessages = loanResult.messages;
     updNews = loanResult.transferNews;
+  }
+
+  // One round-up for the week's AI-to-AI moves instead of one message each:
+  // they were a third of the unread inbox after seven weeks (R18). Every move
+  // is still listed in the Transfers news feed.
+  if (INBOX_AI_TRANSFER_ROUNDUP) {
+    const moves = updMessages.filter(m => !messagesBeforeMoves.has(m.id));
+    if (moves.length > 1) {
+      const kept = updMessages.filter(m => messagesBeforeMoves.has(m.id));
+      const listed = moves.slice(0, INBOX_ROUNDUP_MAX_LINES).map(m => m.title);
+      const more = moves.length - listed.length;
+      updMessages = addMsg(kept, {
+        week, season, type: 'transfer',
+        title: `Transfer round-up: ${moves.length} moves`,
+        body: `${listed.join('\n')}${more > 0 ? `\n…and ${more} more.` : ''}\n\nEvery move is listed under Transfers.`,
+        read: INBOX_ARRIVES_READ.aiTransferRoundup,
+      });
+    } else if (moves.length === 1) {
+      updMessages = updMessages.map(m => (m.id === moves[0].id ? { ...m, read: INBOX_ARRIVES_READ.aiTransferRoundup } : m));
+    }
   }
 
   // 4. Free Agent signings — any time

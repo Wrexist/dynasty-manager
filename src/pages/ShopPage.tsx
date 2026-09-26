@@ -3,20 +3,24 @@ import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PurchaseModal } from '@/components/game/PurchaseModal';
-import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
+import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
-import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
+import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, hasRecurringSubscription, formatPerPeriodPrice, getFreeTrialDaysRemaining } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
-import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
+import { openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
+import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
+import { probePaywallTrials } from '@/utils/trialOffer';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { Capacitor } from '@capacitor/core';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -29,6 +33,7 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
   instant_sim: Timer,
   optimize_lineup: Zap,
   pro_badge: Crown,
+  manager_pass_pro: Ticket,
 };
 
 /** Render order for the subscription cards — Yearly first, Monthly last.
@@ -79,16 +84,20 @@ const COSMETIC_PACK_IDS: ProductId[] = [
 
 const ShopPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const monetization = useGameStore(s => s.monetization);
-  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const setCosmetic = useGameStore(s => s.setCosmetic);
   const clearCosmetic = useGameStore(s => s.clearCosmetic);
   const [purchaseProduct, setPurchaseProduct] = useState<ProductId | null>(null);
   const [restoring, setRestoring] = useState(false);
   const userIsPro = isPro(monetization);
-  const hasActiveSub = isSubscriptionActive(monetization);
-  const onMonthlyPlan = monetization.subscription?.tier === 'monthly';
+  // A store subscription to show and manage — NOT a Lifetime record sitting in
+  // the subscription slot (that is Pro with nothing to renew or cancel).
+  const hasActiveSub = hasRecurringSubscription(monetization);
+  // "Switch to Annual … vs your current monthly plan" only for a LIVE Monthly
+  // plan: a lapsed Monthly record (the store now reports lapses, so a fresh
+  // install of a former subscriber has one) is no current plan.
+  const onMonthlyPlan = hasActiveSub && monetization.subscription?.tier === 'monthly';
   const starterKitAvailable = isStarterKitAvailable(monetization);
 
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
@@ -113,6 +122,20 @@ const ShopPage = () => {
   // When the store hasn't answered, the claims are suppressed rather than
   // guessed.
   const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
+  const [storeCurrency, setStoreCurrency] = useState<string | undefined>(undefined);
+  // Free trial per subscription plan, ONLY where the store confirms both the
+  // intro offer and this Apple ID's eligibility — the paywall's own rule. The
+  // Shop used to sell both plans without ever naming the free week each one
+  // carries, so a player who came here instead of the paywall bought blind.
+  // A subscription record on this install means the offer is spent: no probe.
+  const locallyTrialEligible = monetization.subscription == null;
+  const [trials, setTrials] = useState<Partial<Record<ProductId, number>>>({});
+  useEffect(() => {
+    if (!locallyTrialEligible) { setTrials({}); return; }
+    let cancelled = false;
+    probePaywallTrials().then(found => { if (!cancelled) setTrials(found); });
+    return () => { cancelled = true; };
+  }, [locallyTrialEligible]);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,10 +144,11 @@ const ShopPage = () => {
     // RevenueCat offering) drags down the batch and can blank the one-time
     // catalog that IS configured.
     getStoreAvailability(SHOP_PROBE_IDS)
-      .then(({ supported, available, prices, amounts }) => {
+      .then(({ supported, available, prices, amounts, currencyCode }) => {
         if (cancelled) return;
         setStorePrices(prices);
         setStoreAmounts(amounts || {});
+        setStoreCurrency(currencyCode);
         // `supported` false means off-device / plugin absent — not a store
         // verdict, so keep the full catalog visible for web + dev testing.
         // When the store IS supported we trust its answer even if it is empty:
@@ -175,41 +199,22 @@ const ShopPage = () => {
   const annualAmount = amountFor('com.dynastymanager.pro.yearly');
   const annualSavingsPct = savingsPct(monthlyAmount != null ? monthlyAmount * 12 : null, annualAmount);
 
-  /** Format a derived per-period amount in the storefront's own formatting by
-   *  reusing the store's price string shape. Falls back to null (caller omits
-   *  the line) when we have no localized string to model. */
-  const perPeriod = (id: ProductId, divisor: number): string | null => {
-    const amount = amountFor(id);
-    if (amount == null) return null;
-    const localized = storePrices[id];
-    const value = amount / divisor;
-    if (!localized) return `$${value.toFixed(2)}`;
-    // Swap the numeric portion of the store's own localized string so the
-    // currency symbol, placement and separators stay correct for the storefront.
-    const numeric = localized.match(/[\d.,]+/);
-    if (!numeric) return null;
-    return localized.replace(numeric[0], value.toFixed(2));
-  };
-
   /** Display price — store-localised when available, USD config price otherwise. */
   const priceFor = (productId: ProductId) =>
     storePrices[productId] || formatPrice(PRODUCTS[productId].priceUsd);
 
+  /** A derived per-period amount in the storefront's currency, written in the
+   *  shape of the product's own price string (so "$24.99" pairs with "$2.08",
+   *  not the device locale's "US$2.08"). Splicing `toFixed(2)` into the store's
+   *  price string rendered "2.08 €" and "¥250.00". USD only when the store has
+   *  not answered at all (web/dev), the same rule as `amountFor`; on device, no
+   *  currency code omits the line. */
+  const perPeriod = (id: ProductId, divisor: number): string | null =>
+    formatPerPeriodPrice(amountFor(id), divisor, storeCurrency ?? (storeAnswered ? undefined : 'USD'), undefined, priceFor(id));
+
   const handlePurchase = (productId: ProductId) => {
     setPurchaseError(null);
     setPurchaseProduct(productId);
-  };
-
-  /** Sync entitlements + subscription from RevenueCat after a purchase or restore */
-  const syncAfterPurchase = async () => {
-    const ids = await getEntitlements();
-    if (ids.length > 0) restoreEntitlements(ids);
-    const info = await getCustomerInfo();
-    // Only write a confirmed, non-null subscription — a transient/empty
-    // customerInfo must never clear an active sub (isSubscriptionActive handles
-    // real expiry via expiresAt). See purchases.extractSubscriptionInfo.
-    const sub = extractSubscriptionInfo(info);
-    if (sub) updateSubscription(sub);
   };
 
   const handleConfirmPurchase = async () => {
@@ -222,36 +227,48 @@ const ShopPage = () => {
     // must not inflate the initiated denominator.
     track('purchase_initiated', { productId, surface: 'shop' });
     try {
-      const result = await purchaseViaSDK(productId);
-      // Only an explicit cancel means no charge. A completed purchase with an
-      // empty granted list (entitlement-mapping lag) still proceeds to the
-      // sync below, which re-reads entitlements from RevenueCat.
-      if (result.cancelled) {
+      // Same path as the paywall (utils/purchaseSync): grant, re-sync, and on
+      // a throw re-read the store before calling it a failure — the SDK can
+      // throw after the charge, and this page used to report exactly that
+      // case as "could not be confirmed" even when the re-sync found it.
+      const trialDays = trials[productId];
+      const outcome = await purchaseAndSync(productId, { trialDays });
+      if (outcome.status === 'cancelled') {
         track('purchase_cancelled', { productId, surface: 'shop' });
         infoToast('Purchase Cancelled', 'No charge was made.');
         setPurchaseProduct(null);
         return;
       }
-      restoreEntitlements(result.granted);
-      await syncAfterPurchase();
+      if (outcome.status === 'pending') {
+        // Ask to Buy — nothing charged yet; the entitlement listener grants it
+        // if approved. Not a failure, so no error banner.
+        infoToast(t('iap.pendingTitle'), t('iap.pendingBody'));
+        setPurchaseProduct(null);
+        return;
+      }
+      if (outcome.status === 'failed') {
+        addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
+        Sentry.captureException(outcome.error, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
+        track('purchase_failed', { productId, surface: 'shop' });
+        setPurchaseError(
+          'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
+        );
+        return;
+      }
       hapticMedium();
       track('purchase_completed', { productId, surface: 'shop' });
-      successToast('Purchase complete!');
+      if (outcome.isTrial) {
+        // What the store recorded, not what the card advertised.
+        track('trial_started', { productId, surface: 'shop' });
+        const product = PRODUCTS[productId];
+        successToast(
+          t('iap.trialStartedTitle', { days: trialDays ?? getFreeTrialDaysRemaining(useGameStore.getState().monetization) }),
+          t('iap.trialStartedBody', { price: `${priceFor(productId)}${product.billingPeriod || ''}` }),
+        );
+      } else {
+        successToast('Purchase complete!');
+      }
       setPurchaseProduct(null);
-    } catch (err) {
-      // The throw could come from before OR after the App Store charge —
-      // RevenueCat's SDK doesn't always distinguish receipt-validation
-      // failures from network errors. Defensive recovery: attempt a
-      // post-failure sync so a successful charge gets picked up on the
-      // next entitlement read (RevenueCat re-fetches receipt). Capture
-      // the actual error to Sentry so we can triage real-money issues.
-      addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
-      Sentry.captureException(err, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
-      try { await syncAfterPurchase(); } catch { /* second-stage sync best-effort */ }
-      track('purchase_failed', { productId, surface: 'shop' });
-      setPurchaseError(
-        'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
-      );
     } finally {
       setPurchasing(false);
     }
@@ -262,28 +279,18 @@ const ShopPage = () => {
     setPurchaseError(null);
     track('restore_clicked', {});
     try {
-      const granted = await restoreViaSDK();
-      if (granted.length > 0) restoreEntitlements(granted);
-
-      // Sync BEFORE deciding what to tell the user. `mapEntitlements`
-      // deliberately excludes subscription SKUs (they would outlive the sub in
-      // `entitlements`), so a monthly/annual customer's restore legitimately
-      // returns [] — their Pro comes back only through extractSubscriptionInfo.
-      // Toasting off `granted.length` alone told every subscription-only
-      // customer "No Purchases Found" moments before their sub was restored.
-      // SettingsPage and SubscribeOnboarding already do this; the Shop never
-      // did.
-      await syncAfterPurchase();
-
-      const proActive = isPro(useGameStore.getState().monetization);
-      if (granted.length > 0) {
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      // Syncs BEFORE deciding what to tell the user: a subscription-only
+      // customer's restore returns no entitlement IDs, and their Pro comes
+      // back only through the subscription record (see restoreAndSync).
+      const { restored, proActive } = await restoreAndSync();
+      if (restored.length > 0) {
+        successToast('Purchases Restored', `${restored.length} product${restored.length > 1 ? 's' : ''} restored.`);
       } else if (proActive) {
         successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
-      track('restore_completed', { restoredCount: granted.length });
+      track('restore_completed', { restoredCount: restored.length });
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'ShopPage.restore' } });
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
@@ -315,7 +322,7 @@ const ShopPage = () => {
         <button
           onClick={handleRestore}
           disabled={restoring}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          className="min-h-11 px-2 -mr-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
           {restoring ? 'Restoring...' : 'Restore Purchases'}
@@ -337,7 +344,7 @@ const ShopPage = () => {
               <Star className="w-4 h-4 text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" />
               <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">Best Deal</span>
               {bundleSavingsPct != null && (
-                <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+                <span className="text-micro bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
                   Save {bundleSavingsPct}%
                 </span>
               )}
@@ -349,10 +356,10 @@ const ShopPage = () => {
               Everything in one purchase — Pro features + all 3 cosmetic packs.
             </p>
             <div className="flex flex-wrap gap-1.5 mt-2.5">
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Dynasty Pro</span>
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Manager Pack</span>
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Stadium Pack</span>
-              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Legends Pack</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Dynasty Pro</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Manager Pack</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Stadium Pack</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Legends Pack</span>
             </div>
             <div className="flex items-baseline gap-2 mt-3 mb-3">
               <span className="text-lg font-bold text-[hsl(var(--gold))]">
@@ -366,7 +373,7 @@ const ShopPage = () => {
             </div>
             <button
               onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
-              className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_16px_hsl(var(--gold)/0.25)]"
+              className="w-full min-h-11 py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_16px_hsl(var(--gold)/0.25)]"
             >
               Get Everything
             </button>
@@ -386,13 +393,13 @@ const ShopPage = () => {
           <h3 className="text-base font-display font-bold text-foreground">{STARTER_KIT.name}</h3>
           <p className="text-xs text-muted-foreground mt-1">{STARTER_KIT.description}</p>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">12 Avatars</span>
-            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">8 Title Badges</span>
-            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">3 Celebration Texts</span>
+            <span className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">12 Avatars</span>
+            <span className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">8 Title Badges</span>
+            <span className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">3 Celebration Texts</span>
           </div>
           <button
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
-            className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
+            className="mt-3 w-full min-h-11 py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
             Get — {priceFor('com.dynastymanager.pack.manager')}
           </button>
@@ -408,7 +415,7 @@ const ShopPage = () => {
             {!userIsPro && (
               <button
                 onClick={handlePresentPaywall}
-                className="text-[10px] text-[hsl(var(--gold))] font-semibold hover:text-[hsl(var(--gold)/0.8)] transition-colors flex items-center gap-1 ml-auto"
+                className="min-h-11 px-2 -mr-2 text-[11px] text-[hsl(var(--gold))] font-semibold hover:text-[hsl(var(--gold)/0.8)] transition-colors flex items-center gap-1 ml-auto"
               >
                 <CreditCard className="w-3 h-3" />
                 View Plans
@@ -422,7 +429,7 @@ const ShopPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <Crown className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-emerald-400">Active Subscription</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto capitalize">
+                <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto capitalize">
                   {monetization.subscription.tier}
                 </span>
               </div>
@@ -430,19 +437,19 @@ const ShopPage = () => {
                 {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
               </p>
               {monetization.subscription.expiresAt && (
-                <p className="text-[10px] text-muted-foreground mt-1">
+                <p className="text-micro text-muted-foreground mt-1">
                   {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
                   {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
                 </p>
               )}
               {monetization.subscription.isInGracePeriod && (
-                <p className="text-[10px] text-amber-400 mt-1">
+                <p className="text-micro text-amber-400 mt-1">
                   Payment issue detected. Please update your payment method.
                 </p>
               )}
               <button
                 onClick={handleManageSubscription}
-                className="mt-3 w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+                className="mt-3 w-full min-h-11 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
               >
                 <ExternalLink className="w-3 h-3" />
                 Manage Subscription
@@ -460,7 +467,7 @@ const ShopPage = () => {
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-emerald-400">Switch to Annual</span>
                 {annualSavingsPct != null && (
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
+                  <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
                     Save {annualSavingsPct}%
                   </span>
                 )}
@@ -468,12 +475,12 @@ const ShopPage = () => {
               <p className="text-xs text-muted-foreground mb-2">
                 Pay yearly and save vs your current monthly plan — same Pro features.
               </p>
-              <p className="text-[10px] text-muted-foreground/60 mb-3">
+              <p className="text-micro text-muted-foreground/60 mb-3">
                 {perPeriod('com.dynastymanager.pro.yearly', 12) && `Just ${perPeriod('com.dynastymanager.pro.yearly', 12)}/month billed yearly`}
               </p>
               {isPurchasable('com.dynastymanager.pro.yearly') && <button
                 onClick={() => handlePurchase('com.dynastymanager.pro.yearly')}
-                className="w-full py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                className="w-full min-h-11 py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
               >
                 Upgrade — {priceFor('com.dynastymanager.pro.yearly')}/year
               </button>}
@@ -514,12 +521,12 @@ const ShopPage = () => {
                       <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
                       <div className="flex items-center gap-1.5">
                         {isAnnual && annualSavingsPct != null && (
-                          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                          <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
                             Save {annualSavingsPct}%
                           </span>
                         )}
                         {isLifetime && (
-                          <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
+                          <span className="text-micro bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
                             Best Value
                           </span>
                         )}
@@ -527,18 +534,26 @@ const ShopPage = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">{product.description}</p>
                     {isMonthly && perPeriod('com.dynastymanager.pro.monthly', 30) && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.monthly', 30)}/day — cancel anytime</p>
+                      <p className="text-micro text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.monthly', 30)}/day — cancel anytime</p>
                     )}
                     {isAnnual && perPeriod('com.dynastymanager.pro.yearly', 12) && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.yearly', 12)}/month — billed yearly</p>
+                      <p className="text-micro text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.yearly', 12)}/month — billed yearly</p>
                     )}
                     {isLifetime && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
+                      <p className="text-micro text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
+                    )}
+                    {trials[productId] != null && (
+                      <p className="text-[11px] font-semibold text-emerald-300 mb-2">
+                        {t('iap.trialTerms', {
+                          days: trials[productId]!,
+                          price: `${priceFor(productId)}${product.billingPeriod || ''}`,
+                        })}
+                      </p>
                     )}
                     <button
                       onClick={() => handlePurchase(productId)}
                       className={cn(
-                        'w-full py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
+                        'w-full min-h-11 py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
                         isLifetime
                           ? 'bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] shadow-[0_0_12px_hsl(var(--gold)/0.2)]'
                           : isAnnual
@@ -572,7 +587,7 @@ const ShopPage = () => {
             {userIsPro ? 'Your Pro Features' : 'What You Get'}
           </p>
           {userIsPro && (
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto">
+            <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto">
               Unlocked
             </span>
           )}
@@ -625,20 +640,22 @@ const ShopPage = () => {
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
-                    <span className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full">
+                    <span className="text-micro bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full">
                       {packItems.length} items
                     </span>
                   </div>
                   {owned && (
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
+                    <span className="text-micro bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
                       Owned
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">{product.description}</p>
+                {/* 44px tall (it measured 15px); -mt-2 pulls the extra height into the gap above. */}
                 <button
                   onClick={() => setExpandedPack(isExpanded ? null : productId)}
-                  className="flex items-center gap-1 text-[10px] text-primary font-semibold mb-2 hover:text-primary/80 transition-colors"
+                  aria-expanded={isExpanded}
+                  className="min-h-11 -mt-2 flex items-center gap-1 text-micro text-primary font-semibold hover:text-primary/80 transition-colors"
                 >
                   {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   {isExpanded ? 'Hide contents' : `View all ${packItems.length} items`}
@@ -646,7 +663,7 @@ const ShopPage = () => {
                 {isExpanded && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {packItems.map(item => (
-                      <span key={item.id} className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">
+                      <span key={item.id} className="text-micro bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">
                         {item.name}
                       </span>
                     ))}
@@ -655,7 +672,7 @@ const ShopPage = () => {
                 {!owned && (
                   <button
                     onClick={() => handlePurchase(productId)}
-                    className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.98] transition-all border border-border/50"
+                    className="w-full min-h-11 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.98] transition-all border border-border/50"
                   >
                     {priceFor(productId)}
                   </button>
@@ -675,7 +692,7 @@ const ShopPage = () => {
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
             </h3>
             {bundleSavingsPct != null && (
-              <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+              <span className="text-micro bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
                 Save {bundleSavingsPct}%
               </span>
             )}
@@ -683,14 +700,14 @@ const ShopPage = () => {
           <p className="text-xs text-muted-foreground mb-2">
             {PRODUCTS['com.dynastymanager.bundle.all'].description}
           </p>
-          <p className="text-[10px] text-muted-foreground/60 mb-3">
+          <p className="text-micro text-muted-foreground/60 mb-3">
             {bundleIndividualTotal != null && (
               <><span className="line-through">{formatPrice(bundleIndividualTotal)}</span> individually</>
             )}
           </p>
           <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
-            className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
+            className="w-full min-h-11 py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
           >
             Get Everything — {priceFor('com.dynastymanager.bundle.all')}
           </button>
@@ -729,7 +746,7 @@ const ShopPage = () => {
                       <button
                         onClick={() => clearCosmetic(key)}
                         className={cn(
-                          'px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+                          'px-2.5 py-1 rounded-md text-micro font-semibold transition-all',
                           !active ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground'
                         )}
                       >
@@ -740,7 +757,7 @@ const ShopPage = () => {
                           key={item.id}
                           onClick={() => setCosmetic(key, item.id)}
                           className={cn(
-                            'px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+                            'px-2.5 py-1 rounded-md text-micro font-semibold transition-all',
                             active === item.id ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                           )}
                         >
@@ -757,7 +774,7 @@ const ShopPage = () => {
       })()}
 
       {/* ─── Fine Print ─── */}
-      <div className="text-[10px] text-muted-foreground/60 text-center px-4 pb-4 space-y-1">
+      <div className="text-micro text-muted-foreground/60 text-center px-4 pb-4 space-y-1">
         <p>
           One-time purchases and subscriptions available. Subscriptions auto-renew until cancelled.
           Purchases can be restored on any device linked to your App Store / Play Store account.
@@ -765,8 +782,8 @@ const ShopPage = () => {
         <p>
           <button
             type="button"
-            onClick={() => { void openExternalUrl(TERMS_URL); }}
-            className="underline hover:text-muted-foreground transition-colors"
+            onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}
+            className="min-h-11 px-1 underline hover:text-muted-foreground transition-colors"
           >
             Terms of Service
           </button>
@@ -774,7 +791,7 @@ const ShopPage = () => {
           <button
             type="button"
             onClick={() => { void openExternalUrl(PRIVACY_URL); }}
-            className="underline hover:text-muted-foreground transition-colors"
+            className="min-h-11 px-1 underline hover:text-muted-foreground transition-colors"
           >
             Privacy Policy
           </button>
@@ -786,6 +803,7 @@ const ShopPage = () => {
         <PurchaseModal
           productId={purchaseProduct}
           storePrice={storePrices[purchaseProduct]}
+          trialDays={trials[purchaseProduct]}
           onConfirm={handleConfirmPurchase}
           onCancel={() => {
             // An abandoned confirm modal is a funnel exit — record it or every

@@ -855,7 +855,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               />
             </div>
             <span
-              className="relative mt-5 text-[10px] uppercase tracking-[0.4em] text-white/55"
+              className="relative mt-5 text-micro uppercase tracking-[0.4em] text-white/55"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
             >
               Opening
@@ -928,7 +928,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 "DYNASTY PACK / THE DYNASTY PACK" and implied every other pack
                 was a Dynasty Pack too. */}
             <span
-              className="text-[9px] uppercase font-semibold tracking-[0.42em] text-white/60"
+              className="text-micro uppercase font-semibold tracking-[0.42em] text-white/60"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
             >
               Opening
@@ -943,7 +943,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               {tierDef.label}
             </span>
             <span
-              className="mt-1.5 text-[9px] uppercase font-medium tracking-[0.3em] text-white/55"
+              className="mt-1.5 text-micro uppercase font-medium tracking-[0.3em] text-white/55"
               style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
             >
               {tierDef.cards} {tierDef.cards === 1 ? 'Player' : 'Players'}
@@ -1356,7 +1356,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             transition={{ duration: 0.35 }}
           >
             <motion.span
-              className="text-[10px] uppercase tracking-[0.4em] font-semibold text-white/75"
+              className="text-micro uppercase tracking-[0.4em] font-semibold text-white/75"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
               animate={prefersReducedMotion ? undefined : { opacity: [0.55, 1, 0.55] }}
               transition={prefersReducedMotion ? undefined : { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
@@ -1486,7 +1486,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       <AnimatePresence>
         {pityTriggered && (phase === 'reveal' || phase === 'summary') && (
           <motion.div
-            className="absolute left-1/2 -translate-x-1/2 top-[max(env(safe-area-inset-top),16px)] flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.22em] font-display font-bold text-amber-100 backdrop-blur-md"
+            className="absolute left-1/2 -translate-x-1/2 top-[max(env(safe-area-inset-top),16px)] flex items-center gap-1.5 px-3 py-1 rounded-full text-micro uppercase tracking-[0.22em] font-display font-bold text-amber-100 backdrop-blur-md"
             style={{
               background: 'linear-gradient(180deg, rgba(251,191,36,0.22), rgba(251,191,36,0.10))',
               border: '1px solid rgba(251,191,36,0.45)',
@@ -1546,7 +1546,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 240, damping: 22 }}
             >
-              <p className="text-[10px] uppercase tracking-[0.4em] text-white/55">Pack Opened</p>
+              <p className="text-micro uppercase tracking-[0.4em] text-white/55">Pack Opened</p>
               <p className="mt-1 text-lg font-display font-black text-white leading-none">
                 {players.length} {players.length === 1 ? 'Player' : 'Players'}
               </p>
@@ -1562,7 +1562,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               <div className="mt-2 flex items-center justify-center gap-2">
                 {topOvr > 0 && (
                   <motion.div
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-display font-bold uppercase tracking-[0.22em] text-white"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-display font-bold uppercase tracking-[0.22em] text-white"
                     style={{
                       background: `linear-gradient(135deg, ${topTier.gradientFrom}33, ${topTier.gradientTo}1f)`,
                       border: `1px solid ${topTier.gradientVia}66`,
@@ -1648,7 +1648,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                         user's current best at the same position. */}
                     {phase === 'summary' && upgrade && (
                       <motion.div
-                        className="absolute -top-1 -right-1 z-10 flex items-center gap-0.5 px-1.5 py-[3px] rounded-md text-[9px] font-display font-black uppercase tracking-[0.06em] tabular-nums leading-none"
+                        className="absolute -top-1 -right-1 z-10 flex items-center gap-0.5 px-1.5 py-[3px] rounded-md text-micro font-display font-black uppercase tracking-[0.06em] tabular-nums leading-none"
                         style={{
                           color: '#3a2400',
                           background: 'linear-gradient(180deg, #fde68a, #f59e0b)',
@@ -1670,7 +1670,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                         glass pill, mirrors the upgrade badge's entrance. */}
                     {phase === 'summary' && placementLabel && (
                       <motion.div
-                        className="absolute -bottom-1.5 left-1/2 z-10 max-w-full whitespace-nowrap px-1.5 py-[3px] rounded-md text-[8px] font-display font-bold uppercase tracking-[0.06em] leading-none text-white/90 bg-white/10 border border-white/25 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_10px_-6px_rgba(0,0,0,0.6)]"
+                        className="absolute -bottom-1.5 left-1/2 z-10 max-w-full whitespace-nowrap px-1.5 py-[3px] rounded-md text-micro font-display font-bold uppercase tracking-[0.06em] leading-none text-white/90 bg-white/10 border border-white/25 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_10px_-6px_rgba(0,0,0,0.6)]"
                         initial={{ opacity: 0, y: 6, x: '-50%', scale: 0.8 }}
                         animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }}
                         transition={{ type: 'spring', stiffness: 320, damping: 20, delay: 0.45 + i * 0.06 }}
@@ -1694,7 +1694,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                       aria-label={`${selected ? 'Deselect' : 'Select'} ${p.firstName} ${p.lastName} to sell for ${formatMoney(quickSellAmount)}`}
                       className={cn(
                         'flex items-center justify-center gap-1.5 py-1.5 rounded-xl',
-                        'text-[10px] font-display font-bold uppercase tracking-[0.14em] leading-none',
+                        'text-micro font-display font-bold uppercase tracking-[0.14em] leading-none',
                         'border transition-[background-color,border-color,color] duration-150 active:scale-[0.97]',
                         selected
                           ? 'text-amber-950 bg-gradient-to-b from-amber-300 to-amber-500 border-amber-200/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_6px_16px_-8px_rgba(251,191,36,0.55)]'
@@ -1738,7 +1738,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                       type="button"
                       onClick={() => setShowSellPricing(v => !v)}
                       aria-expanded={showSellPricing}
-                      className="px-2 py-1 rounded-md text-[10px] text-white/55 hover:text-white/80 active:text-white/90 transition-colors text-center max-w-[340px]"
+                      className="px-2 py-1 rounded-md text-micro text-white/55 hover:text-white/80 active:text-white/90 transition-colors text-center max-w-[340px]"
                     >
                       {showSellPricing
                         ? t('packOpeningOverlay.sellPricingDetail', {
@@ -1812,7 +1812,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                         <span className="text-[11px] font-display font-bold uppercase tracking-[0.18em]">
                           {t('packOpeningOverlay.sellCount', { count })}
                         </span>
-                        <span className="text-[10px] font-black tabular-nums tracking-tight">
+                        <span className="text-micro font-black tabular-nums tracking-tight">
                           +{formatMoney(sellTotal)}
                         </span>
                       </>

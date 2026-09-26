@@ -231,7 +231,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
                           'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px hsl(var(--primary)/0.2), 0 8px 18px -10px hsl(var(--primary)/0.35)',
                       }}
                     >
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                      <p className="text-micro text-muted-foreground uppercase tracking-wider">{stat.label}</p>
                       <p
                         className="text-base font-black tabular-nums bg-clip-text text-transparent"
                         style={{ backgroundImage: 'linear-gradient(180deg, #FFF6D8 0%, hsl(var(--foreground)) 100%)' }}

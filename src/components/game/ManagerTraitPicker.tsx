@@ -61,17 +61,17 @@ export function ManagerTraitPicker({ selected, maxTraits = 2, onToggle }: Manage
                 {trait.name}
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
+            <p className="text-micro text-muted-foreground leading-relaxed line-clamp-2">
               {trait.description}
             </p>
             <div className="flex flex-wrap gap-1 mt-1.5">
               {Object.entries(trait.attributeBonus).map(([key, bonus]) => (
-                <span key={key} className="text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 rounded px-1 py-0.5">
+                <span key={key} className="text-micro font-semibold text-emerald-400 bg-emerald-500/10 rounded px-1 py-0.5">
                   +{bonus} {ATTRIBUTE_LABELS[key as keyof ManagerAttributes]}
                 </span>
               ))}
             </div>
-            <p className="text-[10px] text-primary/70 mt-1 italic">
+            <p className="text-micro text-primary/70 mt-1 italic">
               {trait.passiveEffect}
             </p>
           </button>

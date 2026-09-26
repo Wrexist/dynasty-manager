@@ -4,7 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CHALLENGES, getDifficultyColor, getFeaturedChallengeId } from '@/data/challenges';
+import { CHALLENGES, getDifficultyColor, getFeaturedChallengeId, getChallengeStartClubId } from '@/data/challenges';
 import { CLUBS_DATA, LEAGUES } from '@/data/league';
 import { CLUBS_BY_LEAGUE, LEAGUE_REGIONS } from '@/data/leagues';
 import { useGameStore } from '@/store/gameStore';
@@ -55,17 +55,10 @@ const ChallengePicker = () => {
     if (loading) return;
     setSelected(scenario);
 
-    // Resolve the fixed club (preset start or giant-killer's lowest-rep club);
-    // null means the user picks one.
-    let fixedClubId: string | null = scenario.startingClubId || null;
-    // The Great Escape's own comment says the club "will be assigned to
-    // lowest-rep club" — it never was, so "avoid relegation" was winnable with
-    // Manchester City on half budget. Pin it like giant-killer does.
-    if (!fixedClubId && (scenario.id === 'giant-killer' || scenario.id === 'great-escape')) {
-      const lowestRep = [...CLUBS_DATA].sort((a, b) => a.reputation - b.reputation)[0];
-      if (!lowestRep) return;
-      fixedClubId = lowestRep.id;
-    }
+    // Resolve the fixed club (preset start, giant-killer's lowest-rep club, or
+    // the Great Escape's lowest-rep club in a league WITH relegation); null
+    // means the user picks one.
+    const fixedClubId = getChallengeStartClubId(scenario);
     if (!fixedClubId) {
       setPickingClub(true);
       return;
@@ -163,7 +156,7 @@ const ChallengePicker = () => {
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-display font-bold text-foreground">Choose Your Club</h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase', getDifficultyColor(selected.difficulty))}>
+                <span className={cn('text-micro font-bold px-1.5 py-0.5 rounded-full uppercase', getDifficultyColor(selected.difficulty))}>
                   {selected.difficulty}
                 </span>
                 <span className="text-xs text-muted-foreground truncate">{selected.name}</span>
@@ -209,7 +202,7 @@ const ChallengePicker = () => {
           {/* Result count during search */}
           {isSearching && (
             <div className="px-4 pb-2 max-w-lg mx-auto">
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 {searchCount} {searchCount === 1 ? 'club' : 'clubs'} found
               </p>
             </div>
@@ -240,7 +233,7 @@ const ChallengePicker = () => {
                 {/* Region divider */}
                 <div className="flex items-center gap-2 mb-2 px-1">
                   <div className="h-px flex-1 bg-border/30" />
-                  <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">{region.label}</span>
+                  <span className="text-micro font-semibold text-muted-foreground/60 uppercase tracking-wider">{region.label}</span>
                   <div className="h-px flex-1 bg-border/30" />
                 </div>
 
@@ -267,9 +260,9 @@ const ChallengePicker = () => {
                           <FlagIcon nationality={league.country} size={24} className="rounded-sm shrink-0" />
                           <div className="flex-1 min-w-0 text-left">
                             <p className="text-sm font-semibold text-foreground">{league.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{league.country}</p>
+                            <p className="text-micro text-muted-foreground">{league.country}</p>
                           </div>
-                          <span className="text-[10px] text-muted-foreground/60 bg-white/5 rounded px-1.5 py-0.5 shrink-0">
+                          <span className="text-micro text-muted-foreground/60 bg-white/5 rounded px-1.5 py-0.5 shrink-0">
                             {leagueClubs.length} {isSearching ? (leagueClubs.length === 1 ? 'match' : 'matches') : 'clubs'}
                           </span>
                           {!isSearching && (
@@ -318,7 +311,7 @@ const ChallengePicker = () => {
                                           ))}
                                         </div>
                                         {club.stadiumName && (
-                                          <span className="text-[9px] text-muted-foreground/50 truncate">{club.stadiumName}</span>
+                                          <span className="text-micro text-muted-foreground/50 truncate">{club.stadiumName}</span>
                                         )}
                                       </div>
                                     </div>
@@ -413,12 +406,12 @@ const ChallengePicker = () => {
               {(isFeatured || isCompleted) && (
                 <div className="flex items-center gap-2 mb-2">
                   {isFeatured && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                    <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
                       <Star className="w-3 h-3" /> Featured · +50% XP
                     </span>
                   )}
                   {isCompleted && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                       <Check className="w-3 h-3" /> Completed{badgeLabel ? ` · ${badgeLabel}` : ''}
                     </span>
                   )}
@@ -429,11 +422,11 @@ const ChallengePicker = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-bold text-foreground">{challenge.name}</h3>
-                    <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase', getDifficultyColor(challenge.difficulty))}>
+                    <span className={cn('text-micro font-bold px-1.5 py-0.5 rounded-full uppercase', getDifficultyColor(challenge.difficulty))}>
                       {challenge.difficulty}
                     </span>
                     {challenge.rewardXp ? (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary/80">
+                      <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-primary/80">
                         <Sparkles className="w-3 h-3" />{challenge.rewardXp} XP
                       </span>
                     ) : null}
@@ -443,17 +436,17 @@ const ChallengePicker = () => {
                   {/* Objective */}
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Trophy className="w-3 h-3 text-primary shrink-0" />
-                    <p className="text-[10px] text-primary font-medium">{challenge.winCondition}</p>
+                    <p className="text-micro text-primary font-medium">{challenge.winCondition}</p>
                   </div>
 
                   {/* Constraints */}
                   <div className="flex flex-wrap gap-1">
                     {challenge.constraints.map((c, j) => (
-                      <span key={j} className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
+                      <span key={j} className="text-micro bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
                         {c}
                       </span>
                     ))}
-                    <span className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
+                    <span className="text-micro bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
                       {challenge.seasonLimit} season{challenge.seasonLimit > 1 ? 's' : ''}
                     </span>
                   </div>

@@ -152,7 +152,7 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
             <div className="relative text-center space-y-3">
               {/* Achievement badge label */}
               <motion.p
-                className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground"
+                className="text-micro font-bold uppercase tracking-[0.2em] text-muted-foreground"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -221,7 +221,7 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
               {/* Hidden achievement bonus */}
               {achievement.hidden && (
                 <motion.p
-                  className="text-[10px] text-primary/70 italic"
+                  className="text-micro text-primary/70 italic"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.45 }}

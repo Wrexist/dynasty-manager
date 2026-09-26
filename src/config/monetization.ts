@@ -10,6 +10,9 @@ import type { ProductId, ProFeature, CosmeticItem, AdRewardType, AdEngagementSta
 // `utils/ads.ts` is dependency-free (flags + a stub), so importing it here
 // introduces no cycle back into config.
 import { NATIVE_ADS_READY } from '@/utils/ads';
+// legacy: earned cosmetics are catalogued with the sold ones (see the spread at
+// the end of COSMETIC_ITEMS). Type-and-data only, no cycle.
+import { EARNED_COSMETICS } from '@/config/managerPass';
 
 // ── Product Definitions ──
 
@@ -261,6 +264,9 @@ export const PRO_FEATURES: ProFeature[] = [
   'instant_sim',
   'optimize_lineup',
   'pro_badge',
+  // Cosmetic only: the Pass's Pro row pays titles, celebration lines and
+  // banners (config/managerPass.ts) — nothing the simulation reads.
+  'manager_pass_pro',
 ];
 
 export const PRO_FEATURE_LABELS: Record<ProFeature, string> = {
@@ -272,6 +278,7 @@ export const PRO_FEATURE_LABELS: Record<ProFeature, string> = {
   instant_sim: 'Instant Match Sim',
   optimize_lineup: 'Optimize Lineup',
   pro_badge: 'Pro Badge',
+  manager_pass_pro: 'Manager Pass Pro Track',
 };
 
 /** Maximum number of tactical presets a Pro user can save */
@@ -405,6 +412,9 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
 
   { id: 'hom-frame-gold', category: 'hom_frame', name: 'Gold Frame', description: 'Animated golden card border', pack: 'com.dynastymanager.pack.legends' },
   { id: 'hom-frame-holographic', category: 'hom_frame', name: 'Holographic', description: 'Shimmering holographic border', pack: 'com.dynastymanager.pack.legends' },
+
+  // ── legacy: earned cosmetics (no `pack` — unlocked by play, never sold) ──
+  ...EARNED_COSMETICS,
 ];
 
 // ── Free Trial (introductory offer for subscriptions) ──
@@ -454,6 +464,27 @@ export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.yearly
 
 /** How long after first launch the Starter Kit is recommended to new managers. */
 export const STARTER_KIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// ── Unconfirmed pack purchases ──
+//
+// A pack purchase writes an un-charged marker before StoreKit is asked, and
+// the Market refuses a second purchase while any marker exists. A marker the
+// store never confirmed used to live forever, so one network error mid-sheet
+// locked the device out of pack purchases permanently. These windows are how
+// long the store gets to surface the transaction before an un-charged marker
+// whose purchase history shows NO new transaction is released.
+
+/** Ordinary interrupted purchase: long enough for StoreKit to replay an
+ *  unfinished transaction and RevenueCat to record it on the next sync. */
+export const PACK_UNCONFIRMED_SETTLE_MS = 30 * 60 * 1000; // 30 minutes
+
+/** Deferred payment (Ask to Buy / SCA): a guardian can approve it well after
+ *  the sheet closed, so the marker waits much longer before release. */
+export const PACK_DEFERRED_SETTLE_MS = 72 * 60 * 60 * 1000; // 72 hours
+
+/** A legacy marker without a transaction snapshot cannot be verified at all;
+ *  release it after a week rather than blocking purchases forever. */
+export const PACK_UNVERIFIABLE_MARKER_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export const STARTER_KIT = {
   name: 'Starter Kit',

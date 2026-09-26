@@ -1,10 +1,10 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-08-28 (app v1.6.0, save schema v92).
+> Last verified against the codebase 2026-09-25 (latest shipped v1.6.0, save schema v94).
 > If the numbers below disagree with the code, trust the code — and update this file.
-> `npm run docs:check` verifies the countable claims (schema version, file counts,
-> LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
-> file cannot silently drift again.
+> `npm run docs:check` verifies the countable claims (schema and shipped versions,
+> file counts, LOC of the named files, Tech Stack versions) at EVERY occurrence and
+> `-- --fix` updates them. It runs in preflight, so this file cannot silently drift again.
 
 ## TestFlight Release Notes ("What's New")
 
@@ -110,6 +110,9 @@ Steps the workflow performs:
    — validates the top entry and stamps the real CFBundleVersion.
 7. `npm run build`, `cap sync ios`, `fastlane ios beta`.
 
+`Android Build` (`android-build.yml`) runs the same seal and check after its
+release gates, stamping the input `version_code` instead of the run number.
+
 **Runner-only mutations are NOT committed back to `main`.** The pending file
 on `main` keeps whatever bullets were there. If you want a sealed entry to
 live in git after a successful deploy, run `npm run whats-new:seal` locally,
@@ -181,11 +184,12 @@ and you can re-run safely:
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
 
 ### When the user asks you to commit, push, ship, or create a PR:
-1. Run `npm run preflight` — lint + typecheck + docs drift + i18n ceiling + fast tests + build + eager-bundle size budget. Fix any failures before proceeding.
-   *Before a release, run `npm run preflight:full`.* The full suite takes ~28 min
-   (`fileParallelism: false`, so file time is wall-clock time); the per-commit gate
-   excludes the long-running season/longevity suites and runs in ~6 min, so that
-   it actually gets run.
+1. Run `npm run preflight` — lint + typecheck + docs drift + i18n ceiling + type floor + pack supply + fast tests + build + bundle budgets. Fix any failures before proceeding.
+   *Before a release, run `npm run preflight:full`* — the same gate with the
+   long-running season/longevity suites (`SLOW_SUITES` in `vitest.config.ts`),
+   which the per-commit gate skips so that it actually gets run. Test files run
+   in parallel (`fileParallelism` is on; `VITEST_PARALLEL=0` forces serial —
+   serial, the full suite measured 28.6 min).
 2. Stage specific changed files with `git add <files>` (NEVER blind `git add -A`).
 3. Commit with a clear message: `git commit -m "descriptive message"`.
 4. Push: `git push -u origin <branch-name>` — retry up to 4x with exponential backoff on network failure.
@@ -213,15 +217,16 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 ### Available workflow commands:
 | Command | What it does |
 |---------|-------------|
-| `npm run preflight` | Lint + typecheck + docs:check + i18n:check + **fast** tests + build + size:check — run this per commit |
-| `npm run preflight:full` | Same, with the long-running season/longevity suites. What CI enforces |
+| `npm run preflight` | Lint + typecheck + docs:check + i18n:check + type:check + packs:supply + **fast** tests + build + size:check — run this per commit |
+| `npm run preflight:full` | Same, with the long-running season/longevity suites. What CI enforces (`pr-checks.yml` runs it by name) |
 | `npm run test:fast` | Vitest minus the slow suites (see `SLOW_SUITES` in `vitest.config.ts`) |
 | `npm run docs:check` | Verify the countable claims in this file against the code (`-- --fix` to update) |
 | `npm run i18n:check` | Count player-facing strings still hardcoded in English; fails above the ceiling in `package.json` |
+| `npm run type:check` | Count sub-11px `text-[Npx]` copy in `src/pages` + `src/components` (lines marked `type-floor: graphic` excluded); fails above the ceiling (0) in `package.json` |
 | `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
 | `npm run branch -- name` | Create feature branch from latest origin/main |
 | `npm run typecheck` | Standalone TypeScript check |
-| `npm run size:check` | Eager-bundle budget check (`scripts/check-eager-bundle.mjs`) |
+| `npm run size:check` | Every bundle budget in `.github/bundle-budget.json` — eager first-load gz, main chunk, core JS, community pack (`scripts/check-eager-bundle.mjs`) |
 
 ### ⚠️ Merging ≠ Shipping to TestFlight
 
@@ -296,17 +301,18 @@ consumable player-pack IAPs (RevenueCat).
     one, and scored a screen +1% that the browser measures at -47%. A screen's
     share of a catalogue is not knowable from source, so the static mode does
     not look at config records at all. A report, not a preflight gate.
-- **Online** — `comingSoon: true`, not implemented.
+- **Online** — `comingSoon: true`, not implemented; its tile is hidden while
+  `SHOW_COMING_SOON_MODES` (`config/ui.ts`) is false.
 - **Challenges** (`/challenge`) — scenario starts from `src/data/challenges.ts`.
 
 ## Tech Stack
 - **React 18.3.1** + **TypeScript 5.9.3** (non-strict) via **Vite 7.3.2** (SWC plugin)
 - **Tailwind CSS 3.4.19** + `tailwindcss-animate` + HSL CSS variables (dark-only theme)
-- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 8 files in `src/components/ui/`
-- **Zustand 5.0.12** — modular store: `gameStore.ts` composition + **16 slices** + 5 helpers
+- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 5 files in `src/components/ui/`
+- **Zustand 5.0.12** — modular store: `gameStore.ts` composition + **17 slices** + 5 helpers
 - **React Router DOM 7.18.3** — **HashRouter** (`#/` URLs). Routes: `/`, `/mode-select`,
   `/select-club`, `/create-manager`, `/challenge`, `/whats-new`, `/subscribe`, `/game`, `*`.
-  In-game navigation is a separate system: 45 `GameScreen` ids rendered inside
+  In-game navigation is a separate system: 60 `GameScreen` ids rendered inside
   `GameShell` (`src/config/navigation.ts`).
 - **Framer Motion 12.38** — transitions, match + pack animations (`MotionConfig` honours reduced-motion/perf mode)
 - **Recharts 2.15.4** — stats charts · **Sonner 1.7.4** — toasts
@@ -314,12 +320,12 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 253 test files in `src/test/`
+- **Vitest 4.1.11 + jsdom + Testing Library** — 337 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
 
-## Architecture (~139K LOC hand-written across ~490 files, plus ~410K LOC generated data)
+## Architecture (~170K LOC hand-written across ~530 files excluding tests, plus ~380K LOC generated data)
 
 ```
 .claude/
@@ -327,7 +333,7 @@ consumable player-pack IAPs (RevenueCat).
 ├── settings.json        → permission allow/deny rails (see "Project Settings")
 src/
 ├── App.tsx              → HashRouter, lazy routes, ErrorBoundary scopes,
-│                          analytics-consent gate, SaveRecoveryDialog
+│                          SaveRecoveryDialog
 ├── components/
 │   ├── game/            → 100 components: TopBar, BottomNav, SubNav, GlassPanel,
 │   │                      LineupEditor, SubstitutionSheet, PenaltyShootout,
@@ -336,36 +342,40 @@ src/
 │   │                      PostMatchPopup, ProUpsell, PurchaseModal, TalentTree,
 │   │                      StadiumView, WeeklyDigest, OnboardingChecklist, …
 │   │   ├── sunday/      → 19 files: the Sunday League component system (above)
-│   │   ├── pack/        → 9 files: pack-opening overlay, walkout reveal, confetti
+│   │   ├── dashboard/   → DashboardMore (the collapsed "More"), DashboardPassRow
+│   │   ├── pack/        → 16 files: pack-opening overlay, walkout reveal, deal cards
 │   │   └── icons/       → 4 premium icon components
 │   ├── ui/              → 5 shadcn/ui files (DO NOT modify unless asked)
-│   ├── ErrorBoundary, SaveRecoveryDialog, AnalyticsConsentModal
-├── config/              → 41 files: gameBalance, matchEngine, matchSpeed, tactics,
+│   ├── ErrorBoundary, SaveRecoveryDialog, LoadingOverlay, EmptyState, Skeleton
+├── config/              → 45 files: gameBalance, matchEngine, matchSpeed, tactics,
 │                          transfers, contracts, training, staff, scouting, youth,
 │                          chemistry, personality, playoffs, continental, packs,
 │                          monetization, legal, sponsorship, merchandise, managerCareer,
 │                          aiManager, aiSimulation, lineupOptimization, navigation,
 │                          namePool, playerGeneration, playerAppearance,
-                          sundayLeague, sundayIcons,
+│                          sundayLeague, sundayIcons,
 │                          managerAppearance, halftimeAnalysis, keyMoments, teamTalk, ui
-├── data/                → 17 files + 2 generated dirs:
+├── data/                → 19 files + 3 dirs:
 │   ├── leagues/         → 45 league files, 37 countries, 756 clubs (real clubs)
-│   ├── communityPack/   → GENERATED real-player data (~395K LOC): freeAgents,
-│   │                      byClub, newLeagues — never hand-edit, loaded lazily
-│   ├── nationalPlayerPool.ts → GENERATED FC26-derived national rosters (11K LOC)
+│   ├── communityPack/   → GENERATED real-player data (~350K LOC): freeAgents,
+│   │                      byClub, cpLeagueSquads — never hand-edit, loaded lazily
+│   ├── squads/          → GENERATED per-country club squad templates (FC26)
+│   ├── nationalPlayerPool.ts → GENERATED FC26-derived national rosters (~10K LOC)
+│   ├── playerPortraits.ts → GENERATED portrait catalog (written by
+│   │                      scripts/portrait-batch.mjs)
 │   ├── league.ts        → fixture generation, table builder, derbies, country helpers
 │   ├── cup.ts           → domestic cup draw/sim (round weeks choreographed, see Gotchas)
-│   ├── continentalDraw.ts, nations.ts (51 national teams), challenges.ts,
+│   ├── continentalDraw.ts, nations.ts (65 national teams), challenges.ts,
 │   │   pressConferences.ts, storylineChains.ts, boardPitches.ts,
 │   │   clubTemplateAliases.ts, whatsNew.ts, pendingNews.ts
 ├── engine/
-│   ├── match.ts         → match sim (1,828 LOC, event-based, minute-by-minute)
+│   ├── match.ts         → match sim (2,269 LOC, event-based, minute-by-minute)
 │   └── match/helpers.ts
-├── hooks/               → 13 hooks: useGameSelectors, useLineupOptimizer,
+├── hooks/               → 15 hooks: useGameSelectors, useLineupOptimizer,
 │                          useSwipeGesture, useKeyboardInset, useFocusTrap,
 │                          useReducedMotionPref (the single source of truth for
 │                          "should this animate?"), …
-├── pages/               → 70 pages: Dashboard (2,192 LOC), MatchDay, GameShell,
+├── pages/               → 70 pages: Dashboard (829 LOC), MatchDay, GameShell,
 │                          SquadPage, TacticsPage, TransferPage, TrainingPage,
 │                          StaffPage, ScoutingPage, YouthAcademy, FacilitiesPage,
 │                          FinancePage, MerchandisePage, BoardPage, CupPage,
@@ -375,39 +385,41 @@ src/
 │                          ModeSelect, PacksPage, ShopPage, SubscribeOnboarding,
 │                          WhatsNewPage, SettingsPage, HelpPage, ClubSelection, …
 ├── store/
-│   ├── gameStore.ts     → Zustand composition of 16 slices
-│   ├── storeTypes.ts    → GameState interface (492 LOC)
+│   ├── gameStore.ts     → Zustand composition of 17 slices
+│   ├── storeTypes.ts    → GameState interface (749 LOC)
 │   ├── slices/          → core, club, transfer, match, systems, orchestration,
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
-│   │                      nationalTeam, career, packs
-│   │   ├── orchestrationSlice.ts (1,201 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3426 LOC — THE game loop),
-│   │                        seasonEnd.ts (1,651), matchActions.ts (1,611),
-│   │                        initGame.ts (587), tournaments.ts, helpers.ts
+│   │                      nationalTeam, career, packs, sunday, managerPass
+│   │   ├── orchestrationSlice.ts (1,557 LOC — façade) delegating to:
+│   │   └── orchestration/ → weekAdvance.ts (3,213 LOC — THE game loop),
+│   │                        seasonEnd.ts (2,277 LOC), matchActions.ts (2,243 LOC),
+│   │                        initGame.ts (756 LOC), tournaments.ts, playoff.ts,
+│   │                        worldCupMatchActions.ts, communityPackRuntime.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
 │                          development.ts, rosterOps.ts
-├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
-│                          10 formations, 45 GameScreens, MonetizationState,
+├── types/game.ts        → ALL types (3,885 LOC): Player, Club, Match, LeagueInfo,
+│                          10 formations, 60 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v92),
+├── utils/               → 106 files + `sunday/` (18): playerGen, saveMigration (v94),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 253 test files incl. longevity/stress suites, adversarial
+├── test/                → 337 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
-├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode)
+├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode,
+│                          the reduce-motion kill switch)
 └── main.tsx             → entry: Sentry init, storage hydration, Capacitor setup
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,094 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
-2. **`src/store/storeTypes.ts`** — complete `GameState` interface (708 LOC).
-3. **`src/types/game.ts`** — all types (2,083 LOC). Single source of truth.
+1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,213 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
+2. **`src/store/storeTypes.ts`** — complete `GameState` interface (749 LOC).
+3. **`src/types/game.ts`** — all types (3,885 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
-5. **`src/engine/match.ts`** — match simulation (2243 LOC).
+5. **`src/engine/match.ts`** — match simulation (2269 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
 - **Pack pulls sign on a discount (`PACK_WAGE_FACTOR`, 0.55)** that lives on the
@@ -420,7 +432,7 @@ src/
   Measured reason it exists: one $6.99 Rare Gold used to add ~£920k/week, 58% of
   a mid-table club's entire wage bill, so buying a pack made your club worse off.
 
-8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 92` + migration chain. Every state-shape change bumps it.
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 94` + migration chain. Every state-shape change bumps it.
 9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
 10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
@@ -445,7 +457,7 @@ Champions Cup = 8 groups of 4 then knockout) + Super Cup. Qualification spots
 are allocated by league rank (1–30) from coefficients
 (`src/config/continental.ts`, `src/utils/continentalCoefficients.ts`).
 
-**International:** 51 national teams (`src/data/nations.ts`) across 5
+**International:** 65 national teams (`src/data/nations.ts`) across 5
 confederations with FC26-derived player pools. The manager can receive
 national-team job offers and run 23-man squads through international
 tournaments alongside the club job (`nationalTeamSlice`, `utils/international.ts`).
@@ -465,9 +477,11 @@ in `src/utils/monetization.ts`; state in `monetizationSlice`.
   `.pro.lifetime`, and the
   `bundle.all` "Dynasty Edition" (Pro + all cosmetic packs). USD prices in
   config are fallbacks — real prices come localized from the store.
-- **Pro features:** `ad_free`, `advanced_analytics`, `custom_tactics`,
-  `expanded_press`, `historical_records`, `instant_sim` (see
-  `config/matchSpeed.ts`), `optimize_lineup`, `pro_badge`.
+- **Pro features:** `ad_free` (listed only while ads exist), `advanced_analytics`,
+  `custom_tactics`, `expanded_press`, `historical_records`, `instant_sim` (see
+  `config/matchSpeed.ts`), `optimize_lineup`, `pro_badge`, `manager_pass_pro`
+  (the Manager Pass Pro row — cosmetic, see below). The paywall's bullet list
+  (`PRO_FEATURE_BULLETS` in `SubscribeOnboarding`) is hand-kept in step.
 - **Cosmetic packs:** manager identity / stadium atmosphere / legends —
   permanent entitlements with an in-game cosmetics catalog.
 - **Consumable player-pack IAPs:** gold / premium_gold / rare_gold / icon —
@@ -478,8 +492,60 @@ in `src/utils/monetization.ts`; state in `monetizationSlice`.
   Both Monthly and Annual are in `SUB_TRIAL_PRODUCT_IDS` and must stay in the
   same ASC subscription group, or the eligibility probe misdescribes one of
   them. (`startFreeTrial` is a no-op if ANY subscription record exists —
-  prevents trial-restart abuse.)
+  prevents trial-restart abuse.) **Trials are per plan, from the store:**
+  `resolvePaywallTrials` (`utils/monetization.ts`) offers a trial on a plan
+  only when its store product has a free intro offer (length read via
+  `freeIntroOfferDays` in `utils/purchases.ts`) AND the store confirms this
+  Apple ID is eligible; unknown eligibility shows nothing, and
+  `FREE_TRIAL_DAYS` is only the off-device default. The paywall preselects the
+  trial plan (`preferredPaywallPlan`); the Shop and the in-game Pro banners
+  share one time-boxed probe (`probePaywallTrials` / `probeTrialOfferDays` in
+  `utils/trialOffer.ts`), so no surface names a trial the paywall withholds.
+  Owner confirmed 2026-09-25: Pro Yearly and Pro Monthly both carry one in ASC.
   **Starter Kit** is a 7-day-from-first-launch offer.
+- **One purchase + restore path:** `utils/purchaseSync.ts` (`purchaseAndSync`,
+  `restoreAndSync`, `syncStoreState`) is the only purchase → grant → sync code
+  for non-consumables — the paywall, the Shop and Settings → Restore all call
+  it (pinned by `iapLifecycle.test.ts`). Do not add a surface-local copy.
+  Consumable packs prove payment through the pending-credit marker in
+  `utils/packCreditRecovery.ts` instead.
+- **Verification:** `docs/iap-verification.md` — the ASC/RevenueCat
+  configuration the code assumes, the SKU × flow matrix with the test pinning
+  each cell, and the device checklist to run on a TestFlight build.
+- **Redeem codes** (`utils/redeemCodes.ts`, offline HMAC-signed money/XP
+  codes): a production build redeems nothing — and hides Settings → Redeem
+  Code — unless `VITE_REDEEM_SECRET` (at least `MIN_REDEEM_SECRET_LENGTH`
+  chars, never the public dev secret) was set at build time. Both release
+  workflows pass it from an OPTIONAL repo secret; unset means disabled. Every
+  code is capped by `REDEEM_CODE_MAX_REWARD` (`config/gameBalance.ts`). Codes
+  never grant Pro — comp Pro through RevenueCat promotional entitlements.
+
+### Manager Pass + Legacy (cosmetic meta layer)
+
+- **Manager Pass** (`config/managerPass.ts`, `utils/managerPass.ts`,
+  `managerPassSlice`, `ManagerPassPage`): a real-calendar season of two
+  months, 30 tiers, a free reward every third tier and a Pro reward on every
+  tier (`isPro()`-gated). Every reward is a cosmetic (title, celebration line,
+  banner); Pass XP is its own currency, never manager XP. XP comes from
+  `utils/managerPassObserver.ts` (attached by GameShell), which reads
+  monotonic career counters, so replaying a match after a reload pays nothing.
+- **Device-level, never in a save:** the record lives in localStorage
+  (`STORAGE_KEYS.MANAGER_PASS`) with a write-through IndexedDB copy under the
+  same key, stamped with a write counter (`rev`); `hydratePassStorage`
+  reconciles the two at start-up (newer copy wins, collected cosmetics are the
+  union). The write-through waits until IndexedDB has been READ — an
+  unanswered read is retried by the next save, never treated as empty. `state.managerPass` is only a render cache — every action
+  re-reads storage, rolls the season and writes back. No save-schema bump.
+- **Season rollover** collects reached rewards for the player (free always,
+  Pro while `isPro()`). Pro rewards reached while the device read not-Pro
+  (e.g. a renewal not yet synced) become `proCarry`, collectable once Pro is
+  confirmed during the NEXT season only.
+- **Surfaced** on the Dashboard (one row, collect count from
+  `passHomeSummary`), with a badge on the More drawer row, and as
+  `manager_pass_pro` on the paywall and in the Shop.
+- **Dynasty Legacy** (`utils/managerLegacy.ts`): lifetime tier from Hall of
+  Managers trophies; each tier unlocks cosmetics and a job-market reputation
+  bonus in Manager Career (`LEGACY_TIER_UNLOCKS`) — never a match result.
 
 ### Entitlement invariants (violating these = revenue bugs)
 1. `isPro()` in `utils/monetization.ts` is the ONLY source of truth for Pro.
@@ -541,37 +607,34 @@ The Market tab is `transfers` → `scouting` → `packs`; `PacksPage` is the sto
 `config/packs.ts` is the single source of truth for what is on sale, what it
 contains, what it costs, and what its odds are.
 
-**Structure (top to bottom): This Week → Free Today → Packs.**
+**Structure (top to bottom): Limited deals → This Week → Free Today → Always available.**
 
 | Slot | Tier key | Price | Contents |
 |---|---|---|---|
 | Free Today | `daily` — *Rise to Glory* | free, 1/day (+1 per ad when ads ship) | 3 players, floor rises with login streak: 66+ → 69+ → 72+ → 75+ at day 7 |
-| Packs | `bronze` — *Bronze Pack* | free, 1/day (no ad slot, no SKU) | 3 players, 60+ guaranteed (band 55–68) |
-| Packs | `silver` — *Silver Pack* | free, 1/day (no ad slot, no SKU) | 3 players, 70+ guaranteed (band 62–76) |
-| Packs | `gold` — *Gold Pack* | $2.99 | 5 players, 78+ guaranteed |
-| Packs | `premium` — *Elite Pack* | $4.99 | 5 players, 82+ guaranteed — **BEST VALUE** |
-| Packs | `rare` — *World Class Pack* | $6.99 | 5 players, 84+ guaranteed, walkout possible |
-| Packs | `icon` — *Legends Pack* | $9.99 | 1 player, 88+ guaranteed, walkout guaranteed |
+| Always available | `bronze` — *Bronze Pack* | free, 1/day | 3 players, 60+ guaranteed |
+| Always available | `silver` — *Silver Pack* | free, 1/day | 3 players, 70+ guaranteed |
+| Always available | `gold` — *Gold Pack* | $2.99 | 5 players, 78+ guaranteed |
+| Always available | `premium` — *Elite Pack* | $4.99 | 5 players, 82+ guaranteed, 3% Hall of Legends chance — **BEST VALUE** |
+| Always available | `rare` — *World Class Pack* | $6.99 | 5 players, 84+ guaranteed, walkout possible, 8% legend chance |
+| Always available | `icon` — *Legends Pack* | $9.99 | 1 player, 88+ guaranteed, walkout guaranteed, 25% legend chance |
 
-- **`PACK_STOREFRONT_ORDER` is what renders, not `PACK_TIERS`.** It is
-  `['daily', 'bronze', 'silver', 'gold', 'premium', 'rare', 'icon']`;
-  `isStorefrontTier` reads it, and `PAID_PACK_TIERS` is the subset with a
-  `productId`. `PacksPage` puts `FREE_PACK_TIER` under Free Today and every
-  other storefront tier, Bronze and Silver included, on the Packs shelf.
-  Adding a tier to `PACK_TIERS` does not put it on sale. Never delete a tier
-  from `PACK_TIERS`: `OpenedPackRecord` in shipped saves references tier keys,
-  and Recent Pulls resolves label/art through `PACK_TIER_MAP`.
-- **Three free packs a day: Daily, Bronze and Silver.** `FREE_PACK_TIER`
-  (`daily`) is the *streak* pack. It is the only free tier with an ad slot
-  and the one that answers to `freeOpen`/`streak`. Bronze and Silver were
-  archived for a while and are back as permanent shelf tiers: `price: 0`, one
-  free open a day each (`freeDailyLimit: 1`), no `adDailyLimit`, no
-  `productId`, and base cards (no `versionBoost`). `packs.test.ts` pins the
-  free set to `[FREE_PACK_TIER, 'bronze', 'silver']` and pins Bronze/Silver's
-  allowance at 1 with no ad slot and no SKU. That makes 9 free cards a day.
-  The streak pack's day-7 elite-rate ceiling is the free-supply guard the
-  tests enforce, and the Daily's max-streak band must stay under Gold's
-  floor and ceiling.
+- **`PACK_STOREFRONT_ORDER` is what renders, not `PACK_TIERS`** — adding a tier
+  to `PACK_TIERS` does not put it on sale. Today it holds every tier:
+  `daily`, `bronze`, `silver`, `gold`, `premium`, `rare`, `icon`. Bronze and
+  Silver came back on the permanent shelf (commit `7dcb69f`, see
+  `docs/pack-store-rotation.md`) with ONE free daily open each and no IAP
+  product; they are no longer archived. `OpenedPackRecord`s in shipped saves
+  still resolve label/art through `PACK_TIER_MAP`, so a tier is never deletable.
+- **Three free packs a day, one streak pack.** `FREE_PACK_TIER` (`daily`) is the
+  streak-scaled free pack in Free Today; Bronze and Silver carry their own
+  `freeDailyLimit: 1`. A test pins the free tiers to exactly
+  `['daily', 'bronze', 'silver']`.
+- **Limited deals.** `PACK_DEAL_SLOTS` run three epoch-aligned windows over the
+  paid tiers in `PACK_DEAL_TIERS` (`weeklyEligible` only — never the one-card
+  Legends pack): 4 h +3 cards, 12 h +2, 24 h +1 (`utils/packDeals.ts`). Windows
+  use the persisted high-water clock, so reopening the store never resets one.
+  Bonuses do not stack — a card sells the larger of its deal and weekly bonus.
 - **Weekly featured offer.** `getFeaturedPackTier(currentWeekIndex())` rotates
   over `FEATURED_PACK_ROTATION` on the REAL week (it used to key on the in-game
   week, so the headline changed several times per sitting). The first purchase
@@ -609,11 +672,12 @@ contains, what it costs, and what its odds are.
   cosmetic — a frame never touches a sim parameter. An unknown frame id
   resolves to `null` and falls back to tier art, so a frame can be retired
   without breaking saves.
-- ⚠ **ASC action item:** the four consumables' in-app display names changed
-  (Champions / Elite / World Class / Legends) and the cosmetic pack became
-  *Dynasty Legacy Pack*. Product IDs are frozen; the App Store Connect and Play
-  Console **display names** must be updated to match or the purchase sheet names
-  a different item than the card that opened it.
+- ⚠ **ASC action item:** the four consumables' in-app display names are the
+  `PACK_TIERS[].label`s — *Gold Pack / Elite Pack / World Class Pack / Legends
+  Pack* (Gold is back from *Champions*, which survives as its card frame) — and
+  the cosmetic pack became *Dynasty Legacy Pack*. Product IDs are frozen; the App
+  Store Connect and Play Console **display names** must match or the purchase
+  sheet names a different item than the card that opened it.
 
 - **Pack pulls are REAL players, with duplicates allowed.** `rollPackPlayer`
   draws from `nationalPlayerPool.ts` via `pickRealPlayerForPack`, which
@@ -658,8 +722,15 @@ Player identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `92`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `94`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
+  v93 added `careerId`: the Hall of Managers keys one row per career on it
+  (`hallEntryId`; a career older than v93 keeps its `slot-N` row), keeps
+  `HALL_MAX_STORED` (100) rows and shows `HALL_DISPLAY_MAX` (20).
+- **Device-level records are not in any save** — daily streak, live-event
+  progress, redeemed codes, the Hall of Managers and the Manager Pass live in
+  device storage through `persistence.ts`, so a new career neither resets nor
+  duplicates them. Don't add them to the save payload.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
 
@@ -692,25 +763,32 @@ Player identities draw from the **community pack** real-player dataset
   class that strips backdrop-blur/decorative layers and forces reduced motion.
   It strips `.glass-surface` specifically — a component that blurs through a
   bare `backdrop-blur-*` utility (LiquidButton does) is NOT covered.
-- **Reduced motion is not free.** `MotionConfig` covers framer-motion and the
-  `@media (prefers-reduced-motion)` block in `index.css` cancels the
-  `animate-*` keyframe classes — **neither touches a plain CSS `transition`**.
-  A component that animates `left`/`top`/`transform` through a Tailwind
-  `transition-*` utility must ask `useReducedMotionPref()` and drop it itself
-  (see `PitchBoard`). Decorative layers return `null`; they do not merely
-  freeze.
+- **Reduced motion** (the in-app setting, Performance mode, or the OS
+  preference) reaches three layers: `MotionConfig` (framer-motion), and in
+  `index.css` the `@media (prefers-reduced-motion)` block plus the root
+  `.reduce-motion` class App.tsx sets from the setting / Performance mode.
+  The CSS layers collapse every CSS `transition` and keyframe animation to
+  ~0 ms (shortened, not removed, so `transitionend`/`animationend` still
+  fire), stop the infinite `animate-pulse`/`bounce`/`ping` loops and slow
+  `animate-spin`. **Nothing global reaches motion driven from JS** — rAF
+  loops, timers, style updated over time (e.g. the walkout OVR count): that
+  code must ask `useReducedMotionPref()`. Decorative layers return `null`;
+  they do not merely freeze.
 
 ## Key Patterns
 - **Game loop:** `advanceWeek()` in `orchestration/weekAdvance.ts` — training, development, AI sims, injuries, income, messages, offers, weekly objectives, cup/continental/international scheduling.
-- **Match sim:** `simulateMatch()` → Match with events; MatchDay renders live with interactive subs, team talks, set pieces, penalty shootouts. Match speed tiers in `config/matchSpeed.ts` (instant sim = Pro).
+- **Match sim:** `simulateMatch()` → Match with events; MatchDay renders live with interactive subs, team talks, set pieces, penalty shootouts. Match speed tiers in `config/matchSpeed.ts` (instant sim = Pro). **Skip to full time** is free from half-time and Pro from kickoff (`SKIP_TO_FULL_TIME_PHASES`), on the live row and the Paused panel; it is playback-only (`utils/skipToFullTime.ts` makes the same store calls the clock would). **Neutral venues:** `Match.neutral` (optional; absent = home ground) is set on domestic and continental finals, both Super Cups, the promotion-playoff final and international-tournament matches; the engine then gives both sides the away factor (`homeAdvantageFactor`, `NEUTRAL_VENUE_ADVANTAGE`).
+- **Home (Dashboard):** one Continue button (`selectPrimaryAction`) → "Needs your attention" (`selectAttentionItems`, actionable rows only) → the Getting Started checklist (first session, then coach tasks through `COACH_CHECKLIST_MAX_SEASON`) → the next match → live-event / starter-kit banners and the Manager Pass row → "More" (`DashboardMore`, collapsed, remembered per device). Rules live in `utils/dashboardSelectors.ts`.
+- **Popup cap:** `utils/presentationQueue.ts` orders post-advance overlays and spends a budget of `BLOCKING_POPUPS_PER_ADVANCE` (2) per advance. Past it, each overlay follows its `OVERLAY_OVERFLOW` policy: decisions (press conference, storyline, transfer talk, national-team offer — ordered first), trophy lifts, the session recap, the daily reward and the one-time first-win notification ask always show; informational popups are filed to the inbox (`fileOverflowToInbox`, converters in `utils/overlayInbox.ts`); permission asks and offers wait for the next advance.
+- **New game:** ClubSelection defaults the nationality from the device locale (`utils/localeNation.ts`) and offers a one-tap **Quick Start** club for it (`config/quickStart.ts`, `utils/quickStart.ts`); ManagerCreation defaults the manager's nationality the same way.
 - **Player dev:** young (<24) grow toward potential, vets (>=31) decline. Per-attribute probability via `store/helpers/development.ts`.
 - **Transfers:** buy `makeOffer()`, sell `listPlayerForSale()`, respond `respondToOffer()`. Windows: **weeks 1–8 and 20–24** (`config/transfers.ts`).
 - **Loans:** separate system via `loanSlice.ts` — incoming/outgoing offers and deals.
 - **Season end:** `orchestration/seasonEnd.ts` — aging, contracts, replacements, new fixtures, stat reset, promotion/relegation cascade across all 45 leagues, awards, Ballon d'Or.
 - **Career mode:** `careerSlice` + `utils/managerCareer.ts` — vacancies, board-pitch interviews (`data/boardPitches.ts`), contract negotiation, bonuses, sackings, retirement.
-- **Progression:** manager perks (TalentTree), prestige, achievements, milestones, records, Hall of Managers.
+- **Progression:** manager perks (TalentTree), prestige, achievements, milestones, records, Hall of Managers (one row per career), Dynasty Legacy, Manager Pass (see Monetization › Manager Pass + Legacy).
 - **Narratives:** storyline chains, press conferences, player narratives, random events, weekly digest.
-- **Observability:** Sentry with game breadcrumbs (`utils/sentry.ts`); analytics are consent-gated (first-launch `AnalyticsConsentModal`, `utils/analytics.ts`).
+- **Observability:** Sentry with game breadcrumbs (`utils/sentry.ts`). `utils/analytics.ts` is local-only — no transport (see Monetization › Observability). Its consent gate is still in code, but nothing grants consent: the first-launch consent modal and the Settings toggle were removed with the transport.
 
 ## Key Gotchas
 - `club.lineup` and `club.subs` are **string arrays of player IDs**, not Player objects.
@@ -721,9 +799,9 @@ Player identities draw from the **community pack** real-player dataset
 - Store uses `set()` with spread — always spread nested objects before modifying or you'll mutate state.
 - **Cup-week choreography is load-bearing:** domestic Cup Final sits at week 43 specifically to dodge the continental SF legs (41–42), continental Final (44), and League Cup Final (40). The player's continental knockout ties are NOT auto-simulated by `weekAdvance`, and a same-week collision can strand a tie unresolved and hang the tournament. Read the comment block in `src/data/cup.ts` before moving any round week.
 - **Never check subscription SKUs against `monetization.entitlements`** — see Entitlement invariants above.
-- **Generated data is not source code:** `src/data/communityPack/*`, `src/data/nationalPlayerPool.ts` are tool-generated. Never hand-edit; regenerate via the fc26/scrape scripts.
+- **Generated data is not source code:** `src/data/communityPack/*`, `src/data/squads/*`, `src/data/nationalPlayerPool.ts` and `src/data/playerPortraits.ts` are tool-generated. Never hand-edit; regenerate via the fc26/scrape scripts (portraits: `scripts/portrait-batch.mjs`).
 - HashRouter: deep links are `#/route`; route changes don't hit the server.
-- `package.json.version` (1.3.0) must never regress below the top `whatsNew.ts` entry — CI guard will fail the TestFlight build.
+- `package.json.version` must never regress below the top `whatsNew.ts` entry (latest shipped v1.6.0) — the guard fails the TestFlight and Android builds.
 
 ## Commands
 ```bash
@@ -732,15 +810,15 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (253 test files)
+npm run test         # Vitest (337 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
-npm run size:check   # Eager-bundle budget check
+npm run size:check   # Bundle budgets (eager gz, main chunk, core JS, community pack)
 npm run sunday:chrome -- --static <before-rev> [after-rev]   # copy meter (source side + voice floor)
 # headline copy measurement — two dev servers, real Chromium:
 #   node scripts/measure-sunday-chrome.mjs --dom http://127.0.0.1:8086 http://127.0.0.1:8085
-npm run preflight    # lint + typecheck + FAST tests + build + size:check (per commit)
+npm run preflight    # lint + typecheck + docs/i18n/packs checks + FAST tests + build + size:check (per commit)
 npm run preflight:full # ...plus the long-running suites (what CI enforces)
 npm run test:fast    # Vitest minus the slow season/longevity suites
 npm run docs:check   # Check this file's numbers against the code (-- --fix to update)
@@ -776,7 +854,7 @@ npm run scrape:icons                 # SoFIFA Icons scrape (Playwright; also a G
 Quick reference:
 - `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
 - `npm run branch -- name` = new branch from origin/main
-- `npm run preflight` = lint + typecheck + docs:check + i18n:check + fast tests + build + size:check (per commit)
+- `npm run preflight` = lint + typecheck + docs:check + i18n:check + type:check + fast tests + build + size:check (per commit)
 - `npm run preflight:full` = the same with the long-running suites — run before a release
 - After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
 - `gh pr create` is FORBIDDEN — no GitHub API auth available. GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available where configured.
@@ -788,7 +866,7 @@ as `/<filename>`; include `$ARGUMENTS` for user input):
 
 | Command | Purpose |
 |---------|---------|
-| `/balance` | Game balance tuning across the 33 config files |
+| `/balance` | Game balance tuning across the 45 config files |
 | `/feature` | Feature scaffolding (types → config → slice → page → tests) |
 | `/match-engine` | Match engine development (engine/match.ts + helpers) |
 | `/test` | Test generation following existing Vitest patterns |
@@ -800,6 +878,7 @@ as `/<filename>`; include `$ARGUMENTS` for user input):
 | `/ad-meta` | Meta/Instagram/Reels ad brief (reads `marketing/`) |
 | `/ad-tiktok` | TikTok ad brief (reads `marketing/`) |
 | `/marketing-playbook` | UA strategy reference (budgets, CPI, SKAN) |
+| `/goals` | Pick up the next open item from `GOALS.md` (now: `docs/audit-2026-09-25.md`) |
 
 ## Claude Code Project Settings
 
@@ -831,33 +910,35 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
 `src/App.tsx` when footage is needed.
 
 ## CI/CD (`.github/workflows/`)
-- **`pr-checks.yml`** — PR validation (lint + build + test)
+- **`pr-checks.yml`** — PR validation: runs `npm run preflight:full` by name (lint, typecheck, docs/i18n/pack-supply checks, full suite, build, bundle budgets); a new push cancels the superseded run
 - **`ios-testflight.yml`** — manual-dispatch iOS TestFlight deploy (seal + version guard + fastlane)
-- **`android-build.yml`** — Android APK/AAB build
+- **`android-build.yml`** — manual-dispatch Android AAB build: `version_name` blank = package.json, marketing-version guard, `preflight:full`, What's New seal + stamp (`version_code`)
+- Both release builds pass the optional `VITE_REDEEM_SECRET` repo secret to the web build (unset = redeem codes disabled)
 - **`append-pending-news.yml`** — auto-appends release-note bullets on PR merge
-- **`release.yml`** — version bump on `v*` tag push
+- **`release.yml`** — version bump on `v*` tag push (stages only package.json, the lockfile and the two native version files)
 - **`scrape-icons.yml`** — SoFIFA icon scrape as a manual Action
 
 ## Known Tech Debt
 - **i18n is a started migration, not a finished one.** `src/i18n/` (hand-rolled
-  `t()`, English always loaded as fallback) works and 101 of 197 files in
-  `src/pages` + `src/components/game` use it, but **999 player-facing strings in
-  114 files are still hardcoded English** (`npm run i18n:check`). `sv.ts` covers
-  76 of `en.ts`'s keys and **nothing calls `setLocale` outside tests** — there is
+  `t()`, English always loaded as fallback) works and 114 of 217 files in
+  `src/pages` + `src/components/game` use it, but **1,023 player-facing strings in
+  117 files are still hardcoded English** (2026-09-25; `npm run i18n:check` prints
+  the live count and fails above the ceiling in `package.json`). `sv.ts` covers
+  77 of `en.ts`'s ~565 keys and **nothing calls `setLocale` outside tests** — there is
   deliberately no language picker, because shipping one today would give a
   mostly-English "Swedish" UI. Don't advertise localisation until the count is
   near zero. The meter itself lied for a while (it skipped every line containing
   `className=`, i.e. every JSX text node, and reported 0) — see the correction in
   `docs/CRITICAL-REVIEW-2026-08.md` §17.
   **Release-scope decision (2026-08-23, v1.5.0):** i18n is explicitly deferred
-  for this release — not a goal, not on the roadmap for this cycle. The 999
+  for this release — not a goal, not on the roadmap for this cycle. The
   hardcoded-English strings are known debt, not a blocker; do not hold a
   release on this count, and do not advertise Swedish (or any) localisation
   in store copy or release notes until a future release explicitly commits to
   finishing the migration.
-- `orchestration/weekAdvance.ts` (3,094 LOC) and `pages/Dashboard.tsx` (2,192 LOC) are the new oversized files — use `/refactor` for guided extraction.
+- `orchestration/weekAdvance.ts` (3,213 LOC) and `pages/Dashboard.tsx` (829 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
-- Generated data dwarfs the code (~410K vs ~139K LOC) — keep it lazily imported; `size:check` is the guard.
+- Generated data dwarfs the code (~380K vs ~170K LOC) — keep it lazily imported; `size:check` is the guard.
 - framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.
 - Ads are stubbed out (see Monetization) — re-enabling AdMob is a documented, multi-step job in `utils/ads.ts`.
 
@@ -870,15 +951,16 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
 - NEVER use `localStorage` or `sessionStorage` directly — go through the helpers in `src/store/helpers/persistence.ts` (`readSessionJson` / `writeSessionJson` / `removeSessionKey` / `getFlag` / `setFlag` / `readSaveSlot` / etc.). New storage keys register in `STORAGE_KEYS`. Enforced by ESLint `no-restricted-globals`
 - NEVER check subscription SKUs against `monetization.entitlements`, persist consumable packs as entitlements, or reintroduce the RevenueCat hosted paywall (Apple 3.1.2(c))
 - NEVER let monetization code touch sim parameters (match outcomes, training, transfer values)
-- NEVER hand-edit generated data (`src/data/communityPack/*`, `nationalPlayerPool.ts`) — regenerate via scripts
+- NEVER hand-edit generated data (`src/data/communityPack/*`, `src/data/squads/*`, `nationalPlayerPool.ts`, `playerPortraits.ts`) — regenerate via scripts
 - NEVER import heavy data eagerly — `size:check` enforces the eager-bundle budget
 - NEVER break mobile-first layout — test at 375px. Tap targets are 44px; the
-  type floor is 11px (a crest monogram is a graphic, not copy)
+  type floor is 11px (a crest monogram is a graphic, not copy — mark such a
+  line `type-floor: graphic`; `npm run type:check` enforces the rest)
 - NEVER import `lucide-react` in a Sunday screen or Sunday component — icons
   come from `src/config/sundayIcons.ts`
-- NEVER rely on `MotionConfig` or the `prefers-reduced-motion` CSS block to
-  stop a Tailwind `transition-*` utility — it does not. Ask
-  `useReducedMotionPref()`
+- NEVER drive motion from JS (rAF, timers, style changed over time) without
+  asking `useReducedMotionPref()` — the root `.reduce-motion` class and the OS
+  media query collapse CSS transitions and animations, not JS
 - NEVER create type files outside `src/types/game.ts` — single source of truth
 - NEVER use `gh pr create` — GitHub API auth is not available. Give the user the PR URL from git push output instead
 - NEVER push without running `npm run preflight` first (or `npm run ship` which includes it)

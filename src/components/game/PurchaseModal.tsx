@@ -4,10 +4,11 @@ import { PRODUCTS } from '@/config/monetization';
 import type { ProductId } from '@/types/game';
 import { Crown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PurchaseModalProps {
   productId: ProductId;
@@ -17,10 +18,15 @@ interface PurchaseModalProps {
   /** Optional localised price string from the store (e.g. "kr 149,99").
    *  Falls back to the USD config price when omitted. */
   storePrice?: string;
+  /** Free-trial length the store CONFIRMED for this plan and this Apple ID
+   *  (`probePaywallTrials`). Omit unless confirmed — the dialog then states the
+   *  trial and what is billed after it, which is only true if the store agrees. */
+  trialDays?: number;
 }
 
-export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePrice }: PurchaseModalProps) {
+export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePrice, trialDays }: PurchaseModalProps) {
   useScrollLock(true);
+  const { t } = useTranslation();
 
   const handleConfirm = () => { hapticMedium(); onConfirm(); };
   const handleCancel = () => { hapticLight(); onCancel(); };
@@ -53,6 +59,10 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
     : isSubscription && product.billingPeriod && product.billingPeriod !== 'one-time'
       ? `${basePrice}${product.billingPeriod}`
       : basePrice;
+  // Trial framing only for a subscription with a known price: the billed
+  // amount stays the prominent "Total" (Apple 3.1.2(c)); the trial is the
+  // smaller line beneath it.
+  const showTrial = isSubscription && !missingStorePrice && typeof trialDays === 'number' && trialDays > 0;
 
   return (
     <AnimatePresence>
@@ -106,32 +116,43 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
               <span className="text-sm text-muted-foreground">Total</span>
               <span className="text-lg font-display font-bold text-primary">{priceLabel}</span>
             </div>
+            {showTrial && (
+              <p className="text-[11px] text-emerald-300/90 leading-snug">
+                {t('iap.trialTerms', { days: trialDays, price: priceLabel })}
+              </p>
+            )}
 
             <button
               onClick={handleConfirm}
               disabled={loading || missingStorePrice}
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
             >
-              {missingStorePrice ? 'Store price unavailable' : loading ? 'Processing...' : isSubscription ? 'Subscribe' : 'Purchase'}
+              {missingStorePrice
+                ? 'Store price unavailable'
+                : loading
+                  ? 'Processing...'
+                  : showTrial
+                    ? t('iap.trialCta', { days: trialDays })
+                    : isSubscription ? 'Subscribe' : 'Purchase'}
             </button>
 
             <button
               onClick={handleCancel}
               disabled={loading}
-              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              className="w-full min-h-11 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground/50 text-center">
+          <p className="text-micro text-muted-foreground/50 text-center">
             {isSubscription && product.billingPeriod !== 'one-time'
               ? 'Auto-renews until cancelled. Manage in your App Store or Play Store settings.'
               : 'One-time purchase. Works offline. No recurring charges.'}
             {' '}
             <button
               type="button"
-              onClick={() => { void openExternalUrl(TERMS_URL); }}
+              onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}
               className="underline hover:text-muted-foreground transition-colors"
             >
               Terms

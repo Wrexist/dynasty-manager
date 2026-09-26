@@ -69,7 +69,8 @@ import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
-import { findTournamentMatch } from '@/hooks/useGameSelectors';
+import { resolveMatchReviewExit, type MatchReviewExit } from '@/utils/matchReviewExit';
+import { playerBanMatchesRemaining } from '@/store/slices/orchestration/helpers';
 import { motion } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
@@ -104,10 +105,16 @@ const MatchReview = () => {
   );
   // Free tactical debrief (G3): the engine's tactical matchup insight + first
   // opposition reaction + a hint — distinct from the Pro stat insights below.
-  const debrief = useMemo(
-    () => currentMatchResult ? extractMatchDebrief(currentMatchResult.events, playerClubId) : null,
-    [currentMatchResult, playerClubId]
-  );
+  // Given the final score, like PostMatchPopup, so both full-time surfaces
+  // phrase a half-time line the same way and keep its lesson (R6).
+  const debrief = useMemo(() => {
+    if (!currentMatchResult) return null;
+    const home = currentMatchResult.homeClubId === playerClubId;
+    return extractMatchDebrief(currentMatchResult.events, playerClubId, {
+      goalsFor: home ? currentMatchResult.homeGoals : currentMatchResult.awayGoals,
+      goalsAgainst: home ? currentMatchResult.awayGoals : currentMatchResult.homeGoals,
+    });
+  }, [currentMatchResult, playerClubId]);
 
   const matchEvents = currentMatchResult?.events;
   const allHighlights = useMemo(
@@ -128,23 +135,17 @@ const MatchReview = () => {
     goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
   }), [allHighlights, playerClubId]);
 
-  // Is ANOTHER unplayed match for the player's club scheduled THIS week
-  // (pre-season friendlies share weeks 1-3 with league fixtures; cup ties can
-  // share weeks too)? Drives the Continue button label — the overloaded
+  // What the primary button does — leave (past week), return for another
+  // match this week, or advance the week — and so what it says. The overloaded
   // "Continue" made players think the game was stuck when it bounced them to
-  // a second same-week match. Must run before the null-match early returns
+  // a second same-week match, and it never said that it advanced the week
+  // while Back / swipe did not. Label and handler share this one resolution
+  // (utils/matchReviewExit). Must run before the null-match early returns
   // (rules of hooks); getState() is safe here because scheduling can't
   // change while the review is open.
-  const hasAnotherMatchThisWeek = useMemo(() => {
-    if (!currentMatchResult) return false;
-    const s2 = useGameStore.getState();
-    if (currentMatchResult.week !== s2.week) return false; // historical review
-    const pid = s2.playerClubId;
-    const mine = (m: { week: number; played: boolean; homeClubId: string; awayClubId: string; id: string }) =>
-      m.week === s2.week && !m.played && (m.homeClubId === pid || m.awayClubId === pid) && m.id !== currentMatchResult.id;
-    if (s2.friendlies?.some(mine)) return true;
-    if (s2.fixtures.some(mine)) return true;
-    return !!findTournamentMatch(s2);
+  const exit = useMemo<MatchReviewExit>(() => {
+    if (!currentMatchResult) return 'dashboard';
+    return resolveMatchReviewExit(useGameStore.getState(), currentMatchResult);
   }, [currentMatchResult]);
 
   // Single-pass partition over match.events, memoized on the events array.
@@ -167,6 +168,19 @@ const MatchReview = () => {
     return { goals: g, injuries: inj, cards: c };
   }, [matchEventsForReview]);
 
+  // Matches (not calendar weeks) each sent-off player will miss. The ban was
+  // counted against his club's fixtures, so the label reads that calendar back;
+  // `suspendedUntilWeek - week` counted weeks and a one-match red read "2".
+  // getState(): the calendar cannot change while the review is open (see `exit`).
+  const banMatchesByPlayer = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const e of cards) {
+      const p = e.type === 'red_card' && e.playerId ? players[e.playerId] : null;
+      if (p) out[p.id] = playerBanMatchesRemaining(useGameStore.getState(), week, p);
+    }
+    return out;
+  }, [cards, players, week]);
+
   if (!currentMatchResult) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -175,7 +189,7 @@ const MatchReview = () => {
             icon={Calendar}
             title={t('matchReview.noMatchToReview')}
             description={t('matchReview.playAFixtureAndThe')}
-            action={{ label: 'Back to Dashboard', onClick: () => setScreen('dashboard') }}
+            action={{ label: t('matchReview.backToDashboard'), onClick: () => setScreen('dashboard') }}
           />
         </motion.div>
       </div>
@@ -191,7 +205,7 @@ const MatchReview = () => {
         <GlassPanel className="p-6 text-center">
           <Calendar className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">Unable to load match data</p>
-          <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
+          <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>{t('matchReview.backToDashboard')}</Button>
         </GlassPanel>
       </div>
     );
@@ -217,27 +231,16 @@ const MatchReview = () => {
   const isHistoricalReview = match.week !== week;
 
   const handleContinue = () => {
-    if (isHistoricalReview) {
+    if (isHistoricalReview || exit === 'dashboard') {
       // Reviewing a past match — just go back, never advance the week
       setScreen('dashboard');
       return;
     }
     setIsAdvancing(true);
     advanceTimerRef.current = setTimeout(() => {
-      // Read fresh state from the store (not stale closure from render time)
-      const s = useGameStore.getState();
-      const hasUnplayedLeague = s.fixtures.some(
-        m => m.week === s.week && !m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId)
-      );
-      const hasUnplayedTournament = !!findTournamentMatch({
-        week: s.week, playerClubId: s.playerClubId, cup: s.cup,
-        leagueCup: s.leagueCup, championsCup: s.championsCup,
-        shieldCup: s.shieldCup, conferenceCup: s.conferenceCup,
-        domesticSuperCup: s.domesticSuperCup,
-        continentalSuperCup: s.continentalSuperCup,
-      });
-
-      if (hasUnplayedLeague || hasUnplayedTournament) {
+      // Re-resolve against fresh state (not the render-time snapshot) with
+      // the same rule the label used.
+      if (resolveMatchReviewExit(useGameStore.getState(), match) !== 'advance') {
         // Another match this week — return to dashboard without advancing
         setScreen('dashboard');
       } else {
@@ -327,7 +330,14 @@ const MatchReview = () => {
       {/* Continue — sticky at top so player doesn't have to scroll */}
       <div className="sticky top-0 z-10 -mx-4 px-4 pt-1 pb-2 bg-gradient-to-b from-background via-background to-transparent">
         <Button size="lg" className="w-full h-12 text-base font-bold gap-2" disabled={isAdvancing} onClick={handleContinue}>
-          {isAdvancing ? 'Advancing...' : isHistoricalReview ? 'Back to Dashboard' : hasAnotherMatchThisWeek ? 'Next Match This Week' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
+          {isAdvancing
+            ? t('matchReview.advancing')
+            : isHistoricalReview || exit === 'dashboard'
+              ? t('matchReview.backToDashboard')
+              : exit === 'next-match'
+                ? t('matchReview.nextMatchThisWeek')
+                : t('matchReview.advanceToNextWeek')}
+          {!isAdvancing && <ChevronRight className="w-5 h-5" />}
         </Button>
       </div>
 
@@ -372,26 +382,31 @@ const MatchReview = () => {
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <h3 className="text-sm font-semibold text-foreground">Key Highlights</h3>
-              <div className="flex items-center gap-1 p-0.5 rounded-full bg-muted/30 border border-border/40">
+              {/* Each filter is a 44px-tall button around a compact pill (the
+                  pills measured 18px): the target grows, the look does not. */}
+              <div className="flex items-center -my-2.5">
                 {(['all', 'us', 'goals'] as const).map(f => (
                   <button
                     key={f}
                     type="button"
                     onClick={() => setHighlightFilter(f)}
-                    className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-micro font-semibold uppercase tracking-wider transition-colors',
-                      highlightFilter === f
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
+                    className="min-h-11 px-0.5 flex items-center"
                     aria-label={`${f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'} — ${highlightCounts[f]} event${highlightCounts[f] === 1 ? '' : 's'}`}
+                    aria-pressed={highlightFilter === f}
                   >
-                    <span>{f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}</span>
                     <span className={cn(
-                      'text-micro font-bold tabular-nums',
-                      highlightFilter === f ? 'opacity-80' : 'opacity-50'
+                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-micro font-semibold uppercase tracking-wider transition-colors',
+                      highlightFilter === f
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:text-foreground'
                     )}>
-                      {highlightCounts[f]}
+                      <span>{f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}</span>
+                      <span className={cn(
+                        'text-micro font-bold tabular-nums',
+                        highlightFilter === f ? 'opacity-80' : 'opacity-50'
+                      )}>
+                        {highlightCounts[f]}
+                      </span>
                     </span>
                   </button>
                 ))}
@@ -798,9 +813,7 @@ const MatchReview = () => {
             })}
             {cards.map((e, i) => {
               const p = e.playerId ? players[e.playerId] : null;
-              const banWeeks = (e.type === 'red_card' && p?.suspendedUntilWeek)
-                ? p.suspendedUntilWeek - week
-                : null;
+              const banMatches = p ? banMatchesByPlayer[p.id] ?? 0 : 0;
               const isSecondYellow = e.type === 'red_card' && (e.description?.includes('Second yellow') || e.description?.includes('second booking'));
               return (
                 <div key={`card-${i}`} className="flex items-center gap-2 text-xs">
@@ -814,7 +827,7 @@ const MatchReview = () => {
                   {p && <FlagIcon nationality={p.nationality} size={11} className="shrink-0" />}
                   <span className="text-foreground">
                     {p?.lastName || 'Unknown'}
-                    {banWeeks != null && banWeeks > 0 && <span className="text-muted-foreground"> — {banWeeks} match ban</span>}
+                    {banMatches > 0 && <span className="text-muted-foreground"> — {t('matchReview.matchBan', { n: banMatches })}</span>}
                   </span>
                   <span className="text-muted-foreground ml-auto tabular-nums">{e.displayMinute ?? e.minute}'</span>
                 </div>

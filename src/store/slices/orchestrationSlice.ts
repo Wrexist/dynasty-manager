@@ -36,7 +36,7 @@ import { findTournamentMatch } from '@/store/slices/orchestration/helpers';
 import { generateAIManagerProfile } from '@/config/aiManager';
 
 import { createDefaultProgression, MANAGER_PERKS, canUnlockPerk } from '@/utils/managerPerks';
-import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
+import { buildHallEntry, saveToHall, hallEntryId } from '@/utils/hallOfManagers';
 import { PRESTIGE_RESTART_PERK_XP } from '@/utils/prestige';
 
 import type { PerkId, ManagerProgression } from '@/types/game';
@@ -49,7 +49,7 @@ import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { maybeEnterPlayoff } from '@/store/slices/orchestration/playoff';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import {
-  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl, rollKeeperTauntImpl,
+  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl, rollKeeperTauntImpl, withLiveMatchRandom,
 } from '@/store/slices/orchestration/matchActions';
 import {
   playWorldCupFirstHalfImpl, playWorldCupSecondHalfImpl, playWorldCupExtraTimeImpl,
@@ -64,6 +64,13 @@ let lastSaveErrorLogAt = 0;
 let lastSaveAt = 0;
 let saveAttempt = 0;
 let lastSavedHash: number | null = null; // FNV-1a of the last successfully written payload
+/** The payload this module last handed to writeSaveSlot, and whether the state
+ *  it was serialized from passed validateSaveShape. The next save's outgoing
+ *  main is normally this exact string, so the backup-rotation guard can reuse
+ *  the verdict instead of re-parsing ~7 MB. A string we did not produce (read
+ *  from disk at launch, or written by another path) never matches and is
+ *  still parsed and validated. */
+let lastWrittenPayload: { raw: string; valid: boolean } | null = null;
 const SAVE_DEBOUNCE_MS = 2000; // Minimum 2s between auto-saves
 const AGGRESSIVE_TRIM_THRESHOLD = 3_000_000; // >3MB → strip ALL match events
 // Pre-flight threshold: roughly 30k event records translates to ~3MB of JSON,
@@ -78,12 +85,22 @@ type IdleHandle = number;
 let pendingIdleHandle: IdleHandle | null = null;
 let pendingSlot: number | undefined;
 let runSchedulerWork: (() => void) | null = null;
+/** Trailing autosave for a call that landed inside the debounce window after
+ *  the previous save had already run. Without it that call was dropped, and
+ *  whatever changed since the last save waited for the next unrelated one. */
+let trailingSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelTrailingSave(): void {
+  if (trailingSaveTimer !== null) clearTimeout(trailingSaveTimer);
+  trailingSaveTimer = null;
+}
 
 /** Reset the change-detection hash. Call on loadGame / resetGame so the next
  *  save isn't short-circuited against a stale hash from a prior session. */
 export function resetSaveHash(): void {
   saveAttempt++;
   lastSavedHash = null;
+  lastWrittenPayload = null;
 }
 
 /** Cancel any scheduled but not-yet-fired autosave. Call before destructive
@@ -97,6 +114,7 @@ function cancelPendingSave(): void {
   }
   runSchedulerWork = null;
   pendingSlot = undefined;
+  cancelTrailingSave();
 }
 
 /** Test-only: zero every piece of module-level save scheduler state so each
@@ -107,6 +125,7 @@ export function __resetAutosaveSchedulerForTests(): void {
   lastSaveAt = 0;
   lastSaveErrorLogAt = 0;
   lastSavedHash = null;
+  lastWrittenPayload = null;
 }
 
 function cancelIdle(handle: IdleHandle): void {
@@ -348,6 +367,9 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
     // be listed here explicitly: v92's whole point was persisting the hall,
     // and an unlisted field is silently dropped on every save.
     retiredLegends: state.retiredLegends || [],
+    // Hall of Managers key for this career (v93). Must be listed explicitly —
+    // an unlisted field is dropped on every save.
+    careerId: state.careerId ?? null,
     // ── Previously-unsaved fields (v68 fix) ──
     // Each of these is mutated by gameplay but was missing from the save
     // payload, so accumulated state was silently dropped on every reload.
@@ -423,10 +445,25 @@ function performSave(set: Set, get: Get, slot: number | undefined): Promise<bool
       // The outgoing main was written at CURRENT_VERSION, so validate its
       // shape directly (no migration needed).
       validateOutgoing: (raw) => {
+        if (lastWrittenPayload && raw === lastWrittenPayload.raw) return lastWrittenPayload.valid;
         try { return validateSaveShape(JSON.parse(raw)).ok === true; }
         catch { return false; }
       },
+      payloadHash,
     });
+    // The slot's IndexedDB read has not completed (slow launch): nothing was
+    // written, deliberately — see writeSaveSlot. Not a storage-full event, so
+    // skip that inbox warning; the next autosave retries once the read lands.
+    if (saveResult.refused) {
+      set({ saveStatus: 'failed', saveFailureMessage: 'Save slot is still loading' });
+      addGameBreadcrumb('save', 'Save refused', { week: state.week, season: state.season, slot: s, reason: saveResult.refused });
+      return Promise.resolve(false);
+    }
+    // `json` is JSON.stringify(saveData) and cannot be truncated or corrupted
+    // in memory, so validating the object is the same verdict as parsing the
+    // string back: every field the validator reads (playerClubId, clubs,
+    // season, week) round-trips unchanged, and a non-finite number fails both.
+    lastWrittenPayload = { raw: json, valid: validateSaveShape(saveData).ok === true };
     // Only record the change-detection hash once a disk path confirms the
     // write. Recording it unconditionally meant a save where BOTH disk
     // paths failed would short-circuit the next identical "Save Now" to
@@ -556,6 +593,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     pendingPressConference: null, activeNegotiation: null,
     pendingFarewell: [], pendingStoryline: null,
     openedPacks: [], packPityCounter: 0, retiredLegends: [], lastPackWeek: 0, lastPackSeason: 0,
+    careerId: null,
     dailyPackOpens: { date: '', free: {}, ad: {} },
     weeklyPackBonus: null,
     activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
@@ -751,15 +789,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playSecondHalf: (untilMin?: number) => playSecondHalfImpl(set, get, untilMin),
 
-  playExtraTime: () => playExtraTimeImpl(set, get),
+  // R14: extra time and every shootout step draw from the match's seed (keyed
+  // by the kick count), so a replay after a reload resolves the same way for
+  // the same choices. Kickoff and the second half seed themselves inside
+  // matchActions, where the match is identified.
+  playExtraTime: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, 'extra-time', () => playExtraTimeImpl(set, get)),
 
-  playPenalties: () => playPenaltiesImpl(set, get),
+  playPenalties: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, 'penalties', () => playPenaltiesImpl(set, get)),
 
-  rollKeeperTaunt: () => rollKeeperTauntImpl(set, get),
-  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, opts),
-  revealOpponentPenalty: () => revealOpponentPenaltyImpl(set, get),
+  rollKeeperTaunt: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, `taunt:${get().penaltyShootoutKicks.length}`, () => rollKeeperTauntImpl(set, get)),
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) =>
+    withLiveMatchRandom(get(), get().currentMatchResult?.id, `kick:${get().penaltyShootoutKicks.length}`, () => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, opts)),
+  revealOpponentPenalty: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, `kick:${get().penaltyShootoutKicks.length}`, () => revealOpponentPenaltyImpl(set, get)),
 
-  skipPenaltyShootout: () => skipPenaltyShootoutImpl(set, get),
+  skipPenaltyShootout: () => withLiveMatchRandom(get(), get().currentMatchResult?.id, `shootout-skip:${get().penaltyShootoutKicks.length}`, () => skipPenaltyShootoutImpl(set, get)),
 
   playWorldCupFirstHalf: () => playWorldCupFirstHalfImpl(set, get),
 
@@ -840,10 +883,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   saveGame: (slot?: number) => {
-    // Debounce: skip if saved very recently (unless explicit slot = manual save)
+    // Debounce auto-saves (explicit slot = manual save, never debounced). A
+    // call inside the window defers to the window's end instead of being
+    // dropped: an idle save that is still queued reads state when it runs, so
+    // it already covers this call; otherwise schedule one trailing save.
     const now = Date.now();
-    if (slot === undefined && now - lastSaveAt < SAVE_DEBOUNCE_MS) return;
+    if (slot === undefined && now - lastSaveAt < SAVE_DEBOUNCE_MS) {
+      if (pendingIdleHandle !== null || trailingSaveTimer !== null) return;
+      trailingSaveTimer = setTimeout(() => {
+        trailingSaveTimer = null;
+        get().saveGame();
+      }, SAVE_DEBOUNCE_MS - (now - lastSaveAt));
+      return;
+    }
     lastSaveAt = now;
+    // This save reads the current state, so it supersedes a trailing one.
+    if (slot === undefined || slot === get().activeSlot) cancelTrailingSave();
 
     // Flash "saving" for the UI indicator — applies to both sync manual saves
     // and async auto-saves so the user always gets feedback.
@@ -872,6 +927,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (pendingIdleHandle !== null) cancelIdle(pendingIdleHandle);
     pendingIdleHandle = null;
     runSchedulerWork = null;
+    cancelTrailingSave();
     lastSaveAt = Date.now();
     set({ saveStatus: 'saving' });
     return performSave(set, get, undefined);
@@ -901,10 +957,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingIdleHandle = null;
       const work = runSchedulerWork;
       runSchedulerWork = null;
+      cancelTrailingSave();
       work();
       return;
     }
-    if (!get().settings.autoSave) return;
+    // A deferred trailing save is requested work too — the app may be
+    // suspended before its timer fires, so run it now regardless of autoSave.
+    const trailingPending = trailingSaveTimer !== null;
+    cancelTrailingSave();
+    if (!trailingPending && !get().settings.autoSave) return;
     lastSaveAt = Date.now();
     set({ saveStatus: 'saving' });
     performSave(set, get, undefined);
@@ -1107,6 +1168,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         // v92 forgot to persist it) would keep the PREVIOUS session's hall —
         // a cross-slot leak that endSeason would then commit into this save.
         retiredLegends: data.retiredLegends || [],
+        // Explicit, never inherited: a pre-v93 save has no careerId and must
+        // fall back to its legacy `slot-N` hall key, not adopt the id of the
+        // career that was loaded before it.
+        careerId: typeof data.careerId === 'string' ? data.careerId : null,
         sponsorDeals: data.sponsorDeals || [],
         sponsorOffers: data.sponsorOffers || [],
         sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},
@@ -1371,8 +1436,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Save to Hall of Managers before resetting
     try {
       const club = state.clubs[state.playerClubId];
+      // Update this career's own row (the one season-end has been writing)
+      // rather than adding a second row for the same history. A Fresh Start
+      // gets the new careerId the re-init mints, so its own row; the options
+      // that carry the history carry the careerId with it (see below).
       const entry = buildHallEntry(
-        `prestige-${Date.now()}`,
+        hallEntryId(state),
         club?.name || 'Unknown Club',
         state.seasonHistory,
         state.managerStats,
@@ -1459,6 +1528,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }];
         updates.unlockedAchievements = state.unlockedAchievements;
         updates.seasonHistory = state.seasonHistory;
+        // The carried history keeps updating ONE Hall of Managers row. With the
+        // fresh careerId initGame minted, the next season end wrote the whole
+        // carried history into a second row and the Legacy total (job-market
+        // reputation, cosmetic unlocks) counted every carried trophy twice.
+        updates.careerId = state.careerId;
       }
 
       set(updates);

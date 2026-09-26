@@ -89,7 +89,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span
               className={cn(
-                'px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide shrink-0',
+                'px-2 py-0.5 rounded-full text-micro font-semibold uppercase tracking-wide shrink-0',
                 tier.badgeClass,
               )}
               aria-label={`tier ${tier.label}`}
@@ -97,13 +97,13 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
               {tier.label}
             </span>
             {growth != null && growth > 0 && (
-              <span className="inline-flex items-center gap-0.5 text-emerald-400 text-[10px] font-semibold tabular-nums">
+              <span className="inline-flex items-center gap-0.5 text-emerald-400 text-micro font-semibold tabular-nums">
                 <TrendingUp className="w-3 h-3" aria-label={`growing +${growth}`} />
                 +{growth}
               </span>
             )}
             {growth != null && growth < 0 && (
-              <span className="inline-flex items-center gap-0.5 text-destructive text-[10px] font-semibold tabular-nums">
+              <span className="inline-flex items-center gap-0.5 text-destructive text-micro font-semibold tabular-nums">
                 <TrendingDown className="w-3 h-3" aria-label={`declining ${growth}`} />
                 {growth}
               </span>
@@ -116,14 +116,14 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
               <p className="font-display text-2xl font-black text-primary tabular-nums leading-none tracking-tight">
                 {`Pot ${player.potential}`}
               </p>
-              <span className="px-1.5 py-0.5 rounded-full text-[9px] text-emerald-300 font-semibold tabular-nums bg-emerald-500/10 border border-emerald-500/30">
+              <span className="px-1.5 py-0.5 rounded-full text-micro text-emerald-300 font-semibold tabular-nums bg-emerald-500/10 border border-emerald-500/30">
                 +{potentialGap}
               </span>
             </div>
           )}
           {!showPotential && (
             <div className="mt-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide text-amber-200 bg-amber-500/10 border border-amber-400/40">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-micro font-semibold uppercase tracking-wide text-amber-200 bg-amber-500/10 border border-amber-400/40">
                 Maxed out
               </span>
             </div>
@@ -171,7 +171,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
             </span>
             {player.source === 'real' && (
               <span
-                className="ml-auto px-1.5 py-0.5 rounded text-[8px] font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border border-border/40 shrink-0"
+                className="ml-auto px-1.5 py-0.5 rounded text-micro font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border border-border/40 shrink-0"
                 aria-label={t('playerHeroCard.realPlayer')}
               >
                 Real

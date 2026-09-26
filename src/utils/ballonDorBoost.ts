@@ -10,6 +10,13 @@
  *
  * Deltas (not absolute snapshots) are stored so growth, training, and decline
  * that happen *during* the reign survive the revert.
+ *
+ * `overall` moves by a delta too, never by recomputing it from attributes.
+ * Real players carry authored ratings that sit above `calculateOverall` (95% of
+ * them, by up to +15 — see `applyPlayerDevelopment`), so recomputing turned a
+ * "boost" into a demotion: an 89 became a 77 on the boost and a 74 on the
+ * revert, and his wage fell ~8x with it. The applied overall delta is stored
+ * so the revert takes back exactly what the boost gave.
  */
 
 import type { Player, PlayerAttributes } from '@/types/game';
@@ -53,10 +60,14 @@ export function applyBallonDorTop10Boost<T extends Player>(player: T, season: nu
     if (after !== before) deltas[attr] = after - before;
   }
 
+  const before = player.overall;
+  const overallDelta = calculateOverall(nextAttrs, player.position) - calculateOverall(player.attributes, player.position);
   player.attributes = nextAttrs;
+  player.overall = clamp(before + overallDelta);
   player.ballonDOrTop10BoostDeltas = deltas;
+  player.ballonDOrTop10OverallDelta = player.overall - before;
   player.ballonDOrTop10HoldSeason = season;
-  recalculateDerivedFields(player);
+  recomputeDerivedEconomics(player);
   return player;
 }
 
@@ -79,18 +90,17 @@ export function revertBallonDorTop10Boost<T extends Player>(player: T): T {
       nextAttrs[attr] = clamp(nextAttrs[attr] - delta);
     }
   }
+  // Boosts applied before the overall delta was recorded fall back to what
+  // the formula says the attribute change was worth.
+  const overallDelta = typeof player.ballonDOrTop10OverallDelta === 'number'
+    ? player.ballonDOrTop10OverallDelta
+    : calculateOverall(player.attributes, player.position) - calculateOverall(nextAttrs, player.position);
   player.attributes = nextAttrs;
+  player.overall = clamp(player.overall - overallDelta);
   delete player.ballonDOrTop10BoostDeltas;
+  delete player.ballonDOrTop10OverallDelta;
   delete player.ballonDOrTop10HoldSeason;
-  recalculateDerivedFields(player);
-  return player;
-}
-
-/** Recompute overall and derived economics after an attribute change.
- *  Routes through the shared `recomputeDerivedEconomics` helper so the
- *  pricing model (rarity × age × Ballon d'Or placement premium) stays
- *  identical across every game flow. */
-function recalculateDerivedFields(player: Player): void {
-  player.overall = calculateOverall(player.attributes, player.position);
+  // Shared pricing model (rarity × age × placement premium × wageFactor).
   recomputeDerivedEconomics(player);
+  return player;
 }

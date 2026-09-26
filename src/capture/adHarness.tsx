@@ -10,6 +10,10 @@
  *  drawtext filter, and doing captions in the DOM keeps them in the app's own
  *  type and palette anyway).
  */
+// A page entry, not a module anyone imports: it exports nothing by design, so
+// react-refresh's "file has no exports" warning does not apply. An edit reloads
+// the capture page, which is what a capture rig wants anyway.
+/* eslint-disable react-refresh/only-export-components */
 import { createRoot } from 'react-dom/client';
 import { useEffect, useState } from 'react';
 import '@/index.css';
