@@ -251,7 +251,7 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
       </div>
       {/* Name */}
       <p className={cn(
-        'text-micro font-semibold leading-tight text-center line-clamp-2 w-full',
+        'text-micro font-semibold leading-tight text-center line-clamp-2 w-full hyphens-auto break-words',
         isUnlocked ? (branchColor || 'text-primary') : canBuy ? 'text-foreground' : 'text-muted-foreground/50',
       )}>
         {perk.name}

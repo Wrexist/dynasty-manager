@@ -609,7 +609,8 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
             <SheetDescription className="sr-only">
               {forceMode ? t('substitutionSheet.forcedDescription') : t('substitutionSheet.description')}
             </SheetDescription>
-            <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+            {/* mr-8 clears the sheet's absolute close button (top-right). */}
+            <span className="mr-8 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
               {subsRemaining} remaining
             </span>
           </div>

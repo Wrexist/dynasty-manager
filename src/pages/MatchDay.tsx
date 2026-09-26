@@ -1375,14 +1375,14 @@ const MatchDayInner = () => {
                           }
                         }}
                         className={cn(
-                          "flex-1 min-h-11 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-micro font-semibold transition-all active:scale-[0.97]",
+                          "flex-1 min-w-0 min-h-11 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-micro font-semibold transition-all active:scale-[0.97]",
                           isActive
                             ? 'bg-primary/20 text-primary border border-primary/30'
                             : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-border/30'
                         )}
                       >
                         <ChoiceIcon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{choice.label}</span>
+                        <span className="text-left leading-tight">{choice.label}</span>
                       </button>
                     );
                   })}

@@ -206,11 +206,14 @@ export const PackShopCard = memo(function PackShopCard({
       {/* Chrome lives in the two top corners — the only region of these covers
           with no illustration in it. Ribbon left, guarantee right, and the
           ribbon is width-capped so a long one truncates instead of running
-          under the badge opposite. */}
-      <div className="absolute inset-x-1.5 top-1.5 flex items-start justify-between gap-1 z-10 pointer-events-none">
+          under the badge opposite. At the 11px type floor a ribbon like
+          "+3 CARDS" no longer shares a narrow cover's top edge with the
+          guarantee, so the row wraps and the guarantee drops to a second
+          line, still right-aligned, rather than cutting the ribbon to "+3 CA…". */}
+      <div className="absolute inset-x-1.5 top-1.5 flex flex-wrap items-start justify-between gap-1 z-10 pointer-events-none">
         {ribbon ? (
           <span className={cn(
-            'flex items-center gap-1 min-w-0 h-5 px-2 text-micro font-bold uppercase tracking-widest rounded-full border backdrop-blur',
+            'flex items-center gap-1 min-w-0 max-w-full h-5 px-2 text-micro font-bold uppercase tracking-wider rounded-full border backdrop-blur',
             ribbonTone,
           )}>
             {bonusCards > 0
@@ -221,7 +224,7 @@ export const PackShopCard = memo(function PackShopCard({
             <span className="truncate">{ribbon}</span>
           </span>
         ) : <span />}
-        <span className="flex items-center gap-1 shrink-0 h-5 px-2 text-micro font-bold tabular-nums rounded-full text-white bg-black/55 border border-white/20 backdrop-blur">
+        <span className="ml-auto flex items-center gap-1 shrink-0 h-5 px-2 text-micro font-bold tabular-nums rounded-full text-white bg-black/55 border border-white/20 backdrop-blur">
           <ShieldCheck className="w-2.5 h-2.5" />
           {tier.guaranteedMinOvr}+
         </span>

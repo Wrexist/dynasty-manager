@@ -29,7 +29,7 @@ const FORM_STYLE: Record<'W' | 'D' | 'L', React.CSSProperties> = {
 };
 
 const SIZE_CLASSES = {
-  sm: 'w-3.5 h-3.5 text-micro',
+  sm: 'w-4 h-4 text-micro',
   default: 'w-5 h-5 text-micro',
 } as const;
 
