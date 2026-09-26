@@ -94,6 +94,28 @@ describe('IndexedDB read completion', () => {
     expect(await legacy).toBeNull();
   });
 
+  it('an open that errors (WebKit UnknownError) is an incomplete read, and the next read retries', async () => {
+    const request = { result: null, error: { name: 'UnknownError' }, onerror: null as null | (() => void) };
+    const open = vi.fn(() => request);
+    vi.stubGlobal('indexedDB', { open });
+    const read = idbRead('save');
+    request.onerror?.();
+    expect(await read).toEqual({ ok: false });
+
+    const retry = idbRead('save');
+    expect(open).toHaveBeenCalledTimes(2);
+    request.onerror?.();
+    await retry;
+  });
+
+  it('an open refused outright (SecurityError) is a completed read of nothing', async () => {
+    const request = { result: null, error: { name: 'SecurityError' }, onerror: null as null | (() => void) };
+    vi.stubGlobal('indexedDB', { open: vi.fn(() => request) });
+    const read = idbRead('save');
+    request.onerror?.();
+    expect(await read).toEqual({ ok: true, value: null });
+  });
+
   it('unsupported IndexedDB is a completed read of nothing', async () => {
     vi.stubGlobal('indexedDB', undefined);
     expect(await idbRead('save')).toEqual({ ok: true, value: null });

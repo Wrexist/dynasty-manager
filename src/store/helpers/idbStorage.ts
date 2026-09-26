@@ -40,9 +40,10 @@ const READ_TIMEOUT_MS = 10_000;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 /** Why the most recent open attempt settled without a database. `true` means
- *  it timed out or was blocked: the database exists and may well hold a save,
- *  it just did not answer. `false` means IDB is unsupported or refused to open
- *  at all, so there is nothing in it that a later write could clobber. */
+ *  it timed out, was blocked or failed with an error: the database may exist
+ *  and hold a save, it just did not answer. `false` means IDB is unsupported
+ *  or refused outright (SecurityError / InvalidStateError), so there is
+ *  nothing in it that a later write could clobber. */
 let lastOpenTransient = false;
 
 function openDB(): Promise<IDBDatabase | null> {
@@ -88,7 +89,18 @@ function openDB(): Promise<IDBDatabase | null> {
         };
         resolveOnce(db);
       };
-      req.onerror = () => resolveOnce(null);
+      req.onerror = () => {
+        // Only a refusal that means "this browser will not store anything
+        // here" (storage disabled, a private window) is a completed read of
+        // nothing. Anything else — WebKit's UnknownError after a WebView crash,
+        // an aborted open — fails an EXISTING database that may hold a career:
+        // treat it like a blocked open, so the slot stays unread (and offers
+        // Retry) instead of reading as empty and taking a New Game over it.
+        const name = req.error?.name;
+        const refused = name === 'SecurityError' || name === 'InvalidStateError';
+        if (!refused) dbPromise = null;
+        resolveOnce(null, !refused);
+      };
       req.onblocked = () => {
         // Blocked is transient (another tab holds an old connection). Don't
         // cache the failed attempt — let the next op retry.
