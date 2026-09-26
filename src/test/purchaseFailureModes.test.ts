@@ -21,6 +21,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const mockPurchases = {
   setLogLevel: vi.fn().mockResolvedValue(undefined),
   configure: vi.fn().mockResolvedValue(undefined),
+  enableAdServicesAttributionTokenCollection: vi.fn().mockResolvedValue(undefined),
   getOfferings: vi.fn(),
   getProducts: vi.fn(),
   purchasePackage: vi.fn(),
