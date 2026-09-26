@@ -144,6 +144,11 @@ function committed() {
  */
 function stage(base: DataSnapshot, seed: number) {
   useGameStore.setState(structuredClone(base) as Partial<StoreState>);
+  // The store seeds each match from its own inputs (liveMatchSeed: career,
+  // season, week, match id), overriding Math.random for the step. Vary the
+  // career id with the candidate so different seeds give different matches and
+  // the same seed replays the same one.
+  useGameStore.setState({ careerId: `skip-test-${seed}` } as Partial<StoreState>);
   const reseeded = <A extends unknown[], R>(name: string, fn: (...a: A) => R) => (...args: A): R => {
     const original = Math.random;
     Math.random = mulberry32(hash(`${seed}:${name}:${args.join(',')}`));
