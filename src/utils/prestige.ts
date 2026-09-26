@@ -13,6 +13,17 @@ export function isManagersLeagueTitle(h: Pick<SeasonHistory, 'position' | 'manag
   return h.position === 1 && h.managed !== false;
 }
 
+/**
+ * A promotion that belongs on the manager's record — the same leak
+ * `isManagersLeagueTitle` closes for titles: an out-of-work career manager's
+ * row is written from the ex-club's table, so that club going up used to
+ * unlock 'Going Up!' and fill the Trophy Cabinet with a promotion the
+ * manager had no part in.
+ */
+export function isManagersPromotion(h: Pick<SeasonHistory, 'promoted' | 'managed'>): boolean {
+  return !!h.promoted && h.managed !== false;
+}
+
 export interface PrestigeOption {
   id: 'rival' | 'drop-division' | 'restart-perks';
   label: string;
