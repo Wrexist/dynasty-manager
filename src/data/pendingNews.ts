@@ -51,7 +51,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Quick Start suggests a strong club and picks your nationality from your device.',
     'Derby Days: derby wins count double on the event reward track.',
     '11 new storylines, new random events, and press questions that name your opponents and players.',
-    'The Hall of Managers now keeps every career you have played.',
+    'The Hall of Managers now records each career separately instead of one row per save slot.',
   ],
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
