@@ -29,7 +29,7 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { resolvePaywallTrials, preferredPaywallPlan, formatPerPeriodPrice, getFreeTrialDaysRemaining } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { PRIVACY_URL, termsUrlFor, subscriptionSettingsPathFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
 import { track } from '@/utils/analytics';
@@ -420,6 +420,9 @@ const SubscribeOnboarding = () => {
     finish();
   };
 
+  // Store-specific copy: a Play subscriber has no Apple ID menu, and Apple's
+  // EULA does not govern a Google Play purchase.
+  const platform = Capacitor.getPlatform();
   const openLegal = (url: string) => () => {
     hapticLight();
     void openExternalUrl(url);
@@ -496,7 +499,7 @@ const SubscribeOnboarding = () => {
             Unlock Dynasty Pro
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Full toolkit. Cancel anytime in Settings → Apple ID → Subscriptions.
+            Full toolkit. Cancel anytime in {subscriptionSettingsPathFor(platform)}.
           </p>
         </motion.div>
 
@@ -723,7 +726,7 @@ const SubscribeOnboarding = () => {
           <span aria-hidden className="text-muted-foreground/40">·</span>
           <button
             type="button"
-            onClick={openLegal(TERMS_URL)}
+            onClick={openLegal(termsUrlFor(platform))}
             className="min-h-11 px-1 text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
           >
             Terms of Use
@@ -740,7 +743,7 @@ const SubscribeOnboarding = () => {
 
         <p className="mt-0.5 text-center text-micro text-muted-foreground/70 leading-snug px-2">
           Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
-          Manage or cancel anytime in Settings → Apple ID → Subscriptions.
+          Manage or cancel anytime in {subscriptionSettingsPathFor(platform)}.
         </p>
       </div>
     </div>

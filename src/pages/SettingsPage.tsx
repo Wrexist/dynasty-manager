@@ -32,7 +32,8 @@ import { track } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
 import { isPro, hasRecurringSubscription } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { Capacitor } from '@capacitor/core';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
@@ -892,7 +893,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
               Privacy Policy
             </span>
           </LiquidButton>
-          <LiquidButton onClick={() => { void openExternalUrl(TERMS_URL); }}>
+          <LiquidButton onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}>
             <span className="flex items-center justify-start gap-3 px-3">
               <FileText className="w-4 h-4" />
               Terms of Service

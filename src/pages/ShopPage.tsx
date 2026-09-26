@@ -15,7 +15,8 @@ import { purchaseAndSync, restoreAndSync } from '@/utils/purchaseSync';
 import { probePaywallTrials } from '@/utils/trialOffer';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
-import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { Capacitor } from '@capacitor/core';
+import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -781,7 +782,7 @@ const ShopPage = () => {
         <p>
           <button
             type="button"
-            onClick={() => { void openExternalUrl(TERMS_URL); }}
+            onClick={() => { void openExternalUrl(termsUrlFor(Capacitor.getPlatform())); }}
             className="min-h-11 px-1 underline hover:text-muted-foreground transition-colors"
           >
             Terms of Service
