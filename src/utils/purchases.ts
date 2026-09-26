@@ -429,10 +429,16 @@ export async function getStoreAvailability(
   }
 }
 
-const INTRO_PERIOD_DAYS: Record<string, number> = { DAY: 1, WEEK: 7, MONTH: 30, YEAR: 365 };
+/** Only units with a fixed length in days. A MONTH or YEAR trial is billed a
+ *  calendar month/year later (28 to 31 days for a month), so describing it as
+ *  "30 days" would promise a length the store does not honour — the Apple
+ *  3.1.2(c) false-trial-terms class. Those offers read as "no trial we can
+ *  state" and every surface stays silent; the store sheet still states them. */
+const INTRO_PERIOD_DAYS: Record<string, number> = { DAY: 1, WEEK: 7 };
 
 /** Days of free access an introductory offer grants, or null when the offer
- *  is missing, paid, or has a shape we cannot read. Exported for tests. */
+ *  is missing, paid, measured in calendar months/years, or has a shape we
+ *  cannot read. Exported for tests. */
 export function freeIntroOfferDays(intro: StoreProductLike['introPrice']): number | null {
   if (!intro || intro.price !== 0) return null;
   const unitDays = INTRO_PERIOD_DAYS[String(intro.periodUnit || '').toUpperCase()];
