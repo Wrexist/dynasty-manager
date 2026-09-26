@@ -52,6 +52,39 @@ describe('extractSubscriptionInfo', () => {
   });
 });
 
+describe('extractSubscriptionInfo — RevenueCat promotional grants', () => {
+  const promo = (productIdentifier: string, expirationDate: string | null) => ({
+    entitlements: {
+      active: { pro: { identifier: 'pro', productIdentifier, isActive: true, expirationDate, store: 'PROMOTIONAL', periodType: 'NORMAL' } },
+      all: {},
+    },
+  }) as unknown as CustomerInfo;
+
+  it('grants Pro for a lifetime comp (rc_promo_pro_lifetime, no expiry)', () => {
+    const sub = extractSubscriptionInfo(promo('rc_promo_pro_lifetime', null));
+    expect(sub).not.toBeNull();
+    expect(sub!.tier).toBe('lifetime');
+    applySyncGuard(promo('rc_promo_pro_lifetime', null));
+    expect(isPro(useGameStore.getState().monetization)).toBe(true);
+  });
+
+  it('grants Pro until the store expiry for a bounded comp (rc_promo_pro_monthly)', () => {
+    const future = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
+    const sub = extractSubscriptionInfo(promo('rc_promo_pro_monthly', future));
+    expect(sub).not.toBeNull();
+    expect(sub!.tier).not.toBe('lifetime');
+    expect(sub!.expiresAt).toBe(future);
+    applySyncGuard(promo('rc_promo_pro_monthly', future));
+    expect(isPro(useGameStore.getState().monetization)).toBe(true);
+  });
+
+  it('a bounded comp whose expiry has passed does not convey Pro', () => {
+    const past = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    applySyncGuard(promo('rc_promo_pro_monthly', past));
+    expect(isPro(useGameStore.getState().monetization)).toBe(false);
+  });
+});
+
 describe('subscription sync guard', () => {
   it('a null extract result does NOT clear an active subscription', () => {
     useGameStore.getState().updateSubscription(activeSub());
