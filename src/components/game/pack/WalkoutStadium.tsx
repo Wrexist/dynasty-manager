@@ -2,126 +2,123 @@ import { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
+/** 3D-rendered stadium assets (scripts/3d/walkout/*.scene.js). */
+export const WALKOUT_FLOODLIGHT_SRC = '/walkout/floodlight.webp';
+
 /**
- * Stadium dressing for the legendary walkout.
+ * Stadium lighting for the walkout: ONE light rig, aimed at the card.
  *
- * Layers, back to front: a massive spotlight beam, igniting corner
- * floodlights, drifting fog at the base, a hero silhouette rising behind
- * the card, and a crowd band flecked with camera-flash twinkles.
+ * Two floodlight banks (rendered in 3D, the right one mirrored) ignite in the
+ * top corners and throw a shaft each toward the plinth, and a key beam falls
+ * straight down onto it. Three sources, one focal point — the card.
  *
- * Rendered behind the walkout's hero card. Pure decoration —
- * `pointer-events-none`; all motion self-disables under reduced motion.
+ * This replaced a stack of unrelated effects (a clip-path spotlight, radial
+ * "floodlight" dots, drifting blurred fog, an SVG blob silhouette, rotating
+ * conic sun rays) that each lit the scene from somewhere different, so the
+ * frame had no direction and read as decoration rather than as a stadium.
+ * Every layer here is a gradient's own falloff — no `filter: blur()`, which
+ * iOS WebKit re-rasterises and which this overlay treats as its main cost.
  *
- * Memoized: the parent re-renders every ~45ms during the name typewriter,
- * and re-rolling the camera-flash randoms on each pass restarted all 16
- * infinite flash animations dozens of times per second mid-cinematic.
+ * `legendary` adds the crowd's camera flashes. `revealed` flares the rig for
+ * the flip. Pure decoration — pointer-events-none; under reduced motion the
+ * lights are simply on, and the flashes (decorative loops) are not rendered.
+ *
+ * Memoized: the parent re-renders on every clue beat and during the rating
+ * count, and re-rolling the flash randoms would restart their loops.
  */
-export const WalkoutStadium = memo(function WalkoutStadium({ accent, revealed }: { accent: string; revealed: boolean }) {
+export const WalkoutStadium = memo(function WalkoutStadium({ accent, revealed, legendary }: {
+  accent: string;
+  revealed: boolean;
+  legendary: boolean;
+}) {
   const reduce = useReducedMotionPref();
 
-  // Camera-flash specs — rolled once per mount, not per render.
   const flashes = useMemo(() =>
     Array.from({ length: 12 }).map((_, i) => ({
       i,
       left: 4 + Math.random() * 92,
-      bottom: 2 + Math.random() * 14,
-      dur: 0.35 + Math.random() * 0.5,
-      delay: Math.random() * 4,
-      repeatDelay: 1.5 + Math.random() * 3,
+      bottom: 3 + Math.random() * 13,
+      dur: 0.3 + Math.random() * 0.4,
+      delay: 0.6 + Math.random() * 4,
+      repeatDelay: 1.2 + Math.random() * 3,
     })),
   []);
 
+  const flare = revealed && !reduce;
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {/* Massive spotlight beam pouring down onto the card. */}
+      {/* Key beam straight down onto the plinth. An elongated radial falls off
+          on its own, so the cone needs neither a clip-path nor a blur. */}
       <motion.div
-        className="absolute left-1/2 top-0"
+        className="absolute inset-0"
         style={{
-          width: '80vw',
-          maxWidth: 460,
-          height: '88vh',
-          transform: 'translateX(-50%)',
           background:
-            'linear-gradient(180deg, rgba(255,250,235,0.34) 0%, rgba(255,250,235,0.11) 42%, transparent 84%)',
-          clipPath: 'polygon(38% 0, 62% 0, 100% 100%, 0 100%)',
-          filter: 'blur(10px)',
-          mixBlendMode: 'screen',
+            'radial-gradient(ellipse 34% 78% at 50% -4%, rgba(255,248,232,0.34) 0%, rgba(255,248,232,0.12) 45%, transparent 72%)',
         }}
         initial={{ opacity: 0 }}
-        animate={reduce ? { opacity: 0.7 } : { opacity: [0, 0.85, 0.62, 0.85] }}
-        transition={reduce ? { duration: 0.5 } : { duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ opacity: flare ? [0.8, 1, 0.8] : 0.8 }}
+        transition={reduce ? { duration: 0 } : flare ? { duration: 0.9, ease: 'easeOut' } : { duration: 0.6, delay: 0.35 }}
       />
 
-      {/* Corner floodlights igniting as the walkout opens. */}
-      {[{ x: '12%' }, { x: '88%' }].map((f, i) => (
-        <motion.div
-          key={`flood-${i}`}
-          className="absolute top-[3%] rounded-full"
+      {/* Floodlight banks — the 3D asset, ignited with a sodium-lamp stutter. */}
+      {(['left', 'right'] as const).map((side, i) => (
+        <div
+          key={side}
+          className="absolute top-0"
           style={{
-            left: f.x,
-            width: 72,
-            height: 72,
-            transform: 'translateX(-50%)',
-            background:
-              'radial-gradient(circle, rgba(255,247,224,0.95) 0%, rgba(255,247,224,0.22) 40%, transparent 70%)',
+            [side]: 0,
+            width: 'min(30vw, 132px)',
+            transform: side === 'right' ? 'scaleX(-1)' : undefined,
           }}
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={reduce ? { opacity: 0.8, scale: 1 } : { opacity: [0, 1, 0.72, 1], scale: [0.6, 1.18, 1] }}
-          transition={reduce ? { duration: 0.5 } : { duration: 0.85, delay: 0.1 + i * 0.12, ease: 'easeOut' }}
-        />
+        >
+          {/* The shaft each bank throws toward the card. */}
+          <motion.div
+            className="absolute"
+            style={{
+              left: '40%',
+              top: '38%',
+              width: 'min(46vw, 220px)',
+              height: '72vh',
+              transformOrigin: '0 0',
+              transform: 'rotate(-31deg)',
+              background:
+                'radial-gradient(ellipse 50% 100% at 0% 0%, rgba(255,244,222,0.2) 0%, rgba(255,244,222,0.06) 50%, transparent 78%)',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: flare ? [0.9, 1, 0.9] : 0.9 }}
+            transition={reduce ? { duration: 0 } : { duration: 0.5, delay: flare ? 0 : 0.25 + i * 0.16 }}
+          />
+          {/* Bloom behind the lamps. */}
+          <motion.div
+            className="absolute"
+            style={{
+              inset: '-30%',
+              background: `radial-gradient(closest-side, rgba(255,246,226,0.5), color-mix(in srgb, ${accent} 18%, transparent) 55%, transparent)`,
+            }}
+            initial={{ opacity: 0 }}
+            animate={reduce ? { opacity: 0.8 } : { opacity: [0, 1, 0.4, 0.95, 0.8] }}
+            transition={reduce ? { duration: 0 } : { duration: 0.7, delay: 0.1 + i * 0.16, times: [0, 0.2, 0.35, 0.6, 1] }}
+          />
+          <motion.img
+            src={WALKOUT_FLOODLIGHT_SRC}
+            alt=""
+            draggable={false}
+            className="relative w-full h-auto select-none"
+            style={{ marginTop: 'max(env(safe-area-inset-top), 6px)' }}
+            initial={{ opacity: 0 }}
+            animate={reduce ? { opacity: 1 } : { opacity: [0, 1, 0.35, 1] }}
+            transition={reduce ? { duration: 0 } : { duration: 0.6, delay: 0.1 + i * 0.16, times: [0, 0.25, 0.45, 1] }}
+          />
+        </div>
       ))}
 
-      {/* Drifting fog banks at the foot of the frame (two banks — each drives
-          a large blur across the width, the priciest layer here on mobile). */}
-      {!reduce && [0, 1].map(i => (
-        <motion.div
-          key={`fog-${i}`}
-          className="absolute rounded-full"
-          style={{
-            bottom: `${6 + i * 6}%`,
-            left: '-30%',
-            width: 420,
-            height: 160,
-            background: 'radial-gradient(closest-side, rgba(190,200,225,0.18), transparent)',
-            filter: 'blur(30px)',
-          }}
-          animate={{ x: ['-30%', '130vw'] }}
-          transition={{ duration: 24 + i * 8, repeat: Infinity, ease: 'linear', delay: i * 6 }}
-        />
-      ))}
-
-      {/* Hero silhouette rising behind the card — a broad-shouldered figure
-          that lifts into frame and steadies once the card is revealed. */}
-      <motion.svg
-        className="absolute left-1/2"
-        style={{ bottom: '13%', transform: 'translateX(-50%)' }}
-        width={360}
-        height={440}
-        viewBox="0 0 360 440"
-        initial={{ opacity: 0, y: 70 }}
-        animate={{ opacity: revealed ? 0.94 : 0.4, y: revealed ? 0 : 34 }}
-        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <defs>
-          <linearGradient id="walkout-figure" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#0a0c12" />
-            <stop offset="1" stopColor="#000000" />
-          </linearGradient>
-        </defs>
-        <g fill="url(#walkout-figure)" stroke={accent} strokeWidth="2.5" strokeOpacity="0.5">
-          {/* head */}
-          <ellipse cx="180" cy="84" rx="48" ry="54" />
-          {/* shoulders + torso */}
-          <path d="M70 440 C70 286 104 150 180 150 C256 150 290 286 290 440 Z" />
-        </g>
-      </motion.svg>
-
-      {/* Crowd silhouette band + popping camera flashes. */}
+      {/* Crowd band — dark stands at the foot of the frame. */}
       <div
-        className="absolute inset-x-0 bottom-0 h-[20%]"
-        style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.92))' }}
+        className="absolute inset-x-0 bottom-0 h-[22%]"
+        style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.9))' }}
       />
-      {!reduce && flashes.map(f => (
+      {legendary && !reduce && flashes.map(f => (
         <motion.span
           key={`flash-${f.i}`}
           className="absolute rounded-full"

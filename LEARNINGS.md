@@ -1,5 +1,11 @@
 # LEARNINGS.md — Dynasty Manager
 
+## Apple Ads attribution and scenario audit (2026-09-26)
+
+- RevenueCat Capacitor automatic AdServices collection is disabled by default. Enable it after successful iOS configuration; do not block purchase readiness on collection. Unit tests cannot prove live attribution.
+- A higher target proceeds ROAS raises required revenue: `CPT / CR / (1 - commission) * targetRoas`. Dividing by targetRoas understates the requirement. 1.5x return on ad spend is not a 50% profit margin.
+- USD fallback catalog prices and assumed conversion rates do not establish actual proceeds. Historical marketing scenario tables can drift after catalog changes; recompute before using them for bids.
+
 ## Full-game audit + fix batch (2026-09-25)
 
 - The audit and its execution status live in `docs/audit-2026-09-25.md`; IAP coverage and the device checklist in `docs/iap-verification.md`.

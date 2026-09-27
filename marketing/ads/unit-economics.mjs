@@ -14,8 +14,8 @@
  * that comparison explicit and refuses to let a campaign plan quote a bid that
  * the price ladder cannot pay back.
  *
- * Prices are parsed live out of src/config/monetization.ts so the model can
- * never drift from the shipped catalog.
+ * Prices are parsed from the code's USD fallback catalog. These are not
+ * verified storefront prices or realized proceeds.
  *
  * EVERY CONVERSION RATE BELOW IS AN ASSUMPTION, NOT A MEASUREMENT. Replace
  * them with App Analytics / RevenueCat numbers before you trust any output.
@@ -54,9 +54,9 @@ function loadPrices() {
 }
 
 // ── Assumptions ──────────────────────────────────────────────────────────────
-// Conversion rates are expressed as a fraction OF INSTALLS. They are the only
-// numbers in this file that are guesses; the flag name to override each one is
-// in the second column.
+// Conversion rates are expressed as a fraction OF INSTALLS. All monetary and
+// rate inputs below are scenarios, including churn, auction costs and commission.
+// Overriding a value does not establish that it has been measured.
 
 const DEFAULTS = {
   // --- funnel, per install ---
@@ -83,7 +83,7 @@ const DEFAULTS = {
   // --- accounting ---
   commission: 0.15, // --commission   Apple's cut; 0.15 under the Small Business Program
   horizonMonths: 12, // --horizon      months of subscription revenue counted
-  targetRoas: 1.0, // --roas         1.0 = break even at the horizon; 1.5 = 50% margin
+  targetRoas: 1.0, // --roas         1.5 = 50% return on ad spend, before other costs
 };
 
 function parseArgs(argv) {
@@ -203,7 +203,12 @@ function main() {
   const r = model(cfg, prices);
 
   if (process.argv.includes('--json')) {
-    console.log(JSON.stringify({ cfg, prices, ...r }, null, 2));
+    console.log(JSON.stringify({
+      evidence: 'scenario-not-measured',
+      priceSource: 'code-usd-fallback-catalog',
+      exclusions: ['refunds', 'taxes', 'operating costs'],
+      cfg, prices, ...r,
+    }, null, 2));
     return;
   }
 
@@ -246,8 +251,8 @@ function main() {
   console.log(`    → ROAS at horizon                              ${(r.roas).toFixed(2).padStart(7)}x`);
   const verdict =
     r.roas >= cfg.targetRoas
-      ? 'PAYS BACK — scale within the kill criteria.'
-      : `LOSES MONEY — ${(cfg.cpt / r.maxCpt).toFixed(1)}x over the affordable bid.`;
+      ? 'MODEL MEETS TARGET — verify mature cohort proceeds before scaling.'
+      : `MODEL BELOW TARGET — ${(cfg.cpt / r.maxCpt).toFixed(1)}x over the modelled bid ceiling.`;
   console.log(`    → verdict                                      ${verdict}`);
 
   console.log('\n  Sensitivity: max CPT by tap→install CR');
@@ -256,10 +261,12 @@ function main() {
   console.log('    maxCPT  ' + crs.map((c) => usd(r.maxCpi * c).padStart(8)).join(''));
 
   console.log('\n  What has to be true to afford your planned CPT');
-  const needed = cfg.cpt / cfg.cr / (1 - cfg.commission) / cfg.targetRoas;
-  console.log(`    Gross revenue per install must reach           ${usd(needed).padStart(8)}`);
+  const needed = cfg.cpt / cfg.cr / (1 - cfg.commission) * cfg.targetRoas;
+  console.log(`    Gross-equivalent revenue/install must reach    ${usd(needed).padStart(8)}`);
   console.log(`    That is ${(needed / r.grossPerInstall).toFixed(1)}x the modelled ${usd(r.grossPerInstall)}.`);
 
+  console.log('\n  SCENARIO ONLY: no measured-profitability verdict.');
+  console.log('  Net excludes refunds, taxes and operating costs; verify actual proceeds.');
   if (unmeasured.length) {
     console.log('\n  ⚠ ASSUMED, NOT MEASURED — override before trusting this:');
     console.log('    ' + unmeasured.join(', '));

@@ -1,4 +1,6 @@
-# ARPI Roadmap — getting revenue per install from $0.286 to a payable bid
+# ARPI Roadmap — historical revenue scenarios
+
+> Audit update, 2026-09-26: the $0.286 baseline and uplift tables below use an older catalog. They are historical scenarios, not today's revenue or current model output. Re-run the companion model with verified inputs before using any numerical bid recommendation.
 
 > Companion to `marketing/ads/apple-ads-2026-27.md` §0 and §7, and to
 > `marketing/ads/unit-economics.mjs`, which produces every number below.
@@ -11,53 +13,24 @@
 
 ---
 
-## 0. The answer, before the plan
+## 0. Scenario conclusions, not verified profitability
 
-**The roadmap makes brand-term Apple Ads profitable. It does not make category
-head terms profitable, and no realistic version of it ever will.**
+The scenarios below suggest brand terms may be more affordable than category head terms at the assumed CPT and conversion rates. They do not prove either segment profitable, or establish a permanent ceiling on paid growth.
 
-| Threshold | Gross/install needed | Reached? | Where |
-|---|---|---|---|
-| Brand terms pay back ($0.35 CPT @ 75% CR) | **$0.549** | **Yes** | Wave 2, row 14 ($0.550) |
-| Head terms pay back ($1.20 CPT @ 55% CR) | **$2.567** | **No** | Roadmap ceiling is $0.648 |
+At a modelled 15% commission and 1.0x proceeds ROAS, break-even gross-equivalent revenue per install is `CPT / tap-to-install rate / (1 - commission)`:
 
-Two corrections to the brief's own framing, both in your favour and both against it:
+| Scenario | Required gross-equivalent revenue/install |
+|---|---:|
+| Brand: $0.35 CPT, 75% conversion | $0.549 |
+| Head terms: $1.20 CPT, 55% conversion | $2.567 |
 
-1. **The brand-term threshold is $0.549 gross, not $0.70.** The $0.70 figure in
-   `apple-ads-2026-27.md:38` is a rounded scenario row, not a solved threshold.
-   The actual break-even is `cpt / cr / (1 − commission)` = `0.35 / 0.75 / 0.85`
-   = **$0.549**. That is ~21% closer than the brief assumes, and it is the
-   difference between "reachable in one binary" and "reachable in two."
-2. **The head-term threshold is $2.567 gross — 9.0× today and 4.4× the full
-   roadmap ceiling.** Every item in this document, shipped, verified, and
-   working exactly as modelled, gets you to $0.648. There is no combination of
-   the surviving findings that reaches $2.50. Say it plainly: **head terms are
-   permanently unaffordable at this product's price ladder.** Getting there
-   would require either a fundamentally different monetization model (which the
-   no-timers / no-pay-to-win positioning forbids) or a tap→install CR far above
-   any plausible value. Stop planning for `HEAD-TERMS-US` (campaign 5 in
-   `apple-ads-2026-27.md:104`) and delete it from the roadmap rather than
-   leaving it paused as an aspiration.
-
-**Strategic consequence.** Paid UA for this app is a *brand-defence and
-long-tail* instrument, permanently. It buys you protection against competitors
-bidding your name and a measurement channel for per-keyword ARPI. It is not,
-and will not become, a growth engine. Growth has to come from organic rank
-(where D7 retention is a 2026 ranking input) and from store conversion — which
-is why the CPI-side work in §6 matters as much as the ARPI-side work, despite
-contributing $0.00 to the tables below.
-
----
+These thresholds exclude refunds, taxes and operating costs. Do not launch or scale based on assumed conversion improvements. Validate mature attributed acquisition cohorts and actual proceeds first. The tables below remain scenario estimates, including all claimed uplifts and roadmap ceilings.
 
 ## 1. Evidence grading
 
-Every dollar figure here is a **MODELLED ESTIMATE**. There are no measured
-conversion rates in this repo, in the model, or in any shipped analytics.
-`grep -rn VITE_ANALYTICS_ENDPOINT .github/` returns nothing — the variable is
-never injected into the iOS release build, so `defaultSink` at
-`src/utils/analytics.ts:83` returns early and **no analytics event has ever left
-a production device.** Every rate in `unit-economics.mjs:61-87` is a guess, and
-the script says so at the bottom of every run.
+Every dollar figure below is a **MODELLED ESTIMATE**. No measured cohort conversion rates were supplied to this model. The custom analytics endpoint is not configured in the checked-in release workflow; that alone cannot establish what every production build sent. RevenueCat and App Store Connect must be checked separately.
+
+The labels below describe the historical review of model assumptions, not observed revenue or experimentally verified uplifts. Even a CONFIRMED assumption is not proof of profitability.
 
 Three grades appear in the tables:
 

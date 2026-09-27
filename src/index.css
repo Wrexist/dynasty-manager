@@ -126,7 +126,6 @@
    performance mode, strip the expensive blur/conic/blend layers (the
    prefers-reduced-motion blocks below only stop the animation, not the
    per-frame filter cost). */
-.perf-mode .holo-ring,
 .perf-mode .pack-rays {
   filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -210,7 +209,6 @@
 }
 /* The named decorative loops below each carry their own OS-preference guard;
    the in-app setting has to reach them too. */
-.reduce-motion .holo-ring,
 .reduce-motion .pack-rays,
 .reduce-motion .pack-starfield-far,
 .reduce-motion .pack-starfield-mid,
@@ -334,27 +332,6 @@
   @keyframes flashGlow {
     0% { text-shadow: 0 0 8px hsl(var(--gold) / 0.8); color: hsl(var(--gold)); }
     100% { text-shadow: none; }
-  }
-
-  /* Holographic rotating rainbow ring used behind the walkout hero card.
-     Kept as a CSS utility (not inline style) so the sweep is GPU-only. */
-  @keyframes holoSpin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .holo-ring {
-    background: conic-gradient(from 0deg,
-      hsl(0 90% 60%), hsl(40 95% 60%), hsl(140 85% 55%),
-      hsl(200 90% 60%), hsl(280 90% 65%), hsl(330 95% 65%), hsl(0 90% 60%));
-    filter: blur(6px);
-    animation: holoSpin 6s linear infinite;
-    will-change: transform;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .holo-ring {
-      animation: none;
-      will-change: auto;
-    }
   }
 
   /* Radiating light rays behind the pack during the charge beat. A conic

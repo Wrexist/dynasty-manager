@@ -1,4 +1,5 @@
-import { canPlayPosition, type Position, type Player } from '@/types/game';
+import type { Position, Player } from '@/types/game';
+import { positionFit } from '@/utils/positionFit';
 import { SMART_SUB_MIN_MINUTE, SMART_SUB_LOSING_MINUTE, SMART_SUB_WINNING_LATE_MINUTE } from '@/config/matchEngine';
 
 interface SmartSubParams {
@@ -29,8 +30,10 @@ const ATTACKING_POSITIONS: Position[] = ['ST', 'LW', 'RW', 'CAM'];
 const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
 
 function posCompat(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): number {
-  if (player.position === slotPos) return 1.0;
-  if (canPlayPosition(player, slotPos)) return 0.8;
+  // Listed alternates count as natural (same rule as the pitch rings).
+  const fit = positionFit(player, slotPos);
+  if (fit === 'natural') return 1.0;
+  if (fit === 'compatible') return 0.8;
   return 0.4;
 }
 

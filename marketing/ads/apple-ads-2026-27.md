@@ -1,5 +1,7 @@
 # Apple Ads — 2026-27 season plan
 
+> Audit update, 2026-09-26: numerical scenario tables and the $0.286 baseline below predate catalog changes. They are retained as historical planning inputs, not current model output or measured revenue. Run the model against current, verified inputs before using bid ceilings. This plan is not spending authorization.
+
 > App Store id **6760918006**. Window: 2026-27 club season (European kickoffs
 > through August, summer transfer window closes 1 September).
 > Companion to `marketing/aso/season-2026-refresh.md` (organic) and
@@ -11,11 +13,9 @@
 
 ## 0. The verdict, before the plan
 
-**At the current price ladder, category head terms cannot pay back at any
-realistic Apple Ads price. Brand defence and long-tail can — barely, and only
-if the paywall funnel is at the optimistic end of plausible.**
+**These are assumed revenue scenarios, not measured campaign profitability. The model favours testing brand and relevant long-tail terms before expensive category terms, subject to verified attribution, proceeds and a separate budget.**
 
-That is arithmetic, not caution. Run the model:
+Run the model to explore the assumptions; its outputs do not establish actual profit:
 
 ```
 $ node marketing/ads/unit-economics.mjs
@@ -41,15 +41,14 @@ consumables) the picture only moves this far:
 "$0.70" column above is one modelled scenario's revenue, not the level revenue
 has to reach. The actual threshold is `cpt / cr / (1 − commission)`:
 
-| Campaign type | Threshold (gross/install) | vs today's $0.286 |
+| Campaign type | Threshold (gross/install) | vs modelled $0.286 |
 |---|---|---|
 | Brand terms — $0.35 CPT @ 75% CR | **$0.549** | 1.9x |
 | Head terms — $1.20 CPT @ 55% CR | **$2.567** | 9.0x |
 
 Use $0.549, not $0.70, as the brand-term target — it is ~21% closer than the
 scenario row implies. `marketing/ads/arpi-roadmap.md` shows the route there and
-establishes that $2.567 is **not** reachable, so campaign 5 should be read as
-permanently parked rather than merely paused.
+does not reach $2.567 under its assumptions. Keep campaign 5 paused pending measured economics; this is not evidence that it can never be profitable.
 
 Reproduce any row:
 

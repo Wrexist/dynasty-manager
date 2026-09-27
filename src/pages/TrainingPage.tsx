@@ -598,6 +598,14 @@ const TrainingPage = () => {
                               {p.injured && <Heart className="w-2.5 h-2.5 text-destructive inline ml-1" />}
                             </span>
                             <span className="text-micro text-muted-foreground w-8">{p.position}</span>
+                            {(() => {
+                              const posPlan = (training.positionPlans || []).find(pp => pp.playerId === p.id);
+                              return posPlan ? (
+                                <span className="text-micro font-semibold text-primary tabular-nums" title={`Learning ${posPlan.position}`}>
+                                  →{posPlan.position} {Math.floor(posPlan.progress)}%
+                                </span>
+                              ) : null;
+                            })()}
                             <span className={cn('text-micro w-8 text-right tabular-nums', multLabel)}>
                               {personalityMult.toFixed(1)}x
                             </span>

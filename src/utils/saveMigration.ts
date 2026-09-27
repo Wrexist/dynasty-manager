@@ -12,11 +12,30 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 94;
+const CURRENT_VERSION = 95;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v94 -> v95: `TrainingState.positionPlans` — secondary-position training.
+  // Nobody was learning a position before this build, so an empty list is
+  // the true statement about every older save.
+  94: (data) => {
+    const training = (data as { training?: unknown }).training;
+    return {
+      ...data,
+      training: training && typeof training === 'object'
+        ? {
+          ...(training as Record<string, unknown>),
+          positionPlans: Array.isArray((training as { positionPlans?: unknown }).positionPlans)
+            ? (training as { positionPlans: unknown[] }).positionPlans
+            : [],
+        }
+        : training,
+      version: 95,
+    };
+  },
+
   // v93 -> v94: `SeasonHistory.managed` — was the manager in charge when the
   // season ended? Every title count (achievements, prestige, Hall of Managers,
   // Trophy Cabinet, Manager Profile, Manager Pass) now reads it, so a league
@@ -794,7 +813,7 @@ const migrations: Record<number, MigrationFn> = {
       tactics: data.tactics || { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: data.training || {
         schedule: { mon: tf, tue: tf, wed: tf, thu: tf, fri: tf },
-        intensity: 'medium', individualPlans: [], tacticalFamiliarity: 30,
+        intensity: 'medium', individualPlans: [], positionPlans: [], tacticalFamiliarity: 30,
       },
       staff: data.staff || { members: [], availableHires: [] },
       scouting: data.scouting || { maxAssignments: 1, assignments: [], reports: [], discoveredPlayers: [] },
