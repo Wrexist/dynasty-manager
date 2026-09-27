@@ -8,7 +8,9 @@
     "caption": "Mbappé's Legends card walkout in a free football manager game on iPhone. Showcase, not a pull. Who should walk out next? #footballgame #packopening #mbappe #footballtiktok #iphonegames",
     "hook": "MBAPPÉ WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-27 13:55",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-27",
@@ -19,7 +21,9 @@
     "caption": "Haaland's walkout in Dynasty Manager, a free football manager game with real players. Keep him or build around someone else? #footballgame #packopening #haaland #footballtiktok #iphonegames",
     "hook": "HAALAND WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-27 18:25",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-27",
@@ -30,7 +34,9 @@
     "caption": "Salah's Legends card walkout. Real players, real faces, free on iPhone. Rate the animation 1-10 #footballgame #packopening #salah #footballtiktok #iphonegames",
     "hook": "SALAH WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-27 21:35",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-28",
@@ -43,7 +49,9 @@
     "url": null,
     "plan": null,
     "replacedKey": "tpov-150m",
-    "note": "Replaced: transfer/grid capture unusable at 9:16 (see follow-up task)."
+    "note": "Replaced: transfer/grid capture unusable at 9:16 (see follow-up task).",
+    "scheduledAt": "2026-09-28 13:00",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-28",
@@ -54,7 +62,9 @@
     "caption": "Pack cards are only half of it. You pick the XI, the tactics and play the season. Who's the weak link? #footballgame #managergame #dreamteam #footballtiktok",
     "hook": "Every card in this XI came out of a pack / Then you have to win the league with them",
     "url": "scene=squad&view=pitch&fill=11&pov=Every%20card%20in%20this%20XI%20came%20out%20of%20a%20pack%7CThen%20you%20have%20to%20win%20the%20league%20with%20them&povPos=top",
-    "plan": "squad"
+    "plan": "squad",
+    "scheduledAt": "2026-09-28 18:05",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-28",
@@ -65,7 +75,9 @@
     "caption": "Bellingham walkout in a football manager game on iPhone. Where does he play in your XI? #footballgame #packopening #bellingham #footballtiktok #iphonegames",
     "hook": "BELLINGHAM WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-28 21:40",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-29",
@@ -76,7 +88,9 @@
     "caption": "Vini Jr's walkout. 756 real clubs, 45 leagues, free on iPhone. Left wing or striker? #footballgame #packopening #vinijr #footballtiktok #iphonegames",
     "hook": "VINI JR WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-29 13:50",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-29",
@@ -87,7 +101,9 @@
     "caption": "Every player in this football manager game has a real face. Which league do you manage in? #footballgame #packopening #emimartinez #footballtiktok #iphonegames",
     "hook": "REAL PLAYERS. REAL FACES.",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-29 18:15",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-29",
@@ -98,7 +114,9 @@
     "caption": "Harry Kane's walkout in Dynasty Manager. Is he still a top 3 striker? #footballgame #packopening #harrykane #footballtiktok #iphonegames",
     "hook": "HARRY KANE WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-29 21:20",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-30",
@@ -109,7 +127,9 @@
     "caption": "Saka's walkout in a free football manager game on iPhone. Best winger in the league? #footballgame #packopening #saka #footballtiktok #iphonegames",
     "hook": "SAKA WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-30 13:25",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-30",
@@ -120,7 +140,9 @@
     "caption": "In this football manager game your legends don't retire. They come back as cards in the Hall of Legends. Keep or sell? #footballgame #packopening #legends #iphonegames",
     "hook": "WHAT HAPPENS WHEN A LEGEND RETIRES",
     "url": "tier=rare&legend=1&hook=WHAT%20HAPPENS%20WHEN%20A%20LEGEND%20RETIRES&mid=HE%20COMES%20BACK%20AS%20A%20CARD&midPos=mid&cta=DYNASTY%20MANAGER%20%C2%B7%20FREE%20ON%20IOS",
-    "plan": "pack"
+    "plan": "pack",
+    "scheduledAt": "2026-09-30 18:30",
+    "status": "scheduled"
   },
   {
     "date": "2026-09-30",
@@ -131,7 +153,9 @@
     "caption": "(Owner-scheduled A02, keep as is.) #footballgame #packopening #packopening #footballtiktok #iphonegames",
     "hook": "RATE MY PULL (as scheduled by owner)",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-09-30 21:20",
+    "status": "scheduled"
   },
   {
     "date": "2026-10-01",
@@ -144,7 +168,10 @@
     "url": null,
     "plan": null,
     "replacedKey": "tpov-reject",
-    "note": "Replaced: transfer/grid capture unusable at 9:16 (see follow-up task)."
+    "note": "Replaced: transfer/grid capture unusable at 9:16 (see follow-up task). Re-rendered in the #633 walkout animation.",
+    "scheduledAt": "2026-10-01 13:00",
+    "status": "scheduled",
+    "file": "n-debruyne-tt.mp4"
   },
   {
     "date": "2026-10-01",
@@ -155,7 +182,11 @@
     "caption": "Wirtz walkout in Dynasty Manager. Most underrated player in world football? #footballgame #packopening #wirtz #footballtiktok #iphonegames",
     "hook": "WIRTZ WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-10-01 18:00",
+    "status": "scheduled",
+    "file": "n-wirtz-tt.mp4",
+    "note": "Re-rendered in the #633 walkout animation."
   },
   {
     "date": "2026-10-01",
@@ -166,18 +197,26 @@
     "caption": "Musiala's walkout. Real players, free packs every day, no energy timers. Musiala or Wirtz? #footballgame #packopening #musiala #footballtiktok #iphonegames",
     "hook": "MUSIALA WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-10-01 21:15",
+    "status": "scheduled",
+    "file": "n-musiala-tt.mp4",
+    "note": "Re-rendered in the #633 walkout animation. Clip ends on the clue beats (DE, CAM, 92) before the flip; the caption names him."
   },
   {
     "date": "2026-10-02",
     "time": "13:00",
-    "key": "pedri",
+    "key": "g-haaland",
     "existing": true,
-    "format": "Star walkout",
-    "caption": "Pedri walkout in a free football manager game on iPhone. Best midfielder right now? #footballgame #packopening #pedri #footballtiktok #iphonegames",
-    "hook": "PEDRI WALKOUT",
+    "format": "guess-the-player",
+    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments #guesstheplayer #footballquiz #packopening #footballtiktok",
+    "hook": "3 CLUES. WHO IS IT?",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-10-02 13:25",
+    "status": "scheduled",
+    "replacedKey": "pedri",
+    "note": "Pedri capture fell back to a random hero (Barcola); replaced with a guess-the-player take."
   },
   {
     "date": "2026-10-02",
@@ -190,7 +229,10 @@
     "url": null,
     "plan": null,
     "replacedKey": "grid-frames-1",
-    "note": "Replaced: transfer/grid capture unusable at 9:16 (see follow-up task)."
+    "note": "Replaced: transfer/grid capture unusable at 9:16 (see follow-up task). Re-rendered in the #633 walkout animation.",
+    "scheduledAt": "2026-10-02 18:25",
+    "status": "scheduled",
+    "file": "n-lewandowski-tt.mp4"
   },
   {
     "date": "2026-10-02",
@@ -201,7 +243,11 @@
     "caption": "The 2025 Ballon d'Or winner walks out. Does he win it again this October? #footballgame #packopening #dembele #footballtiktok #iphonegames",
     "hook": "DEMBÉLÉ WALKOUT",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-10-02 21:30",
+    "status": "scheduled",
+    "file": "n-dembele-tt.mp4",
+    "note": "Re-rendered in the #633 walkout animation."
   },
   {
     "date": "2026-10-03",
@@ -212,7 +258,9 @@
     "caption": "One spot left in the XI. Comment a name and I'll reply with the full team #footballgame #managergame #dreamteam #footballtiktok",
     "hook": "10 in. 1 spot left. / Who plays right wing?",
     "url": "scene=squad&view=pitch&fill=10&pov=10%20in.%201%20spot%20left.%7CWho%20plays%20right%20wing%3F&povPos=top",
-    "plan": "squad"
+    "plan": "squad",
+    "scheduledAt": "2026-10-03 13:35",
+    "status": "scheduled"
   },
   {
     "date": "2026-10-03",
@@ -223,7 +271,11 @@
     "caption": "Gyökeres' Legends card walkout. Real players, real faces, free on iPhone. Too high or fair? #footballgame #packopening #gyokeres #footballtiktok #iphonegames",
     "hook": "GYÖKERES WALKOUT",
     "url": "tier=icon&hero=keres&hook=GY%C3%96KERES%20WALKOUT&mid=FREE%20MANAGER%20GAME%20ON%20IPHONE&midPos=mid&hookUntil=1.8&midFrom=4.5&midUntil=6.5&ctaFrom=7&cta=DYNASTY%20MANAGER%20%C2%B7%20FREE%20ON%20IOS",
-    "plan": "icon"
+    "plan": "icon",
+    "scheduledAt": "2026-10-03 18:35",
+    "status": "scheduled",
+    "file": "n-gyokeres-tt.mp4",
+    "note": "Re-rendered in the #633 walkout animation."
   },
   {
     "date": "2026-10-03",
@@ -234,6 +286,8 @@
     "caption": "Football manager game with no energy and no timers. Play as long as you want. What's the worst energy system you've played? #footballgame #managergame #iphonegames #footballtiktok",
     "hook": "NO ENERGY. NO TIMERS.",
     "url": null,
-    "plan": null
+    "plan": null,
+    "scheduledAt": "2026-10-03 21:25",
+    "status": "scheduled"
   }
 ]
