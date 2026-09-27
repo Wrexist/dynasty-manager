@@ -42,9 +42,9 @@ export function getWeeklyPositionProgress(player: Pick<Player, 'age' | 'attribut
   return (100 / POSITION_TRAINING_BASE_WEEKS) * ageMult * mentalMult * injuredMult;
 }
 
-/** Whole weeks left at the current rate. */
+/** Whole weeks left at the CURRENT rate — an injured player's ETA is the slowed one. */
 export function getPositionTrainingEta(plan: Pick<PositionTrainingPlan, 'progress'>, player: Pick<Player, 'age' | 'attributes' | 'injured'>): number {
-  const perWeek = getWeeklyPositionProgress({ ...player, injured: false });
+  const perWeek = getWeeklyPositionProgress(player);
   return Math.max(1, Math.ceil((100 - plan.progress) / perWeek));
 }
 

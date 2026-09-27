@@ -86,3 +86,20 @@ describe('tickPositionTraining', () => {
     expect(tickPositionTraining(undefined, {}, new Set())).toEqual({ plans: [], learned: [] });
   });
 });
+
+describe('learned positions count as natural when picking players', () => {
+  it('getPositionTrainingEta reflects the injury slowdown', () => {
+    const healthy = getPositionTrainingEta({ progress: 0 }, makePlayer());
+    const injured = getPositionTrainingEta({ progress: 0 }, makePlayer({ injured: true }));
+    expect(injured).toBeGreaterThan(healthy);
+  });
+
+  it('autofill and sub scoring rank a learned alternate above a mere neighbour', async () => {
+    const { scorePlayerForSlot } = await import('@/utils/autoFillLineup');
+    const base = makePlayer({
+      id: 'lb', position: 'LB', overall: 70, form: 60, fitness: 90, morale: 70,
+    } as Partial<Player>);
+    const learned = { ...base, id: 'lb2', alternatePositions: ['LM'] as Position[] };
+    expect(scorePlayerForSlot(learned as Player, 'LM')).toBeGreaterThan(scorePlayerForSlot(base, 'LM'));
+  });
+});
