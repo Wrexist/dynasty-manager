@@ -46,12 +46,15 @@ export const PENDING_NEWS: PendingRelease = {
     'Manager Pass: a season-long reward track with a free row and a Pro row of cosmetic rewards.',
     'A cleaner Home screen: one Continue button, then only what needs your attention.',
     'Skip to full time from half-time, free for everyone.',
+    'Pack walkouts are rebuilt: stadium floodlights ignite, the card lands on a lit stage, and nation, position and rating are revealed one by one before the flip names the player.',
+    'Open packs by tearing the seal off with your finger: the foil crackles and curls as you swipe, and the light inside shows the colour of your best card.',
   ],
   new: [
     'Quick Start suggests a strong club and picks your nationality from your device.',
     'Derby Days: derby wins count double on the event reward track.',
     '11 new storylines, new random events, and press questions that name your opponents and players.',
     'The Hall of Managers now records each career separately instead of one row per save slot.',
+    'Open another pack straight from the results screen.',
   ],
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
@@ -69,6 +72,7 @@ export const PENDING_NEWS: PendingRelease = {
     'New managers are guided to open their free pack in the first session.',
     'Shared best-pull cards now show the player\'s portrait.',
     'Release unconfirmed purchase markers instead of locking the Market.',
+    'Pack opening is cleaner: the foil shimmer and glow now follow the pack\'s shape, and the pack turns gently in the light before you open it.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
