@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_POSITIONS, type Position } from '@/types/game';
-import { MAX_SUBS } from '@/config/playerGeneration';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, getFormationStructureLines } from '@/utils/formationLines';
@@ -220,19 +219,23 @@ export function LineupEditor() {
       }
     }
 
-    // An exchange never lengthens the bench, but a save can arrive with more
-    // subs than the cap — MAX_SUBS stays a hard cap on what is written.
-    const trimmedSubs = next.subs.slice(0, MAX_SUBS);
+    // Written exactly as the exchange left it — deliberately NOT sliced to
+    // MAX_SUBS. An exchange never lengthens the bench, so the only way this is
+    // over the cap is a bench that already was (an older save), and trimming
+    // it here would demote players the swap never touched. Oversized benches
+    // are a data problem for auto-pick/migration to normalise, not a side
+    // effect of moving two other people.
+    const newSubs = next.subs;
 
     const activeName = players[activeId]?.lastName ?? 'Player';
     const slotMatch = targetId.match(/^slot-(\d+)$/);
     const label = slotMatch
       ? `${activeName} → ${formationSlots[parseInt(slotMatch[1], 10)]?.pos ?? 'slot'}`
       : `${activeName} ⇄ ${players[targetId]?.lastName ?? 'Player'}`;
-    setLastSwap({ before: { lineup, subs }, after: { lineup: newLineup, subs: trimmedSubs }, label });
+    setLastSwap({ before: { lineup, subs }, after: { lineup: newLineup, subs: newSubs }, label });
 
     hapticMedium();
-    updateLineup(newLineup, trimmedSubs);
+    updateLineup(newLineup, newSubs);
     return true;
   }, [lineup, subs, updateLineup, players, week, club?.formation]);
 

@@ -237,6 +237,27 @@ describe('LineupEditor on the extracted board (elite regression)', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull(), { timeout: 5000 });
   });
 
+  it('does not trim an over-cap bench when two starters swap', () => {
+    const s0 = useGameStore.getState();
+    const club0 = s0.clubs[s0.playerClubId];
+    // An older save with more subs than MAX_SUBS (7): pad the bench from the
+    // reserves.
+    const reserves = club0.playerIds.filter(id => !club0.lineup.includes(id) && !club0.subs.includes(id));
+    const longSubs = [...club0.subs, ...reserves].slice(0, 9);
+    expect(longSubs.length).toBe(9);
+    useGameStore.setState({ clubs: { ...s0.clubs, [club0.id]: { ...club0, subs: longSubs } } });
+
+    const a = rename(club0.lineup[3], 'Fff', 'Zzzleft');
+    const b = rename(club0.lineup[9], 'Ggg', 'Zzzright');
+    render(<LineupEditor />);
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${a.firstName} ${a.lastName},`) }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${b.firstName} ${b.lastName},`) }));
+
+    const after = useGameStore.getState().clubs[club0.id];
+    expect(after.lineup[3]).toBe(b.id);
+    expect(after.subs).toEqual(longSubs);
+  });
+
   it('lets a bench player be placed into an emptied slot', () => {
     const club0 = useGameStore.getState().clubs[useGameStore.getState().playerClubId];
     // Punch a hole in the XI the way removing a player does, and drop the man

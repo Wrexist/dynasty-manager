@@ -61,6 +61,14 @@ describe('applyLineupSwap', () => {
     expect(applyLineupSwap(state(), emptySlotId(3), 'cb1')).toBeNull();
   });
 
+  it('leaves an over-cap bench exactly as long as it was — nobody untouched is demoted', () => {
+    // An older save can carry more than MAX_SUBS (7). Swapping two starters
+    // must not trim the bench as a side effect.
+    const long = { lineup: [...XI], subs: ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'] };
+    expect(applyLineupSwap(long, 'lb', 'st1')!.subs).toEqual(long.subs);
+    expect(applyLineupSwap(long, 'rb', 's9')!.subs).toEqual(['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 'rb']);
+  });
+
   it('never mutates its input', () => {
     const s = state();
     applyLineupSwap(s, 'rb', 's2');
