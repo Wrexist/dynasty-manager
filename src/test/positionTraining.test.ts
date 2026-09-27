@@ -103,3 +103,19 @@ describe('learned positions count as natural when picking players', () => {
     expect(scorePlayerForSlot(learned as Player, 'LM')).toBeGreaterThan(scorePlayerForSlot(base, 'LM'));
   });
 });
+
+describe('learned positions count as natural in the match engine', () => {
+  it('getFormationFitBonus rates a listed alternate like a natural fit', async () => {
+    const { getFormationFitBonus } = await import('@/engine/match/helpers');
+    const { FORMATION_POSITIONS } = await import('@/types/game');
+    const slots = FORMATION_POSITIONS['4-4-2'].filter(s => s.pos !== 'GK');
+    // Everyone natural except the LM slot, which is filled by a LB.
+    const xi = slots.map((s, i) => makePlayer({ id: `p${i}`, position: s.pos }));
+    const lmIdx = slots.findIndex(s => s.pos === 'LM');
+    const neighbour = xi.map((p, i) => (i === lmIdx ? { ...p, position: 'LB' as Position } : p));
+    const learned = neighbour.map((p, i) => (i === lmIdx ? { ...p, alternatePositions: ['LM'] as Position[] } : p));
+    const allNatural = getFormationFitBonus(xi, '4-4-2');
+    expect(getFormationFitBonus(learned, '4-4-2')).toBeCloseTo(allNatural);
+    expect(getFormationFitBonus(neighbour, '4-4-2')).toBeLessThan(allNatural);
+  });
+});
