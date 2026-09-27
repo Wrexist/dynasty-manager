@@ -74,6 +74,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Release unconfirmed purchase markers instead of locking the Market.',
     'Pack opening is cleaner: the foil shimmer and glow now follow the pack\'s shape, and the pack turns gently in the light before you open it.',
     'Name pack.gold "Gold Pack" to match its card; pin catalogue names to pack labels.',
+    'Train one secondary position per player (save v95).',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
