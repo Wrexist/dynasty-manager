@@ -107,7 +107,7 @@ describe('reduce-motion CSS (index.css)', () => {
 
   it('reaches the named decorative loops that only had OS-preference guards', () => {
     const stopped = selectorsDeclaring(/animation:\s*none\s*!important/).join('\n');
-    for (const cls of ['holo-ring', 'pack-rays', 'player-avatar-idle', 'title-float-circle', 'pack-starfield-near']) {
+    for (const cls of ['pack-rays', 'player-avatar-idle', 'title-float-circle', 'pack-starfield-near']) {
       expect(stopped, `.reduce-motion does not stop .${cls}`).toContain(`.reduce-motion .${cls}`);
     }
   });

@@ -959,29 +959,28 @@ export const PACK_ANIM = {
   revealStaggerMs: 110,
   flipMs: 520,
   walkout: {
-    slitMs: 700,
-    silhouetteMs: 900,
-    typewriterPerCharMs: 45,
-    /** How long the giant OVR number takes to count 0 → rating. Read by
-     *  `OvrOverlay`; it was dead config until then, and the roll ran for
-     *  `ovrOverlayMs - 150`. 420ms was too fast to register — with an easeOut
-     *  quad most of the range is covered in the first ~200ms, six frames at
-     *  30fps. The climb IS the beat, so it gets long enough to read, and
-     *  still lands well inside `ovrOverlayMs` so the number rests on its
-     *  final value rather than fading out mid-count. */
-    ovrRollMs: 620,
-    enterMs: 600,
-    /** Held-breath pause between name and flip — total stillness, no
-     *  particles, no halo pulse. The brain reads silence as "something
-     *  big is coming". Tunes the dopamine ramp. */
-    breathMs: 280,
-    flipMs: 800,
-    /** OVR overlay — massive number ticks from 0 → rating over the card
-     *  during/right after the flip, then fades to let the stats land. */
-    ovrOverlayMs: 900,
-    statsMs: 1500,
-    statsStaggerMs: 200,
-    holdMs: 2400,
+    /** Stadium lights ignite and the face-down card lands on its plinth. */
+    enterMs: 750,
+    /** ── Clue beats ──
+     *  Before the card turns, the walkout gives away three facts one at a
+     *  time: nation, then position, then the rating. The name is withheld
+     *  until the flip, so the flip is the answer rather than a formality.
+     *
+     *  This replaced a typewriter that spelled the player's NAME before the
+     *  flip (the reveal was spoiled by the time the card turned) and a giant
+     *  OVR number stamped over a card that already prints its own OVR — the
+     *  biggest moment of the cinematic was also its most cluttered frame. */
+    clueMs: 720,
+    /** The rating clue counts up from just under the walkout floor. The count
+     *  is shorter than its beat so the number lands and is HELD. */
+    ratingRollMs: 520,
+    /** Held-breath pause between the last clue and the flip — total
+     *  stillness. The brain reads silence as "something big is coming". */
+    breathMs: 320,
+    /** Flip + the name landing under the card. */
+    flipMs: 900,
+    /** Card rests on the plinth, slowly turning so the light catches it. */
+    holdMs: 2300,
     lingerMs: 450,
   },
   confetti: {
