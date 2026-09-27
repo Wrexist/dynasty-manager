@@ -85,6 +85,16 @@ export async function initPurchases(): Promise<boolean> {
         Purchases.configure({ apiKey }),
         timeout,
       ]);
+      if (Capacitor.getPlatform() === 'ios') {
+        // Attribution is disabled by default in RevenueCat. Keep it separate
+        // from purchase readiness: a failed or slow AdServices bridge must not
+        // prevent buying or restoring. The promise also catches sync throws.
+        void Promise.resolve()
+          .then(() => Purchases.enableAdServicesAttributionTokenCollection())
+          .catch(err => Sentry.captureException(err, {
+            tags: { context: 'purchases.appleAdsAttribution' },
+          }));
+      }
       return true;
     } catch (err) {
       if (import.meta.env.DEV) console.warn('[Purchases] Failed to initialize RevenueCat:', err);

@@ -35,7 +35,7 @@ disappears, or a purchase succeeds and grants nothing. Check each line.
 | C7 | ASC → Subscriptions → each plan → Introductory Offers | "Free, 1 week" on **both** Monthly and Yearly, all intended territories, start date in the past, no end date soon | The paywall and Shop read the offer's length from the store and show it only where it exists |
 | C8 | ASC → App Information → App Store Server Notifications | Production **and** sandbox URLs point at RevenueCat (RC → Project → Apple App Store → "Apple Server to Server notification URL") | Refunds, revocations and billing-retry lapses reach RC through these; without them a refund is only noticed on the next receipt refresh |
 | C9 | RC → Apple App Store config | In-App Purchase Key (StoreKit 2) and App-Specific Shared Secret uploaded | RC SDK 12 validates through StoreKit 2 |
-| C10 | ASC display names | Consumables: Champions / Elite / World Class / Legends; cosmetic: Dynasty Legacy Pack | The StoreKit sheet must name the item the card sold (CLAUDE.md ASC action item) |
+| C10 | ASC display names | Consumables: Gold Pack / Elite Pack / World Class Pack / Legends Pack; cosmetic: Dynasty Legacy Pack | The StoreKit sheet must name the item the card sold (CLAUDE.md ASC action item) |
 | C11 | GitHub → Secrets | `VITE_REVENUECAT_API_KEY_IOS` (`appl_…`) set | A production build without a key refuses to configure RC (Sentry: "RevenueCat API key missing") |
 | C12 | GitHub → Secrets + `ios-testflight.yml` | **Optional:** `VITE_REDEEM_SECRET` (16+ chars) passed in the build step's `env` | Without it, production builds hide Settings → Redeem Code and redeem nothing (deliberate — see §2.6) |
 
@@ -110,7 +110,7 @@ Non-consumable, no Pro. Read from the purchase record (no RC entitlement needed)
 | C / Q / E / U / R | as §2.3 | as §2.3 | `iapMatrix › <sku> (cosmetic) › …` |
 | F | Pruned at launch sync; an equipped cosmetic falls back to default | `reconcileEntitlements`, `getActiveCosmetic` | `entitlementReconciliation`; `monetization › getActiveCosmetic` |
 
-### 2.5 Consumable player packs — Champions (`.pack.gold`), Elite (`.pack.premium_gold`), World Class (`.pack.rare_gold`), Legends (`.pack.icon`)
+### 2.5 Consumable player packs — Gold (`.pack.gold`), Elite (`.pack.premium_gold`), World Class (`.pack.rare_gold`), Legends (`.pack.icon`)
 
 Never an entitlement, never restorable. The pack-credit marker is the only proof of
 payment.
@@ -202,7 +202,7 @@ Account) → Manage; the menu path moves between iOS versions.
    back.
 
 ### E. Player packs (any tester)
-1. Market → buy each of Champions, Elite, World Class, Legends once. **Expect:** the
+1. Market → buy each of Gold, Elite, World Class, Legends once. **Expect:** the
    Apple sheet names the pack as the card does (C10); the pack opens; players on the
    squad.
 2. Airplane Mode on → tap a paid pack. **Expect:** "Purchase failed" and no charge.
