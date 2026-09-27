@@ -151,7 +151,9 @@ if (PLAN === 'icon') {
   // NO TAPS. A one-card pack rips and walks out on its own as soon as it
   // mounts; the blind tap loop the 5-card plans use skipped straight past the
   // walkout to the summary. Just hold and let it play.
-  await wait(9000);
+  // The walkout's clue beats (nation, position, rating) land the reveal at
+  // ~8.5s page-time; HOLD_MS keeps the finished card on screen for the CTA.
+  await wait(Number(process.env.HOLD_MS || 9000));
 }
 
 if (PLAN === 'squad') {
