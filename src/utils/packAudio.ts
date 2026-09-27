@@ -18,6 +18,8 @@ export type PackSfxCue =
   | 'standard-pull'   // Common card flip
   | 'rare-pull'       // 84+ walkout pull
   | 'charge'          // Pack charge-up build
+  | 'rip-grain'       // One crackle per notch of the tear (density = tear speed)
+  | 'rip-finish'      // The seal giving way
   | 'explode'         // Pack burst
   | 'walkout-rise';   // Silhouette rises during walkout
 

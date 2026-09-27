@@ -919,38 +919,50 @@ export const PACK_ANIM = {
    *  short one for a tap. Once the tap path was lengthened enough to actually
    *  show the tear the two numbers met in the middle, so there is one. */
   explodeMs: 340,
-  /** ── The side tear ──
-   *  The pack is torn down its LEFT edge, the way you actually open a foil
-   *  booster: a narrow strip comes away from the side rather than the top
-   *  third lifting off like a lid.
+  /** ── The rip ──
+   *  The pack opens the way a trading-card booster does: the crimped seal
+   *  across the TOP is torn off, side to side, by the player's own finger.
+   *  The tear follows the drag 1:1 and never un-tears, crackles as it goes
+   *  (a synthesized grain per notch, so a faster swipe crackles faster), ticks
+   *  a haptic every few notches, and lets tier-coloured light out of the
+   *  opening behind it. Let go past `autoFinishAt` and it zips the rest of
+   *  the way; a tap, or a player who just waits, gets the same rip played
+   *  for them.
    *
-   *  It is built as `segments` horizontal slices of that strip, each with its
-   *  OWN STATIC clip-path, peeling on a stagger from top to bottom. The
-   *  obvious implementation — one strip whose clip-path animates as the tear
-   *  travels — is the wrong one: `clip-path` is not a compositor property, so
-   *  animating it repaints a 260x360 element every frame, and this overlay
-   *  already treats iOS WebKit rasterization as its main performance budget
-   *  (see the note on `filter: blur()` in PackCardAura). Static clips plus
-   *  transform-and-opacity per segment reads as the same travelling tear and
-   *  stays on the fast path. */
+   *  The torn length of the seal is one flap, hinged at the tear head; it and
+   *  the untorn remainder are the same static-clipped strip seen through
+   *  sliding windows (a translated overflow box with its content translated
+   *  back), so only transform and opacity ever change. Animating a clip-path
+   *  as the tear travels is the obvious implementation and the wrong one: it
+   *  repaints a 260x360 element every frame on iOS WebKit, which this overlay
+   *  treats as its main performance budget. */
   tear: {
-    /** Distance of the seam from the left edge, as a % of pack width. */
-    seamXPct: 17,
-    /** Slices the strip is cut into. More is smoother and costs more layers;
-     *  below about 6 the stagger reads as a flip-book rather than a tear. */
-    segments: 9,
-    /** Delay between one slice starting to peel and the next. This IS the
-     *  speed the tear travels down the edge. */
-    staggerMs: 26,
-    /** How long a single slice takes to come away. */
-    segmentMs: 380,
-    /** Half-width of the jagged seam wobble, in % of pack width. */
-    jagPct: 1.8,
-    /** How long after the tear starts the burst of light fires. The flash used
-     *  to go off on the same frame as the tear and washed it out completely —
-     *  which is why the pack has never visibly ripped, before this change or
-     *  after it. The light belongs at the END of the tear, not over it. */
-    burstDelayMs: 220,
+    /** Height of the tear line from the top, as a % of pack height. */
+    seamYPct: 12,
+    /** Sample points along the jagged tear line. */
+    segments: 14,
+    /** Vertical wobble of the jagged tear line, in % of pack height. */
+    jagPct: 1.1,
+    /** Horizontal drag, as a share of the pack's width, that tears it fully.
+     *  Under 1 so the tear finishes before the finger reaches the far edge. */
+    dragSpan: 0.82,
+    /** Pixels of movement before a touch counts as a drag and not a tap. */
+    dragSlopPx: 8,
+    /** Let go past this much torn and the rest zips itself. */
+    autoFinishAt: 0.45,
+    /** Duration of the self-zip after a release, and of the whole rip when it
+     *  is played for the player (tap, or waited out). */
+    autoFinishMs: 170,
+    autoRipMs: 520,
+    /** Notches per full tear. Each fires a crackle grain; every
+     *  `hapticEveryNotches`th also fires a haptic tick. */
+    notches: 36,
+    hapticEveryNotches: 4,
+    /** The strip flying away after the last notch, before the burst. */
+    flingMs: 300,
+    /** Burst delay from the start of `explode`. The rip itself is the
+     *  build-up now, so the light goes off almost at once. */
+    burstDelayMs: 60,
   },
   /** Delay between the pack landing and tearing when the player tapped before
    *  it had even flown in. Long enough that the entrance still reads as a

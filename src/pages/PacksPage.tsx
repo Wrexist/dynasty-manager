@@ -5,7 +5,7 @@ import { PackDealCard } from '@/components/game/pack/PackDealCard';
 import { PackDealUpsell } from '@/components/game/pack/PackDealUpsell';
 import * as Sentry from '@sentry/react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Package, Coins, Flame, Clock, Loader2, Gift, Store } from 'lucide-react';
@@ -181,6 +181,20 @@ const PacksPage = () => {
   const handleKeepAll = () => {
     setOpening(prev => prev ? { ...prev, players: [] } : prev);
   };
+
+  // "Open another": close the results (every card is kept, exactly as Keep
+  // All), then run the ordinary open for the same tier once the overlay is
+  // gone — `handleOpen` refuses while one is up. It goes through the whole
+  // normal path, so a paid pack gets the same eligibility pre-flight, pending
+  // credit marker and App Store sheet as a tap on the shelf.
+  const [reopenTier, setReopenTier] = useState<PackTierKey | null>(null);
+  const handleOpenRef = useRef<((key: PackTierKey) => Promise<void>) | null>(null);
+  useEffect(() => {
+    if (opening || !reopenTier) return;
+    const key = reopenTier;
+    setReopenTier(null);
+    void handleOpenRef.current?.(key);
+  }, [opening, reopenTier]);
 
   /** Sell exactly the cards the user ticked, as one action with one Undo.
    *
@@ -632,6 +646,30 @@ const PacksPage = () => {
     }
   };
 
+  handleOpenRef.current = key => handleOpen(key);
+
+  /** What "Open another" offers for this tier right now — or nothing. Free
+   *  opens say Free; a paid tier shows the store's own localized price, and
+   *  only when the store has confirmed it can sell the SKU (the same guard as
+   *  the shelf). Ads and soft-currency opens are not offered here. */
+  const openAnotherFor = (tierKey: PackTierKey) => {
+    const tier = PACK_TIER_MAP[tierKey];
+    const method = activeMethodFor(tier);
+    if (method !== 'free' && method !== 'iap') return undefined;
+    if (!canOpenPack(tierKey, method, method === 'iap' ? bonusFor(tierKey) : 0).ok) return undefined;
+    const price = method === 'free' ? t('packOpeningOverlay.free') : pricedTier(tier).iapPriceDisplay;
+    if (!price) return undefined;
+    return {
+      label: t(method === 'free' ? 'packOpeningOverlay.openAnother' : 'packOpeningOverlay.buyAnother'),
+      price,
+      onOpen: () => {
+        track('pack_open_another', { tierKey, method });
+        setOpening(null);
+        setReopenTier(tierKey);
+      },
+    };
+  };
+
   const recentPacks = openedPacks.slice(0, RECENT_PULLS_LIMIT);
 
   return (
@@ -1060,6 +1098,7 @@ const PacksPage = () => {
             onKeepAll={handleKeepAll}
             onSellSelected={handleSellSelected}
             placement={openingPlacement}
+            openAnother={openAnotherFor(opening.tier)}
           />
         )}
       </AnimatePresence>

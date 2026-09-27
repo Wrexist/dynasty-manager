@@ -46,6 +46,7 @@ export type AnalyticsEvent =
   | { name: 'crash'; data: { category: string } }
   // ── Pack opening (free and paid share one funnel) ──
   | { name: 'pack_opened'; data: { tierKey: string; method: 'free' | 'currency' | 'ad' | 'iap'; pityTriggered: boolean; bonusCards?: number } }
+  | { name: 'pack_open_another'; data: { tierKey: string; method: 'free' | 'iap' } }
   // ── Market ──
   // `market_viewed` is the denominator for every pack conversion rate; without
   // it a purchase count says nothing about whether the store works.
