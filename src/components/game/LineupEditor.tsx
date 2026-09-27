@@ -16,10 +16,11 @@ import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { getRatingColor, getPlayerTier } from '@/utils/uiHelpers';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, type Transition } from 'framer-motion';
 import { X } from 'lucide-react';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { infoToast } from '@/utils/gameToast';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 // The pitch itself, where a slot sits and what a tap target is now live in
 // `PitchBoard`. What is left here is the tactics screen's own rules —
@@ -31,6 +32,17 @@ import { infoToast } from '@/utils/gameToast';
 // teamsheet draws this same board and needs the same three-way answer, and a
 // second private copy is how two boards start disagreeing.
 
+// A swap is shown as the two players physically changing places. Every card —
+// on the pitch and on the bench — carries a `layoutId` keyed on the PLAYER, not
+// the slot, so when the lineup array changes framer-motion sees the same man
+// in a new box and flies him there. Before this, slots re-rendered in place and
+// a swap was a face silently changing on a tile.
+//
+// Slightly under-damped so the card lands with a hint of settle rather than a
+// linear stop; quick enough that a run of swaps never queues up behind itself.
+const SWAP_FLIGHT: Transition = { type: 'spring', stiffness: 520, damping: 38, mass: 0.9 };
+const NO_FLIGHT: Transition = { duration: 0 };
+const flightId = (playerId: string) => `lineup-card-${playerId}`;
 
 export function LineupEditor() {
   const { playerClubId, clubs, players, week, season, pairFamiliarity } = useGameStore(useShallow(s => ({
@@ -43,6 +55,10 @@ export function LineupEditor() {
   })));
   const updateLineup = useGameStore(s => s.updateLineup);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // MotionConfig already stops layout animations under reduced motion; asking
+  // the hook as well keeps this correct if that config is ever loosened.
+  const reduceMotion = useReducedMotionPref();
+  const flight = reduceMotion ? NO_FLIGHT : SWAP_FLIGHT;
 
   const club = clubs[playerClubId];
 
@@ -109,17 +125,6 @@ export function LineupEditor() {
     }
     return counts;
   }, [chemLinks]);
-
-  // Set of player IDs that share a chemistry link with selected player
-  const selectedChemPartners = useMemo(() => {
-    if (!selectedId) return new Set<string>();
-    const partners = new Set<string>();
-    for (const link of chemLinks) {
-      if (link.playerIdA === selectedId) partners.add(link.playerIdB);
-      if (link.playerIdB === selectedId) partners.add(link.playerIdA);
-    }
-    return partners;
-  }, [selectedId, chemLinks]);
 
   const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
   const subs = useMemo(() => club?.subs || [], [club?.subs]);
@@ -301,6 +306,9 @@ export function LineupEditor() {
   const isLineupSelected = selectedId ? lineup.includes(selectedId) : false;
 
   return (
+    // Namespaced so these layoutIds can never pair with a card elsewhere in the
+    // app that happens to share an id.
+    <LayoutGroup id="lineup-editor">
     <div>
       {/* The board. Everything about WHERE a slot is and what a tap target
           looks like now lives in PitchBoard; what stays here is what this
@@ -317,14 +325,12 @@ export function LineupEditor() {
           if (p) return `${p.firstName} ${p.lastName}, ${slot.pos}`;
           return `Empty ${slot.pos} slot${selectedId ? ' — place selected player here' : ''}`;
         }}
-        slotClassName={({ occupantId, isSelected, slot }) => {
-          // An occupied slot fades when someone else is selected and shares no
-          // chemistry with the man standing here.
-          if (occupantId) {
-            return selectedId && !isSelected && !selectedChemPartners.has(occupantId)
-              ? 'opacity-40'
-              : undefined;
-          }
+        slotClassName={({ occupantId, slot }) => {
+          // An occupied slot's emphasis comes from the tile's compatibility
+          // treatment alone. It used to ALSO fade every non-chemistry-partner,
+          // which stacked a second, unrelated signal on the same cards; the
+          // chemistry lines already single out the selected man's partners.
+          if (occupantId) return undefined;
           // An empty slot wears the compatibility ring for whoever is selected,
           // which is how you can see where a bench player is allowed to go.
           const compat = selectedPlayer ? getCompatibility(selectedPlayer, slot.pos as Position) : null;
@@ -341,18 +347,23 @@ export function LineupEditor() {
           if (!player) return null;
           const compat = selectedPlayer ? getCompatibility(selectedPlayer, slot.pos as Position) : null;
           return (
-            <LineupPlayerTile
-              player={player}
-              position={slot.pos}
-              isSelected={isSelected}
-              chemistryLinkCount={playerChemCounts.get(player.id) || 0}
-              compatRing={!isSelected ? compat : null}
-              positionTone={getCompatibility(player, slot.pos as Position)}
-              week={week}
-              // PitchBoard owns the button; a tile with its own role="button"
-              // inside one would be two tab stops for a single action.
-              interactive={false}
-            />
+            // Keyed on the player so a new occupant REMOUNTS rather than the
+            // old element being handed a new layoutId, which would animate
+            // the wrong card.
+            <motion.div key={player.id} layoutId={flightId(player.id)} transition={flight}>
+              <LineupPlayerTile
+                player={player}
+                position={slot.pos}
+                isSelected={isSelected}
+                chemistryLinkCount={playerChemCounts.get(player.id) || 0}
+                compatRing={!isSelected ? compat : null}
+                positionTone={getCompatibility(player, slot.pos as Position)}
+                week={week}
+                // PitchBoard owns the button; a tile with its own role="button"
+                // inside one would be two tab stops for a single action.
+                interactive={false}
+              />
+            </motion.div>
           );
         }}
         underlay={
@@ -505,7 +516,11 @@ export function LineupEditor() {
       {/* Bench */}
       <div className="mt-3">
         <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 px-1">
+        {/* `layoutScroll` so a card flying out of (or into) a scrolled bench
+            starts from where it is on screen, not from its unscrolled spot.
+            pt leaves room for the selected card's lift inside the scroller's
+            clip. */}
+        <motion.div layoutScroll className="flex gap-1.5 overflow-x-auto scrollbar-hide pt-1.5 pb-1 px-1">
           {subAndBench.map(id => {
             const p = players[id];
             if (!p) return null;
@@ -514,20 +529,21 @@ export function LineupEditor() {
               ? getCompatibility(p, selectedSlotPos)
               : null;
             return (
-              <BenchStrip
-                key={`bench-${id}`}
-                player={p}
-                position={p.position}
-                isSelected={isSelected}
-                chemistryLinkCount={playerChemCounts.get(p.id) || 0}
-                compatRing={!isSelected ? benchCompat : null}
-                isBestSub={id === bestSubId}
-                week={week}
-                onClick={() => handleTap(id)}
-              />
+              <motion.div key={`bench-${id}`} layoutId={flightId(id)} transition={flight} className="shrink-0">
+                <BenchStrip
+                  player={p}
+                  position={p.position}
+                  isSelected={isSelected}
+                  chemistryLinkCount={playerChemCounts.get(p.id) || 0}
+                  compatRing={!isSelected ? benchCompat : null}
+                  isBestSub={id === bestSubId}
+                  week={week}
+                  onClick={() => handleTap(id)}
+                />
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
 
       {/* Selection hint */}
@@ -547,5 +563,6 @@ export function LineupEditor() {
       {/* Insights */}
       <InsightsPanel insights={insights} />
     </div>
+    </LayoutGroup>
   );
 }
