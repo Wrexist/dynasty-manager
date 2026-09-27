@@ -599,6 +599,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           schedule: state.training.schedule,
           intensity: 'medium',
           individualPlans: [],
+          positionPlans: [],
           tacticalFamiliarity: STARTING_TACTICAL_FAMILIARITY,
         },
         scouting: {

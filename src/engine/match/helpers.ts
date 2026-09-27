@@ -18,7 +18,7 @@ import type {
   InjurySeverity,
   InjuryDetails,
 } from '@/types/game';
-import { FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
+import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import {
   INJURY_TYPES,
   FOUL_INJURY_TYPE_WEIGHTS,
@@ -183,9 +183,14 @@ export function getFormationFitBonus(players: Player[], formation: FormationType
   if (outfieldSlots.length === 0) return FORMATION_FIT_MAX_BONUS;
   if (outfieldPlayers.length === 0) return 0;
 
-  /** 1.0 natural, 0.7 listed alternate, 0.3 out of position. */
-  const compat = (p: Player, pos: (typeof outfieldSlots)[number]['pos']): number => {
-    if (p.position === pos) return 1;
+  /**
+   * 1.0 natural (primary OR a listed alternate — FC26 ALT POS or one learned
+   * through position training), 0.7 neighbouring, 0.3 out of position.
+   * Same tiers as `positionFit`, so the pitch ring and the sim agree.
+   */
+  const isNatural = (p: Player, pos: Position): boolean => p.position === pos || !!p.alternatePositions?.includes(pos);
+  const compat = (p: Player, pos: Position): number => {
+    if (isNatural(p, pos)) return 1;
     if (canPlayPosition(p, pos)) return 0.7;
     return 0.3;
   };
@@ -194,20 +199,24 @@ export function getFormationFitBonus(players: Player[], formation: FormationType
   // alternate-position candidate to a slot that had a natural option.
   const orderedSlots = [...outfieldSlots].sort(
     (a, b) =>
-      outfieldPlayers.filter(p => p.position === a.pos).length -
-      outfieldPlayers.filter(p => p.position === b.pos).length,
+      outfieldPlayers.filter(p => isNatural(p, a.pos)).length -
+      outfieldPlayers.filter(p => isNatural(p, b.pos)).length,
   );
 
+  const flexibility = new Map(outfieldPlayers.map(p => [p.id, outfieldSlots.filter(sl => isNatural(p, sl.pos)).length]));
   const taken = new Set<string>();
   let score = 0;
   for (const slot of orderedSlots) {
     let best: Player | null = null;
     let bestScore = -1;
+    let bestFlex = Infinity;
     for (const p of outfieldPlayers) {
       if (taken.has(p.id)) continue;
       const c = compat(p, slot.pos);
-      if (c > bestScore) { bestScore = c; best = p; }
-      if (c === 1) break; // can't beat a natural fit
+      // Ties go to the LEAST versatile player, so a man listed at several
+      // positions is not spent on a slot someone else could fill naturally.
+      const flex = flexibility.get(p.id) ?? 0;
+      if (c > bestScore || (c === bestScore && flex < bestFlex)) { bestScore = c; best = p; bestFlex = flex; }
     }
     if (!best) continue; // fewer players than slots — unfilled slots score 0
     taken.add(best.id);

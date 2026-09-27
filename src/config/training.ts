@@ -116,3 +116,21 @@ export const STREAK_DECAY_PER_WEEK = 1;
 // ── Fitness Zones ──
 export const FITNESS_ZONE_GREEN = 70;
 export const FITNESS_ZONE_YELLOW = 50;
+
+// ── Secondary Position Training ──
+/** Weeks an average (age 26-29, mental 60) player needs to learn a neighbouring position. */
+export const POSITION_TRAINING_BASE_WEEKS = 10;
+/** Age → learning-speed multiplier. First bracket whose `maxAge` fits wins. */
+export const POSITION_TRAINING_AGE_MULT: { maxAge: number; mult: number }[] = [
+  { maxAge: 21, mult: 1.35 },
+  { maxAge: 25, mult: 1.15 },
+  { maxAge: 29, mult: 1.0 },
+  { maxAge: 32, mult: 0.8 },
+  { maxAge: 99, mult: 0.65 },
+];
+/** Mental attribute at which the mental multiplier is exactly 1. */
+export const POSITION_TRAINING_MENTAL_PIVOT = 60;
+/** Multiplier change per point of mental away from the pivot (mental 80 → 1.2x). */
+export const POSITION_TRAINING_MENTAL_SLOPE = 0.01;
+/** Injured players learn at this fraction of their normal rate (classroom work only). */
+export const POSITION_TRAINING_INJURED_MULT = 0.25;

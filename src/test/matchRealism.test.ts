@@ -17,6 +17,7 @@ import { getFormationFitBonus } from '@/engine/match/helpers';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { resetRealPlayerClaims } from '@/utils/realPlayerPicker';
 import type { Club, Match, Player, TacticalInstructions, FormationType } from '@/types/game';
+import { FORMATION_POSITIONS } from '@/types/game';
 
 // Deterministic PRNG so statistical assertions don't flake.
 function mulberry32(seed: number): () => number {
@@ -316,7 +317,14 @@ describe('Match Realism', () => {
     Math.random = mulberry32(0x99C40F);
     resetRealPlayerClaims();
     const squad = generateSquad('fit-check', 75, 1);
-    const { lineup } = selectBestLineup(squad, '4-3-3');
+    // A hand-built 4-3-3 XI (one natural per slot, no alternates). Listed
+    // alternates score as natural since position training, and the generated
+    // XI for this seed (3 CBs, 2 STs, LM/RM alternates) is honestly a better
+    // 3-5-2 — so "optimal" is constructed rather than taken from the picker.
+    const template = selectBestLineup(squad, '4-3-3').lineup;
+    const lineup: Player[] = FORMATION_POSITIONS['4-3-3'].map((slot, i) => ({
+      ...template[i], id: `xi-${i}`, position: slot.pos, alternatePositions: [],
+    }));
     const gk = squad.find(p => p.position === 'GK')!;
     const tenCentreBacks: Player[] = Array.from({ length: 10 }, (_, i) => ({
       ...(JSON.parse(JSON.stringify(squad.find(p => p.position === 'CB'))) as Player),
@@ -329,7 +337,7 @@ describe('Match Realism', () => {
     const wrongShape = getFormationFitBonus(lineup, '3-5-2');
     const allCentreBacks = getFormationFitBonus([gk, ...tenCentreBacks], '4-3-3');
 
-    // Measured 0.235 / 0.168 / 0.110. The old set-cover version asked whether
+    // Measured 0.250 / ~0.2 / 0.110 (was 0.235 / 0.168 / 0.110 on a generated XI). The old set-cover version asked whether
     // ANY player COULD cover each slot without consuming him, so ten centre-backs
     // still scored 0.100 against an optimal XI's 0.250.
     expect(optimal).toBeGreaterThan(wrongShape);

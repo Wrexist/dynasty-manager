@@ -30,8 +30,21 @@ function newCurveSquad(n = 30): Record<string, { wage: number; overall: number }
 }
 
 describe('saveMigration', () => {
-  it('should have current version set to 94', () => {
-    expect(CURRENT_VERSION).toBe(94);
+  it('should have current version set to 95', () => {
+    expect(CURRENT_VERSION).toBe(95);
+  });
+
+  it('v94 → v95 gives training an empty positionPlans list and keeps the rest', () => {
+    const out = migrateSaveData({
+      version: 94, playerClubId: 'c1', clubs: { c1: {} },
+      training: { intensity: 'heavy', individualPlans: [{ playerId: 'p1', focus: 'fitness' }] },
+    });
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.migrationError).toBeUndefined();
+    const training = out.training as { intensity: string; individualPlans: unknown[]; positionPlans: unknown[] };
+    expect(training.positionPlans).toEqual([]);
+    expect(training.intensity).toBe('heavy');
+    expect(training.individualPlans).toHaveLength(1);
   });
 
   it('v93 → v94 marks every existing season-history row as managed', () => {

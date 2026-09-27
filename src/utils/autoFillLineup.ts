@@ -1,5 +1,6 @@
 import type { Player, FormationType, Position, PlayerAttributes, TacticalInstructions, AIManagerStyle, PerkId } from '@/types/game';
 import { FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
+import { positionFit } from '@/utils/positionFit';
 import { POSITION_WEIGHTS } from '@/config/playerGeneration';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { LOW_FITNESS_THRESHOLD } from '@/config/gameBalance';
@@ -247,8 +248,11 @@ export function positionalOverall(attrs: PlayerAttributes, targetPosition: Posit
  * Natural position: +8, Compatible: +4, Incompatible: -30
  */
 function positionFitScore(player: { position: Position; alternatePositions?: Position[] }, slotPosition: Position): number {
-  if (player.position === slotPosition) return NATURAL_POSITION_BONUS;
-  if (canPlayPosition(player, slotPosition)) return COMPATIBLE_POSITION_BONUS;
+  // Listed alternates (FC26 ALT POS, or learned via position training) are
+  // natural — the same rule the pitch rings show.
+  const fit = positionFit(player, slotPosition);
+  if (fit === 'natural') return NATURAL_POSITION_BONUS;
+  if (fit === 'compatible') return COMPATIBLE_POSITION_BONUS;
   return INCOMPATIBLE_POSITION_PENALTY;
 }
 
