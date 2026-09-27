@@ -571,6 +571,10 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // to the tear; ignored afterwards.
   const tapToRip = useCallback(() => {
     if (!canRip) return;
+    // Unlock Web Audio HERE, synchronously, whoever the caller is: every
+    // sound the rip makes is played later, from the progress animation,
+    // which iOS does not count as user activation.
+    resumeSfx();
     // Tapped before the pack has even flown in. Going straight to `explode`
     // would mount the pack mid-tear, so instead snap the entrance forward and
     // let the arrival beat fire the tear a moment later — the pack still lands
@@ -642,7 +646,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     }
   };
   const onRipClick = () => {
-    resumeSfx(); // a keyboard activation has no pointerdown
     if (suppressClickRef.current) { suppressClickRef.current = false; return; }
     tapToRip();
   };
