@@ -33,6 +33,8 @@ import MatchDay from '@/pages/MatchDay';
 
 const CLUB_ID = 'everton';
 const SKIP = 'Skip to full time';
+/** Seeds the world the matches are played in (see beforeAll). */
+const WORLD_SEED = 1;
 
 // ── Rules ──
 
@@ -217,15 +219,32 @@ function skipFromHere() {
 describe('MatchDay — Skip to full time', () => {
   let leagueBase: DataSnapshot;
 
-  beforeAll(() => {
-    useGameStore.getState().initGame(CLUB_ID);
-    // Step to the first week the player has a league fixture.
-    for (let i = 0; i < 12; i++) {
-      const cur = useGameStore.getState();
-      const hasFixture = cur.fixtures.some(m => m.week === cur.week && !m.played
-        && (m.homeClubId === cur.playerClubId || m.awayClubId === cur.playerClubId));
-      if (hasFixture) break;
-      void useGameStore.getState().advanceWeek();
+  beforeAll(async () => {
+    // Pin the world. The match seed (liveMatchSeed) keys on the fixture's id,
+    // which initGame mints with crypto.randomUUID, and the squads come from
+    // Math.random — unpinned, every run played a different match, and the ones
+    // with a goal conceded, red card or injury on a checked minute opened a
+    // key-moment prompt that hides the live row (no Pause, no Skip): at 1' in
+    // CI, and at 46' locally, where first-half stoppage-time events (logged as
+    // 46+) are matched again on the second half's first tick.
+    let uuids = 0;
+    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(mulberry32(WORLD_SEED));
+    const uuidSpy = vi.spyOn(crypto, 'randomUUID').mockImplementation(
+      () => `00000000-0000-4000-8000-${(++uuids).toString(16).padStart(12, '0')}` as `${string}-${string}-${string}-${string}-${string}`,
+    );
+    try {
+      useGameStore.getState().initGame(CLUB_ID);
+      // Step to the first week the player has a league fixture.
+      for (let i = 0; i < 12; i++) {
+        const cur = useGameStore.getState();
+        const hasFixture = cur.fixtures.some(m => m.week === cur.week && !m.played
+          && (m.homeClubId === cur.playerClubId || m.awayClubId === cur.playerClubId));
+        if (hasFixture) break;
+        await useGameStore.getState().advanceWeek();
+      }
+    } finally {
+      randomSpy.mockRestore();
+      uuidSpy.mockRestore();
     }
     const st = useGameStore.getState();
     ORIGINAL = { playFirstHalf: st.playFirstHalf, playSecondHalf: st.playSecondHalf, playExtraTime: st.playExtraTime, saveGame: st.saveGame };

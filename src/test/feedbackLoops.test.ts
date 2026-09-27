@@ -12,7 +12,8 @@
  * average performer's progression rate must be unchanged (the point is to
  * differentiate, not to inflate).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { mulberry32 } from './helpers/matchCalibration';
 import { useGameStore } from '@/store/gameStore';
 import type { Player, PlayerAttributes } from '@/types/game';
 import {
@@ -292,14 +293,34 @@ describe('post-match integration (real store, real engine)', () => {
    * back to the flat drain.
    */
   async function playMatches(count: number): Promise<Played[]> {
+    // Pin the world: squads come from Math.random, and each match is seeded
+    // from the career id and fixture id (liveMatchSeed), both minted by
+    // crypto.randomUUID. Unpinned, every run played a different season.
+    let uuids = 0;
+    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(mulberry32(0xF0F0));
+    const uuidSpy = vi.spyOn(crypto, 'randomUUID').mockImplementation(
+      () => `00000000-0000-4000-8000-${(++uuids).toString(16).padStart(12, '0')}` as `${string}-${string}-${string}-${string}-${string}`,
+    );
+    try {
+      return await playPinnedMatches(count);
+    } finally {
+      randomSpy.mockRestore();
+      uuidSpy.mockRestore();
+    }
+  }
+
+  async function playPinnedMatches(count: number): Promise<Played[]> {
     useGameStore.getState().initGame('manchester-city');
     const out: Played[] = [];
     for (let w = 0; w < 30 && out.length < count; w++) {
+      await useGameStore.getState().advanceWeek();
+      // Snapshot AFTER the week advance, right before the match: the advance
+      // moves form and fitness on its own (win-streak form bonus capped at 100,
+      // weekly recovery), which would otherwise leak into the match deltas.
       const pre = useGameStore.getState();
       const before = Object.fromEntries(
         pre.clubs[pre.playerClubId].playerIds.map(id => [id, { ...pre.players[id] }]),
       ) as Record<string, Player>;
-      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
       const after = useGameStore.getState();
       const ours = after.matchPlayerRatings.filter(r => before[r.playerId] && after.players[r.playerId]);
