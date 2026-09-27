@@ -19,6 +19,7 @@ import { ShareMomentButton } from '@/components/game/ShareMomentButton';
 import { buildPackPullCardData } from '@/utils/shareCard';
 import { cn } from '@/lib/utils';
 import { playPackSfx } from '@/utils/packAudio';
+import { resumeSfx } from '@/utils/sfx';
 
 // Quick-sell pricing comes from config so the button can never promise a
 // different number than the slice pays out — the cap especially: an uncapped
@@ -595,6 +596,9 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   const canDrag = phase === 'arrival' || phase === 'charge';
   const onRipPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!canRip) return;
+    // Inside the gesture: the crackle is played later, from the drag's
+    // progress callback, which iOS no longer counts as user activation.
+    resumeSfx();
     dragRef.current = { id: e.pointerId, x0: e.clientX, base: ripProgress.get(), moved: false };
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not all engines */ }
   };
@@ -638,6 +642,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     }
   };
   const onRipClick = () => {
+    resumeSfx(); // a keyboard activation has no pointerdown
     if (suppressClickRef.current) { suppressClickRef.current = false; return; }
     tapToRip();
   };

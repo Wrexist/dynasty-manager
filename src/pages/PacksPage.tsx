@@ -6,6 +6,7 @@ import { PackDealUpsell } from '@/components/game/pack/PackDealUpsell';
 import * as Sentry from '@sentry/react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { resumeSfx } from '@/utils/sfx';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Package, Coins, Flame, Clock, Loader2, Gift, Store } from 'lucide-react';
@@ -137,7 +138,13 @@ const PacksPage = () => {
   const undoLastQuickSell = useGameStore(s => s.undoLastQuickSell);
   const activeSlot = useGameStore(s => s.activeSlot);
 
-  const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
+  // `id` is the overlay's identity. Two opens in a row ("Open another", or a
+  // purchase that resolves inside the exit animation) must be two overlays:
+  // without a fresh key AnimatePresence cancels the exit and REUSES the old
+  // component, so the new cards landed in the previous pack's results screen.
+  const [opening, setOpening] = useState<{ id: number; tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
+  const openingSeqRef = useRef(0);
+  const nextOpeningId = () => ++openingSeqRef.current;
   const deals = usePackDeals();
   const [upsellDeals, setUpsellDeals] = useState<ActivePackDeal[]>([]);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
@@ -169,7 +176,7 @@ const PacksPage = () => {
     const pending = readPendingPackCredit();
     void reconcilePendingPackCreditAtLaunch().then(result => {
       if (mounted && pending && result?.success && result.players?.length) {
-        setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered });
+        setOpening({ id: nextOpeningId(), tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered });
       }
     });
     return () => { mounted = false; };
@@ -448,6 +455,10 @@ const PacksPage = () => {
     // Guard against rapid double-taps while an overlay is already up,
     // a pack was just opened this frame, or an async ad/IAP is mid-flight.
     if (opening || replay || busy || isPackPurchaseInFlight()) return;
+    // Unlock Web Audio while we are still inside the tap. iOS only lets a
+    // context start from a user gesture, and everything the opening plays
+    // (charge, rip, burst) fires later, from timers and animation frames.
+    resumeSfx();
     const tier = PACK_TIER_MAP[tierKey];
     if (advertisedDeal) {
       const live = getActiveDeals().find(deal => deal.slotId === advertisedDeal.slotId);
@@ -481,7 +492,7 @@ const PacksPage = () => {
         return;
       }
       track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true });
-      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
+      setOpening({ id: nextOpeningId(), tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
       return;
     }
 
@@ -503,7 +514,7 @@ const PacksPage = () => {
           return;
         }
         track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true });
-        setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
+        setOpening({ id: nextOpeningId(), tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
       } finally {
         setBusy(false);
       }
@@ -529,7 +540,7 @@ const PacksPage = () => {
         const recovered = await reconcilePendingPackCreditAtLaunch(false);
         if (recovered?.success && recovered.players?.length) {
           successToast('Purchase restored', 'Your earlier pack purchase has been credited.');
-          setOpening({ tier: earlier.tierKey as PackTierKey, players: recovered.players, pityTriggered: recovered.pityTriggered });
+          setOpening({ id: nextOpeningId(), tier: earlier.tierKey as PackTierKey, players: recovered.players, pityTriggered: recovered.pityTriggered });
           return;
         }
         const still = readPendingPackCredit();
@@ -615,7 +626,7 @@ const PacksPage = () => {
       const claimedBonus = bonusAtPurchase;
       if (claimedBonus > 0) track('weekly_bonus_claimed', { tierKey, bonusCards: claimedBonus });
       track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true, bonusCards: claimedBonus });
-      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
+      setOpening({ id: nextOpeningId(), tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
     } catch (err) {
       // Capture the actual error to Sentry — silent catch was making it
       // impossible to triage real IAP failures (receipt validation throws,
@@ -1073,10 +1084,12 @@ const PacksPage = () => {
         )}
       </AnimatePresence>
 
-      {/* Pack Opening Overlay */}
-      <AnimatePresence>
+      {/* Pack Opening Overlay — keyed per open, and `wait` lets the previous
+          overlay finish leaving before the next one mounts. */}
+      <AnimatePresence mode="wait">
         {opening && (
           <PackOpeningOverlay
+            key={opening.id}
             tier={opening.tier}
             players={opening.players}
             pityTriggered={opening.pityTriggered}
