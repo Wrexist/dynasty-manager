@@ -705,8 +705,10 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       .filter(p => !walkoutPlayerIds.has(p.id))
       .every(p => revealedSet.has(p.id));
     if (!tappableRevealed) return;
+    // A walkout card that was tapped and has already played is in
+    // revealedSet — only the ones still face-down are pending.
     const pendingWalkouts = players
-      .filter(p => walkoutPlayerIds.has(p.id))
+      .filter(p => walkoutPlayerIds.has(p.id) && !revealedSet.has(p.id))
       .sort((a, b) => b.overall - a.overall);
     if (pendingWalkouts.length > 0) {
       setWalkoutQueue(pendingWalkouts);
@@ -717,11 +719,14 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     }
   }, [phase, revealedSet, players, walkoutPlayerIds]);
 
-  // Drain walkouts one at a time
+  // Drain walkouts one at a time. An empty queue goes back to the grid, not
+  // straight to summary: cards the player hasn't flipped yet stay face-down
+  // for them to open one by one, and the reveal effect above moves on to
+  // summary once nothing is left.
   useEffect(() => {
     if (phase !== 'walkout') return;
     if (!currentWalkout && walkoutQueue.length === 0) {
-      setPhase('summary');
+      setPhase('reveal');
     }
   }, [phase, currentWalkout, walkoutQueue.length]);
 
@@ -739,9 +744,19 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       walkoutLingerTimerRef.current = null;
     }
     setWalkoutQueue(prev => {
+      // The hero that just played is now a face-up card in the grid.
+      const done = prev[0];
+      if (done) {
+        setRevealedSet(s => {
+          if (s.has(done.id)) return s;
+          const nextSet = new Set(s);
+          nextSet.add(done.id);
+          return nextSet;
+        });
+      }
       const next = prev.slice(1);
       if (next.length > 0) setCurrentWalkout(next[0]);
-      else { setCurrentWalkout(null); setPhase('summary'); }
+      else { setCurrentWalkout(null); setPhase('reveal'); }
       return next;
     });
   }, []);
@@ -795,22 +810,19 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // made the card a dead tap — it read "Tap to reveal" but tapping did
   // nothing until every other card was flipped and the walkout auto-fired.
   // Now tapping the card starts the walkout immediately: seed the queue with
-  // the tapped player first, then any other pending walkouts (top-OVR first),
-  // and jump straight to the walkout phase. Remaining face-down cards are
-  // surfaced face-up in the summary that follows.
+  // only the tapped player and jump straight to the walkout phase. Afterwards
+  // the grid comes back with that card face-up and every other card still
+  // face-down, so each one is opened by its own tap.
   const triggerWalkout = useCallback((id: string) => {
     if (phase !== 'reveal') return;
     if (!walkoutPlayerIds.has(id)) return;
     const tapped = players.find(p => p.id === id);
-    if (!tapped) return;
-    const rest = players
-      .filter(p => walkoutPlayerIds.has(p.id) && p.id !== id)
-      .sort((a, b) => b.overall - a.overall);
+    if (!tapped || revealedSet.has(id)) return;
     hapticHeavy();
-    setWalkoutQueue([tapped, ...rest]);
+    setWalkoutQueue([tapped]);
     setCurrentWalkout(tapped);
     setPhase('walkout');
-  }, [phase, players, walkoutPlayerIds]);
+  }, [phase, players, walkoutPlayerIds, revealedSet]);
 
   // Allow tap-to-reveal-all during reveal phase. Walkout-tier cards are
   // excluded so the cinematic still plays for them — the parent effect
