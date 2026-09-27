@@ -36,10 +36,14 @@ interface LineupPlayerTileProps {
   onClick?: () => void;
 }
 
+// Where the selected player would fit, as a gradient of emphasis rather than
+// three equally loud boxes: a natural fit glows, a workable one gets a hairline,
+// a wrong one steps back. With a thick ring on every card (most of them red)
+// the board shouted everywhere and so said nothing.
 const COMPAT_RING_CLASSES = {
-  natural: 'ring-2 ring-emerald-400/80',
-  compatible: 'ring-2 ring-amber-400/80',
-  wrong: 'ring-2 ring-red-500/80',
+  natural: 'ring-1 ring-emerald-400/80 shadow-[0_0_14px_rgba(52,211,153,0.45)]',
+  compatible: 'ring-1 ring-amber-400/60',
+  wrong: 'opacity-50 saturate-50',
 };
 
 function getMoraleDotClass(morale: number): string {
@@ -96,8 +100,10 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
       title={fullName}
       className={cn(
         'relative shrink-0 cursor-pointer rounded-[7px]',
-        'transition-transform duration-150',
-        isSelected && 'scale-[1.08] z-10',
+        // Selection is a lift, not a blink: the card rises and glows and then
+        // holds still, so the eye can leave it and go find the target.
+        'transition-[transform,box-shadow] duration-200 ease-out',
+        isSelected && '-translate-y-1 scale-[1.06] z-10 shadow-[0_10px_22px_-6px_rgba(0,0,0,0.7),0_0_16px_hsl(var(--primary)/0.5)]',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
         player.injured && 'opacity-60',
       )}
@@ -111,7 +117,7 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
       />
 
       {isSelected && (
-        <span className="absolute inset-0 rounded-[7px] ring-2 ring-primary animate-pulse pointer-events-none z-10" />
+        <span className="absolute inset-0 rounded-[7px] ring-2 ring-primary pointer-events-none z-10" />
       )}
 
       {statusLabel && (
