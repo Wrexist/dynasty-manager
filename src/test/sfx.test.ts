@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   setSfxEnabled, resumeSfx, startCrowdBed, stopCrowdBed,
   sfxWhistle, sfxKick, sfxRoar, sfxGroan, sfxNet,
-  sfxChime, sfxWhoosh, sfxBurst,
+  sfxChime, sfxWhoosh, sfxBurst, sfxRipGrain, sfxRipFinish,
 } from '@/utils/sfx';
 
 describe('sfx — safe in audio-less environments', () => {
@@ -27,6 +27,8 @@ describe('sfx — safe in audio-less environments', () => {
       sfxWhoosh();
       sfxWhoosh(false);
       sfxBurst();
+      sfxRipGrain();
+      sfxRipFinish();
       stopCrowdBed();
       setSfxEnabled(false);
       sfxWhistle(); // disabled path

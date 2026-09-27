@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, animate, useAnimationFrame, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, animate, useAnimationFrame, useMotionValue, useMotionValueEvent, useTransform } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
 import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_QUICK_SELL_RATE, PACK_QUICK_SELL_TAPER_ABOVE, PACK_QUICK_SELL_TAPER_RATE, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD, quickSellValue } from '@/config/packs';
@@ -9,15 +9,17 @@ import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { formatMoney } from '@/utils/helpers';
 import { PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
-import { PackArt } from './PackArt';
 import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
+import { PackRip } from './PackRip';
 import { PackStadium } from './PackStadium';
 import { WalkoutReveal } from './WalkoutReveal';
-import { pickBestPull, tierForOvr } from './packHelpers';
+import { packArtMaskStyle, pickBestPull, tierForOvr } from './packHelpers';
 import { ShareMomentButton } from '@/components/game/ShareMomentButton';
 import { buildPackPullCardData } from '@/utils/shareCard';
 import { cn } from '@/lib/utils';
+import { playPackSfx } from '@/utils/packAudio';
+import { resumeSfx } from '@/utils/sfx';
 
 // Quick-sell pricing comes from config so the button can never promise a
 // different number than the slice pays out — the cap especially: an uncapped
@@ -75,7 +77,17 @@ interface PackOpeningOverlayProps {
   /** Hide the best-pull Share action (ad capture renders this overlay and must
    *  not grow a button in its footage). */
   hideShare?: boolean;
+  /** "Open another" on the results screen. The parent decides whether one is
+   *  available and prices it (free, or the store's localized price); omit to
+   *  hide the button. A paid open goes through the normal purchase path, so
+   *  the App Store sheet is always the confirmation — this never charges. */
+  openAnother?: { label: string; price: string; onOpen: () => void };
 }
+
+/** The pack's box on screen, px. The rip places its tear head by transform in
+ *  px, so it needs the width as a number. */
+const PACK_BOX_W = 260;
+const PACK_BOX_H = 360;
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
 
@@ -97,7 +109,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeepAll, onSellSelected, placement, improvement, hideShare }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeepAll, onSellSelected, placement, improvement, hideShare, openAnother }: PackOpeningOverlayProps) {
   const { t } = useTranslation();
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotionPref();
@@ -274,6 +286,98 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
    *  without a re-render. */
   const breathingRef = useRef(false);
 
+  // ── The rip ──
+  //
+  // `ripProgress` (0 → 1) is the single source of truth for how far the seal
+  // is torn. The finger writes it directly; a tap, a waited-out charge and a
+  // released-past-halfway drag all animate it instead. PackRip draws from it,
+  // and the change listener below turns it into sound and haptics — so the
+  // crackle, the tick and the tear on screen can never disagree.
+  const ripProgress = useMotionValue(0);
+  const [ripDir, setRipDir] = useState<1 | -1>(1);
+  const ripDirRef = useRef<1 | -1>(1);
+  const [ripStarted, setRipStarted] = useState(false);
+  const [ripFlung, setRipFlung] = useState(false);
+  /** A rip is under way (drag or auto): the charge's shake and timers yield. */
+  const ripActiveRef = useRef(false);
+  const ripDoneRef = useRef(false);
+  const ripAnimRef = useRef<{ stop: () => void } | null>(null);
+  const ripIdleTimerRef = useRef<number | null>(null);
+  const ripFinishTimerRef = useRef<number | null>(null);
+  const ripNotchRef = useRef(0);
+  const dragRef = useRef<{ id: number; x0: number; base: number; moved: boolean } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  const clearRipIdle = useCallback(() => {
+    if (ripIdleTimerRef.current !== null) {
+      window.clearTimeout(ripIdleTimerRef.current);
+      ripIdleTimerRef.current = null;
+    }
+  }, []);
+
+  /** Take over from the charge: stop its auto-advance and its rumble. Returns
+   *  false once the seal is already off. */
+  const claimRip = useCallback(() => {
+    if (ripDoneRef.current) return false;
+    if (!ripActiveRef.current) {
+      ripActiveRef.current = true;
+      setRipStarted(true);
+      if (chargeRumbleRef.current !== null) { window.clearTimeout(chargeRumbleRef.current); chargeRumbleRef.current = null; }
+      if (chargeTimerRef.current !== null) { window.clearTimeout(chargeTimerRef.current); chargeTimerRef.current = null; }
+    }
+    return true;
+  }, []);
+
+  /** Play the rest of the rip for the player. `ms` is the length of a WHOLE
+   *  rip; a partly torn seal takes proportionally less, unless `fixed`. */
+  const autoRip = useCallback((ms: number, fixed = false) => {
+    if (!claimRip()) return;
+    clearRipIdle();
+    ripAnimRef.current?.stop();
+    const remaining = 1 - ripProgress.get();
+    if (prefersReducedMotion) { ripProgress.set(1); return; }
+    ripAnimRef.current = animate(ripProgress, 1, {
+      duration: Math.max(0.08, (ms / 1000) * (fixed ? 1 : remaining)),
+      // A played-for-you rip starts slow and runs — the hand speeding up
+      // once the seal gives. A finish from a release is a straight zip.
+      ease: fixed ? 'easeIn' : [0.55, 0, 0.75, 1],
+    });
+  }, [claimRip, clearRipIdle, ripProgress, prefersReducedMotion]);
+
+  // Progress → feedback. One crackle grain per notch crossed (capped, so a
+  // violent swipe is a burst, not a pile-up), a haptic tick every few
+  // notches, and on the last notch: the zip, the heavy hit, the strip flying
+  // off, and the pack opening a beat later as the strip clears.
+  useMotionValueEvent(ripProgress, 'change', (p) => {
+    const { notches, hapticEveryNotches, flingMs } = PACK_ANIM.tear;
+    const notch = Math.floor(p * notches);
+    if (notch > ripNotchRef.current) {
+      const from = ripNotchRef.current;
+      for (let k = 0; k < Math.min(3, notch - from); k++) playPackSfx('rip-grain');
+      for (let n = from + 1; n <= notch; n++) {
+        if (n % hapticEveryNotches === 0) { hapticLight(); break; }
+      }
+      ripNotchRef.current = notch;
+    }
+    if (p >= 1 && !ripDoneRef.current) {
+      ripDoneRef.current = true;
+      clearRipIdle();
+      playPackSfx('rip-finish');
+      hapticHeavy();
+      setRipFlung(true);
+      ripFinishTimerRef.current = window.setTimeout(() => {
+        ripFinishTimerRef.current = null;
+        setPhase('explode');
+      }, Math.round(flingMs * 0.45));
+    }
+  });
+
+  useEffect(() => () => {
+    ripAnimRef.current?.stop();
+    if (ripIdleTimerRef.current !== null) window.clearTimeout(ripIdleTimerRef.current);
+    if (ripFinishTimerRef.current !== null) window.clearTimeout(ripFinishTimerRef.current);
+  }, []);
+
   // The shake itself. A sine oscillator whose AMPLITUDE is a function of
   // progress, so the pack barely stirs at the start and is hammering by the
   // end — and then, during the breath, stops completely.
@@ -293,7 +397,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     // reads as saturation rather than as the light only just arriving.
     haloOpacity.set(p < 0.6 ? 0.35 + 0.45 * (p / 0.6) : 0.8 + 0.2 * ((p - 0.6) / 0.4));
 
-    if (breathingRef.current) {
+    if (breathingRef.current || ripActiveRef.current) {
       // The held breath: movement eases out rather than cutting, so the
       // stillness arrives as a settle and not a dropped frame. The glow is
       // left at full — bright and completely motionless is the whole effect.
@@ -308,48 +412,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     shakeX.set(Math.sin(t * freq) * amp);
     shakeRotate.set(Math.sin(t * freq * 0.6 + 1) * amp * 0.28);
   });
-
-  /**
-   * Side-tear geometry, generated once per open.
-   *
-   * A jagged vertical seam near the left edge, sampled at `segments + 1` y
-   * boundaries. Adjacent slices reuse the SAME boundary x, so the strip tiles
-   * against itself with no hairline gap and the body's edge is the exact
-   * negative of the strip's.
-   */
-  const tearGeometry = useMemo(() => {
-    const { seamXPct, segments, jagPct } = PACK_ANIM.tear;
-    // Seam x at each y boundary. Deterministic wobble rather than Math.random
-    // so a replayed open tears along the same line it did the first time.
-    const seamAt = (i: number) =>
-      seamXPct + Math.sin(i * 2.399) * jagPct + Math.sin(i * 5.117) * (jagPct * 0.45);
-    const bounds = Array.from({ length: segments + 1 }, (_, i) => ({
-      y: (i / segments) * 100,
-      x: seamAt(i),
-    }));
-
-    // One slice of the strip: left edge to the seam, between two boundaries.
-    const strip = Array.from({ length: segments }, (_, i) => {
-      const a = bounds[i];
-      const b = bounds[i + 1];
-      return {
-        i,
-        clipPath: `polygon(0 ${a.y}%, ${a.x}% ${a.y}%, ${b.x}% ${b.y}%, 0 ${b.y}%)`,
-      };
-    });
-
-    // The body: everything right of the seam. Top edge, down the right side,
-    // along the bottom, then back UP through the boundaries in reverse so the
-    // torn edge matches the strip exactly.
-    const bodyPoints = [
-      `${bounds[0].x}% 0%`,
-      '100% 0%',
-      '100% 100%',
-      `${bounds[segments].x}% 100%`,
-      ...bounds.slice(0, segments).reverse().map(pt => `${pt.x}% ${pt.y}%`),
-    ];
-    return { strip, bodyClip: `polygon(${bodyPoints.join(', ')})`, seamXPct };
-  }, []);
 
   // The burst layers (shockwave, bloom, flare, shreds, confetti) outlive the
   // explode PHASE on purpose: the phase hands off to the reveal at
@@ -390,19 +452,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // foilShreds: roll the random specs once. Inlined randoms re-rolled on
   // every re-render (typewriter ticks, card-reveal taps), teleporting
   // in-flight infinite Framer animations.
-  // Sparks flicking off the tear seam. `along` is a percentage DOWN the seam
-  // (it was across a horizontal one before the pack started opening from the
-  // side) and `dist` is how far sideways each one flies.
-  const seamSparks = useMemo(() =>
-    Array.from({ length: 8 }).map((_, i) => ({
-      i,
-      along: 10 + Math.random() * 80,
-      up: Math.random() > 0.5,
-      dist: 16 + Math.random() * 24,
-      dur: 0.5 + Math.random() * 0.45,
-      delay: Math.random() * 0.8,
-    })),
-  []);
   const ambientMotes = useMemo(() =>
     Array.from({ length: 8 }).map((_, i) => ({
       i,
@@ -438,16 +487,19 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     // that it still answers the tap.
     if (pendingRipRef.current) {
       pendingRipRef.current = false;
-      const t = window.setTimeout(() => { hapticHeavy(); setPhase('explode'); }, PACK_ANIM.earlyRipMs);
+      const t = window.setTimeout(() => autoRip(PACK_ANIM.tear.autoRipMs), PACK_ANIM.earlyRipMs);
       return () => window.clearTimeout(t);
     }
     // Auto-advance to charge after a brief float pause
     const t = window.setTimeout(() => setPhase('charge'), PACK_ANIM.arrivalMs + 300);
     return () => window.clearTimeout(t);
-  }, [phase]);
+  }, [phase, autoRip]);
 
   useEffect(() => {
     if (phase !== 'charge') return;
+    // A drag that began during arrival already owns the pack.
+    if (ripActiveRef.current) return;
+    playPackSfx('charge');
     breathingRef.current = false;
     chargeProgress.set(0);
     packScale.set(1);
@@ -486,10 +538,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       }
     }, rampMs);
 
+    // Nobody touched it: rip it for them, so a passive player still sees the
+    // pack open the way it is meant to — torn, not vanished.
     chargeTimerRef.current = window.setTimeout(() => {
       chargeTimerRef.current = null;
-      setPhase('explode');
-      hapticHeavy();
+      autoRip(PACK_ANIM.tear.autoRipMs);
     }, chargeLength);
 
     return () => {
@@ -501,7 +554,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       chargeTimerRef.current = null;
       breathingRef.current = false;
     };
-  }, [phase, chargeLength, chargeProgress, packScale, haloScale, haloOpacity]);
+  }, [phase, chargeLength, chargeProgress, packScale, haloScale, haloOpacity, autoRip]);
 
   /** True while a tap should rip the pack — i.e. every beat before it tears.
    *  Deliberately includes `loading` and `portal`: those two beats are under
@@ -518,6 +571,10 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // to the tear; ignored afterwards.
   const tapToRip = useCallback(() => {
     if (!canRip) return;
+    // Unlock Web Audio HERE, synchronously, whoever the caller is: every
+    // sound the rip makes is played later, from the progress animation,
+    // which iOS does not count as user activation.
+    resumeSfx();
     // Tapped before the pack has even flown in. Going straight to `explode`
     // would mount the pack mid-tear, so instead snap the entrance forward and
     // let the arrival beat fire the tear a moment later — the pack still lands
@@ -528,17 +585,70 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       setPhase('arrival');
       return;
     }
-    if (chargeRumbleRef.current !== null) {
-      window.clearTimeout(chargeRumbleRef.current);
-      chargeRumbleRef.current = null;
+    // A tap rips it for you — the same tear, sound and haptics as a swipe,
+    // just played at a hand's natural speed.
+    hapticMedium();
+    autoRip(PACK_ANIM.tear.autoRipMs);
+  }, [canRip, phase, autoRip]);
+
+  // ── The swipe ──
+  // A horizontal drag anywhere on screen tears the seal, 1:1 with the finger:
+  // the pack is a small target at exactly the moment the player is excited,
+  // so the gesture is not confined to it. The tear only ever advances (foil
+  // does not un-tear), a second drag continues where the first let go, and a
+  // release past `autoFinishAt` zips the rest.
+  const canDrag = phase === 'arrival' || phase === 'charge';
+  const onRipPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!canRip) return;
+    // Inside the gesture: the crackle is played later, from the drag's
+    // progress callback, which iOS no longer counts as user activation.
+    resumeSfx();
+    dragRef.current = { id: e.pointerId, x0: e.clientX, base: ripProgress.get(), moved: false };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not all engines */ }
+  };
+  const onRipPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId || !canDrag || ripDoneRef.current) return;
+    const dx = e.clientX - d.x0;
+    if (!d.moved) {
+      if (Math.abs(dx) < PACK_ANIM.tear.dragSlopPx) return;
+      d.moved = true;
+      if (d.base === 0) {
+        const dir: 1 | -1 = dx >= 0 ? 1 : -1;
+        ripDirRef.current = dir;
+        setRipDir(dir);
+      }
+      if (!claimRip()) return;
+      clearRipIdle();
+      ripAnimRef.current?.stop();
+      hapticLight();
     }
-    if (chargeTimerRef.current !== null) {
-      window.clearTimeout(chargeTimerRef.current);
-      chargeTimerRef.current = null;
+    const target = d.base + (dx * ripDirRef.current) / (PACK_BOX_W * PACK_ANIM.tear.dragSpan);
+    if (target > ripProgress.get()) ripProgress.set(Math.min(1, target));
+  };
+  const onRipPointerEnd = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    dragRef.current = null;
+    if (!d.moved) return; // a tap — onClick takes it
+    suppressClickRef.current = true;
+    const p = ripProgress.get();
+    if (p >= 1 || ripDoneRef.current) return;
+    if (p >= PACK_ANIM.tear.autoFinishAt) {
+      autoRip(PACK_ANIM.tear.autoFinishMs, true);
+    } else {
+      // Left half-torn: the seal waits, but never forever.
+      clearRipIdle();
+      ripIdleTimerRef.current = window.setTimeout(() => {
+        ripIdleTimerRef.current = null;
+        autoRip(PACK_ANIM.tear.autoRipMs);
+      }, 2600);
     }
-    hapticHeavy();
-    setPhase('explode');
-  }, [canRip, phase]);
+  };
+  const onRipClick = () => {
+    if (suppressClickRef.current) { suppressClickRef.current = false; return; }
+    tapToRip();
+  };
 
   // The tear takes over the charge's motion values rather than handing control
   // back to the `animate` prop, so the pack continues from exactly where the
@@ -559,6 +669,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   useEffect(() => {
     if (phase !== 'explode') return;
     setBurstAlive(true);
+    playPackSfx('explode');
     const t = window.setTimeout(() => setPhase('reveal'), PACK_ANIM.explodeMs);
     return () => window.clearTimeout(t);
   }, [phase]);
@@ -669,6 +780,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   }, [players]);
 
   const revealOne = useCallback((id: string) => {
+    playPackSfx('standard-pull');
     setRevealedSet(prev => {
       if (prev.has(id)) return prev;
       const next = new Set(prev);
@@ -854,28 +966,9 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 transition={prefersReducedMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: 'linear' }}
               />
             </div>
-            <span
-              className="relative mt-5 text-micro uppercase tracking-[0.4em] text-white/55"
-              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
-            >
-              Opening
-            </span>
-            {/* Pack tier name — sets identity immediately and primes the
-                reveal. Gradient-clipped from the tier's own colour pair so
-                the type carries its tier signature without competing with
-                the spinning ring's accent. */}
-            <span
-              className="relative mt-1 text-base font-display font-black uppercase tracking-[0.16em] leading-none"
-              style={{
-                backgroundImage: `linear-gradient(90deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})`,
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))',
-              }}
-            >
-              {tierDef.label}
-            </span>
+            {/* No text here. The beat lasts ~220ms and the arrival caption
+                names the pack right after it, so the name used to flash
+                on, off, and on again. */}
           </motion.div>
         )}
       </AnimatePresence>
@@ -963,8 +1056,8 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             key="pack"
             className="relative flex flex-col items-center justify-center pointer-events-none"
             style={{
-              width: 260,
-              height: 360,
+              width: PACK_BOX_W,
+              height: PACK_BOX_H,
               perspective: 1200,
               // The charge's live offsets. Applied as style rather than as
               // `animate` keyframes so they update per frame without React
@@ -1052,176 +1145,38 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             <motion.div
               className="relative w-full h-full"
               style={{ transformStyle: 'preserve-3d' }}
-              animate={phase === 'arrival' && !prefersReducedMotion
-                ? { y: [0, -9, 0], rotateZ: [0, 1.1, 0, -1.1, 0] }
-                : { y: 0, rotateZ: 0 }}
-              transition={phase === 'arrival' && !prefersReducedMotion
+              animate={phase === 'arrival' && !prefersReducedMotion && !ripStarted
+                ? { y: [0, -9, 0], rotateZ: [0, 1.1, 0, -1.1, 0], rotateY: [0, 9, 0, -9, 0] }
+                : { y: 0, rotateZ: 0, rotateY: 0 }}
+              transition={phase === 'arrival' && !prefersReducedMotion && !ripStarted
                 ? {
                     y: { duration: 3.8, repeat: Infinity, ease: 'easeInOut' },
                     rotateZ: { duration: 5.4, repeat: Infinity, ease: 'easeInOut' },
+                    rotateY: { duration: 4.6, repeat: Infinity, ease: 'easeInOut' },
                   }
                 : { duration: 0.3, ease: 'easeOut' }}
             >
-              {/* ── The torn strip ──
-                  The pack's left edge, cut into slices that peel away one
-                  after another from the top down. Each slice carries its own
-                  copy of the art under its own STATIC clip-path and animates
-                  only transform and opacity, so the travelling tear costs no
-                  repaints — see the note in `PACK_ANIM.tear`.
-
-                  Slices further down peel harder and rotate further: the strip
-                  is still attached at the bottom while the top is already
-                  away, which is what makes it read as tearing rather than as
-                  a piece sliding off. */}
-              {tearGeometry.strip.map(({ i, clipPath }) => {
-                const t = i / Math.max(1, PACK_ANIM.tear.segments - 1);
-                return (
-                  <motion.div
-                    key={`tear-${i}`}
-                    className="absolute inset-0"
-                    style={{
-                      clipPath,
-                      willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
-                      transformOrigin: '0% 50%',
-                      filter: 'drop-shadow(-6px 8px 18px rgba(0,0,0,0.55))',
-                    }}
-                    initial={{ x: 0, rotate: 0, opacity: 1 }}
-                    animate={phase === 'explode'
-                      // Travel is deliberately short. A 17%-wide strip on a
-                      // 260px pack is ~44px, so it is clear of the pack after
-                      // 44px and everything beyond that happens off-screen: at
-                      // -150 the strip was gone within 60ms and the peel was
-                      // never visible. It comes away, curls, and fades in view.
-                      ? { x: -66 - 58 * t, rotate: -17 - 21 * t, opacity: [1, 1, 0] }
-                      : { x: 0, rotate: 0, opacity: 1 }}
-                    transition={phase === 'explode'
-                      ? {
-                          // Transform gets the snappy near-exponential ease —
-                          // that is what makes it read as a rip rather than a
-                          // slide. Opacity must NOT share it: on that curve the
-                          // slice is 80% faded within ~100ms, which is why the
-                          // pack appeared to vanish instead of tear.
-                          default: {
-                            duration: PACK_ANIM.tear.segmentMs / 1000,
-                            delay: (i * PACK_ANIM.tear.staggerMs) / 1000,
-                            ease: [0.22, 1, 0.36, 1],
-                          },
-                          opacity: {
-                            duration: PACK_ANIM.tear.segmentMs / 1000,
-                            delay: (i * PACK_ANIM.tear.staggerMs) / 1000,
-                            times: [0, 0.72, 1],
-                            ease: 'linear',
-                          },
-                        }
-                      : { duration: 0 }}
-                  >
-                <PackArt
-                  src={tierDef.artSrc}
-                  loading="eager"
-                  className="absolute inset-0 w-full h-full object-contain object-center"
-                  fallback={
-                    <div
-                      className="absolute inset-0 rounded-2xl border border-white/15"
-                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
-                    />
-                  }
-                />
-                  </motion.div>
-                );
-              })}
-
-              {/* ── The pack body ──
-                  Everything right of the seam. It leans away from the tear and
-                  settles rather than dropping: the strip is what moves, the
-                  body is what is being opened. */}
-              <motion.div
-                className="absolute inset-0"
-                style={{
-                  clipPath: tearGeometry.bodyClip,
-                  willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
-                  transformOrigin: '100% 50%',
-                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
-                }}
-                initial={{ x: 0, rotate: 0, opacity: 1 }}
-                animate={phase === 'explode'
-                  ? { x: 26, rotate: 2.5, opacity: [1, 1, 0] }
-                  : { x: 0, rotate: 0, opacity: 1 }}
-                transition={phase === 'explode'
-                  ? {
-                      default: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
-                      opacity: { duration: 0.62, times: [0, 0.5, 1], ease: 'linear' },
-                    }
-                  : { duration: 0 }}
-              >
-                <PackArt
-                  src={tierDef.artSrc}
-                  loading="eager"
-                  className="absolute inset-0 w-full h-full object-contain object-center"
-                  fallback={
-                    <div
-                      className="absolute inset-0 rounded-2xl border border-white/15"
-                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
-                    />
-                  }
-                />
-              </motion.div>
-
-              {/* ── The tear head ──
-                  A hot point of light that runs DOWN the seam, arriving at
-                  each slice just as that slice starts to peel. This is what
-                  actually sells the direction of the tear: the slices alone
-                  read as "the edge came off", the travelling head reads as
-                  "something is tearing it, and it is here now". Timed off the
-                  same stagger, so the two can never disagree. */}
-              <AnimatePresence>
-                {phase === 'explode' && (
-                  <motion.div
-                    key="tear-head"
-                    className="absolute pointer-events-none"
-                    style={{
-                      left: `${tearGeometry.seamXPct}%`,
-                      top: 0,
-                      width: 10,
-                      height: 40,
-                      marginLeft: -5,
-                      borderRadius: 99,
-                      background: `radial-gradient(circle, #fff 0%, ${tierDef.accent} 45%, transparent 72%)`,
-                      boxShadow: `0 0 26px ${tierDef.accent}, 0 0 54px white`,
-                      filter: 'blur(1px)',
-                    }}
-                    initial={{ y: '-10%', opacity: 0, scaleY: 0.6 }}
-                    animate={{ y: '105%', opacity: [0, 1, 1, 0], scaleY: [0.6, 1, 1, 0.7] }}
-                    transition={{
-                      duration: (PACK_ANIM.tear.staggerMs * PACK_ANIM.tear.segments + 160) / 1000,
-                      ease: 'easeIn',
-                    }}
+              {/* ── The rip ── the seal torn off across the top by the
+                  player's finger (see PackRip + PACK_ANIM.tear). */}
+              <PackRip
+                progress={ripProgress}
+                dir={ripDir}
+                flung={ripFlung}
+                opened={phase === 'explode'}
+                artSrc={tierDef.artSrc}
+                fallback={
+                  <div
+                    className="absolute inset-0 rounded-2xl border border-white/15"
+                    style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
                   />
-                )}
-              </AnimatePresence>
-
-              {/* The open seam behind the departing strip — a bright edge left
-                  where the foil was, fading as the whole pack goes. */}
-              <AnimatePresence>
-                {phase === 'explode' && (
-                  <motion.div
-                    key="seam-flash"
-                    className="absolute pointer-events-none"
-                    style={{
-                      left: `${tearGeometry.seamXPct}%`,
-                      top: 0,
-                      bottom: 0,
-                      width: 5,
-                      marginLeft: -2,
-                      background: `linear-gradient(180deg, transparent, ${tierDef.accent}, white, ${tierDef.accent}, transparent)`,
-                      boxShadow: `0 0 24px ${tierDef.accent}, 0 0 48px white`,
-                      filter: 'blur(1px)',
-                    }}
-                    initial={{ opacity: 0, scaleY: 0 }}
-                    animate={{ opacity: [0, 1, 1, 0], scaleY: [0, 1, 1, 1] }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
-                )}
-              </AnimatePresence>
+                }
+                accent={tierDef.accent}
+                innerLight={topTier.gradientVia}
+                energy={leakOpacity}
+                hint={(phase === 'arrival' || phase === 'charge') && !ripStarted}
+                reduced={!!prefersReducedMotion}
+                widthPx={PACK_BOX_W}
+              />
 
               {/* Tier-coloured glow leaks during charge — escaping through
                   the tear seam and around the pack body. Tinted by the top
@@ -1232,6 +1187,8 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                     key="leaks"
                     className="absolute inset-0 mix-blend-screen pointer-events-none"
                     style={{
+                      // Light leaking from INSIDE the foil — clipped to it.
+                      ...(tierDef.artSrc ? packArtMaskStyle(tierDef.artSrc) : null),
                       background: `radial-gradient(circle at 50% 50%, ${topTier.gradientVia}dd, transparent 45%),
                                    radial-gradient(circle at 30% 40%, ${topTier.gradientTo}aa, transparent 35%),
                                    radial-gradient(circle at 70% 60%, ${topTier.gradientFrom}aa, transparent 35%)`,
@@ -1243,83 +1200,26 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 )}
               </AnimatePresence>
 
-              {/* ── Where it is about to tear ──
-                  Energy gathers along the vertical seam during the charge, so
-                  by the time the pack rips the player has been staring at the
-                  line it rips along for a second and a half. It used to gather
-                  on a horizontal line across the top third, which is where the
-                  pack used to open. */}
-              <AnimatePresence>
-                {phase === 'charge' && (
-                  <motion.div
-                    key="seam-energy"
-                    className="absolute pointer-events-none"
-                    style={{
-                      left: `${tearGeometry.seamXPct}%`,
-                      top: 0,
-                      bottom: 0,
-                      width: 44,
-                      marginLeft: -22,
-                      opacity: leakOpacity,
-                    }}
-                    exit={{ opacity: 0 }}
-                  >
-                    {/* Soft bloom hugging the seam */}
-                    <div
-                      className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-11"
-                      style={{
-                        background: `radial-gradient(100% 70% at 50% 50%, color-mix(in srgb, ${tierDef.accent} 50%, transparent), transparent 72%)`,
-                        mixBlendMode: 'screen',
-                        filter: 'blur(7px)',
-                      }}
-                    />
-                    {/* Energy glow line */}
-                    <motion.div
-                      className="absolute top-3 bottom-3 left-1/2 -translate-x-1/2"
-                      style={{
-                        width: 3,
-                        borderRadius: 99,
-                        background: `linear-gradient(180deg, transparent, ${tierDef.accent}, #fff, ${tierDef.accent}, transparent)`,
-                        boxShadow: `0 0 14px ${tierDef.accent}, 0 0 30px color-mix(in srgb, ${tierDef.accent} 55%, transparent)`,
-                      }}
-                      animate={prefersReducedMotion
-                        ? { opacity: 0.95 }
-                        : { opacity: [0.45, 1, 0.6, 1], scaleY: [0.8, 1, 0.88, 1] }}
-                      transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    {/* Sparks flicking sideways off the seam */}
-                    {!prefersReducedMotion && seamSparks.map(s => (
-                      <motion.span
-                        key={`spark-${s.i}`}
-                        className="absolute rounded-full"
-                        style={{
-                          top: `${s.along}%`,
-                          left: '50%',
-                          width: 3,
-                          height: 3,
-                          background: '#fff',
-                          boxShadow: `0 0 6px ${tierDef.accent}`,
-                        }}
-                        initial={{ opacity: 0, x: 0 }}
-                        animate={{ opacity: [0, 1, 0], x: s.up ? -s.dist : s.dist }}
-                        transition={{ duration: s.dur, delay: s.delay, repeat: Infinity, repeatDelay: 0.5, ease: 'easeOut' }}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Continuous shimmer sweep on arrival */}
-              {phase === 'arrival' && !prefersReducedMotion && (
-                <motion.div
+              {/* Clipped to the pack's own silhouette: unmasked, the sweep
+                  drew a bright rectangle across the transparent margin around
+                  the foil, which is what made a shaped pack look like a card
+                  in a box. */}
+              {phase === 'arrival' && !prefersReducedMotion && tierDef.artSrc && (
+                <div
                   className="absolute inset-0 pointer-events-none overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)',
-                  }}
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '120%' }}
-                  transition={{ duration: 1.2, ease: 'easeInOut', repeat: Infinity }}
-                />
+                  style={packArtMaskStyle(tierDef.artSrc)}
+                >
+                  <motion.div
+                    className="absolute inset-y-0 w-full"
+                    style={{
+                      background: 'linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.06) 42%, rgba(255,255,255,0.34) 50%, rgba(255,255,255,0.06) 58%, transparent 70%)',
+                      mixBlendMode: 'overlay',
+                    }}
+                    initial={{ x: '-110%' }}
+                    animate={{ x: ['-110%', '110%'] }}
+                    transition={{ duration: 1.4, ease: [0.45, 0, 0.2, 1], repeat: Infinity, repeatDelay: 1.1 }}
+                  />
+                </div>
               )}
             </motion.div>
           </motion.div>
@@ -1336,9 +1236,14 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       {canRip && (
         <button
           type="button"
-          onClick={tapToRip}
+          onClick={onRipClick}
+          onPointerDown={onRipPointerDown}
+          onPointerMove={onRipPointerMove}
+          onPointerUp={onRipPointerEnd}
+          onPointerCancel={onRipPointerEnd}
           className="absolute inset-0 z-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40"
-          aria-label="Tap to rip open the pack"
+          style={{ touchAction: 'none' }}
+          aria-label="Swipe or tap to tear open the pack"
         />
       )}
 
@@ -1346,7 +1251,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           charge beat — the pack accepts a tap well before then and a hint that
           arrives after the affordance does is a hint that arrives too late. */}
       <AnimatePresence>
-        {(phase === 'arrival' || phase === 'charge') && (
+        {(phase === 'arrival' || phase === 'charge') && !ripStarted && (
           <motion.div
             key="rip-hint"
             className="absolute left-1/2 -translate-x-1/2 top-[calc(50%+200px)] text-center pointer-events-none"
@@ -1361,7 +1266,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               animate={prefersReducedMotion ? undefined : { opacity: [0.55, 1, 0.55] }}
               transition={prefersReducedMotion ? undefined : { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
             >
-              Tap to open
+              Swipe to tear open
             </motion.span>
           </motion.div>
         )}
@@ -1749,6 +1654,39 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                         : t('packOpeningOverlay.sellPricingHint')}
                     </button>
                   </div>
+                )}
+                {openAnother && (
+                  <button
+                    type="button"
+                    onClick={() => { hapticMedium(); openAnother.onOpen(); }}
+                    className={cn(
+                      'relative overflow-hidden mb-2.5 w-full h-12 px-5 rounded-full',
+                      'flex items-center justify-center gap-2',
+                      'text-[12px] font-display font-black uppercase tracking-[0.22em] text-white',
+                      'border active:scale-[0.98] transition-transform duration-150',
+                    )}
+                    style={{
+                      background: `linear-gradient(180deg, color-mix(in srgb, ${tierDef.accent} 38%, #11131a), color-mix(in srgb, ${tierDef.accent} 16%, #07080b))`,
+                      borderColor: `color-mix(in srgb, ${tierDef.accent} 70%, transparent)`,
+                      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28), 0 12px 30px -12px ${tierDef.accent}`,
+                    }}
+                  >
+                    {/* A slow sheen across the button — the one moving thing
+                        on a results screen that is otherwise at rest. */}
+                    {!prefersReducedMotion && (
+                      <motion.span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0 w-1/3"
+                        style={{ background: 'linear-gradient(105deg, transparent, rgba(255,255,255,0.22), transparent)' }}
+                        initial={{ x: '-120%' }}
+                        animate={{ x: ['-120%', '420%'] }}
+                        transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 2.2, ease: 'easeInOut' }}
+                      />
+                    )}
+                    <span className="relative">{openAnother.label}</span>
+                    <span className="relative opacity-60" aria-hidden>·</span>
+                    <span className="relative tabular-nums" style={{ color: `color-mix(in srgb, ${tierDef.accent} 55%, white)` }}>{openAnother.price}</span>
+                  </button>
                 )}
                 <div className="flex items-center gap-2.5">
                   <button

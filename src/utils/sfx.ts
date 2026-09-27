@@ -316,3 +316,79 @@ export function sfxBurst(): void {
     src.start(t); src.stop(t + 0.22);
   } catch { /* no-op */ }
 }
+
+// ── The pack rip ──
+//
+// Foil does not tear with a "whoosh"; it tears with a dense run of tiny
+// crackles. So the rip is granular: the overlay fires one grain per notch of
+// the tear, and the grain density IS the tear speed — a slow drag crackles
+// sparsely, a fast swipe becomes a continuous rrrip. Each grain is a few ms of
+// band-passed noise at a random bright pitch, so no two notches sound alike.
+
+let lastGrainAt = 0;
+/** Minimum spacing between grains. A fast swipe can cross several notches in
+ *  one frame; stacking them all at once reads as a click, not a tear. */
+const GRAIN_MIN_GAP_S = 0.014;
+
+/** One crackle of tearing foil. */
+export function sfxRipGrain(): void {
+  try {
+    const c = getCtx();
+    if (!c || !master) return;
+    resumeSfx();
+    const now = c.currentTime;
+    const t = Math.max(now, lastGrainAt + GRAIN_MIN_GAP_S);
+    if (t - now > 0.06) return; // backlog: drop grains rather than lag the finger
+    lastGrainAt = t;
+    const dur = 0.012 + Math.random() * 0.02;
+    const src = noiseSource(c);
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2200 + Math.random() * 3800;
+    bp.Q.value = 1.6 + Math.random() * 2.2;
+    const g = c.createGain();
+    const peak = 0.16 + Math.random() * 0.12;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.0015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(bp).connect(g).connect(master);
+    // Random offset into the noise buffer so consecutive grains differ.
+    src.start(t, Math.random() * 1.5);
+    src.stop(t + dur + 0.01);
+  } catch { /* no-op */ }
+}
+
+/** The seal giving way: a bright zip across the last of the tear, then the
+ *  soft low pop of the pack opening. */
+export function sfxRipFinish(): void {
+  try {
+    const c = getCtx();
+    if (!c || !master) return;
+    resumeSfx();
+    const t = c.currentTime;
+    const src = noiseSource(c);
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 1.2;
+    bp.frequency.setValueAtTime(1600, t);
+    bp.frequency.exponentialRampToValueAtTime(5200, t + 0.11);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.34, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    src.connect(bp).connect(g).connect(master);
+    src.start(t, Math.random()); src.stop(t + 0.18);
+
+    const pop = c.createOscillator();
+    pop.type = 'sine';
+    const p0 = t + 0.07;
+    pop.frequency.setValueAtTime(240, p0);
+    pop.frequency.exponentialRampToValueAtTime(85, p0 + 0.09);
+    const pg = c.createGain();
+    pg.gain.setValueAtTime(0.0001, p0);
+    pg.gain.exponentialRampToValueAtTime(0.32, p0 + 0.006);
+    pg.gain.exponentialRampToValueAtTime(0.0001, p0 + 0.12);
+    pop.connect(pg).connect(master);
+    pop.start(p0); pop.stop(p0 + 0.14);
+  } catch { /* no-op */ }
+}
