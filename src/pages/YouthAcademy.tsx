@@ -4,10 +4,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
-import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
-import { StatusPill } from '@/components/game/StatusPill';
-import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
-import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check, Zap, Brain, Target, Dumbbell, ChevronDown } from 'lucide-react';
+import { PlayerCard } from '@/components/game/PlayerCard';
+import { GraduationCap, Star, ArrowUpRight, Trash2, Users, X, Check, Zap, Brain, Target, Dumbbell, Wrench, Crosshair, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getPotentialInfo, posBadgeColor, getRatingColor } from '@/utils/uiHelpers';
@@ -17,13 +15,13 @@ import { PAGE_HINTS } from '@/config/ui';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
-import type { YouthFocus } from '@/types/game';
+import type { Player, PositionTrainingPlan, YouthFocus, YouthProspect } from '@/types/game';
 
-const FOCUS_OPTIONS: { id: YouthFocus; label: string; short: string; Icon: typeof Star; tone: string }[] = [
-  { id: 'balanced', label: 'Balanced', short: 'BAL', Icon: Star, tone: 'text-muted-foreground' },
-  { id: 'technical', label: 'Technical', short: 'TEC', Icon: Target, tone: 'text-primary' },
-  { id: 'physical', label: 'Physical', short: 'PHY', Icon: Dumbbell, tone: 'text-emerald-400' },
-  { id: 'mental', label: 'Mental', short: 'MEN', Icon: Brain, tone: 'text-cyan-400' },
+const FOCUS_OPTIONS: { id: YouthFocus; label: string; Icon: typeof Star; hint: string }[] = [
+  { id: 'balanced', label: 'Balanced', Icon: Star, hint: 'Even growth across all areas.' },
+  { id: 'technical', label: 'Technical', Icon: Target, hint: 'Extra growth in shooting, passing and mental.' },
+  { id: 'physical', label: 'Physical', Icon: Dumbbell, hint: 'Extra growth in pace, physical and defending.' },
+  { id: 'mental', label: 'Mental', Icon: Brain, hint: 'Extra growth in mental, passing and defending.' },
 ];
 
 function devBarTone(score: number): 'emerald' | 'primary' | 'amber' | 'rose' {
@@ -33,25 +31,195 @@ function devBarTone(score: number): 'emerald' | 'primary' | 'amber' | 'rose' {
   return 'rose';
 }
 
-const YouthAcademy = () => {
+interface ProspectRowProps {
+  prospect: YouthProspect;
+  player: Player;
+  positionPlan?: PositionTrainingPlan;
+  spotlightUsesRemaining: number;
+  index: number;
+  onOpen: (id: string) => void;
+  onFocus: (id: string, focus: YouthFocus) => void;
+  onSpotlight: (id: string) => void;
+  onPromote: (id: string) => void;
+  onRelease: (id: string) => void;
+}
+
+function ProspectRow({
+  prospect, player, positionPlan, spotlightUsesRemaining, index,
+  onOpen, onFocus, onSpotlight, onPromote, onRelease,
+}: ProspectRowProps) {
   const { t } = useTranslation();
-  const { youthAcademy, players, clubs, playerClubId, facilities, staff, season, week } = useGameStore(useShallow(s => ({
+  const [confirmRelease, setConfirmRelease] = useState(false);
+  const focus = (prospect.trainingFocus ?? 'balanced') as YouthFocus;
+  const focusDef = FOCUS_OPTIONS.find(f => f.id === focus) || FOCUS_OPTIONS[0];
+  const canSpotlight = spotlightUsesRemaining > 0 && !prospect.spotlightedThisSeason;
+  const potInfo = getPotentialInfo(player.potential);
+  const dev = Math.round(prospect.developmentScore);
+
+  return (
+    <motion.div
+      initial={index < 10 ? { opacity: 0, y: 8 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.03, 0.3), duration: 0.2 }}
+    >
+      <GlassPanel className={cn('p-3 space-y-3', prospect.readyToPromote && 'ring-1 ring-emerald-400/40')}>
+        {/* Identity: tap anywhere to open the player (position training lives there) */}
+        <button
+          type="button"
+          onClick={() => onOpen(player.id)}
+          className="w-full flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+          aria-label={`Open ${player.firstName} ${player.lastName}`}
+        >
+          <div className="shrink-0 pointer-events-none">
+            <PlayerCard player={player} size="sm" interactive="none" showConditionView={false} />
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className={cn('text-micro font-bold px-1.5 py-0.5 rounded', posBadgeColor(player.position))}>
+                {player.position}
+              </span>
+              <p className="text-sm font-semibold text-foreground truncate">
+                {player.firstName} {player.lastName}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Age {player.age}</span>
+              <span aria-hidden>·</span>
+              <span className={cn('font-bold tabular-nums', getRatingColor(player.overall))}>{player.overall} OVR</span>
+              <span aria-hidden>·</span>
+              <span className={cn('flex items-center gap-0.5 truncate', potInfo.textClass)}>
+                <Star className={cn('w-3.5 h-3.5 shrink-0', potInfo.fillClass)} />
+                {potInfo.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <PremiumProgress size="sm" animate={false} tone={devBarTone(dev)} value={dev} className="flex-1" />
+              <span className={cn('text-micro font-semibold tabular-nums w-9 text-right', getRatingColor(dev))}>{dev}%</span>
+            </div>
+            {positionPlan && (
+              <p className="text-micro text-primary flex items-center gap-1">
+                <Crosshair className="w-3.5 h-3.5" />
+                Learning {positionPlan.position} · {Math.floor(positionPlan.progress)}%
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            {prospect.readyToPromote && (
+              <span className="text-micro font-bold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full">
+                {t('youthAcademy.ready')}
+              </span>
+            )}
+            <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
+          </div>
+        </button>
+
+        {/* Coaching focus — labelled segmented control */}
+        <div>
+          <div role="radiogroup" aria-label="Coaching focus" className="grid grid-cols-4 gap-1 p-1 rounded-lg bg-muted/20">
+            {FOCUS_OPTIONS.map(opt => {
+              const active = opt.id === focus;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => !active && onFocus(player.id, opt.id)}
+                  className={cn(
+                    'min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-md transition-all active:scale-[0.96]',
+                    active ? 'bg-primary/20 text-primary ring-1 ring-primary/40' : 'text-muted-foreground hover:bg-muted/40',
+                  )}
+                >
+                  <opt.Icon className="w-4 h-4" />
+                  <span className="text-micro font-semibold">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-micro text-muted-foreground mt-1.5">{focusDef.hint}</p>
+        </div>
+
+        {/* Actions */}
+        {confirmRelease ? (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onRelease(player.id)}
+              className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg bg-destructive/20 text-destructive text-xs font-bold active:scale-[0.98] transition-all"
+              aria-label={t('youthAcademy.confirmRelease')}
+            >
+              <Check className="w-4 h-4" /> Release {player.lastName}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmRelease(false)}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-muted/30 text-muted-foreground active:scale-[0.98] transition-all"
+              aria-label={t('youthAcademy.cancelRelease')}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => canSpotlight && onSpotlight(player.id)}
+              disabled={!canSpotlight}
+              className={cn(
+                'flex-1 min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-all',
+                prospect.spotlightedThisSeason
+                  ? 'bg-amber-400/15 text-amber-400 cursor-default'
+                  : canSpotlight
+                    ? 'bg-amber-400/15 text-amber-300 hover:bg-amber-400/25 active:scale-[0.98]'
+                    : 'bg-muted/20 text-muted-foreground/60 cursor-not-allowed',
+              )}
+            >
+              <Zap className="w-4 h-4" />
+              {prospect.spotlightedThisSeason ? 'Spotlighted' : 'Spotlight'}
+            </button>
+            {prospect.readyToPromote ? (
+              <button
+                type="button"
+                onClick={() => onPromote(player.id)}
+                className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 active:scale-[0.98] transition-all"
+              >
+                <ArrowUpRight className="w-4 h-4" /> Promote
+              </button>
+            ) : (
+              <div className="flex-1 min-h-[44px] flex items-center justify-center rounded-lg bg-muted/10 text-muted-foreground text-xs">
+                Developing
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => { hapticLight(); setConfirmRelease(true); }}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-[0.98] transition-all"
+              aria-label={t('youthAcademy.releasePlayer')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </GlassPanel>
+    </motion.div>
+  );
+}
+
+const YouthAcademy = () => {
+  const { youthAcademy, players, clubs, playerClubId, facilities, staff, positionPlans } = useGameStore(useShallow(s => ({
     youthAcademy: s.youthAcademy,
     players: s.players,
     clubs: s.clubs,
     playerClubId: s.playerClubId,
     facilities: s.facilities,
     staff: s.staff,
-    season: s.season,
-    week: s.week,
+    positionPlans: s.training.positionPlans,
   })));
   const promoteYouth = useGameStore(s => s.promoteYouth);
   const releaseYouth = useGameStore(s => s.releaseYouth);
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setYouthFocus = useGameStore(s => s.setYouthFocus);
   const spotlightYouth = useGameStore(s => s.spotlightYouth);
-  const [confirmReleaseId, setConfirmReleaseId] = useState<string | null>(null);
-  const [focusEditorId, setFocusEditorId] = useState<string | null>(null);
   const youthPreviewEnhanced = youthAcademy.youthPreviewEnhanced;
   const club = clubs[playerClubId];
   const spotlightUsesRemaining = youthAcademy.spotlightUsesRemaining ?? 2;
@@ -70,10 +238,14 @@ const YouthAcademy = () => {
     return club.playerIds.filter(id => players[id]?.isFromYouthAcademy).length;
   }, [club, players]);
 
-  const readyCount = useMemo(
-    () => youthAcademy.prospects.filter(p => p.readyToPromote).length,
-    [youthAcademy.prospects],
+  // Ready-to-promote first, then furthest along — the decisions sit on top.
+  const sortedProspects = useMemo(
+    () => youthAcademy.prospects
+      .filter(p => players[p.playerId])
+      .sort((a, b) => Number(b.readyToPromote) - Number(a.readyToPromote) || b.developmentScore - a.developmentScore),
+    [youthAcademy.prospects, players],
   );
+  const readyCount = sortedProspects.filter(p => p.readyToPromote).length;
 
   const handlePromote = (playerId: string) => {
     hapticLight();
@@ -89,7 +261,6 @@ const YouthAcademy = () => {
   const handleRelease = (playerId: string) => {
     const rp = players[playerId];
     releaseYouth(playerId);
-    setConfirmReleaseId(null);
     infoToast('Player Released', `${rp?.firstName ?? ''} ${rp?.lastName ?? ''} has left the academy`);
   };
 
@@ -103,255 +274,87 @@ const YouthAcademy = () => {
   const handleFocusChange = (playerId: string, focus: YouthFocus) => {
     hapticLight();
     setYouthFocus(playerId, focus);
-    setFocusEditorId(null);
   };
+
+  const stats: { label: string; value: string; tone: string }[] = [
+    { label: 'Prospects', value: String(sortedProspects.length), tone: 'text-foreground' },
+    { label: 'Graduates', value: String(graduatesInSquad), tone: 'text-emerald-400' },
+    { label: 'Dev. Speed', value: `+${devSpeedBonus}%`, tone: 'text-primary' },
+    { label: 'Spotlights', value: String(spotlightUsesRemaining), tone: spotlightUsesRemaining > 0 ? 'text-amber-400' : 'text-muted-foreground' },
+  ];
 
   return (
     <div className="max-w-lg mx-auto">
       <PageHint screen="youthAcademy" title={PAGE_HINTS.youthAcademy.title} body={PAGE_HINTS.youthAcademy.body} />
       <div className="px-4 pb-4 space-y-3">
-        <h2 className="text-lg font-display font-bold text-foreground">Youth Academy</h2>
-
-        {/* Academy Stats Summary */}
-        <GlassPanel className="p-3">
-          <div className="grid grid-cols-4 gap-3">
-            <div className="text-center">
-              <p className="text-lg font-display font-bold text-foreground tabular-nums">{youthAcademy.prospects.length}</p>
-              <p className="text-micro text-muted-foreground uppercase tracking-wider">Prospects</p>
+        {/* Header: title, academy quality and the four numbers in one panel */}
+        <GlassPanel className="p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <GraduationCap className="w-5 h-5 text-primary" />
             </div>
-            <div className="text-center">
-              <p className="text-lg font-display font-bold text-emerald-400 tabular-nums">{graduatesInSquad}</p>
-              <p className="text-micro text-muted-foreground uppercase tracking-wider">Graduates</p>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-display font-bold text-foreground leading-tight">Youth Academy</h2>
+              <div className="flex items-center gap-3 text-micro text-muted-foreground">
+                <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />Coach {youthCoachQuality > 0 ? `${youthCoachQuality}/10` : 'none'}</span>
+                <span className="flex items-center gap-1"><Wrench className="w-3.5 h-3.5" />Facility Lv. {youthLevel}</span>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-lg font-display font-bold text-primary tabular-nums">+{devSpeedBonus}%</p>
-              <p className="text-micro text-muted-foreground uppercase tracking-wider">Dev. Speed</p>
-            </div>
-            <div className="text-center">
-              <p className={cn('text-lg font-display font-bold tabular-nums', spotlightUsesRemaining > 0 ? 'text-amber-400' : 'text-muted-foreground')}>{spotlightUsesRemaining}</p>
-              <p className="text-micro text-muted-foreground uppercase tracking-wider">Spotlights</p>
-            </div>
+            <span className="text-sm font-bold text-primary tabular-nums">{youthLevel}/10</span>
           </div>
-        </GlassPanel>
-
-        {/* Academy Quality */}
-        <GlassPanel className="p-4">
-          <div className="space-y-3">
-            {/* Text and bars both read the facilities slice (like the
-                "Facility Lv." line below) — the static club.youthRating never
-                reflects upgrades, and its two fallbacks disagreed (text 0/10
-                while 5 bars lit). */}
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">Academy Quality</h3>
-              <span className="text-sm font-bold text-primary tabular-nums">{youthLevel}/10</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: 10 }, (_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex-1 h-2 rounded-sm transition-colors',
-                    i < youthLevel ? 'bg-primary' : 'bg-muted/30'
-                  )}
-                />
-              ))}
-            </div>
-            <div className="flex items-center justify-between text-micro text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                <span>Coach: {youthCoachQuality > 0 ? `${youthCoachQuality}/10` : 'None'}</span>
+          {/* Reads the facilities slice — the static club.youthRating never reflects upgrades. */}
+          <div className="flex items-center gap-1" aria-label={`Academy quality ${youthLevel} of 10`}>
+            {Array.from({ length: 10 }, (_, i) => (
+              <div key={i} className={cn('flex-1 h-1.5 rounded-sm', i < youthLevel ? 'bg-primary' : 'bg-muted/30')} />
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-2 pt-1">
+            {stats.map(s => (
+              <div key={s.label} className="text-center rounded-lg bg-muted/15 py-2">
+                <p className={cn('text-lg font-display font-bold tabular-nums leading-tight', s.tone)}>{s.value}</p>
+                <p className="text-micro text-muted-foreground">{s.label}</p>
               </div>
-              <div className="flex items-center gap-1">
-                <Wrench className="w-3 h-3" />
-                <span>Facility Lv. {youthLevel}</span>
-              </div>
-            </div>
+            ))}
           </div>
         </GlassPanel>
 
         {/* Prospects */}
-        {youthAcademy.prospects.length > 0 ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
+        {sortedProspects.length > 0 ? (
+          <section className="space-y-2">
+            <div className="flex items-center justify-between px-1">
               <h3 className="text-sm font-semibold text-foreground">
-                Youth Prospects
-                <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">({youthAcademy.prospects.length})</span>
+                Prospects <span className="text-xs text-muted-foreground tabular-nums">({sortedProspects.length})</span>
               </h3>
               {readyCount > 0 && (
                 <span className="text-micro font-bold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full tabular-nums">
-                  {readyCount} ready
+                  {readyCount} ready to promote
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3 justify-items-center pt-1">
-              {youthAcademy.prospects.map((prospect, i) => {
-                const player = players[prospect.playerId];
-                if (!player) return null;
-                const isConfirming = confirmReleaseId === prospect.playerId;
-                const focus = (prospect.trainingFocus ?? 'balanced') as YouthFocus;
-                const focusDef = FOCUS_OPTIONS.find(f => f.id === focus) || FOCUS_OPTIONS[0];
-                const FocusIcon = focusDef.Icon;
-                const isFocusEditing = focusEditorId === prospect.playerId;
-                const canSpotlight = spotlightUsesRemaining > 0 && !prospect.spotlightedThisSeason;
-
-                return (
-                  <motion.div
-                    key={prospect.playerId}
-                    initial={i < 10 ? { opacity: 0, y: 8 } : false}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
-                    className="flex flex-col items-center"
-                  >
-                    <div className="relative">
-                      <PlayerCard
-                        player={player}
-                        size="lg"
-                        interactive="detail"
-                        showConditionView={false}
-                        onDetailClick={(p) => selectPlayer(p.id)}
-                      />
-
-                      {/* Top-right overlay pills — mirrors Squad page pattern */}
-                      <div className="absolute top-1.5 right-1.5 z-10 pointer-events-none">
-                        <PlayerStatusBadges
-                          player={player}
-                          season={season}
-                          week={week}
-                          hideContract
-                          contextBadge={
-                            prospect.readyToPromote ? (
-                              <StatusPill
-                                tone="emerald"
-                                Icon={ArrowUpRight}
-                                label={t('youthAcademy.ready')}
-                                title={t('youthAcademy.readyForFirstTeam')}
-                              />
-                            ) : null
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    {/* Development bar — matches PlayerCard lg width */}
-                    <div className="mt-1.5" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-micro text-muted-foreground uppercase tracking-wider">Dev</span>
-                        <span className={cn('text-micro font-semibold tabular-nums', getRatingColor(prospect.developmentScore))}>
-                          {Math.round(prospect.developmentScore)}%
-                        </span>
-                      </div>
-                      <PremiumProgress
-                        size="sm"
-                        animate={false}
-                        tone={devBarTone(prospect.developmentScore)}
-                        value={prospect.developmentScore}
-                      />
-                    </div>
-
-                    {/* Focus + Spotlight row */}
-                    <div className="mt-1.5 flex items-center gap-1" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
-                      {!isFocusEditing ? (
-                        <button
-                          type="button"
-                          onClick={() => { hapticLight(); setFocusEditorId(prospect.playerId); }}
-                          className="flex-1 flex items-center justify-center gap-1 py-1 rounded-md bg-muted/20 hover:bg-muted/40 active:scale-[0.97] transition-all"
-                        >
-                          <FocusIcon className={cn('w-2.5 h-2.5', focusDef.tone)} />
-                          <span className={cn('text-micro font-bold tracking-wider', focusDef.tone)}>{focusDef.short}</span>
-                          <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/60" />
-                        </button>
-                      ) : (
-                        <div className="flex-1 grid grid-cols-4 gap-0.5">
-                          {FOCUS_OPTIONS.map(opt => {
-                            const Active = opt.Icon;
-                            const isCurrent = opt.id === focus;
-                            return (
-                              <button
-                                key={opt.id}
-                                onClick={() => handleFocusChange(prospect.playerId, opt.id)}
-                                className={cn(
-                                  'flex items-center justify-center py-1 rounded-md active:scale-[0.94] transition-all',
-                                  isCurrent ? 'bg-primary/25 ring-1 ring-primary/40' : 'bg-muted/20 hover:bg-muted/40',
-                                )}
-                                title={opt.label}
-                              >
-                                <Active className={cn('w-2.5 h-2.5', isCurrent ? 'text-primary' : opt.tone)} />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => canSpotlight && handleSpotlight(prospect.playerId)}
-                        disabled={!canSpotlight}
-                        className={cn(
-                          'flex items-center gap-0.5 py-1 px-1.5 rounded-md transition-all',
-                          prospect.spotlightedThisSeason
-                            ? 'bg-amber-400/20 text-amber-400 cursor-default'
-                            : canSpotlight
-                              ? 'bg-amber-400/15 text-amber-300 hover:bg-amber-400/30 active:scale-[0.94]'
-                              : 'bg-muted/20 text-muted-foreground/40 cursor-not-allowed',
-                        )}
-                      >
-                        <Zap className="w-2.5 h-2.5" />
-                        <span className="text-micro font-bold tracking-wider">BOOST</span>
-                      </button>
-                    </div>
-
-                    {/* Action row */}
-                    <div className="mt-1.5 flex gap-1" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
-                      {isConfirming ? (
-                        <>
-                          <button
-                            onClick={() => handleRelease(prospect.playerId)}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-destructive/20 text-destructive text-micro font-bold active:scale-[0.97] transition-all"
-                            aria-label={t('youthAcademy.confirmRelease')}
-                          >
-                            <Check className="w-3 h-3" /> Release
-                          </button>
-                          <button
-                            onClick={() => setConfirmReleaseId(null)}
-                            className="px-2 py-1.5 rounded-md bg-muted/30 text-muted-foreground active:scale-[0.97] transition-all"
-                            aria-label={t('youthAcademy.cancelRelease')}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          {prospect.readyToPromote ? (
-                            <button
-                              onClick={() => handlePromote(prospect.playerId)}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-emerald-500/20 text-emerald-400 text-micro font-semibold hover:bg-emerald-500/30 active:scale-[0.97] transition-all"
-                            >
-                              <ArrowUpRight className="w-3 h-3" /> Promote
-                            </button>
-                          ) : (
-                            <div className="flex-1 py-1.5 rounded-md bg-muted/20 text-muted-foreground/50 text-micro font-medium text-center cursor-default">
-                              Developing
-                            </div>
-                          )}
-                          <button
-                            onClick={() => { hapticLight(); setConfirmReleaseId(prospect.playerId); }}
-                            className="px-2 py-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-[0.97] transition-all"
-                            aria-label={t('youthAcademy.releasePlayer')}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
+            <p className="text-micro text-muted-foreground px-1">
+              Tap a prospect to open them and train a second position. Spotlight gives a one-off development boost.
+            </p>
+            {sortedProspects.map((prospect, i) => (
+              <ProspectRow
+                key={prospect.playerId}
+                prospect={prospect}
+                player={players[prospect.playerId]}
+                positionPlan={(positionPlans || []).find(p => p.playerId === prospect.playerId)}
+                spotlightUsesRemaining={spotlightUsesRemaining}
+                index={i}
+                onOpen={selectPlayer}
+                onFocus={handleFocusChange}
+                onSpotlight={handleSpotlight}
+                onPromote={handlePromote}
+                onRelease={handleRelease}
+              />
+            ))}
+          </section>
         ) : (
           <GlassPanel className="p-8 text-center space-y-2">
             <GraduationCap className="w-12 h-12 text-muted-foreground/40 mx-auto" />
             <p className="text-sm font-semibold text-muted-foreground">No youth prospects yet</p>
-            <p className="text-xs text-muted-foreground/60">New intake arrives at the end of each season. Upgrade your facilities for better prospects.</p>
+            <p className="text-xs text-muted-foreground/70">New intake arrives at the end of each season. Upgrade your facilities for better prospects.</p>
           </GlassPanel>
         )}
 
@@ -366,7 +369,7 @@ const YouthAcademy = () => {
               {youthAcademy.nextIntakePreview.map((preview, i) => {
                 const potInfo = getPotentialInfo(preview.estimatedPotential);
                 return (
-                  <div key={i} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
+                  <div key={i} className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <span className={cn('text-micro font-bold px-1.5 py-0.5 rounded', posBadgeColor(preview.position))}>
                         {preview.position}
@@ -374,7 +377,7 @@ const YouthAcademy = () => {
                       <span className="text-xs text-muted-foreground">Incoming prospect</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Star className={cn('w-3 h-3', potInfo.fillClass)} />
+                      <Star className={cn('w-3.5 h-3.5', potInfo.fillClass)} />
                       <span className={cn('text-xs font-semibold', potInfo.textClass)}>
                         {youthPreviewEnhanced ? `${preview.estimatedPotential} — ` : ''}{potInfo.label}
                       </span>

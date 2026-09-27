@@ -14,7 +14,7 @@ import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
 import { track, trackAppOpen, refreshAnalyticsConsent } from '@/utils/analytics';
 import { hydrateSaveStorage, readDeviceEntitlements } from '@/store/helpers/persistence';
-import { setSfxEnabled, sfxRoar, sfxChime, sfxWhoosh, sfxBurst } from '@/utils/sfx';
+import { setSfxEnabled, sfxRoar, sfxChime, sfxWhoosh, sfxBurst, sfxRipGrain, sfxRipFinish } from '@/utils/sfx';
 import { setPackSfxHandler } from '@/utils/packAudio';
 
 // Configures the SDK iff VITE_SENTRY_DSN is set — release tag, PII scrubbing,
@@ -107,6 +107,8 @@ function initAudio() {
     setPackSfxHandler((cue) => {
       switch (cue) {
         case 'charge': sfxWhoosh(true); break;
+        case 'rip-grain': sfxRipGrain(); break;
+        case 'rip-finish': sfxRipFinish(); break;
         case 'walkout-rise': sfxWhoosh(true); break;
         case 'explode': sfxBurst(); break;
         case 'rare-pull': sfxRoar(false); break;

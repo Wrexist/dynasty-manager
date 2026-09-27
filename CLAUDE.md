@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-09-25 (latest shipped v1.6.0, save schema v94).
+> Last verified against the codebase 2026-09-25 (latest shipped v1.6.0, save schema v95).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema and shipped versions,
 > file counts, LOC of the named files, Tech Stack versions) at EVERY occurrence and
@@ -343,7 +343,7 @@ src/
 │   │                      StadiumView, WeeklyDigest, OnboardingChecklist, …
 │   │   ├── sunday/      → 19 files: the Sunday League component system (above)
 │   │   ├── dashboard/   → DashboardMore (the collapsed "More"), DashboardPassRow
-│   │   ├── pack/        → 16 files: pack-opening overlay, walkout reveal, deal cards
+│   │   ├── pack/        → 16 files: pack-opening overlay, swipe rip, walkout reveal, deal cards
 │   │   └── icons/       → 4 premium icon components
 │   ├── ui/              → 5 shadcn/ui files (DO NOT modify unless asked)
 │   ├── ErrorBoundary, SaveRecoveryDialog, LoadingOverlay, EmptyState, Skeleton
@@ -386,21 +386,21 @@ src/
 │                          WhatsNewPage, SettingsPage, HelpPage, ClubSelection, …
 ├── store/
 │   ├── gameStore.ts     → Zustand composition of 17 slices
-│   ├── storeTypes.ts    → GameState interface (749 LOC)
+│   ├── storeTypes.ts    → GameState interface (751 LOC)
 │   ├── slices/          → core, club, transfer, match, systems, orchestration,
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs, sunday, managerPass
 │   │   ├── orchestrationSlice.ts (1,557 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3,213 LOC — THE game loop),
+│   │   └── orchestration/ → weekAdvance.ts (3,231 LOC — THE game loop),
 │   │                        seasonEnd.ts (2,277 LOC), matchActions.ts (2,243 LOC),
 │   │                        initGame.ts (756 LOC), tournaments.ts, playoff.ts,
 │   │                        worldCupMatchActions.ts, communityPackRuntime.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
 │                          development.ts, rosterOps.ts
-├── types/game.ts        → ALL types (3,885 LOC): Player, Club, Match, LeagueInfo,
+├── types/game.ts        → ALL types (3,899 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 60 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 106 files + `sunday/` (18): playerGen, saveMigration (v94),
+├── utils/               → 106 files + `sunday/` (18): playerGen, saveMigration (v95),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
@@ -415,9 +415,9 @@ src/
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,213 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
-2. **`src/store/storeTypes.ts`** — complete `GameState` interface (749 LOC).
-3. **`src/types/game.ts`** — all types (3,885 LOC). Single source of truth.
+1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,231 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
+2. **`src/store/storeTypes.ts`** — complete `GameState` interface (751 LOC).
+3. **`src/types/game.ts`** — all types (3,899 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
 5. **`src/engine/match.ts`** — match simulation (2269 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
@@ -432,7 +432,7 @@ src/
   Measured reason it exists: one $6.99 Rare Gold used to add ~£920k/week, 58% of
   a mid-table club's entire wage bill, so buying a pack made your club worse off.
 
-8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 94` + migration chain. Every state-shape change bumps it.
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 95` + migration chain. Every state-shape change bumps it.
 9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
 10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
@@ -722,7 +722,7 @@ Player identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `94`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `95`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   v93 added `careerId`: the Hall of Managers keys one row per career on it
   (`hallEntryId`; a career older than v93 keeps its `slot-N` row), keeps
@@ -758,6 +758,16 @@ Player identities draw from the **community pack** real-player dataset
   cards: they keep `aspect-[3/4]`, crop the art to fill, and DO get the rounded
   box, because at 52px it is their edge. `PitchBoard`'s empty-slot placeholder
   is hardcoded `aspect-[3/4]` to match `xs` — change one and change both.
+- **Walkout 3D assets** (`public/walkout/`: the plinth and the floodlight bank)
+  are offline renders, not hand-made art: their sources are
+  `scripts/3d/walkout/*.scene.js`, rendered with the 3d-asset-studio skill. Edit
+  the scene and re-render; never touch the `.webp`. Anything drawn OVER a card
+  or a pack (sheen, glow) is masked to that art's alpha (`CardBack`,
+  `packArtMaskStyle`) — an unmasked overlay is a rectangle the art does not have.
+- **The pack rip** (`PackRip`, `PACK_ANIM.tear`): one `ripProgress` motion value
+  drives the tear, the crackle (`sfxRipGrain`, one per notch) and the haptics,
+  so they cannot disagree. The torn flap is drawn through sliding transform
+  windows — never animate a clip-path there (an iOS repaint per frame).
 - Club colors are the only place where inline `style={{ backgroundColor }}` is acceptable
 - **Performance mode** (`settings.performanceMode`) toggles a root `perf-mode`
   class that strips backdrop-blur/decorative layers and forces reduced motion.
@@ -936,7 +946,7 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   release on this count, and do not advertise Swedish (or any) localisation
   in store copy or release notes until a future release explicitly commits to
   finishing the migration.
-- `orchestration/weekAdvance.ts` (3,213 LOC) and `pages/Dashboard.tsx` (829 LOC) are the new oversized files — use `/refactor` for guided extraction.
+- `orchestration/weekAdvance.ts` (3,231 LOC) and `pages/Dashboard.tsx` (829 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~380K vs ~170K LOC) — keep it lazily imported; `size:check` is the guard.
 - framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.

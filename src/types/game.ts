@@ -1239,6 +1239,18 @@ export interface IndividualTraining {
   focus: TrainingModule;
 }
 
+/**
+ * A player learning ONE neighbouring position (see `POSITION_COMPATIBILITY`).
+ * At `progress` 100 the position is added to `alternatePositions` and the plan
+ * ends. One plan per player at a time; switching target restarts from 0.
+ */
+export interface PositionTrainingPlan {
+  playerId: string;
+  position: Position;
+  /** 0-100. */
+  progress: number;
+}
+
 export interface TrainingDrill {
   id: string;
   moduleId: TrainingModule;
@@ -1272,6 +1284,8 @@ export interface TrainingState {
   schedule: TrainingSchedule;
   intensity: TrainingIntensity;
   individualPlans: IndividualTraining[];
+  /** Secondary-position training (v95). Absent on pre-v95 saves until migrated. */
+  positionPlans?: PositionTrainingPlan[];
   tacticalFamiliarity: number;
   drillSchedule?: DrillSchedule;
   streaks?: TrainingStreaks;

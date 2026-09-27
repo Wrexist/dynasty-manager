@@ -1,4 +1,4 @@
-import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands, YouthFocus } from '@/types/game';
+import { TacticalInstructions, TrainingState, TrainingModule, Position, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands, YouthFocus } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
@@ -16,6 +16,7 @@ import { generateStaffMarket, ensureStaffFields, absWeek } from '@/utils/staff';
 import { STAND_INFO } from '@/utils/facilities';
 import { selectBestLineup } from '@/utils/playerGen';
 import { placePlayerInClub } from '../helpers/rosterOps';
+import { canTrainPosition } from '@/utils/positionTraining';
 
 const SPOTLIGHT_DEV_BOOST = 22;
 const SPOTLIGHT_DEFAULT_USES = 2;
@@ -27,7 +28,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
   tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 } as TacticalInstructions,
   training: {
     schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
-    intensity: 'medium', individualPlans: [], tacticalFamiliarity: STARTING_TACTICAL_FAMILIARITY,
+    intensity: 'medium', individualPlans: [], positionPlans: [], tacticalFamiliarity: STARTING_TACTICAL_FAMILIARITY,
   } as TrainingState,
   staff: { members: [], availableHires: [] } as GameState['staff'],
   scouting: { maxAssignments: 1, assignments: [], reports: [], discoveredPlayers: [] } as GameState['scouting'],
@@ -113,6 +114,30 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     if (focus) plans.push({ playerId, focus });
     return { training: { ...s.training, individualPlans: plans } };
   }),
+
+  setPositionTraining: (playerId: string, position: Position | null) => {
+    const state = get();
+    const player = state.players[playerId];
+    const ownsPlayer = !!player && (
+      state.clubs[state.playerClubId]?.playerIds.includes(playerId)
+      || state.youthAcademy.prospects.some(p => p.playerId === playerId)
+    );
+    if (!ownsPlayer) return { success: false, message: 'Only your own players can train a new position.' };
+    const current = state.training.positionPlans || [];
+    const others = current.filter(p => p.playerId !== playerId);
+    if (!position) {
+      set(s => ({ training: { ...s.training, positionPlans: others } }));
+      return { success: true, message: `${player.lastName} stopped position training.` };
+    }
+    if (!canTrainPosition(player, position)) {
+      return { success: false, message: `${player.lastName} can't learn ${position} from ${player.position}.` };
+    }
+    if (current.some(p => p.playerId === playerId && p.position === position)) {
+      return { success: true, message: `${player.lastName} is already learning ${position}.` };
+    }
+    set(s => ({ training: { ...s.training, positionPlans: [...others, { playerId, position, progress: 0 }] } }));
+    return { success: true, message: `${player.lastName} starts learning ${position}.` };
+  },
 
   // Returns a {success, message} result so the caller can toast honestly. This
   // used to return void and silently no-op on an unaffordable fee while

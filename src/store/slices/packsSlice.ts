@@ -19,7 +19,6 @@ import { CHALLENGES } from '@/data/challenges';
 import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
 import { LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD, quickSellValue } from '@/config/packs';
 import { STAT_MAX as CAREER_STAT_MAX, GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_STAT_GROWTH } from '@/config/managerCareer';
-import { playPackSfx } from '@/utils/packAudio';
 import {
   autoPlaceClubLineup,
   buildAutoFillContext,
@@ -502,8 +501,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       };
     }
 
-    // Audio cue (no-op until assets are wired).
-    playPackSfx(topPlayer.overall >= WALKOUT_OVR_THRESHOLD ? 'rare-pull' : 'standard-pull');
+    // No audio here. This used to play the rare-pull roar at the moment of
+    // PURCHASE, before the pack was even torn, so the sound announced the
+    // rarity the reveal exists to withhold. The overlay plays the pull cues
+    // on the beats they belong to (the flip, the walkout).
 
     // Bump the matching per-day bucket so daily caps survive save reloads.
     // The date rolls over the moment a new ISO-day starts; existing

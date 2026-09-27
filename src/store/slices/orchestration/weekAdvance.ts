@@ -77,6 +77,7 @@ import { completeAssignment } from '@/utils/scouting';
 import { getTrainingStaffBonus } from '@/utils/staff';
 import { generateStorylines } from '@/utils/storylines';
 import { updateEloRatings } from '@/utils/teamRankings';
+import { tickPositionTraining } from '@/utils/positionTraining';
 import { applyWeeklyTraining, generateTrainingReport, getDominantTrainingFocus, getInjuryRisk, getStreakMultiplier, updateStreaks, updateTacticalFamiliarity } from '@/utils/training';
 import { processListingExpiry, replenishMarket, replenishMarketPreSeason, spawnFreeAgents } from '@/utils/transferMarketGen';
 import { getContractLengthFactor, getPerformanceMultiplier } from '@/utils/transferOffers';
@@ -1199,6 +1200,23 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Update training streaks and generate training report
   const newStreaks = updateStreaks(training.streaks, training.schedule);
+
+  // Secondary-position training: squad + academy. A learned position lands in
+  // `alternatePositions`, which every lineup/sub/pitch-board reader already uses.
+  const positionTick = tickPositionTraining(
+    training.positionPlans,
+    newPlayers,
+    new Set([...playerClub.playerIds, ...state.youthAcademy.prospects.map(p => p.playerId)]),
+  );
+  for (const { player: learner, position } of positionTick.learned) {
+    newPlayers[learner.id] = { ...(newPlayers[learner.id] || learner), alternatePositions: learner.alternatePositions };
+    newMessages = addMsg(newMessages, {
+      week, season, type: 'development',
+      title: `${learner.lastName} Learns ${position}`,
+      body: `${learner.firstName} ${learner.lastName} has completed position training and is now fully comfortable at ${position}.`,
+      playerId: learner.id,
+    });
+  }
   const trainingReport = generateTrainingReport(preTrainingPlayers, newPlayers, playerClub.playerIds, digestInjuries, newStreaks, week, season);
 
   // Leadership bonus: players with high leadership boost entire squad morale
@@ -2804,7 +2822,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     matchPhase: 'none' as const, pendingPressConference: null,
     messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
     matchSubsUsed: 0, matchSubbedOffIds: [], matchGamePlan: 'none' as const, boardConfidence: newBoardConfidence, boardUltimatum: newBoardUltimatum, boardObjectives: updatedObjectives,
-    training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
+    training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport, positionPlans: positionTick.plans },
     staff: newStaff, scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
     pendingGemReveal: gemReveals.length > 0 ? gemReveals[0] : null,
     financeHistory: newFinanceHistory,

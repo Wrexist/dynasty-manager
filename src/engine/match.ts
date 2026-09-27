@@ -156,7 +156,7 @@ function tryAISub(
     // Find best positional match for the injured player
     const scored = injuryPool.map(p => {
       let compat = 0.4; // default: wrong position
-      if (p.position === outPlayer.position) compat = 1.0;
+      if (p.position === outPlayer.position || p.alternatePositions?.includes(outPlayer.position)) compat = 1.0;
       else if (canPlayPosition(p, outPlayer.position)) compat = 0.8;
       return { player: p, score: p.overall * compat };
     }).sort((a, b) => b.score - a.score);
@@ -183,7 +183,7 @@ function tryAISub(
 
       for (const bench of tacticalBench) {
         let compat = 0.4;
-        if (bench.position === starter.position) compat = 1.0;
+        if (bench.position === starter.position || bench.alternatePositions?.includes(starter.position)) compat = 1.0;
         else if (canPlayPosition(bench, starter.position)) compat = 0.8;
 
         // Score: improvement potential + fitness gain + tactical context

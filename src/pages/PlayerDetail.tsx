@@ -37,6 +37,7 @@ import { getLeadershipBonus } from '@/utils/personality';
 import { UNHAPPY_CONTAGION_WEEKS, STREAK_MORALE_THRESHOLD, MIN_SQUAD_SIZE, TOTAL_WEEKS } from '@/config/gameBalance';
 import { LABEL_HOT_HEAD_TEMP_BELOW } from '@/config/personality';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { PositionTrainingPanel } from '@/components/game/PositionTrainingPanel';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 
 const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
@@ -695,6 +696,8 @@ const PlayerDetail = () => {
           })}
         </div>
       </GlassPanel>
+
+      {!isWorldCup && isOwnPlayer && <PositionTrainingPanel player={player} />}
 
       {/* Grouped Attributes */}
       <GlassPanel className="p-4 space-y-4">
