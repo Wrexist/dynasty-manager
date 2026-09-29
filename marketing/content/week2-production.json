@@ -1,171 +1,170 @@
 [
   {
     "date": "2026-10-04",
-    "time": "13:00",
     "key": "g-salah",
     "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
+    "file": "scratchpad g-salah",
     "status": "scheduled",
     "scheduledAt": "2026-10-04 13:05"
   },
   {
     "date": "2026-10-04",
-    "time": "18:00",
-    "key": "w-wirtz",
-    "format": "wonderkid",
-    "caption": "Wirtz walkout: 23 years old and his potential keeps climbing. Showcase card in a free football manager game on iPhone. Best wonderkid in the game? #wirtz #wonderkid #walkout #footballgame #footballtiktok",
-    "status": "pending"
+    "key": "pilot-predict-real-madrid-barcelona",
+    "format": "pilot-predict",
+    "file": "videos/pilot-predict-real-madrid-barcelona-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-04 18:45"
   },
   {
     "date": "2026-10-04",
-    "time": "21:00",
     "key": "n2-pedri",
     "format": "star-walkout",
-    "caption": "Pedri walkout in a free football manager game on iPhone. Best midfielder right now? #footballgame #packopening #pedri #footballtiktok #iphonegames",
-    "status": "pending"
+    "file": "scratchpad n2-pedri",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-04 21:50"
   },
   {
     "date": "2026-10-05",
-    "time": "13:00",
-    "key": "g-bellingham",
-    "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
-    "status": "pending"
+    "key": "day05-road-ep1",
+    "format": "road-to-glory",
+    "file": "videos/day05-road-ep1-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-05 13:50"
   },
   {
     "date": "2026-10-05",
-    "time": "18:00",
     "key": "x-legend",
     "format": "legend",
-    "caption": "This player never existed. Hall of Legends cards are invented heroes who only live in your save. Keep or sell? #footballgame #packopening #legends #managergame",
-    "status": "pending"
+    "file": "scratchpad x-legend",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-05 18:55"
   },
   {
     "date": "2026-10-05",
-    "time": "21:45",
     "key": "a05",
     "format": "pack-animation",
-    "caption": "(already scheduled)",
-    "status": "scheduled"
+    "file": "A05",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-05 21:45"
   },
   {
     "date": "2026-10-06",
-    "time": "13:00",
-    "key": "g-vinicius",
+    "key": "g-bellingham",
     "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
-    "status": "pending"
+    "file": "scratchpad g-bellingham",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-06 13:55"
   },
   {
     "date": "2026-10-06",
-    "time": "18:00",
-    "key": "sq-a",
-    "format": "squad-pov",
-    "caption": "7 in, 4 to go. Who completes this XI? Comment a name 👇 #footballgame #managergame #dreamteam #footballtiktok",
-    "status": "pending"
+    "key": "day12-sunday-ep1",
+    "format": "sunday-league",
+    "file": "videos/day12-sunday-ep1-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-06 19:00"
   },
   {
     "date": "2026-10-06",
-    "time": "21:00",
     "key": "n-palmer",
     "format": "star-walkout",
-    "caption": "Cole Palmer walkout in a free football manager game on iPhone. Coldest player in the league? #footballgame #packopening #colepalmer #footballtiktok #iphonegames",
-    "status": "pending"
+    "file": "scratchpad n-palmer",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-06 21:00"
   },
   {
     "date": "2026-10-07",
-    "time": "13:00",
-    "key": "g-kane",
-    "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
-    "status": "pending"
+    "key": "day10-road-ep2",
+    "format": "road-to-glory",
+    "file": "videos/day10-road-ep2-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-07 13:05"
   },
   {
     "date": "2026-10-07",
-    "time": "18:00",
     "key": "l-light1",
-    "format": "light",
-    "caption": "The light that leaks out of the pack is the colour of the best card inside. Showcase open in a free football manager game on iPhone #packopening #walkout #footballgame #iphonegames",
-    "status": "pending"
+    "format": "did-you-know",
+    "file": "scratchpad l-light1",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-07 18:05"
   },
   {
     "date": "2026-10-07",
-    "time": "21:00",
     "key": "n-rice",
     "format": "star-walkout",
-    "caption": "Declan Rice walkout in a free football manager game on iPhone. Best defensive midfielder in the world? #footballgame #packopening #declanrice #footballtiktok #iphonegames",
-    "status": "pending"
+    "file": "scratchpad n-rice",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-07 21:10"
   },
   {
     "date": "2026-10-08",
-    "time": "13:00",
-    "key": "g-saka",
+    "key": "g-vinicius",
     "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
-    "status": "pending"
+    "file": "videos/extra/g-vinicius-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-08 13:20"
   },
   {
     "date": "2026-10-08",
-    "time": "18:00",
-    "key": "r-musiala",
-    "format": "guess-rating",
-    "caption": "Musiala walkout in a free football manager game on iPhone. Showcase card, not a pull. Guess the rating before it stops counting #musiala #walkout #packopening #footballgame #footballtiktok",
-    "status": "pending"
+    "key": "pilot-club-wrexham",
+    "format": "pilot-club",
+    "file": "videos/pilot-club-wrexham-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-08 18:20"
   },
   {
     "date": "2026-10-08",
-    "time": "21:00",
     "key": "n-foden",
     "format": "star-walkout",
-    "caption": "Foden walkout in a free football manager game on iPhone. Where does he play in your XI? #footballgame #packopening #foden #footballtiktok #iphonegames",
-    "status": "pending"
+    "file": "videos/extra/n-foden-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-08 21:25"
   },
   {
     "date": "2026-10-09",
-    "time": "13:00",
-    "key": "g-vandijk",
-    "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
-    "status": "pending"
+    "key": "day15-road-ep3",
+    "format": "road-to-glory",
+    "file": "videos/day15-road-ep3-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-09 13:25"
   },
   {
     "date": "2026-10-09",
-    "time": "18:00",
-    "key": "sq-b",
-    "format": "squad-pov",
-    "caption": "Rate this XI 1-10. Pick the tactics and play the season in a free football manager game on iPhone #footballgame #managergame #dreamteam #footballtiktok",
-    "status": "pending"
+    "key": "w-wirtz",
+    "format": "wonderkid",
+    "file": "videos/extra/w-wirtz-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-09 18:25"
   },
   {
     "date": "2026-10-09",
-    "time": "21:00",
     "key": "n-saliba",
     "format": "star-walkout",
-    "caption": "Saliba walkout in a free football manager game on iPhone. Best centre-back in the league? #footballgame #packopening #saliba #footballtiktok #iphonegames",
-    "status": "pending"
+    "file": "videos/extra/n-saliba-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-09 21:30"
   },
   {
     "date": "2026-10-10",
-    "time": "13:00",
-    "key": "g-isak",
+    "key": "g-kane",
     "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
-    "status": "pending"
+    "file": "videos/extra/g-kane-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-10 13:30"
   },
   {
     "date": "2026-10-10",
-    "time": "18:00",
-    "key": "g-rodri",
-    "format": "guess",
-    "caption": "Guess the player from 3 clues: nation, position, rating. Showcase card in a free football manager game on iPhone. Answer in the comments 👇 #guesstheplayer #footballquiz #packopening #footballtiktok",
-    "status": "pending"
+    "key": "day17-sunday-ep2",
+    "format": "sunday-league",
+    "file": "videos/day17-sunday-ep2-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-10 18:30"
   },
   {
     "date": "2026-10-10",
-    "time": "21:00",
     "key": "n-olise",
     "format": "star-walkout",
-    "caption": "Olise walkout in a free football manager game on iPhone. Most underrated winger right now? #footballgame #packopening #olise #footballtiktok #iphonegames",
-    "status": "pending"
+    "file": "videos/extra/n-olise-ios.mp4",
+    "status": "scheduled",
+    "scheduledAt": "2026-10-10 21:35"
   }
 ]
