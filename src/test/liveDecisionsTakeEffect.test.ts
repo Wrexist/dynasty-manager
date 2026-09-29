@@ -42,8 +42,13 @@ describe('live decisions take effect from the next minute', () => {
   it('the first half played in segments is a complete half: kickoff, stoppage, half-time', { timeout: 60_000 }, () => {
     const st = useGameStore.getState;
     let half = null;
-    for (let m = 1; m <= 45; m++) half = st().playFirstHalf(m);
+    for (let m = 1; m <= 45; m++) {
+      half = st().playFirstHalf(m);
+      // No "Half Time" marker until the half has actually been played out.
+      if (m < 45) expect(half!.events.some(e => e.type === 'half_time')).toBe(false);
+    }
     expect(half!.events.filter(e => e.type === 'kickoff')).toHaveLength(1);
+    expect(half!.events.filter(e => e.type === 'half_time')).toHaveLength(1);
     expect(st().matchPhase).toBe('half_time');
     expect(st().firstHalfSimulatedTo).toBe(45);
     // The second half resumes from it as before.

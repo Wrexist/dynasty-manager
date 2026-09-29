@@ -2042,7 +2042,10 @@ export function simulateHalf(
   // Add half-time marker at end of first half (only once). The 'added_time'
   // announcement no longer trips this check (it used to be typed half_time,
   // which suppressed the divider whenever stoppage time was announced).
-  if (isFirstHalf && !events.some(e => e.type === 'half_time')) {
+  // Only when this call actually reached the end of the half: the live first
+  // half is simulated a minute at a time, and a segment ending at 1' stamped
+  // "Half Time" at 45 while the clock read 1'.
+  if (isFirstHalf && endMin >= 45 && !events.some(e => e.type === 'half_time')) {
     events.push({ minute: 45 + stoppageTime, type: 'half_time', clubId: '', description: '— Half Time —' });
   }
 
