@@ -12,6 +12,22 @@ Companion files:
 - `docs/iap-verification.md` — the iOS version of §5's table; the SKU × flow
   matrix there applies to Android too.
 
+## Console state (verified in Play Console, 2026-09-29)
+
+Account: **Delta Inc. — personal** (the 12-testers × 14-days closed-test rule
+in §8 applies). App `com.dynastymanager` exists as a draft.
+
+| Step | State |
+|---|---|
+| §1–2 account + app | Done |
+| §3 App content | **Done** — all 10 declarations submitted. App access answered *No restrictions* (no login in any country). IARC: Australia M, Brazil 18 (paid random items). Data safety: purchase history + app user ID, collected, not shared |
+| §4 Store listing | **Done** — en-US default (not en-GB), text from `listing-en.md`, icon, feature graphic, 7 phone shots; tablet 7"/10" reuse phone-01…04. Category Games → Sports. Contact `support@dynastymanager.app` (published — make sure that inbox exists) |
+| §5 Products | **Done** — 9 one-time products active (purchase option `buy`, backward-compatible). Subscriptions pre-existed with base plans **`p1m`** / **`p1y`**; offer `free-trial-7d` added to both, eligibility *never had any subscription in this app* (one trial per user, as on iOS). Yearly corrected from $29.99 to $24.99 |
+| §6a keystore | Upload key registered (SHA-1 `FE:C1:72:90:…:52:08`); no matching `.jks` on the dev PC — it is presumably only in `KEYSTORE_BASE64`. Back it up |
+| §6b first upload | Done long ago — internal track has **1.0.1, version code 4**. API uploads are allowed; next build needs `version_code` ≥ 5 |
+| Internal testers | Lists enabled: `DeepLifeSimulator@gmail.com`, **NEW TESTPOOL (31)** |
+| §6c, §7 | **Not done** — service-account secret and RevenueCat Play credentials are owner-only |
+
 ---
 
 ## 0. What the code already does (verified in this repo, 2026-09-29)

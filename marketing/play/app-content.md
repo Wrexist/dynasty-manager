@@ -54,7 +54,7 @@ the privacy policy URL.
 
 | Data type | Collected | Shared | Optional? | Purpose |
 |---|---|---|---|---|
-| Financial info → **Purchase history** | Yes | No (RevenueCat is a service provider processing on our behalf — not "sharing" under Play's definition) | Required to buy | App functionality (deliver and restore purchases) |
+| Financial info → **Purchase history** | Yes | No (RevenueCat is a service provider processing on our behalf — not "sharing" under Play's definition) | Required to buy | App functionality (deliver and restore purchases) + Analytics (purchase performance, as the privacy policy states) |
 | App info and performance → **Crash logs / Diagnostics** | **No** while `SENTRY_ENABLED` is not `true` | — | — | — |
 | Device or other IDs | **Yes** — RevenueCat's randomly generated app user ID | No | Required to buy | App functionality |
 | Location, personal info, contacts, messages, photos, audio, files, calendar, health, web history | No | — | — | — |
