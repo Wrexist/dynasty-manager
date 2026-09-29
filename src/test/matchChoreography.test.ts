@@ -406,3 +406,41 @@ describe('buildMatchTimeline', () => {
     });
   });
 });
+
+describe('buildMatchTimeline — the pitch shows the goal the commentary describes', () => {
+  /** Carriers of the beats leading up to the first beat tagged `type`. */
+  const carriersBefore = (timeline: ReturnType<typeof buildMatchTimeline>, type: MatchEvent['type']) => {
+    const i = timeline.beats.findIndex(b => b.eventType === type);
+    expect(i).toBeGreaterThan(0);
+    return timeline.beats.slice(0, i).filter(b => b.minute === timeline.beats[i].minute).map(b => b.ballCarrierId);
+  };
+
+  it('the recorded assister plays the final pass to the scorer', () => {
+    for (const seed of ['m1', 'm2', 'm3', 'm4', 'm5']) {
+      const t = buildMatchTimeline(makeMatch([ev(34, 'goal', 'home', { playerId: 'home-p9', assistPlayerId: 'home-p4' })], { id: seed }), home, away);
+      const carriers = carriersBefore(t, 'goal');
+      expect(carriers.slice(-2)).toEqual(['home-p4', 'home-p9']);
+      // Neither touches it earlier in the move.
+      expect(carriers.slice(0, -2)).not.toContain('home-p9');
+      expect(carriers.slice(0, -2)).not.toContain('home-p4');
+    }
+  });
+
+  it('a counter-attack goal goes through the assister', () => {
+    const t = buildMatchTimeline(makeMatch([ev(50, 'counter_attack_goal', 'away', { playerId: 'away-p10', assistPlayerId: 'away-p7' })]), home, away);
+    expect(carriersBefore(t, 'counter_attack_goal').slice(-2)).toEqual(['away-p7', 'away-p10']);
+  });
+
+  it('the penalty is taken by whoever the engine says took it, not the designated taker', () => {
+    // The designated taker was subbed off; the engine gave it to home-p7.
+    const club = makeClub('home', { penaltyTakerId: 'home-p9' });
+    const t = buildMatchTimeline(makeMatch([ev(70, 'penalty_scored', 'home', { playerId: 'home-p7' })]), club, away);
+    expect(carriersBefore(t, 'penalty_scored').at(-1)).toBe('home-p7');
+  });
+
+  it('falls back to the designated taker when the event names nobody', () => {
+    const club = makeClub('home', { penaltyTakerId: 'home-p9' });
+    const t = buildMatchTimeline(makeMatch([ev(70, 'penalty_scored', 'home')]), club, away);
+    expect(carriersBefore(t, 'penalty_scored').at(-1)).toBe('home-p9');
+  });
+});

@@ -312,6 +312,7 @@ function pickChain(
   squad: BasePlayer[], possession: 'home' | 'away', endId: string | null | undefined,
   count: number, rng: () => number, lookup?: Record<string, Player>,
   flow?: { centerFrac: number; halfWidth: number },
+  viaId?: string | null,
 ): BasePlayer[] {
   if (!squad.length) return [];
   const sorted = [...squad].sort((a, b) => advancement(possession, a.base.y) - advancement(possession, b.base.y));
@@ -341,7 +342,18 @@ function pickChain(
   }
   if (endId) {
     const end = squad.find(p => p.id === endId);
-    if (end && chain[chain.length - 1] !== end) chain.push(end);
+    const via = viaId && viaId !== endId ? squad.find(p => p.id === viaId) : undefined;
+    if (end) {
+      // The move ends on the finisher; when the engine recorded an assist, the
+      // last pass comes from that player — the pitch shows the goal the
+      // commentary describes. Neither appears earlier in the chain, so the
+      // ball never visits the scorer and comes back out.
+      const rest = chain.filter(p => p !== end && p !== via);
+      chain.length = 0;
+      chain.push(...rest);
+      if (via) chain.push(via);
+      chain.push(end);
+    }
   }
   return chain.length ? chain : [sorted[sorted.length - 1]];
 }
@@ -420,12 +432,13 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
   const emitPossession = (
     minute: number, possession: 'home' | 'away', endId: string | null,
     captionLast?: string, flow?: { centerFrac: number; halfWidth: number },
+    viaId?: string | null,
   ) => {
     const tactics = possession === 'home' ? homeTactics : awayTactics;
     const baseSquad = (possession === 'home' ? baseHome : baseAway)
       .filter(p => p.pos !== 'GK' && p.id && !removed.has(p.id));
     const passes = PITCH_CHOREO.PASSES_BY_TEMPO[tactics.tempo] ?? 2;
-    const chain = pickChain(baseSquad, possession, endId, passes, rng, lookup, flow);
+    const chain = pickChain(baseSquad, possession, endId, passes, rng, lookup, flow, viaId);
     chain.forEach((carrier, idx) => {
       const extraPush = Math.min(idx * PITCH_CHOREO.POSSESSION_ADVANCE, PITCH_CHOREO.POSSESSION_ADVANCE_MAX);
       const ball = carrierSpot(carrier, possession, tactics, extraPush);
@@ -483,12 +496,18 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
   };
 
   // Fast vertical break: win it deep, then ball into space for the finisher.
-  const emitCounter = (minute: number, possession: 'home' | 'away', finisherId: string | null) => {
+  const emitCounter = (minute: number, possession: 'home' | 'away', finisherId: string | null, assistId?: string | null) => {
     const squad = (possession === 'home' ? baseHome : baseAway).filter(p => p.pos !== 'GK' && p.id && !removed.has(p.id));
     if (!squad.length) return;
     const deep = squad.reduce((b, p) => (advancement(possession, p.base.y) < advancement(possession, b.base.y) ? p : b), squad[0]);
     const startBall = { x: clamp(deep.base.x, 8, 92), y: depthToY(possession, clamp(advancement(possession, deep.base.y), 12, 40)) };
     stageWithBallAt(minute, possession, startBall, deep.id, 'longball', PITCH_CHOREO.ZOOM_WIDE, highlightFor(deep.id));
+    // The recorded assister carries it through midfield before the final ball.
+    const assister = assistId && assistId !== finisherId && assistId !== deep.id ? squad.find(p => p.id === assistId) : undefined;
+    if (assister) {
+      const mid = carrierSpot(assister, possession, possession === 'home' ? homeTactics : awayTactics, PITCH_CHOREO.POSSESSION_ADVANCE);
+      stageWithBallAt(minute, possession, mid, assister.id, 'longball', zoomFor(possession, mid), highlightFor(assister.id));
+    }
     const target = squad.find(p => p.id === finisherId)
       ?? squad.reduce((b, p) => (advancement(possession, p.base.y) > advancement(possession, b.base.y) ? p : b), squad[0]);
     const spot = carrierSpot(target, possession, possession === 'home' ? homeTactics : awayTactics, PITCH_CHOREO.POSSESSION_ADVANCE_MAX);
@@ -560,9 +579,13 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
           const isPenalty = ev.type === 'penalty_scored' || ev.type === 'penalty_missed';
           const isFreeKick = ev.type === 'free_kick_goal';
           const isCounter = ev.type === 'counter_attack_goal';
-          const shooterId = SETPIECE_EVENTS.has(ev.type)
-            ? (isPenalty ? club.penaltyTakerId : club.setPieceTakerId) || ev.playerId || null
-            : ev.playerId || null;
+          // The engine records who actually struck it (the designated taker only
+          // when on the pitch — and for free kicks, only some of the time), so
+          // that is who takes it here; the designated taker is a fallback for
+          // events without a player.
+          const shooterId = ev.playerId
+            || (SETPIECE_EVENTS.has(ev.type) ? (isPenalty ? club.penaltyTakerId : club.setPieceTakerId) : null)
+            || null;
 
           // Build-up / set-piece setup.
           if (isPenalty) {
@@ -570,9 +593,9 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
             const penHl = new Set<string>([shooterId, ev.goalkeeperId].filter(Boolean) as string[]);
             pushBeat(minute, null, possession, { x: 50, y: depthToY(possession, 89) }, shooterId ?? null, 'idle', PITCH_CHOREO.ZOOM_GOAL, penPlayers, penHl, undefined);
           } else if (isCounter) {
-            emitCounter(minute, possession, shooterId ?? null);
+            emitCounter(minute, possession, shooterId ?? null, ev.assistPlayerId);
           } else {
-            emitPossession(minute, possession, shooterId ?? null);
+            emitPossession(minute, possession, shooterId ?? null, undefined, undefined, isFreeKick ? null : ev.assistPlayerId);
             if (isFreeKick) emitFreeKickSetup(minute, possession, shooterId ?? null);
           }
 
