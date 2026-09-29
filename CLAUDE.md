@@ -369,7 +369,7 @@ src/
 │   │   pressConferences.ts, storylineChains.ts, boardPitches.ts,
 │   │   clubTemplateAliases.ts, whatsNew.ts, pendingNews.ts
 ├── engine/
-│   ├── match.ts         → match sim (2,280 LOC, event-based, minute-by-minute)
+│   ├── match.ts         → match sim (2,283 LOC, event-based, minute-by-minute)
 │   └── match/helpers.ts
 ├── hooks/               → 15 hooks: useGameSelectors, useLineupOptimizer,
 │                          useSwipeGesture, useKeyboardInset, useFocusTrap,
@@ -419,7 +419,7 @@ src/
 2. **`src/store/storeTypes.ts`** — complete `GameState` interface (755 LOC).
 3. **`src/types/game.ts`** — all types (3,899 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
-5. **`src/engine/match.ts`** — match simulation (2280 LOC).
+5. **`src/engine/match.ts`** — match simulation (2283 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
 - **Pack pulls sign on a discount (`PACK_WAGE_FACTOR`, 0.55)** that lives on the
