@@ -233,11 +233,22 @@ export const PITCH_RENDER = {
 
   // ── Camera framing (frameCamera) ──
   /** Portrait pitch strips covered by PitchView's HUD (CSS px): the score bug
-   *  across the top, the commentary caption along the bottom. The camera
+   *  across the top, the commentary caption (often two lines) along the bottom. The camera
    *  composes inside what is left, so neither goal mouth plays out under them. */
   HUD_SAFE_TOP: 44,
-  HUD_SAFE_BOTTOM: 50,
+  HUD_SAFE_BOTTOM: 64,
   /** Room a fitted (Wide / reduced-motion) view keeps past each goal line for
    *  the net, as a fraction of field height. */
   FIT_NET_MARGIN: 0.045,
+
+  // ── Possession tint (stepTint / tintSpan) ──
+  /** Peak alpha of the attacking-third tint, at the goal line it fades from. */
+  TINT_ALPHA: 0.16,
+  /** How far up the pitch it reaches before it has faded out (pitch units). */
+  TINT_DEPTH: 30,
+  /** Cross-fade time constant between the two ends (ms). */
+  TINT_TAU: 450,
+  /** Bands the WebGL tier stacks to draw the fade (Pixi has no cheap gradient
+   *  fill on a Graphics rect). */
+  TINT_BANDS: 8,
 } as const;

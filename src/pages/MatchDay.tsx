@@ -1725,13 +1725,15 @@ const MatchDayInner = () => {
                   matchView === k ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                {label}
-                {k === 'pitch' && !viewChosen && (
-                  <span className="absolute right-2 top-1.5 flex h-2 w-2" aria-hidden>
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                  </span>
-                )}
+                <span className="relative">
+                  {label}
+                  {k === 'pitch' && !viewChosen && (
+                    <span className="absolute -right-3 -top-0.5 flex h-2 w-2" aria-hidden>
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </div>
