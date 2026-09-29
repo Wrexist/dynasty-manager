@@ -97,7 +97,9 @@ export function ScoreHeader({
 }: ScoreHeaderProps) {
   // Team identity crest: in World Cup mode a bare nation flag (no roundel); in
   // club matches the colour roundel with its short code.
-  const Crest = ({ club }: { club: Club }) =>
+  // Render functions, not components: a component defined in render has a new
+  // identity every render, so every clock tick remounted the crests.
+  const crest = (club: Club) =>
     worldCup ? (
       <div className="mx-auto mb-1 text-center text-[44px] leading-none drop-shadow">{getFlag(club.id)}</div>
     ) : (
@@ -105,7 +107,7 @@ export function ScoreHeader({
     );
   // Card counts (+ "men" when reduced) as a compact column placed on the OUTER
   // edge of each side, so the crest–score–crest stays perfectly symmetric.
-  const Cards = ({ yellow, red, men }: { yellow: number; red: number; men: number }) => {
+  const cards = (yellow: number, red: number, men: number) => {
     if (yellow <= 0 && red <= 0) return null;
     return (
       <div className="flex flex-col items-center gap-1 text-micro font-semibold">
@@ -141,10 +143,10 @@ export function ScoreHeader({
   const progress = (currentMin / (phase === 'extra_time' ? 120 : 90)) * 100;
 
   if (compact) {
-    const SmallCrest = ({ club }: { club: Club }) =>
+    const smallCrest = (club: Club) =>
       worldCup ? <span className="text-2xl leading-none" aria-hidden>{getFlag(club.id)}</span> : <ClubCrest club={club} size="sm" />;
     // Cards inline beside the team name; a reduced side shows its head count.
-    const MiniCards = ({ yellow, red, men }: { yellow: number; red: number; men: number }) => (
+    const miniCards = (yellow: number, red: number, men: number) => (
       <>
         {yellow > 0 && <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-amber-300"><YellowCardIcon size={9} />{yellow}</span>}
         {red > 0 && <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-red-300"><RedCardIcon size={9} />{men > 0 ? `${men}` : red}</span>}
@@ -154,9 +156,9 @@ export function ScoreHeader({
       <GlassPanel className={cn('px-3 py-2 transition-all duration-300', goalFlash && 'border-primary/60 shadow-glow-primary')}>
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-            <MiniCards yellow={homeYellowCards} red={homeRedCards} men={homePlayersOnPitch} />
+            {miniCards(homeYellowCards, homeRedCards, homePlayersOnPitch)}
             <span className="truncate text-caption font-bold text-foreground">{homeClub.shortName}</span>
-            <SmallCrest club={homeClub} />
+            {smallCrest(homeClub)}
           </div>
           <div className="shrink-0 px-1 text-center" aria-live="polite" aria-atomic="true" role="status">
             <p className="flex items-center justify-center gap-0.5 font-display text-2xl font-black leading-none tabular-nums text-foreground">
@@ -167,9 +169,9 @@ export function ScoreHeader({
             <p className="mt-0.5 text-micro font-semibold uppercase tracking-wider text-primary tabular-nums">{headerLabel}</p>
           </div>
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <SmallCrest club={awayClub} />
+            {smallCrest(awayClub)}
             <span className="truncate text-caption font-bold text-foreground">{awayClub.shortName}</span>
-            <MiniCards yellow={awayYellowCards} red={awayRedCards} men={awayPlayersOnPitch} />
+            {miniCards(awayYellowCards, awayRedCards, awayPlayersOnPitch)}
           </div>
         </div>
         {showProgressBar && (
@@ -189,10 +191,10 @@ export function ScoreHeader({
       <div className="flex items-center justify-center gap-4">
         {/* Home cards — outer-left, equal flex width keeps the centre symmetric */}
         <div className="flex-1 flex justify-end">
-          <Cards yellow={homeYellowCards} red={homeRedCards} men={homePlayersOnPitch} />
+          {cards(homeYellowCards, homeRedCards, homePlayersOnPitch)}
         </div>
         <div className="text-center">
-          <Crest club={homeClub} />
+          {crest(homeClub)}
           <p className="text-caption font-bold text-foreground">{homeClub.shortName}</p>
         </div>
         <div className="text-center" aria-live="polite" aria-atomic="true" role="status">
@@ -203,12 +205,12 @@ export function ScoreHeader({
           </p>
         </div>
         <div className="text-center">
-          <Crest club={awayClub} />
+          {crest(awayClub)}
           <p className="text-caption font-bold text-foreground">{awayClub.shortName}</p>
         </div>
         {/* Away cards — outer-right */}
         <div className="flex-1 flex justify-start">
-          <Cards yellow={awayYellowCards} red={awayRedCards} men={awayPlayersOnPitch} />
+          {cards(awayYellowCards, awayRedCards, awayPlayersOnPitch)}
         </div>
       </div>
 

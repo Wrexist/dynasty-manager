@@ -54,7 +54,7 @@ describe('frameCamera', () => {
   const h = 548;
   const pad = 21;
   const fieldH = h - 2 * pad;
-  const base = { w, h, fieldH, zoom: 1.4, safeTop: 44, safeBottom: 50, fit: false };
+  const base = { w, h, fieldH, zoom: 1.4, safeTop: 44, safeBottom: 50, fit: 0 };
   const toScreenY = (y: number, c: ReturnType<typeof frameCamera>) => (y - c.pivotY) * c.zoom + c.anchorY;
 
   it('can bring the top goal line fully below the score bug when following play there', () => {
@@ -76,11 +76,23 @@ describe('frameCamera', () => {
   });
 
   it('fit frames the whole field, nets included, between the HUD strips', () => {
-    const cam = frameCamera({ ...base, zoom: 1, fit: true, focusX: 0, focusY: 0 });
+    const cam = frameCamera({ ...base, zoom: 1, fit: 1, focusX: 0, focusY: 0 });
     const net = fieldH * PITCH_RENDER.FIT_NET_MARGIN;
     expect(toScreenY(pad - net, cam)).toBeGreaterThanOrEqual(base.safeTop - 1e-9);
     expect(toScreenY(h - pad + net, cam)).toBeLessThanOrEqual(h - base.safeBottom + 1e-9);
     expect(cam.zoom).toBeLessThanOrEqual(1);
+  });
+
+  it('eases between follow and fit rather than switching', () => {
+    const follow = frameCamera({ ...base, focusX: w / 2, focusY: pad, fit: 0 });
+    const fitted = frameCamera({ ...base, focusX: w / 2, focusY: pad, fit: 1 });
+    const half = frameCamera({ ...base, focusX: w / 2, focusY: pad, fit: 0.5 });
+    expect(half.zoom).toBeCloseTo((follow.zoom + fitted.zoom) / 2, 9);
+    const [lo, hi] = [Math.min(follow.pivotY, fitted.pivotY), Math.max(follow.pivotY, fitted.pivotY)];
+    expect(half.pivotY).toBeGreaterThan(lo);
+    expect(half.pivotY).toBeLessThan(hi);
+    expect(half.zoom).toBeLessThan(follow.zoom);
+    expect(half.zoom).toBeGreaterThan(fitted.zoom);
   });
 
   it('with no HUD it is the old centred camera', () => {

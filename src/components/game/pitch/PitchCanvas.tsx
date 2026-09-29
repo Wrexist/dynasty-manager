@@ -75,6 +75,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   const goalImpactRef = useRef<{ seq: number; t: number }>({ seq: -1, t: 1e9 });
   const displayRef = useRef<DisplayState>(createDisplay());
   const tintRef = useRef<TintState>({ home: 0, away: 0 });
+  const fitBlendRef = useRef(0);
 
   minuteRef.current = minute;
   // Live values read inside the rAF loop via refs, so the effect does NOT re-run
@@ -107,6 +108,10 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
     // moment, at half-time, into the second half) fast-forward the whole match
     // at the catch-up rate before it reached live play.
     playbackRef.current = seekPlayback(timelineRef.current.beats, startMinute ?? minuteRef.current);
+    // Goals up to the mount minute were already shown (before half-time, or
+    // before switching view); seeking to the start of the minute must not
+    // ripple the net and shake the camera for them again. Replays do show theirs.
+    const goalsAfterMinute = startMinute != null ? -Infinity : minuteRef.current;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -446,7 +451,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const liftT = sample.t;
 
       // Trigger the net ripple + goal impact when a goal beat first becomes active.
-      if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRippleRef.current.seq) {
+      if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRippleRef.current.seq && beat.minute > goalsAfterMinute) {
         goalRippleRef.current = { seq: beat.seq, t: 0, end: beat.possession === 'home' ? 100 : 0 };
         if (!reducedMotion) goalImpactRef.current = { seq: beat.seq, t: 0 };
       }
@@ -470,8 +475,10 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const leadY = clamp(display.ballVY * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
       // Tactical-wide lock pulls back to the whole pitch and pauses the follow.
       const wide = tacticalWideRef?.current && !reducedMotion;
-      // Wide and reduced motion both show the whole pitch, fitted between the HUD.
-      const fitView = !!(wide || reducedMotion);
+      // Wide and reduced motion both show the whole pitch, fitted between the
+      // HUD; the blend eases with the camera so toggling Wide glides.
+      const fitTarget = wide || reducedMotion ? 1 : 0;
+      fitBlendRef.current = reducedMotion ? fitTarget : fitBlendRef.current + (fitTarget - fitBlendRef.current) * (1 - Math.exp(-dt / PITCH_RENDER.CAM_TAU));
       const targetZoom = reducedMotion || wide ? PITCH_RENDER.ZOOM_MIN : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
       const targetCx = reducedMotion || wide ? 50 : clamp(display.ballX + leadX, 2, 98);
       const targetCy = reducedMotion || wide ? 50 : clamp(display.ballY + leadY, 2, 98);
@@ -488,7 +495,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const focus = project(view.cx, view.cy);
       const cam = frameCamera({
         w, h, fieldH: innerH, focusX: focus.sx, focusY: focus.sy, zoom: view.zoom,
-        safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: fitView,
+        safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: fitBlendRef.current,
       });
       const z = cam.zoom;
       const fsx = cam.pivotX;
@@ -509,7 +516,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       if (!reducedMotion) drawTint();
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColorRef.current : awayColorRef.current);
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
-      drawFrame(display, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM, ts);
+      drawFrame(display, liftPx, z >= PITCH_RENDER.NAME_ZOOM, ts);
 
       // Publish tappable chips in CSS px (same camera transform the draw uses),
       // so PitchView can hit-test a tap back to a player without the transform.

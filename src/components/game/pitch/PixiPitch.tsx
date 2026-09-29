@@ -118,6 +118,8 @@ export default function PixiPitch({
     // Start at the revealed minute, not kickoff: a mid-match mount must not
     // fast-forward the whole match to catch up (see PitchCanvas).
     let playback: PlaybackState = seekPlayback(timelineRef.current.beats, minuteRef.current);
+    // Goals up to the mount minute were already shown — don't re-fire them.
+    const goalsAfterMinute = minuteRef.current;
     const viewRef: { current: View | null } = { current: null };
     const trail: { x: number; y: number }[] = [];
 
@@ -197,6 +199,7 @@ export default function PixiPitch({
         let goalImpact = { seq: -1, t: 1e9 };
         const display = createDisplay();
         let tint: TintState = { home: 0, away: 0 };
+        let fitBlend = 0;
 
         // Crowd/stands backdrop — a dark stadium bowl + seeded speckle in the
         // margins around the pitch, denser behind the two goal-ends. Static, so
@@ -321,7 +324,7 @@ export default function PixiPitch({
             const sample = samplePlayback(timelineRef.current.beats, playback, minuteRef.current);
             if (!sample) return;
             const beat = sample.beat;
-            if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRipple.seq) {
+            if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRipple.seq && beat.minute > goalsAfterMinute) {
               goalRipple = { seq: beat.seq, t: 0, end: beat.possession === 'home' ? 100 : 0 };
               if (!reducedMotion) goalImpact = { seq: beat.seq, t: 0 };
             }
@@ -357,9 +360,12 @@ export default function PixiPitch({
               viewRef.current.cy = lerp(viewRef.current.cy, targetCy, ca);
             }
             const view = viewRef.current;
+            // Ease into / out of the fitted Wide frame with the camera.
+            const fitTarget = wide || reducedMotion ? 1 : 0;
+            fitBlend = reducedMotion ? fitTarget : fitBlend + (fitTarget - fitBlend) * (1 - Math.exp(-dt / PITCH_RENDER.CAM_TAU));
             const cam = frameCamera({
               w, h, fieldH: fh, focusX: mapX(view.cx), focusY: mapY(view.cy), zoom: view.zoom,
-              safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: !!(wide || reducedMotion),
+              safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: fitBlend,
             });
             const z = cam.zoom;
             const fsx = cam.pivotX;

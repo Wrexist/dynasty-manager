@@ -67,8 +67,10 @@ export interface CameraFrameInput {
   /** Screen strips covered by HUD (score bug on top, caption at the bottom). */
   safeTop: number;
   safeBottom: number;
-  /** Frame the whole field inside the safe area (Wide / reduced motion). */
-  fit: boolean;
+  /** How far toward framing the whole field inside the safe area (Wide /
+   *  reduced motion): 0 = follow, 1 = fitted. Renderers ease it, so toggling
+   *  Wide glides rather than snapping a goal zoom straight to the fit. */
+  fit: number;
 }
 
 export interface CameraFrame {
@@ -97,15 +99,18 @@ export function frameCamera(i: CameraFrameInput): CameraFrame {
   const safeH = Math.max(1, i.h - i.safeTop - i.safeBottom);
   const anchorX = i.w / 2;
   const anchorY = i.safeTop + safeH / 2;
-  const zoom = i.fit ? Math.min(i.zoom, safeH / (i.fieldH * (1 + 2 * PITCH_RENDER.FIT_NET_MARGIN))) : i.zoom;
+  const fit = Math.max(0, Math.min(1, i.fit));
+  const fitZoom = Math.min(i.zoom, safeH / (i.fieldH * (1 + 2 * PITCH_RENDER.FIT_NET_MARGIN)));
+  const zoom = i.zoom + (fitZoom - i.zoom) * fit;
   const halfW = i.w / 2 / zoom;
   const halfH = safeH / 2 / zoom;
   // Hold inside the world; when the view is larger than the world, centre it.
   const hold = (half: number, size: number, v: number) => (2 * half >= size ? size / 2 : Math.max(half, Math.min(size - half, v)));
+  const followY = hold(halfH, i.h, i.focusY);
   return {
     zoom,
     pivotX: hold(halfW, i.w, i.focusX),
-    pivotY: i.fit ? i.h / 2 : hold(halfH, i.h, i.focusY),
+    pivotY: followY + (i.h / 2 - followY) * fit,
     anchorX,
     anchorY,
   };
