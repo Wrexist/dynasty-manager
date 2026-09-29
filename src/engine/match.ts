@@ -419,7 +419,9 @@ export function simulateHalf(
   // 76 must not re-announce "Second half underway!" — that kickoff event reset
   // the pitch to kickoff shape and the momentum bar to 50/50 mid-half, and
   // re-stamped "Level at half-time" advice at 61'.
-  const resumesMidHalf = !!prevState && startMin > 46 && startMin <= 90;
+  // The first half is segmented the same way (FIRST_HALF_SEGMENTS), so a call
+  // resuming at 16 or 31 is mid-half too.
+  const resumesMidHalf = !!prevState && ((startMin > 1 && startMin <= 45) || (startMin > 46 && startMin <= 90));
 
   // Second-half: generate fresh score-aware tactical insights
   if (prevState && playerClubId && !resumesMidHalf) {
@@ -1073,11 +1075,17 @@ export function simulateHalf(
   }
 
   let lastEventMinute = startMin;
-  let lateDramaFired = false;
+  // Once per match: a segment that starts past the threshold is resuming a
+  // stretch whose earlier segment already had its chance to fire it.
+  let lateDramaFired = startMin > LATE_GAME_THRESHOLD_MINUTE && startMin <= 90;
 
   // Calculate stoppage time for this half
   const isFirstHalf = startMin <= 45 && endMin <= 50;
   const nominalEnd = isFirstHalf ? 45 : 90;
+  // Stoppage is earned over the whole half, not the segment that reaches its
+  // end: counting from `startMin` gave a segmented half (the player's own
+  // match) ~0.8 fewer added minutes than an unsegmented one.
+  const halfStart = isFirstHalf ? 1 : 46;
   let stoppageTime = 0;
 
   const MAX_MATCH_MINUTES = 150; // Safety cap to prevent infinite loops
@@ -1148,7 +1156,7 @@ export function simulateHalf(
     // which suppressed the real Half Time divider (the some() check below)
     // and rendered a "HALF TIME" pill at minute 90 in the second half.
     if (min === nominalEnd && stoppageTime === 0) {
-      stoppageTime = calcStoppageTime(events, startMin, nominalEnd);
+      stoppageTime = calcStoppageTime(events, halfStart, nominalEnd);
       if (stoppageTime > 0) {
         events.push({ minute: nominalEnd, type: 'added_time', clubId: '', description: `+${stoppageTime} minutes added time` });
       }

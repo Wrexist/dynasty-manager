@@ -567,6 +567,52 @@ export function buildMatchSquad(
 }
 
 /**
+ * The user's saved lineup rewritten to the XI that actually kicked off: each
+ * stand-in takes the slot of the player he covers (formation slots align by
+ * index), extra cover goes on the end, and a duplicated id is dropped.
+ *
+ * Written back at kickoff so the live match has ONE team sheet. The sub sheet,
+ * the pitch and every later half read `club.lineup`; when it still named an
+ * injured player `buildPlayerMatchXI` had left out, the second half fielded
+ * him (he scored in audit runs), and his stand-in could not be substituted
+ * because the sheet did not list him.
+ */
+export function fieldedLineup(saved: string[], xi: Player[]): string[] {
+  const inXi = new Set(xi.map(p => p.id));
+  const savedSet = new Set(saved);
+  const fills = xi.map(p => p.id).filter(id => !savedSet.has(id));
+  const out: string[] = [];
+  const seen = new Set<string>();
+  let f = 0;
+  for (const id of saved) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (inXi.has(id)) out.push(id);
+    else if (f < fills.length) out.push(fills[f++]);
+  }
+  while (f < fills.length) out.push(fills[f++]);
+  return out;
+}
+
+/**
+ * The XI a side resumes with after a break — second half, extra time, the
+ * shootout — i.e. the XI that started (the engine adds its own subs-in and
+ * removes the sent off, injured and subbed off from its carried state).
+ *
+ * The user's side is `club.lineup`, which kickoff rewrote to the fielded XI and
+ * live substitutions keep current. An AI side is re-picked exactly as the first
+ * half picked it (`pickAiMatchSquad` is deterministic for the same week and
+ * squad). Reading an AI club's `club.lineup` here instead — written only at game
+ * start and season end — put a different, stale XI out after half-time: players
+ * the first half had left out as injured played on, and a first-half red card
+ * could be undone because the dismissed man was not in that list at all.
+ */
+export function resumeSideXI(club: Club, players: Record<string, Player>, week: number, playerClubId: string): Player[] {
+  if (club.id === playerClubId) return [...new Set(club.lineup || [])].map(id => players[id]).filter(Boolean);
+  return pickAiMatchSquad(club, players, week).xi;
+}
+
+/**
  * The seed a live match's random draws come from (R14).
  *
  * Closing or reloading mid-match discarded it and the replay from kickoff was
@@ -1294,6 +1340,19 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // are not out on loan. The callers report it — never fail silently here.
   if (hp.length < AI_MIN_MATCH_PLAYERS || ap.length < AI_MIN_MATCH_PLAYERS) return null;
 
+  // One team sheet for the whole match: the user's lineup becomes the XI that
+  // actually kicked off (see `fieldedLineup`).
+  const userClub = effectiveClubs[playerClubId];
+  if (userClub && (match.homeClubId === playerClubId || match.awayClubId === playerClubId)) {
+    const fielded = fieldedLineup(userClub.lineup || [], match.homeClubId === playerClubId ? hp : ap);
+    if (fielded.join('|') !== (userClub.lineup || []).join('|')) {
+      const onPitch = new Set(fielded);
+      const fixed = { ...userClub, lineup: fielded, subs: (userClub.subs || []).filter(id => !onPitch.has(id)) };
+      effectiveClubs = { ...effectiveClubs, [playerClubId]: fixed };
+      set({ clubs: { ...get().clubs, [playerClubId]: fixed } });
+    }
+  }
+
   try {
   // For ephemeral clubs: inject their players and club into state temporarily
   if (ephemeralClub) {
@@ -1484,10 +1543,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   if (!hc || !ac) return null;
   // Use current lineup (may have been changed by subs/rearrangement at half-time)
   // Deduplicate lineup IDs to prevent bugs from position optimization
-  const hLineup = [...new Set(hc.lineup || [])];
-  const aLineup = [...new Set(ac.lineup || [])];
-  const hp = hLineup.map(id => players[id]).filter(Boolean);
-  const ap = aLineup.map(id => players[id]).filter(Boolean);
+  const hp = resumeSideXI(hc, players, week, playerClubId);
+  const ap = resumeSideXI(ac, players, week, playerClubId);
   // Need minimum players to continue the match
   if (hp.length < 7 || ap.length < 7) return null;
 
@@ -1764,8 +1821,8 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
   const hc = clubs[currentMatchResult.homeClubId];
   const ac = clubs[currentMatchResult.awayClubId];
   if (!hc || !ac) return null;
-  const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
-  const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+  const hp = resumeSideXI(hc, players, state.week, playerClubId);
+  const ap = resumeSideXI(ac, players, state.week, playerClubId);
   // Need minimum players to continue into extra time
   if (hp.length < 7 || ap.length < 7) return null;
 
@@ -2117,8 +2174,8 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
   const hc = clubs[currentMatchResult.homeClubId];
   const ac = clubs[currentMatchResult.awayClubId];
   if (!hc || !ac) return;
-  const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
-  const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+  const hp = resumeSideXI(hc, players, state.week, playerClubId);
+  const ap = resumeSideXI(ac, players, state.week, playerClubId);
 
   // Reconstruct penEvents and final totals from pre-computed kicks
   const penEvents: MatchEvent[] = penaltyShootoutKicks.map((kick) => {
