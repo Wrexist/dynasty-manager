@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { centreCirclePoints, frameCamera, penaltyArcPoints } from '@/components/game/pitch/pitchGeometry';
+import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan } from '@/components/game/pitch/pitchGeometry';
+import { withAlpha } from '@/components/game/pitch/pitchColors';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 
 const { PITCH_LENGTH_M, PITCH_WIDTH_M, CENTRE_CIRCLE_M, PENALTY_SPOT_Y, PENALTY_BOX_Y } = PITCH_RENDER;
@@ -85,5 +86,35 @@ describe('frameCamera', () => {
   it('with no HUD it is the old centred camera', () => {
     const cam = frameCamera({ ...base, zoom: 1, safeTop: 0, safeBottom: 0, focusX: 10, focusY: 10 });
     expect(cam).toEqual({ zoom: 1, pivotX: w / 2, pivotY: h / 2, anchorX: w / 2, anchorY: h / 2 });
+  });
+});
+
+describe('possession tint', () => {
+  it('eases toward the side in possession instead of snapping', () => {
+    const one = stepTint({ home: 0, away: 1 }, 'home', 16, PITCH_RENDER.TINT_TAU);
+    expect(one.home).toBeGreaterThan(0);
+    expect(one.home).toBeLessThan(0.1);
+    expect(one.away).toBeLessThan(1);
+    expect(one.away).toBeGreaterThan(0.9);
+    let s = one;
+    for (let i = 0; i < 300; i++) s = stepTint(s, 'home', 16, PITCH_RENDER.TINT_TAU);
+    expect(s.home).toBeCloseTo(1, 3);
+    expect(s.away).toBeCloseTo(0, 3);
+  });
+
+  it('is a straight switch with no time constant and ignores negative time', () => {
+    expect(stepTint({ home: 0, away: 1 }, 'away', 16, 0)).toEqual({ home: 0, away: 1 });
+    expect(stepTint({ home: 0.5, away: 0.5 }, 'home', -20, 450)).toEqual({ home: 0.5, away: 0.5 });
+  });
+
+  it('fades up from the goal line each side attacks', () => {
+    expect(tintSpan('home')).toEqual({ from: 100, to: 100 - PITCH_RENDER.TINT_DEPTH });
+    expect(tintSpan('away')).toEqual({ from: 0, to: PITCH_RENDER.TINT_DEPTH });
+  });
+
+  it('fades to the same hue, not to transparent black', () => {
+    expect(withAlpha('#ff8000', 0)).toBe('rgba(255,128,0,0)');
+    expect(withAlpha('#f80', 0.5)).toBe('rgba(255,136,0,0.5)');
+    expect(withAlpha('not-a-colour', 2)).toBe('rgba(136,136,136,1)');
   });
 });

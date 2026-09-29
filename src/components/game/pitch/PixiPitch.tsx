@@ -4,7 +4,7 @@ import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
-import { centreCirclePoints, frameCamera, penaltyArcPoints, type MarkPoint } from './pitchGeometry';
+import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
 import type { PitchHitTarget } from './PitchCanvas';
 
 // The "Stunning" WebGL pitch tier. Consumes the exact same MatchTimeline as the
@@ -179,6 +179,7 @@ export default function PixiPitch({
         let goalRipple = { seq: -1, t: 1, end: 100 };
         let goalImpact = { seq: -1, t: 1e9 };
         const display = createDisplay();
+        let tint: TintState = { home: 0, away: 0 };
 
         // Crowd/stands backdrop — a dark stadium bowl + seeded speckle in the
         // margins around the pitch, denser behind the two goal-ends. Static, so
@@ -368,14 +369,23 @@ export default function PixiPitch({
             drawStands();
             drawField(ripple);
 
-            // Faint attacking-third tint for the team in possession.
+            // Attacking-third tint for the side in possession, fading up from the
+            // goal line it attacks and cross-faded between ends (see stepTint).
+            tint = stepTint(tint, beat.possession, dt, PITCH_RENDER.TINT_TAU);
             tintG.clear();
             if (!reducedMotion) {
-              const yLo = beat.possession === 'home' ? 72 : 0;
-              const yHi = beat.possession === 'home' ? 100 : 28;
-              const ty = Math.min(mapY(yLo), mapY(yHi));
-              tintG.rect(mapX(0), ty, mapX(100) - mapX(0), Math.abs(mapY(yHi) - mapY(yLo)))
-                .fill({ color: beat.possession === 'home' ? homeColorRef.current : awayColorRef.current, alpha: 0.12 });
+              const bands = PITCH_RENDER.TINT_BANDS;
+              for (const side of ['home', 'away'] as const) {
+                if (tint[side] < 0.01) continue;
+                const { from, to } = tintSpan(side);
+                const color = side === 'home' ? homeColorRef.current : awayColorRef.current;
+                for (let i = 0; i < bands; i++) {
+                  const y0 = mapY(from + ((to - from) * i) / bands);
+                  const y1 = mapY(from + ((to - from) * (i + 1)) / bands);
+                  tintG.rect(mapX(0), Math.min(y0, y1), mapX(100) - mapX(0), Math.abs(y1 - y0))
+                    .fill({ color, alpha: PITCH_RENDER.TINT_ALPHA * tint[side] * (1 - (i + 0.5) / bands) });
+                }
+              }
             }
 
             // Trail.

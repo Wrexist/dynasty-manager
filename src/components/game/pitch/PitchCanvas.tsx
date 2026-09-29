@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState, type DisplayState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
-import { centreCirclePoints, frameCamera, penaltyArcPoints, type MarkPoint } from './pitchGeometry';
-import { shade, keeperKit } from './pitchColors';
+import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
+import { shade, keeperKit, withAlpha } from './pitchColors';
 
 // Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
 // and a motion trail. Consumes a MatchTimeline + current minute; eases the
@@ -74,6 +74,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   const goalRippleRef = useRef<{ seq: number; t: number; end: number }>({ seq: -1, t: 1, end: 100 });
   const goalImpactRef = useRef<{ seq: number; t: number }>({ seq: -1, t: 1e9 });
   const displayRef = useRef<DisplayState>(createDisplay());
+  const tintRef = useRef<TintState>({ home: 0, away: 0 });
 
   minuteRef.current = minute;
   // Live values read inside the rAF loop via refs, so the effect does NOT re-run
@@ -274,17 +275,23 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
 
     // Faint tint over the attacking third of the team in possession — shows the
     // pressure direction at a glance.
-    const drawTint = (possession: 'home' | 'away') => {
+    // Attacking-third tint for the side in possession: a gradient fading up
+    // from the goal line it attacks, cross-faded between ends (tintRef).
+    const drawTint = () => {
       const { project } = geom();
-      const yLo = possession === 'home' ? 72 : 0;
-      const yHi = possession === 'home' ? 100 : 28;
-      const a = project(0, yLo);
-      const b = project(100, yHi);
-      ctx.save();
-      ctx.globalAlpha = 0.12;
-      ctx.fillStyle = possession === 'home' ? homeColorRef.current : awayColorRef.current;
-      ctx.fillRect(Math.min(a.sx, b.sx), Math.min(a.sy, b.sy), Math.abs(b.sx - a.sx), Math.abs(b.sy - a.sy));
-      ctx.restore();
+      for (const side of ['home', 'away'] as const) {
+        const strength = tintRef.current[side];
+        if (strength < 0.01) continue;
+        const { from, to } = tintSpan(side);
+        const a = project(0, from);
+        const b = project(100, to);
+        const color = side === 'home' ? homeColorRef.current : awayColorRef.current;
+        const g = ctx.createLinearGradient(a.sx, a.sy, project(0, to).sx, project(0, to).sy);
+        g.addColorStop(0, withAlpha(color, PITCH_RENDER.TINT_ALPHA * strength));
+        g.addColorStop(1, withAlpha(color, 0));
+        ctx.fillStyle = g;
+        ctx.fillRect(Math.min(a.sx, b.sx), Math.min(a.sy, b.sy), Math.abs(b.sx - a.sx), Math.abs(b.sy - a.sy));
+      }
     };
 
     const drawFrame = (display: DisplayState, liftPx: number, showAllNames: boolean, ts: number) => {
@@ -498,7 +505,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.translate(-fsx, -fsy);
 
       drawField(ripple);
-      if (!reducedMotion) drawTint(beat.possession);
+      tintRef.current = stepTint(tintRef.current, beat.possession, dt, PITCH_RENDER.TINT_TAU);
+      if (!reducedMotion) drawTint();
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColorRef.current : awayColorRef.current);
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
       drawFrame(display, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM, ts);

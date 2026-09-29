@@ -110,3 +110,29 @@ export function frameCamera(i: CameraFrameInput): CameraFrame {
     anchorY,
   };
 }
+
+// ── Possession tint ───────────────────────────────────────────────────────
+
+export type TintSide = 'home' | 'away';
+export interface TintState {
+  home: number;
+  away: number;
+}
+
+/** Ease each side's attacking-third tint toward on (in possession) or off.
+ *  It used to snap between the two ends on every possession flip, which read
+ *  as a flickering hard-edged band rather than pressure building. */
+export function stepTint(state: TintState, possession: TintSide, dtMs: number, tauMs: number): TintState {
+  const k = tauMs <= 0 ? 1 : 1 - Math.exp(-Math.max(0, dtMs) / tauMs);
+  return {
+    home: state.home + ((possession === 'home' ? 1 : 0) - state.home) * k,
+    away: state.away + ((possession === 'away' ? 1 : 0) - state.away) * k,
+  };
+}
+
+/** The tint's span in pitch-length units: `from` is the goal line the side
+ *  attacks (strongest), `to` where it has faded out. Home attacks +y. */
+export function tintSpan(side: TintSide): { from: number; to: number } {
+  const d = PITCH_RENDER.TINT_DEPTH;
+  return side === 'home' ? { from: 100, to: 100 - d } : { from: 0, to: d };
+}
