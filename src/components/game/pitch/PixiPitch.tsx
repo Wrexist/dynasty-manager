@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Application, BlurFilter, Container, Graphics, Text } from 'pixi.js';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { createPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
+import { seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
 import { centreCirclePoints, frameCamera, penaltyArcPoints, type MarkPoint } from './pitchGeometry';
@@ -110,7 +110,9 @@ export default function PixiPitch({
       onErrorRef.current?.();
     };
 
-    let playback: PlaybackState = createPlayback();
+    // Start at the revealed minute, not kickoff: a mid-match mount must not
+    // fast-forward the whole match to catch up (see PitchCanvas).
+    let playback: PlaybackState = seekPlayback(timelineRef.current.beats, minuteRef.current);
     const viewRef: { current: View | null } = { current: null };
     const trail: { x: number; y: number }[] = [];
 

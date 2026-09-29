@@ -101,8 +101,11 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
     let h = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap);
     const land = orientation === 'landscape';
-    // Replays seed the playhead mid-timeline; live view starts at kickoff.
-    playbackRef.current = startMinute != null ? seekPlayback(timelineRef.current.beats, startMinute) : createPlayback();
+    // Replays seed the playhead at their start; the live view at the revealed
+    // minute. Seeding live at kickoff made every mid-match mount (after a key
+    // moment, at half-time, into the second half) fast-forward the whole match
+    // at the catch-up rate before it reached live play.
+    playbackRef.current = seekPlayback(timelineRef.current.beats, startMinute ?? minuteRef.current);
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
