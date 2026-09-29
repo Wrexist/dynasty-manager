@@ -12,7 +12,7 @@
  * reachable, and never wrapped around a token that brings its own.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PitchBoard } from '@/components/game/PitchBoard';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { useGameStore } from '@/store/gameStore';
@@ -208,6 +208,54 @@ describe('LineupEditor on the extracted board (elite regression)', () => {
       if (i === 3 || i === 9) continue;
       expect(after[i]).toBe(before[i]);
     }
+  });
+
+  it('swaps a sub into the XI as an exchange, and Undo puts it back', async () => {
+    const club0 = useGameStore.getState().clubs[useGameStore.getState().playerClubId];
+    const before = { lineup: [...club0.lineup], subs: [...club0.subs] };
+    const starter = rename(before.lineup[4], 'Ddd', 'Zzzstarter');
+    const sub = rename(before.subs[1], 'Eee', 'Zzzbench');
+
+    render(<LineupEditor />);
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${starter.firstName} ${starter.lastName},`) }));
+    fireEvent.click(screen.getByLabelText(`${sub.firstName} ${sub.lastName}`));
+
+    const after = useGameStore.getState().clubs[club0.id];
+    expect(after.lineup[4]).toBe(sub.id);
+    // The starter takes the sub's exact bench spot — not the end of the bench.
+    expect(after.subs[1]).toBe(starter.id);
+    expect(after.subs.length).toBe(before.subs.length);
+
+    // The bar cross-fades from the selection line to Undo, so it arrives a
+    // beat after the swap.
+    // The generous timeout is for the full parallel suite, where a 140ms
+    // cross-fade can take well over the default second to settle.
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }, { timeout: 5000 }));
+    const undone = useGameStore.getState().clubs[club0.id];
+    expect(undone.lineup).toEqual(before.lineup);
+    expect(undone.subs).toEqual(before.subs);
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull(), { timeout: 5000 });
+  });
+
+  it('does not trim an over-cap bench when two starters swap', () => {
+    const s0 = useGameStore.getState();
+    const club0 = s0.clubs[s0.playerClubId];
+    // An older save with more subs than MAX_SUBS (7): pad the bench from the
+    // reserves.
+    const reserves = club0.playerIds.filter(id => !club0.lineup.includes(id) && !club0.subs.includes(id));
+    const longSubs = [...club0.subs, ...reserves].slice(0, 9);
+    expect(longSubs.length).toBe(9);
+    useGameStore.setState({ clubs: { ...s0.clubs, [club0.id]: { ...club0, subs: longSubs } } });
+
+    const a = rename(club0.lineup[3], 'Fff', 'Zzzleft');
+    const b = rename(club0.lineup[9], 'Ggg', 'Zzzright');
+    render(<LineupEditor />);
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${a.firstName} ${a.lastName},`) }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${b.firstName} ${b.lastName},`) }));
+
+    const after = useGameStore.getState().clubs[club0.id];
+    expect(after.lineup[3]).toBe(b.id);
+    expect(after.subs).toEqual(longSubs);
   });
 
   it('lets a bench player be placed into an emptied slot', () => {

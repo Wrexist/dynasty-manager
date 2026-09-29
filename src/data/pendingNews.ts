@@ -55,6 +55,9 @@ export const PENDING_NEWS: PendingRelease = {
     '11 new storylines, new random events, and press questions that name your opponents and players.',
     'The Hall of Managers now records each career separately instead of one row per save slot.',
     'Open another pack straight from the results screen.',
+    'Ballon d\'Or Night: the season\'s top 10 is dealt face-down and turned one card at a time, from 10th to the winner, who gets a full walkout.',
+    'The Ballon d\'Or page now shows a podium for every season and lets you replay each ceremony.',
+    'The season summary and inbox no longer spoil the Ballon d\'Or winner before you have watched the ceremony.',
   ],
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
@@ -75,6 +78,9 @@ export const PENDING_NEWS: PendingRelease = {
     'Pack opening is cleaner: the foil shimmer and glow now follow the pack\'s shape, and the pack turns gently in the light before you open it.',
     'Name pack.gold "Gold Pack" to match its card; pin catalogue names to pack labels.',
     'Train one secondary position per player (save v95).',
+    'Swapped players fly to their new spot; calmer selection.',
+    'Pin stoppage-time minute clamp that MatchDay\'s clock relies on.',
+    'Pin the world in skipToFullTime and feedbackLoops so CI stops flaking.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',

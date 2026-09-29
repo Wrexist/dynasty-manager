@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_POSITIONS, type Position } from '@/types/game';
-import { MAX_SUBS } from '@/config/playerGeneration';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, getFormationStructureLines } from '@/utils/formationLines';
@@ -16,10 +15,12 @@ import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { getRatingColor, getPlayerTier } from '@/utils/uiHelpers';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, type Transition } from 'framer-motion';
 import { X } from 'lucide-react';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { infoToast } from '@/utils/gameToast';
+import { applyLineupSwap, emptySlotId, type LineupState } from '@/utils/lineupSwap';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 // The pitch itself, where a slot sits and what a tap target is now live in
 // `PitchBoard`. What is left here is the tactics screen's own rules —
@@ -31,6 +32,20 @@ import { infoToast } from '@/utils/gameToast';
 // teamsheet draws this same board and needs the same three-way answer, and a
 // second private copy is how two boards start disagreeing.
 
+// A swap is shown as the two players physically changing places. Every card —
+// on the pitch and on the bench — carries a `layoutId` keyed on the PLAYER, not
+// the slot, so when the lineup array changes framer-motion sees the same man
+// in a new box and flies him there. Before this, slots re-rendered in place and
+// a swap was a face silently changing on a tile.
+//
+// Slightly under-damped so the card lands with a hint of settle rather than a
+// linear stop; quick enough that a run of swaps never queues up behind itself.
+const SWAP_FLIGHT: Transition = { type: 'spring', stiffness: 520, damping: 38, mass: 0.9 };
+const NO_FLIGHT: Transition = { duration: 0 };
+const flightId = (playerId: string) => `lineup-card-${playerId}`;
+
+const sameLineup = (a: LineupState, b: LineupState) =>
+  a.lineup.join(',') === b.lineup.join(',') && a.subs.join(',') === b.subs.join(',');
 
 export function LineupEditor() {
   const { playerClubId, clubs, players, week, season, pairFamiliarity } = useGameStore(useShallow(s => ({
@@ -43,6 +58,10 @@ export function LineupEditor() {
   })));
   const updateLineup = useGameStore(s => s.updateLineup);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // MotionConfig already stops layout animations under reduced motion; asking
+  // the hook as well keeps this correct if that config is ever loosened.
+  const reduceMotion = useReducedMotionPref();
+  const flight = reduceMotion ? NO_FLIGHT : SWAP_FLIGHT;
 
   const club = clubs[playerClubId];
 
@@ -110,17 +129,6 @@ export function LineupEditor() {
     return counts;
   }, [chemLinks]);
 
-  // Set of player IDs that share a chemistry link with selected player
-  const selectedChemPartners = useMemo(() => {
-    if (!selectedId) return new Set<string>();
-    const partners = new Set<string>();
-    for (const link of chemLinks) {
-      if (link.playerIdA === selectedId) partners.add(link.playerIdB);
-      if (link.playerIdB === selectedId) partners.add(link.playerIdA);
-    }
-    return partners;
-  }, [selectedId, chemLinks]);
-
   const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
   const subs = useMemo(() => club?.subs || [], [club?.subs]);
   const allSquad = useMemo(() => club?.playerIds || [], [club?.playerIds]);
@@ -174,61 +182,16 @@ export function LineupEditor() {
     return chemLinks.filter(l => l.playerIdA === selectedId || l.playerIdB === selectedId);
   }, [selectedId, chemLinks]);
 
-  const handleSwap = useCallback((activeId: string, targetId: string) => {
-    const activeInLineupIdx = lineup.indexOf(activeId);
-    const overInLineupIdx = lineup.indexOf(targetId);
-    const activeOnBench = subAndBench.includes(activeId);
-    const overOnBench = subAndBench.includes(targetId);
+  // The last swap, kept so the bar under the bench can offer Undo. `after` is
+  // what the swap wrote: Undo only restores `before` while the board still
+  // reads exactly `after`, so it can never rewind a formation change, an
+  // auto-pick or a week advance that happened in between.
+  const [lastSwap, setLastSwap] = useState<{ before: LineupState; after: LineupState; label: string } | null>(null);
 
-    const overSlotMatch = targetId.match(/^slot-(\d+)$/);
-    const overSlotIdx = overSlotMatch ? parseInt(overSlotMatch[1]) : -1;
-
-    const newLineup = [...lineup];
-    let newSubs = [...subs];
-
-    const removeFromSubs = (id: string) => {
-      newSubs = newSubs.filter(sid => sid !== id);
-    };
-    const addToSubs = (id: string) => {
-      if (!newSubs.includes(id)) newSubs.push(id);
-    };
-
-    if (activeInLineupIdx >= 0 && overInLineupIdx >= 0) {
-      newLineup[activeInLineupIdx] = targetId;
-      newLineup[overInLineupIdx] = activeId;
-    } else if (activeInLineupIdx >= 0 && overSlotIdx >= 0) {
-      // Starter → empty formation slot: move them into the hole, vacating
-      // their old slot. Previously this case fell through every branch —
-      // haptics fired but nothing changed, so a hole couldn't be filled
-      // with a starter.
-      newLineup[overSlotIdx] = activeId;
-      newLineup[activeInLineupIdx] = '';
-    } else if (activeOnBench && overSlotIdx >= 0) {
-      const displaced = newLineup[overSlotIdx];
-      newLineup[overSlotIdx] = activeId;
-      removeFromSubs(activeId);
-      if (displaced) addToSubs(displaced);
-    } else if (activeOnBench && overInLineupIdx >= 0) {
-      const displaced = newLineup[overInLineupIdx];
-      newLineup[overInLineupIdx] = activeId;
-      removeFromSubs(activeId);
-      if (displaced) addToSubs(displaced);
-    } else if (activeInLineupIdx >= 0 && overOnBench) {
-      newLineup[activeInLineupIdx] = targetId;
-      removeFromSubs(targetId);
-      addToSubs(activeId);
-    } else if (activeOnBench && overOnBench) {
-      const activeInSubs = newSubs.indexOf(activeId);
-      const overInSubs = newSubs.indexOf(targetId);
-      if (activeInSubs >= 0 && overInSubs >= 0) {
-        newSubs[activeInSubs] = targetId;
-        newSubs[overInSubs] = activeId;
-      } else if (activeInSubs >= 0) {
-        newSubs[activeInSubs] = targetId;
-      } else if (overInSubs >= 0) {
-        newSubs[overInSubs] = activeId;
-      }
-    }
+  const handleSwap = useCallback((activeId: string, targetId: string): boolean => {
+    const next = applyLineupSwap({ lineup, subs }, activeId, targetId);
+    if (!next) return false;
+    const newLineup = next.lineup;
 
     // M6 — warn (don't block) when an injured/suspended player lands in the
     // XI: the `subs` array isn't availability-filtered, so it can hold
@@ -256,20 +219,35 @@ export function LineupEditor() {
       }
     }
 
-    // M1 — a full bench silently dropped the displaced starter to reserves
-    // (slice truncation). Keep the truncation (MAX_SUBS is a hard cap) but
-    // tell the player who got bumped.
-    const trimmedSubs = newSubs.slice(0, MAX_SUBS);
-    if (newSubs.length > MAX_SUBS) {
-      const bumped = newSubs.slice(MAX_SUBS).map(id => players[id]).filter(Boolean);
-      if (bumped.length > 0) {
-        infoToast('Bench full', `${bumped.map(p => p.lastName).join(', ')} moved to reserves.`);
-      }
-    }
+    // Written exactly as the exchange left it — deliberately NOT sliced to
+    // MAX_SUBS. An exchange never lengthens the bench, so the only way this is
+    // over the cap is a bench that already was (an older save), and trimming
+    // it here would demote players the swap never touched. Oversized benches
+    // are a data problem for auto-pick/migration to normalise, not a side
+    // effect of moving two other people.
+    const newSubs = next.subs;
+
+    const activeName = players[activeId]?.lastName ?? 'Player';
+    const slotMatch = targetId.match(/^slot-(\d+)$/);
+    const label = slotMatch
+      ? `${activeName} → ${formationSlots[parseInt(slotMatch[1], 10)]?.pos ?? 'slot'}`
+      : `${activeName} ⇄ ${players[targetId]?.lastName ?? 'Player'}`;
+    setLastSwap({ before: { lineup, subs }, after: { lineup: newLineup, subs: newSubs }, label });
 
     hapticMedium();
-    updateLineup(newLineup, trimmedSubs);
-  }, [lineup, subs, subAndBench, updateLineup, players, week, club?.formation]);
+    updateLineup(newLineup, newSubs);
+    return true;
+  }, [lineup, subs, updateLineup, players, week, club?.formation]);
+
+  const canUndo = !!lastSwap && sameLineup(lastSwap.after, { lineup, subs });
+
+  const handleUndo = useCallback(() => {
+    if (!lastSwap || !sameLineup(lastSwap.after, { lineup, subs })) return;
+    hapticLight();
+    updateLineup(lastSwap.before.lineup, lastSwap.before.subs);
+    setLastSwap(null);
+    setSelectedId(null);
+  }, [lastSwap, lineup, subs, updateLineup]);
 
   const handleTap = useCallback((tappedId: string) => {
     const isEmptySlot = tappedId.startsWith('slot-');
@@ -279,9 +257,13 @@ export function LineupEditor() {
       setSelectedId(tappedId);
     } else if (selectedId === tappedId) {
       setSelectedId(null);
-    } else {
-      handleSwap(selectedId, tappedId);
+    } else if (handleSwap(selectedId, tappedId)) {
       setSelectedId(null);
+    } else if (!isEmptySlot) {
+      // Nothing to exchange (two reserves): move the selection instead of
+      // swallowing the tap.
+      hapticLight();
+      setSelectedId(tappedId);
     }
   }, [selectedId, handleSwap]);
 
@@ -301,6 +283,9 @@ export function LineupEditor() {
   const isLineupSelected = selectedId ? lineup.includes(selectedId) : false;
 
   return (
+    // Namespaced so these layoutIds can never pair with a card elsewhere in the
+    // app that happens to share an id.
+    <LayoutGroup id="lineup-editor">
     <div>
       {/* The board. Everything about WHERE a slot is and what a tap target
           looks like now lives in PitchBoard; what stays here is what this
@@ -311,20 +296,18 @@ export function LineupEditor() {
         occupants={lineup}
         selectedId={selectedId}
         ariaLabel="Formation"
-        onSlotTap={({ index, occupantId }) => handleTap(occupantId ?? `slot-${index}`)}
+        onSlotTap={({ index, occupantId }) => handleTap(occupantId ?? emptySlotId(index))}
         slotLabel={({ slot, occupantId }) => {
           const p = occupantId ? players[occupantId] : null;
           if (p) return `${p.firstName} ${p.lastName}, ${slot.pos}`;
           return `Empty ${slot.pos} slot${selectedId ? ' — place selected player here' : ''}`;
         }}
-        slotClassName={({ occupantId, isSelected, slot }) => {
-          // An occupied slot fades when someone else is selected and shares no
-          // chemistry with the man standing here.
-          if (occupantId) {
-            return selectedId && !isSelected && !selectedChemPartners.has(occupantId)
-              ? 'opacity-40'
-              : undefined;
-          }
+        slotClassName={({ occupantId, slot }) => {
+          // An occupied slot's emphasis comes from the tile's compatibility
+          // treatment alone. It used to ALSO fade every non-chemistry-partner,
+          // which stacked a second, unrelated signal on the same cards; the
+          // chemistry lines already single out the selected man's partners.
+          if (occupantId) return undefined;
           // An empty slot wears the compatibility ring for whoever is selected,
           // which is how you can see where a bench player is allowed to go.
           const compat = selectedPlayer ? getCompatibility(selectedPlayer, slot.pos as Position) : null;
@@ -341,18 +324,23 @@ export function LineupEditor() {
           if (!player) return null;
           const compat = selectedPlayer ? getCompatibility(selectedPlayer, slot.pos as Position) : null;
           return (
-            <LineupPlayerTile
-              player={player}
-              position={slot.pos}
-              isSelected={isSelected}
-              chemistryLinkCount={playerChemCounts.get(player.id) || 0}
-              compatRing={!isSelected ? compat : null}
-              positionTone={getCompatibility(player, slot.pos as Position)}
-              week={week}
-              // PitchBoard owns the button; a tile with its own role="button"
-              // inside one would be two tab stops for a single action.
-              interactive={false}
-            />
+            // Keyed on the player so a new occupant REMOUNTS rather than the
+            // old element being handed a new layoutId, which would animate
+            // the wrong card.
+            <motion.div key={player.id} layoutId={flightId(player.id)} transition={flight}>
+              <LineupPlayerTile
+                player={player}
+                position={slot.pos}
+                isSelected={isSelected}
+                chemistryLinkCount={playerChemCounts.get(player.id) || 0}
+                compatRing={!isSelected ? compat : null}
+                positionTone={getCompatibility(player, slot.pos as Position)}
+                week={week}
+                // PitchBoard owns the button; a tile with its own role="button"
+                // inside one would be two tab stops for a single action.
+                interactive={false}
+              />
+            </motion.div>
           );
         }}
         underlay={
@@ -406,6 +394,101 @@ export function LineupEditor() {
           </>
         }
       />
+
+      {/* Bench */}
+      <div className="mt-3">
+        <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
+        {/* `layoutScroll` so a card flying out of (or into) a scrolled bench
+            starts from where it is on screen, not from its unscrolled spot.
+            pt leaves room for the selected card's lift inside the scroller's
+            clip. */}
+        <motion.div layoutScroll className="flex gap-1.5 overflow-x-auto scrollbar-hide pt-1.5 pb-1 px-1">
+          {subAndBench.map(id => {
+            const p = players[id];
+            if (!p) return null;
+            const isSelected = selectedId === id;
+            const benchCompat = selectedSlotPos
+              ? getCompatibility(p, selectedSlotPos)
+              : null;
+            return (
+              <motion.div key={`bench-${id}`} layoutId={flightId(id)} transition={flight} className="shrink-0">
+                <BenchStrip
+                  player={p}
+                  position={p.position}
+                  isSelected={isSelected}
+                  chemistryLinkCount={playerChemCounts.get(p.id) || 0}
+                  compatRing={!isSelected ? benchCompat : null}
+                  isBestSub={id === bestSubId}
+                  week={week}
+                  onClick={() => handleTap(id)}
+                />
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </div>
+
+      {/* Swap bar. ONE fixed-height line under the bench that says what the
+          board is waiting for — pick someone, pick a partner, or undo what
+          you just did. It replaces a pulsing hint that appeared below
+          everything, and it sits BELOW the bench on purpose: the player
+          detail panel used to open between the pitch and the bench, so
+          selecting a starter shoved the bench down exactly as your thumb
+          went for it. Nothing above the bench changes height any more. */}
+      <div className="mt-2 mx-1 h-11 rounded-xl bg-card/50 border border-border/40 px-3 flex items-center overflow-hidden" aria-live="polite">
+        <AnimatePresence mode="wait" initial={false}>
+          {selectedPlayer ? (
+            <motion.div
+              key={`sel-${selectedPlayer.id}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: reduceMotion ? 0 : 0.14 }}
+              className="flex w-full items-center gap-2 min-w-0"
+            >
+              <span className={cn('text-sm font-bold font-display tabular-nums', getPlayerTier(selectedPlayer.overall).textClass)}>
+                {selectedPlayer.overall}
+              </span>
+              <span className="text-xs font-semibold text-foreground truncate">
+                {selectedPlayer.lastName}
+                <span className="text-muted-foreground font-normal"> · {selectedSlotPos ?? selectedPlayer.position}</span>
+              </span>
+              <span className="ml-auto shrink-0 text-xs text-primary">
+                {isLineupSelected ? 'Tap a player or bench card' : 'Tap a slot or player'}
+              </span>
+            </motion.div>
+          ) : canUndo ? (
+            <motion.div
+              key="undo"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: reduceMotion ? 0 : 0.14 }}
+              className="flex w-full items-center gap-2 min-w-0"
+            >
+              <span className="text-xs font-semibold text-foreground truncate">{lastSwap.label}</span>
+              <button
+                type="button"
+                onClick={handleUndo}
+                className="ml-auto -mr-2 shrink-0 h-11 px-3 text-xs font-semibold text-primary active:opacity-70"
+              >
+                Undo
+              </button>
+            </motion.div>
+          ) : (
+            <motion.p
+              key="idle"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.14 }}
+              className="w-full text-center text-xs text-muted-foreground"
+            >
+              Tap a player, then who they swap with
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Selected Player Detail Panel */}
       <AnimatePresence>
@@ -502,43 +585,6 @@ export function LineupEditor() {
         )}
       </AnimatePresence>
 
-      {/* Bench */}
-      <div className="mt-3">
-        <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 px-1">
-          {subAndBench.map(id => {
-            const p = players[id];
-            if (!p) return null;
-            const isSelected = selectedId === id;
-            const benchCompat = selectedSlotPos
-              ? getCompatibility(p, selectedSlotPos)
-              : null;
-            return (
-              <BenchStrip
-                key={`bench-${id}`}
-                player={p}
-                position={p.position}
-                isSelected={isSelected}
-                chemistryLinkCount={playerChemCounts.get(p.id) || 0}
-                compatRing={!isSelected ? benchCompat : null}
-                isBestSub={id === bestSubId}
-                week={week}
-                onClick={() => handleTap(id)}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Selection hint */}
-      {selectedId && (
-        <div className="mt-2 text-center">
-          <p className="text-micro text-primary animate-pulse">
-            Tap another player to swap, or tap again to deselect
-          </p>
-        </div>
-      )}
-
       {/* Chemistry Bar */}
       <div className="mt-3">
         <ChemistryBar bonus={chemBonus} label={chemLabel.label} labelColor={chemLabel.color} />
@@ -547,5 +593,6 @@ export function LineupEditor() {
       {/* Insights */}
       <InsightsPanel insights={insights} />
     </div>
+    </LayoutGroup>
   );
 }

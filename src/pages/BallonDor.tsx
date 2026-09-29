@@ -5,11 +5,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Trophy, Crown, Award } from 'lucide-react';
+import { ChevronDown, Trophy, Crown, Award, Play, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { BallonDOrEntry, Player } from '@/types/game';
 import { PremiumLaurel } from '@/components/game/icons/PremiumLaurel';
+import { CardBack } from '@/components/game/pack/CardBack';
+import { BallonDorCeremony } from '@/components/game/ballonDor/BallonDorCeremony';
+import { useBallonCeremonySeen } from '@/hooks/useBallonCeremonySeen';
 
 const RANK_MEDAL_COLORS: Record<number, { bg: string; text: string; border: string; glow: string }> = {
   1: { bg: 'bg-gold/15', text: 'text-gold', border: 'border-gold/35', glow: 'shadow-[0_0_24px_hsl(var(--gold)/0.28)]' },
@@ -32,7 +35,9 @@ const HERO_TITLE_STYLE: React.CSSProperties = {
 };
 
 /** Golden hero — sets the prestige tone for the whole page. */
-const PageHero = ({ subtitle }: { subtitle: string }) => (
+const PageHero = ({ subtitle }: { subtitle: string }) => {
+  const { t } = useTranslation();
+  return (
   <div className="relative text-center pt-1 pb-3">
     <div
       aria-hidden
@@ -42,91 +47,11 @@ const PageHero = ({ subtitle }: { subtitle: string }) => (
     <div className="relative z-10 inline-flex items-center justify-center gap-2 mb-1.5">
       <Trophy className="w-5 h-5 text-gold drop-shadow-[0_0_10px_hsl(var(--gold)/0.6)]" />
       <h2 className="text-[26px] font-black font-display tracking-tight leading-none" style={HERO_TITLE_STYLE}>
-        Ballon d&rsquo;Or
+        {t('ballonDor.title')}
       </h2>
       <Trophy className="w-5 h-5 text-gold drop-shadow-[0_0_10px_hsl(var(--gold)/0.6)] scale-x-[-1]" />
     </div>
     <p className="relative z-10 text-[11px] text-muted-foreground">{subtitle}</p>
-  </div>
-);
-
-const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry; player: Player | null; onNavigate: () => void }) => {
-  const { t } = useTranslation();
-  return (
-  <div>
-    <button type="button" onClick={onNavigate} className="w-full text-left group">
-      <GlassPanel className="p-5 text-center border-gold/35 relative overflow-hidden transition-all group-hover:brightness-110 group-active:scale-[0.99]">
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(circle at 50% 0%, hsl(var(--gold) / 0.22), transparent 60%),' +
-              'radial-gradient(circle at 50% 100%, hsl(var(--gold) / 0.08), transparent 55%)',
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--gold) / 0.55), transparent)' }}
-        />
-
-        <div className="relative z-10 inline-flex items-center justify-center gap-2 mb-3">
-          <PremiumLaurel className="w-3 h-[18px] scale-x-[-1] drop-shadow-[0_0_6px_hsl(var(--gold)/0.45)]" />
-          <p className="text-micro text-gold uppercase tracking-[0.32em] font-black leading-none">
-            Winner
-          </p>
-          <PremiumLaurel className="w-3 h-[18px] drop-shadow-[0_0_6px_hsl(var(--gold)/0.45)]" />
-        </div>
-
-        <div className="relative z-10 mx-auto mb-3 inline-block">
-          {player ? (
-            <div className="relative">
-              <div
-                aria-hidden
-                className="absolute -inset-3 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, hsl(var(--gold) / 0.35), transparent 70%)' }}
-              />
-              <PlayerCard
-                player={{ ...player, overall: entry.overall, position: entry.position }}
-                size="lg"
-                interactive="none"
-                compact
-              />
-              <div className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-gold flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.5)]">
-                <Trophy className="w-4 h-4 text-background" />
-              </div>
-            </div>
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-gold/15 border-2 border-gold/40 flex items-center justify-center shadow-[0_0_30px_hsl(var(--gold)/0.35)]">
-              <Trophy className="w-10 h-10 text-gold" />
-            </div>
-          )}
-        </div>
-
-        <p className="relative z-10 text-2xl font-black text-foreground font-display">
-          {entry.playerName}
-        </p>
-
-        <div className="relative z-10 flex items-center justify-center flex-wrap gap-x-3 gap-y-1 mt-1.5">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full ring-1 ring-white/15" style={{ backgroundColor: entry.clubColor }} />
-            <span className="text-[12px] text-muted-foreground">{entry.clubName}</span>
-          </div>
-          <span className="text-micro text-muted-foreground/60">·</span>
-          <span className="text-[12px] font-bold text-primary tabular-nums">{entry.overall} OVR</span>
-          <span className="text-micro text-muted-foreground/60">·</span>
-          <span className="text-[11px] text-muted-foreground">{entry.position}</span>
-        </div>
-
-        <div className="relative z-10 grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-gold/20">
-          <StatCell label={t('ballonDor.goals')} value={entry.goals.toString()} />
-          <StatCell label={t('ballonDor.assists')} value={entry.assists.toString()} />
-          <StatCell label={t('ballonDor.rating')} value={entry.avgRating?.toFixed(1) ?? '-'} />
-          <StatCell label={t('ballonDor.score')} value={entry.score.toFixed(1)} highlight />
-        </div>
-      </GlassPanel>
-    </button>
   </div>
   );
 };
@@ -194,7 +119,7 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
             <p className={cn('text-xs font-black tabular-nums leading-none', isPodium ? style.text : 'text-foreground')}>
               {entry.score.toFixed(1)}
             </p>
-            <p className="text-micro text-muted-foreground mt-0.5">pts</p>
+            <p className="text-micro text-muted-foreground mt-0.5">{t('ballonDor.pts')}</p>
           </div>
           <motion.div
             aria-hidden
@@ -222,7 +147,7 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
                 <StatCell label={t('ballonDor.assists')} value={entry.assists.toString()} />
                 <StatCell label={t('ballonDor.apps')} value={entry.appearances.toString()} />
                 <StatCell label={t('ballonDor.rating')} value={entry.avgRating?.toFixed(1) ?? '-'} />
-                <StatCell label="Age" value={entry.age.toString()} />
+                <StatCell label={t('ballonDor.age')} value={entry.age.toString()} />
               </div>
             </div>
           </motion.div>
@@ -239,7 +164,9 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
   holders: Player[];
   onNavigate: (id: string) => void;
   canNavigate: (id: string) => boolean;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <GlassPanel className="p-4 border-gold/25 relative overflow-hidden">
     <div
       aria-hidden
@@ -250,14 +177,14 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
       <div className="flex items-center gap-2 mb-1.5">
         <Award className="w-3.5 h-3.5 text-gold" />
         <h3 className="text-micro uppercase tracking-[0.22em] font-black text-gold leading-none flex-1">
-          Reigning Top 10
+          {t('ballonDor.reigningTop10')}
         </h3>
         <span className="text-micro font-bold text-muted-foreground tabular-nums">
-          {holders.length} active
+          {t('ballonDor.reigningActive', { count: holders.length })}
         </span>
       </div>
       <p className="text-[11px] text-muted-foreground/80 mb-3 leading-snug">
-        Carrying the Ballon d&rsquo;Or card and a stats boost until the next ceremony.
+        {t('ballonDor.reigningBody')}
       </p>
       <div className="grid grid-cols-3 gap-2.5">
         {holders.map((p, i) => {
@@ -292,82 +219,157 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
       </div>
     </div>
   </GlassPanel>
-);
+  );
+};
 
-/** Body of one season's ceremony — the winner spotlight, podium and full
- *  ranking. Pulled out as a sub-component so each year in the stacked
- *  history collapses/expands independently while sharing the same layout. */
+/** "Ballon d'Or Night" — the sealed latest ceremony, waiting to be turned.
+ *  Never shows a name: the whole point is that nothing is known yet. */
+const NightTeaser = ({ season, onStart }: { season: number; onStart: () => void }) => {
+  const { t } = useTranslation();
+  return (
+    <GlassPanel className="p-5 border-gold/40 relative overflow-hidden text-center">
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 20%, hsl(var(--gold) / 0.24), transparent 70%)' }} />
+      <div className="relative z-10">
+        <div className="flex justify-center gap-2 mb-4" aria-hidden>
+          {[-10, 0, 10].map((r, i) => (
+            <div key={r} className="relative w-[58px]" style={{ aspectRatio: '2 / 3', transform: `rotate(${r}deg) translateY(${i === 1 ? -6 : 4}px)` }}>
+              <CardBack maskSrc="/player-cards/ballondor.webp" />
+            </div>
+          ))}
+        </div>
+        <p className="text-micro uppercase tracking-[0.32em] text-gold font-black">{t('ballonDor.night.kicker', { season })}</p>
+        <p className="font-display font-black text-2xl leading-tight mt-1" style={HERO_TITLE_STYLE}>{t('ballonDor.night.title')}</p>
+        <p className="text-[12px] text-muted-foreground mt-1.5 max-w-[280px] mx-auto">{t('ballonDor.night.teaserBody')}</p>
+        <Button className="mt-4 w-full h-12 gap-2 font-black bg-gold text-background hover:bg-gold/90" onClick={onStart}>
+          <Play className="w-4 h-4" /> {t('ballonDor.night.cta')}
+        </Button>
+      </div>
+    </GlassPanel>
+  );
+};
+
+/** The top three on stepped plinths — 2nd, 1st, 3rd, the order a podium
+ *  stands in — each on the Ballon d'Or card they now wear. */
+const Podium = ({ ranking, players, season, navigateToPlayer }: {
+  ranking: BallonDOrEntry[];
+  players: Record<string, Player>;
+  season: number;
+  navigateToPlayer: (id: string) => void;
+}) => {
+  const top = [ranking[1], ranking[0], ranking[2]].filter(Boolean);
+  const stepH: Record<number, number> = { 1: 58, 2: 40, 3: 28 };
+  return (
+    <div className="grid grid-cols-3 items-end gap-2 pt-2">
+      {top.map(entry => {
+        const style = getMedalStyle(entry.rank);
+        const p = players[entry.playerId];
+        const isWinner = entry.rank === 1;
+        return (
+          <button
+            key={entry.playerId}
+            type="button"
+            onClick={() => navigateToPlayer(entry.playerId)}
+            className="flex flex-col items-center min-w-0 active:scale-[0.98] transition-transform"
+          >
+            <div className={cn('relative', isWinner ? '-mb-1' : '')}>
+              {isWinner && (
+                <div aria-hidden className="absolute -inset-4 rounded-full pointer-events-none"
+                  style={{ background: 'radial-gradient(closest-side, hsl(var(--gold) / 0.35), transparent)' }} />
+              )}
+              {p ? (
+                <PlayerCard
+                  player={{ ...p, overall: entry.overall, position: entry.position, ballonDOrTop10HoldSeason: season }}
+                  size={isWinner ? 'md' : 'sm'}
+                  interactive="none"
+                  compact
+                />
+              ) : (
+                <div className={cn('rounded-xl flex items-center justify-center', isWinner ? 'w-[110px] h-[160px]' : 'w-16 h-24', style.bg)}>
+                  <Trophy className={cn('w-6 h-6', style.text)} />
+                </div>
+              )}
+            </div>
+            <p className={cn('mt-2 text-xs font-bold truncate max-w-full', style.text)}>{entry.playerName}</p>
+            <div className="flex items-center justify-center gap-1 min-w-0 max-w-full">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: entry.clubColor }} />
+              <span className="text-micro text-muted-foreground truncate">{entry.clubName}</span>
+            </div>
+            <div
+              className={cn('mt-1.5 w-full rounded-t-lg border-t border-x flex items-start justify-center pt-1', style.border, style.bg)}
+              style={{ height: stepH[entry.rank] ?? 24 }}
+            >
+              <span className={cn('font-display font-black text-lg tabular-nums leading-none', style.text)}>{entry.rank}</span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+/** Body of one season's ceremony — podium, winner line, full ranking.
+ *  Pulled out as a sub-component so each year in the stacked history
+ *  collapses/expands independently while sharing the same layout. */
 const SeasonCeremony = ({
+  season,
   ranking,
   players,
   playerClubName,
   expandedRank,
   setExpandedRank,
   navigateToPlayer,
+  onReplay,
 }: {
+  season: number;
   ranking: BallonDOrEntry[];
   players: Record<string, Player>;
   playerClubName: string;
   expandedRank: number | null;
   setExpandedRank: (rank: number | null) => void;
   navigateToPlayer: (id: string) => void;
+  onReplay: () => void;
 }) => {
+  const { t } = useTranslation();
   const winner = ranking[0];
   const yourPlayers = ranking.filter(e => e.clubName === playerClubName);
   return (
     <div className="space-y-4">
-      {winner && (
-        <WinnerSpotlight
-          entry={winner}
-          player={players[winner.playerId] ?? null}
-          onNavigate={() => navigateToPlayer(winner.playerId)}
-        />
-      )}
-
       {ranking.length >= 3 && (
-        <div className="grid grid-cols-2 gap-3">
-          {[ranking[1], ranking[2]].map(entry => {
-            const style = getMedalStyle(entry.rank);
-            return (
-              <button
-                key={entry.playerId}
-                type="button"
-                onClick={() => navigateToPlayer(entry.playerId)}
-                className={cn(
-                  'w-full p-3 rounded-xl text-center border transition-all hover:brightness-110 active:scale-[0.99] backdrop-blur-sm',
-                  style.bg, style.border, style.glow,
-                )}
-              >
-                <div className={cn(
-                  'w-7 h-7 rounded-lg flex items-center justify-center mx-auto mb-2 font-black text-sm shadow-inner',
-                  entry.rank === 2 && 'bg-gradient-to-br from-[hsl(var(--silver))] to-[hsl(var(--silver)/0.7)] text-black',
-                  entry.rank === 3 && 'bg-gradient-to-br from-[hsl(var(--bronze))] to-[hsl(var(--bronze)/0.7)] text-black',
-                )}>
-                  {entry.rank}
-                </div>
-                <p className={cn('text-xs font-bold truncate', style.text)}>{entry.playerName}</p>
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full ring-1 ring-white/15" style={{ backgroundColor: entry.clubColor }} />
-                  <span className="text-micro text-muted-foreground truncate">{entry.clubName}</span>
-                </div>
-                <p className={cn('text-base font-black mt-1 tabular-nums leading-none', style.text)}>
-                  {entry.score.toFixed(1)}
-                </p>
-                <p className="text-micro text-muted-foreground mt-0.5">{entry.goals}G · {entry.assists}A</p>
-              </button>
-            );
-          })}
-        </div>
+        <GlassPanel className="p-4 border-gold/30 relative overflow-hidden">
+          <div aria-hidden className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 0%, hsl(var(--gold) / 0.2), transparent 70%)' }} />
+          <div className="relative z-10">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <PremiumLaurel className="w-3 h-[18px] scale-x-[-1]" />
+              <p className="text-micro text-gold uppercase tracking-[0.32em] font-black">{t('ballonDor.podium')}</p>
+              <PremiumLaurel className="w-3 h-[18px]" />
+            </div>
+            <Podium ranking={ranking} players={players} season={season} navigateToPlayer={navigateToPlayer} />
+            {winner && (
+              <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gold/20 text-center">
+                <StatCell label={t('ballonDor.goals')} value={winner.goals.toString()} />
+                <StatCell label={t('ballonDor.assists')} value={winner.assists.toString()} />
+                <StatCell label={t('ballonDor.rating')} value={winner.avgRating?.toFixed(1) ?? '-'} />
+                <StatCell label={t('ballonDor.score')} value={winner.score.toFixed(1)} highlight />
+              </div>
+            )}
+            <button type="button" onClick={onReplay}
+              className="mt-3 w-full min-h-11 rounded-xl border border-gold/30 bg-gold/10 text-gold text-xs font-bold inline-flex items-center justify-center gap-2 active:scale-[0.99]">
+              <Play className="w-3.5 h-3.5" /> {t('ballonDor.replay')}
+            </button>
+          </div>
+        </GlassPanel>
       )}
 
       {ranking.length > 3 && (
         <GlassPanel className="p-3">
           <div className="flex items-center justify-between mb-2.5 px-1">
             <p className="text-micro text-muted-foreground uppercase tracking-[0.22em] font-bold">
-              Full Ranking
+              {t('ballonDor.fullRanking')}
             </p>
             <p className="text-micro text-muted-foreground tabular-nums">
-              {ranking.length} players
+              {t('ballonDor.playersCount', { count: ranking.length })}
             </p>
           </div>
           <div className="space-y-1.5">
@@ -395,7 +397,7 @@ const SeasonCeremony = ({
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-3.5 h-3.5 text-primary" />
               <p className="text-micro text-primary uppercase tracking-[0.22em] font-bold">
-                Your Players in Top 25
+                {t('ballonDor.yourPlayersTop25')}
               </p>
             </div>
             <div className="space-y-1.5">
@@ -428,19 +430,22 @@ const SeasonCeremony = ({
   );
 };
 
-/** Collapsed-year header — shows season + winner name + chevron toggle. */
-const SeasonHeader = ({ season, winner, isOpen, isLatest, onToggle }: {
+/** Collapsed-year header — season + winner (or "Sealed") + chevron toggle. */
+const SeasonHeader = ({ season, winner, isOpen, isLatest, sealed, onToggle }: {
   season: number;
   winner: BallonDOrEntry | undefined;
   isOpen: boolean;
   isLatest: boolean;
+  sealed: boolean;
   onToggle: () => void;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <button
     type="button"
     onClick={onToggle}
     aria-expanded={isOpen}
-    aria-label={`${isOpen ? 'Collapse' : 'Expand'} Season ${season} ceremony${winner ? `, winner ${winner.playerName}` : ''}`}
+    aria-label={`${t('ballonDor.season', { season })}${winner && !sealed ? ` — ${winner.playerName}` : ''}`}
     className={cn(
       'w-full flex items-center gap-3 p-3 rounded-xl border transition-all',
       'bg-card/60 backdrop-blur-xl hover:brightness-110 active:scale-[0.99]',
@@ -450,21 +455,25 @@ const SeasonHeader = ({ season, winner, isOpen, isLatest, onToggle }: {
         : 'border-border/50',
     )}
   >
-    <Trophy className={cn('w-4 h-4 shrink-0', isLatest ? 'text-gold' : 'text-muted-foreground')} />
+    {sealed
+      ? <Lock className="w-4 h-4 shrink-0 text-gold" />
+      : <Trophy className={cn('w-4 h-4 shrink-0', isLatest ? 'text-gold' : 'text-muted-foreground')} />}
     <div className="flex-1 text-left min-w-0">
       <div className="flex items-center gap-2">
         <p className={cn('text-xs font-black tabular-nums', isLatest ? 'text-gold' : 'text-foreground')}>
-          Season {season}
+          {t('ballonDor.season', { season })}
         </p>
         {isLatest && (
           <span className="text-micro font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold/20 text-gold">
-            Latest
+            {sealed ? t('ballonDor.sealed') : t('ballonDor.latest')}
           </span>
         )}
       </div>
-      {winner && (
+      {sealed ? (
+        <p className="text-[11px] text-muted-foreground truncate">{t('ballonDor.sealedLine')}</p>
+      ) : winner && (
         <p className="text-[11px] text-muted-foreground truncate">
-          Winner · {winner.playerName} · {winner.clubName}
+          {t('ballonDor.winnerLine', { name: winner.playerName, club: winner.clubName })}
         </p>
       )}
     </div>
@@ -477,9 +486,11 @@ const SeasonHeader = ({ season, winner, isOpen, isLatest, onToggle }: {
       <ChevronDown className="w-4 h-4 text-muted-foreground" />
     </motion.div>
   </button>
-);
+  );
+};
 
 const BallonDor = () => {
+  const { t } = useTranslation();
   const { seasonHistory, playerClubId, clubs, previousScreen, players } = useGameStore(useShallow(s => ({
     seasonHistory: s.seasonHistory,
     playerClubId: s.playerClubId,
@@ -491,6 +502,8 @@ const BallonDor = () => {
   const selectPlayer = useGameStore(s => s.selectPlayer);
 
   const [expandedRank, setExpandedRank] = useState<{ season: number; rank: number } | null>(null);
+  /** Season whose ceremony is playing, or null. */
+  const [ceremonySeason, setCeremonySeason] = useState<number | null>(null);
 
   const seasonsWithData = useMemo(
     () => seasonHistory.filter(h => h.ballonDOrRanking && h.ballonDOrRanking.length > 0).reverse(),
@@ -498,6 +511,7 @@ const BallonDor = () => {
   );
 
   const latestSeason = seasonsWithData[0]?.season ?? null;
+  const [latestSeen, markLatestSeen] = useBallonCeremonySeen(latestSeason);
 
   // Default open set: only the latest season's ceremony is expanded. Tracking
   // `lastSeenLatest` in a ref lets us detect when a NEW ceremony arrives
@@ -545,17 +559,26 @@ const BallonDor = () => {
   };
 
   const heroSubtitle = seasonsWithData.length === 0
-    ? 'Complete a season to crown the next legend.'
+    ? t('ballonDor.subtitle.empty')
     : seasonsWithData.length === 1
-      ? `Season ${latestSeason} — the 25 finest of the year.`
-      : `${seasonsWithData.length} ceremonies · latest is Season ${latestSeason}.`;
+      ? t('ballonDor.subtitle.one', { season: latestSeason })
+      : t('ballonDor.subtitle.many', { count: seasonsWithData.length, season: latestSeason });
+
+  const ceremonyData = ceremonySeason !== null ? seasonsWithData.find(h => h.season === ceremonySeason) : null;
+  // The reigning panel shows the new holders' cards, so it waits for the
+  // night too — it would otherwise name the whole top 10.
+  const latestSealed = latestSeason !== null && !latestSeen;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-3 space-y-4 pb-8">
       <PageHero subtitle={heroSubtitle} />
 
+      {latestSealed && latestSeason !== null && (
+        <NightTeaser season={latestSeason} onStart={() => setCeremonySeason(latestSeason)} />
+      )}
+
       {/* Reigning panel — show whenever any holder is active */}
-      {reigningHolders.length > 0 && (
+      {reigningHolders.length > 0 && !latestSealed && (
         <ReigningHoldersPanel
           holders={reigningHolders}
           onNavigate={navigateToPlayer}
@@ -567,14 +590,14 @@ const BallonDor = () => {
         <>
           <GlassPanel className="p-5 text-center">
             <Crown className="w-7 h-7 text-gold/70 mx-auto mb-2" />
-            <p className="text-xs text-foreground/85 font-semibold">No ceremony yet</p>
+            <p className="text-xs text-foreground/85 font-semibold">{t('ballonDor.noCeremony')}</p>
             <p className="text-[11px] text-muted-foreground mt-1 max-w-[260px] mx-auto leading-snug">
-              Complete a full season to crown the next Ballon d&rsquo;Or winner.
+              {t('ballonDor.noCeremonyBody')}
             </p>
           </GlassPanel>
           <div className="flex justify-center pt-1">
             <Button variant="secondary" onClick={() => setScreen(previousScreen || 'dashboard')}>
-              Back
+              {t('ballonDor.back')}
             </Button>
           </div>
         </>
@@ -582,8 +605,9 @@ const BallonDor = () => {
         <div className="space-y-3">
           {seasonsWithData.map((seasonData, index) => {
             const season = seasonData.season;
-            const isOpen = openSeasons.has(season);
             const isLatest = index === 0;
+            const sealed = isLatest && latestSealed;
+            const isOpen = openSeasons.has(season) && !sealed;
             const ranking = seasonData.ballonDOrRanking || [];
             const winner = ranking[0];
             return (
@@ -593,7 +617,8 @@ const BallonDor = () => {
                   winner={winner}
                   isOpen={isOpen}
                   isLatest={isLatest}
-                  onToggle={() => toggleSeason(season)}
+                  sealed={sealed}
+                  onToggle={() => (sealed ? setCeremonySeason(season) : toggleSeason(season))}
                 />
                 <AnimatePresence initial={false}>
                   {isOpen && (
@@ -605,12 +630,14 @@ const BallonDor = () => {
                       className="overflow-hidden"
                     >
                       <SeasonCeremony
+                        season={season}
                         ranking={ranking}
                         players={players}
                         playerClubName={playerClubName}
                         expandedRank={expandedRank?.season === season ? expandedRank.rank : null}
                         setExpandedRank={r => setExpandedRank(r === null ? null : { season, rank: r })}
                         navigateToPlayer={navigateToPlayer}
+                        onReplay={() => setCeremonySeason(season)}
                       />
                     </motion.div>
                   )}
@@ -620,6 +647,23 @@ const BallonDor = () => {
           })}
         </div>
       )}
+
+      <AnimatePresence>
+        {ceremonyData && (
+          <BallonDorCeremony
+            key={ceremonyData.season}
+            season={ceremonyData.season}
+            ranking={ceremonyData.ballonDOrRanking || []}
+            players={players}
+            playerClubName={playerClubName}
+            onFinish={() => { if (ceremonyData.season === latestSeason) markLatestSeen(); }}
+            onClose={() => {
+              setOpenSeasons(prev => new Set(prev).add(ceremonyData.season));
+              setCeremonySeason(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

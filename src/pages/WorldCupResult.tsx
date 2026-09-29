@@ -19,7 +19,8 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { getFlag } from '@/utils/nationality';
 import { hapticMedium } from '@/utils/haptics';
 import { shareText } from '@/utils/share';
-import { APP_STORE_URL } from '@/config/legal';
+import { Capacitor } from '@capacitor/core';
+import { storeUrlFor } from '@/config/legal';
 import { cn } from '@/lib/utils';
 import { track } from '@/utils/analytics';
 
@@ -158,7 +159,7 @@ const WorldCupResult = () => {
     const message = result.isChampion
       ? `🏆 World Champions with ${flag} ${nat}! I won the 2026 World Cup in Dynasty Manager${recordTail}.`
       : `${flag} ${nat} — ${result.headline} at the 2026 World Cup in Dynasty Manager${recordTail}.`;
-    const outcome = await shareText(message, APP_STORE_URL);
+    const outcome = await shareText(message, storeUrlFor(Capacitor.getPlatform()));
     if (outcome === 'copied') toast.success('Result copied — paste it anywhere to share');
     else if (outcome === 'failed') toast.error('Could not share right now');
   };
