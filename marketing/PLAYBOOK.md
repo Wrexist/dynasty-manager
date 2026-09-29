@@ -432,6 +432,125 @@ RevenueCat numbers after 30 days; re-run; the paid gate moves with it.
 
 ---
 
+## 13. Beyond the 30-day plan (added 2026-09-29)
+
+Channels the first version did not cover, ranked by expected reach per hour.
+None of them is a reason to skip §7: every one of them lands on the same
+product page. Each has a kill rule; a channel that misses it is dropped, not
+"given more time".
+
+| # | Channel | Status | Effort | Kill rule |
+|---|---|---|---|---|
+| 13.1 | **Google Play launch** | kit ready (`docs/android-launch.md`); owner console work outstanding | M, mostly waiting (closed test) | — (not optional: doubles the reachable audience) |
+| 13.2 | **Club-fan long tail** — "Can <club> win it in 5 seasons?" | 3 pilots rendered | S per video | < 15% 3-s hold across 5 clubs |
+| 13.3 | **Real-fixture predictions** — engine run 1,000× | 2 pilots rendered | S per week | shares per 1K views below the account median after 6 weeks |
+| 13.4 | **Sponsor a grassroots side**, film their season in Sunday League | outreach draft ready | M | no local-press pickup and < 2 posts over 10% hold after 8 weeks |
+| 13.5 | **Creator codes via Apple Offer Codes** | verify first | S–M | creator CPI (fee ÷ redemptions) > $3 |
+| 13.6 | **"Beat my save" challenge share card** | not built | M (product) | share-sheet completions < 1% of challenge completions |
+| 13.7 | **Long-form YouTube save series** (FM-style creators) | outreach draft ready | S | no post from 10 contacted creators in 30 days |
+| 13.8 | **Indie showcases / pitch events** | apply per event | S | — |
+
+### 13.1 Google Play
+
+Everything code-side is done; the owner steps are in `docs/android-launch.md`
+(account → products → RevenueCat → closed test → device test → staged
+rollout). The long pole is Google's closed test for new personal accounts
+(12 testers × 14 days) — **start the account today**. Recruiting those 12
+testers is itself content: a pinned comment and one post ("Android testers
+wanted, free Pro for the first 12") on the accounts already running.
+
+Every rendered video exists twice: `-ios.mp4` ("Free on iPhone") to post now
+and `-android.mp4` ("Free on iPhone & Android") for launch day onward
+(`content/videos.md`). Do not post the Android variant before the Play listing
+is public — a CTA that does not resolve is a fail-ad.
+
+Share cards from Android already point at the Play listing
+(`config/legal.ts` `storeUrlFor`), and the listing URL resolves once the app is
+published.
+
+### 13.2 Club-fan long tail
+
+756 real clubs is 756 fan communities who will watch *their* club. One
+template, `postproduction/scenes/club-five-seasons.mjs`, sims five seasons in
+the shipped engine and captions what happened, including the failures. Post it
+where that club's fans already are (club hashtag, the fan subreddit **within
+its rules**, fan Discords that allow it).
+
+- Club names are trademarks. Organic gameplay footage naming the club the game
+  depicts is the lowest-risk use; never a crest as the thumbnail, never
+  "official", never in paid.
+- Pick clubs by fan-base size × "underdog story": Wrexham, Sunderland, Leeds
+  are the pilots. Then rotate the calendar: one club a week, chosen by the
+  comments ("which club next?" is the closing question for a reason).
+
+### 13.3 Real-fixture predictions
+
+`scenes/predict.mjs` runs the real engine 1,000 times with each club's in-game
+XI and reports the win/draw/loss split and the modal score. Post Friday
+evening before the weekend's biggest fixture; post the result on Monday either
+way ("my engine said 1-0, it finished 3-3"). Being wrong publicly is the
+content — it drives the "your engine is rubbish" comments that feed
+distribution.
+
+The caption always says *game squads, not team news*. Never present it as a
+betting tip; do not use betting hashtags.
+
+### 13.4 Grassroots sponsorship
+
+Sponsor one real Sunday League or lower-non-league side (a shirt or a
+training-kit deal is typically within a few hundred pounds — get the actual
+quote) and film their season alongside a save that mirrors it in Sunday
+League mode. It is the only format here with real people who have agreed to be
+filmed, so it carries no likeness risk, and it earns local press.
+
+- Written consent from every player filmed; nothing of minors.
+- One post per real matchday: the real result next to the save's result.
+- Draft approach: `content/outreach.md`.
+
+### 13.5 Creator codes
+
+FC Mobile's creators run on codes. The Apple-sanctioned way is **Offer Codes**
+(App Store Connect → the product → Offer Codes): one code per creator, and
+redemptions are counted per code in ASC, which attributes installs that a
+Custom Product Page link misses (viewers who search instead of tapping).
+
+- **Verify in ASC before promising anything:** that offer codes can be created
+  for our consumable pack products. If only subscriptions support them, the
+  code is a free month of Pro instead — still a fine creator offer.
+- **Not the in-app redeem codes** (`utils/redeemCodes.ts`): Guideline 3.1.1
+  forbids apps unlocking content through their own code mechanisms, and those
+  codes only grant money/XP anyway.
+
+### 13.6 "Beat my save" (product, not built)
+
+Finishing a Challenge (`data/challenges.ts`, e.g. *The Great Escape*) should
+offer a brag card built on the existing share-card system (`utils/shareCard.ts`,
+`ShareMomentButton`): "Escaped relegation in 1 season — beat that", with the
+store link. It is a dare rather than a keepsake (P3 is the keepsake), which is
+what makes people send it to a specific friend. One new card type; no sim
+parameter touched. Until deep links (P4) ship, the link opens the store only.
+
+### 13.7 Long-form YouTube
+
+The FM genre's biggest organic engine is long-form save series. Gift Pro to
+mid-size FM YouTubers (10K–150K subs) and ask for nothing; a viewer who
+watches 20 minutes installs with intent. Draft: `content/outreach.md`.
+
+### 13.8 Showcases
+
+Indie pitch events and showcases (e.g. Pocket Gamer's Big Indie Pitch) put
+the game in front of press and platform people for little or no fee. Check
+each quarter's calendar; the "solo dev" angle from §6.5 is the pitch.
+
+### Not yet: non-English markets
+
+Brazil and Argentina are huge football markets and the store listings are
+localised, but the app itself is English-only (i18n deferred, see CLAUDE.md).
+Content that lands a Portuguese-speaking viewer in an English app buys a
+1-star review. Nordics and other high-English markets are fine.
+
+---
+
 ## Sources
 
 Category and competitors:
