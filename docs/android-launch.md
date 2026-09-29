@@ -18,7 +18,7 @@ Companion files:
 
 | Area | State | Where |
 |---|---|---|
-| Build | Signed release AAB from `android-build.yml` (manual dispatch, `version_code` input) | `.github/workflows/android-build.yml` |
+| Build + upload | Signed release AAB from `android-build.yml` (manual dispatch); version code defaults to the run number; uploads to the `internal` or `alpha` track via fastlane (`android upload` lane) when `play_track` is set | `.github/workflows/android-build.yml`, `fastlane/Fastfile` |
 | Target SDK | 36 (compile 36, min 24) — above Play's new-app floor | `android/variables.gradle` |
 | Package | `com.dynastymanager` — **permanent once uploaded** | `android/app/build.gradle` |
 | Purchases | RevenueCat with a separate `goog_…` key; Play's `subscriptionId:basePlanId` identifiers are normalised back to our product IDs | `utils/purchases.ts` `normalizeStoreProductId` |
@@ -124,19 +124,69 @@ Base plan IDs are free choices (lowercase, digits, hyphens); the code strips
 everything after the colon, so any base plan ID works. Activate the base plans
 and the offers — a draft base plan is invisible to the SDK.
 
-## 6. First upload — by hand
+## 6. Signing key, first upload, upload automation
+
+### 6a. Upload keystore → GitHub secrets (once, ~10 min)
+
+`android-build.yml` signs with a keystore held in four repo secrets. Skip this
+if `KEYSTORE_BASE64` already exists (GitHub → Settings → Secrets and
+variables → Actions).
+
+```bash
+keytool -genkeypair -v -keystore dynasty-manager-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
+```
+
+```bash
+base64 -w0 dynasty-manager-upload.jks > keystore.b64
+```
+
+(`keytool` ships with Android Studio's JDK: `C:/Program Files/Android/Android Studio/jbr/bin/keytool.exe`.
+`base64` works in Git Bash.) Then add the secrets: `KEYSTORE_BASE64` = the
+contents of `keystore.b64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` = `upload`,
+`KEY_PASSWORD`. Back the `.jks` and both passwords up offline, delete
+`keystore.b64`, and never commit either (`*.jks` / `*.keystore` are gitignored).
+
+### 6b. First upload — by hand
 
 Google refuses API uploads until an app has one release made in the Console.
 
-1. GitHub → Actions → **Android Build** → Run workflow: `version_code` = `1`,
-   `version_name` blank. Download the `dynasty-manager-release` artifact.
+1. GitHub → Actions → **Android Build** → Run workflow: `version_code` blank
+   (the run number is used), `version_name` blank, **`play_track` = `none`**.
+   Download the `dynasty-manager-release` artifact.
 2. Console → Testing → **Internal testing** → Create release → upload the AAB.
    Accept **Play App Signing** (Google holds the app signing key; the
    `KEYSTORE_BASE64` secret becomes your *upload* key — back it up offline, and
    losing it means a key-reset request to Google, not a lost app).
 3. Add yourself as an internal tester, install from the opt-in link.
 
-Every later build: bump `version_code` by 1 (Play rejects a reused code).
+### 6c. Upload automation (every later build)
+
+1. Google Cloud console → the project linked to Play (Console → Settings →
+   API access) → **Service accounts** → create one (e.g. `play-ci`) → Keys →
+   Add key → JSON. Enable the **Google Play Android Developer API** on that
+   project.
+2. Play Console → **Users and permissions** → Invite the service account's
+   email → app access: Dynasty Manager → permissions **Release apps to testing
+   tracks** (add *Release to production* only if CI should ever do that — it
+   cannot today, the workflow offers `internal` and `alpha` only).
+3. GitHub secret **`PLAY_SERVICE_ACCOUNT_JSON`** = the whole JSON file.
+4. From now on: Run workflow with everything blank → `play_track` =
+   `internal` (default) → the build lands on internal testing ~40 min later;
+   testers update from the Play Store. `alpha` = the closed-testing track (§8).
+
+- Version codes: blank = the run number, which only increases. If Play says a
+  code is already used (e.g. a hand upload numbered higher), re-run with an
+  explicit higher `version_code`.
+- `play_release_status` = `draft` is only needed if Play answers "Only releases
+  with status draft may be created on draft app" — i.e. nothing has been rolled
+  out yet. Draft releases must then be rolled out by hand in the Console.
+- A missing `PLAY_SERVICE_ACCOUNT_JSON` fails the run in its first step; a
+  failed upload still leaves the AAB as a downloadable artifact.
+- The lane uploads the binary only. Listing text, graphics and release notes
+  stay Console-managed (`marketing/play/`) and are never overwritten.
+
+This service account is separate from RevenueCat's (§7.2) — keep them apart so
+the CI key cannot read financial data.
 
 ## 7. RevenueCat — Android app
 
@@ -154,8 +204,8 @@ Every later build: bump `version_code` by 1 (Play rejects a reused code).
 5. Add the Play packages to the same offerings as iOS (current: yearly,
    monthly, lifetime; `packs`: the four consumables).
 6. Copy the public **`goog_…`** SDK key → GitHub → Settings → Secrets →
-   Actions → `VITE_REVENUECAT_API_KEY_ANDROID`. Re-run step 6.1 with
-   `version_code` = 2 — a build made before the secret existed has no store.
+   Actions → `VITE_REVENUECAT_API_KEY_ANDROID`. Re-run the workflow (§6c) — a
+   build made before the secret existed has no store (purchases fail closed).
 
 ## 8. Closed test (personal accounts: 12 testers × 14 days)
 
@@ -197,11 +247,3 @@ account (Console → Settings → License testing) so nothing is charged:
   not legal advice.
 - Then flip the marketing CTA from "Free on iOS" to "Free on iPhone & Android"
   (video CTA variants are pre-rendered — `marketing/content/videos.md`).
-
-## Upload automation — not done, owner decision
-
-A fastlane `upload_to_play_store` lane + an optional `play_track` input on
-`android-build.yml` would push each AAB to a track automatically (needs a
-`PLAY_SERVICE_ACCOUNT_JSON` secret). Editing the release pipeline was outside
-what this session was permitted to change; until then, step 6's manual upload
-is the release path. It is ~2 minutes per build.
