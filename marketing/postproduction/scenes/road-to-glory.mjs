@@ -5,8 +5,10 @@
  *    EP=3 node capture-app.mjs scenes/road-to-glory.mjs <dir>              */
 import { resume, startCareer, simWeeks, hideHints, kickOff, finishSeason, clearInternationalBreak } from './lib.mjs';
 
-export const profile = 'road';
-export const fresh = process.env.EP === '1';
+// PROFILE/FRESH re-film one episode from its own save when the shared one has
+// moved past it (the caption still reads that save, so it stays true).
+export const profile = process.env.PROFILE || 'road';
+export const fresh = process.env.EP === '1' || !!process.env.FRESH;
 const EP = Number(process.env.EP || 1);
 const CLUB = 'doncaster';
 /** Week each episode is filmed at (season 1 is 46 weeks in the 4th tier). */
@@ -156,15 +158,18 @@ export async function shoot(h) {
     for (let i = 0; i < 80; i++) {
       await h.wait(900);
       const second = h.page.getByRole('button', { name: /start 2nd half/i });
-      if (await second.count()) { await second.first().tap().catch(() => {}); continue; }
-      // Key Moment prompts pause the match until the manager answers.
-      const moment = h.page.getByRole('button', { name: /stay composed|go aggressive|shore up|keep going|push on|stay calm/i });
-      if (await moment.count()) { await moment.first().tap().catch(() => {}); await h.wait(500); continue; }
+      // DOM clicks throughout: these controls sit under the bottom nav at
+      // this viewport, where a tap waits out its timeout and never lands.
+      if (await second.count()) { await second.first().evaluate(b => b.click()).catch(() => {}); continue; }
+      // Key Moment prompts pause the match until the manager answers
+      // (labels from config/keyMoments.ts).
+      const moment = h.page.getByRole('button', { name: /^(go aggressive|stay composed|shore up|park the bus|stay brave|reduce pressure|go for the win|protect the point|keep pushing|stay patient|go direct|drop deep|hold firm)/i });
+      if (await moment.count()) { await moment.first().evaluate(b => b.click()).catch(() => {}); await h.wait(500); continue; }
       const txt = await h.page.evaluate(() => document.body.innerText);
       const min = +((txt.match(/(\d+)'/) || [])[1] || 0);
       if (!skipped && min >= 46) {
         const skip = h.page.getByRole('button', { name: /skip to ft/i });
-        if (await skip.count()) { await skip.first().tap().catch(() => {}); skipped = true; h.mark('drop'); }
+        if (await skip.count()) { await skip.first().evaluate(b => b.click()).catch(() => {}); skipped = true; h.mark('drop'); }
       }
       if (/full time|full-time/i.test(txt) || (skipped && i > 2 && !/(\d+)'/.test(txt))) break;
     }
