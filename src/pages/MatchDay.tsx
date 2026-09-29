@@ -589,7 +589,7 @@ const MatchDayInner = () => {
       const key = `losing-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
-        return { type: 'losing_late', description: `You trail with 20 minutes left. Time for changes?` };
+        return { type: 'losing_late', description: `You trail with ${90 - minute} minutes left. Time for changes?` };
       }
     }
 
@@ -652,6 +652,11 @@ const MatchDayInner = () => {
   // full event list. Reset whenever allEvents reference changes (new half).
   const eventCursorRef = useRef(0);
   useEffect(() => { eventCursorRef.current = 0; }, [allEvents]);
+
+  // Wall-clock per match minute. The pitch view floors it so play is legible;
+  // the pitch is paced by this SAME value — it used to get the raw speed, so at
+  // Turbo/Instant it played a minute in 825/330ms, then froze until the tick.
+  const tickMs = matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED);
 
   // Animate events for current half
   useEffect(() => {
@@ -758,9 +763,9 @@ const MatchDayInner = () => {
         clearInterval(intervalRef.current!);
         setKeyMoment(moment);
       }
-    }, matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED));
+    }, tickMs);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused, goalPause, confirmSkip, matchView]);
+  }, [phase, allEvents, tickMs, keyMoment, paused, goalPause, confirmSkip]);
 
   // Persist speed preference to settings so it carries across matches.
   // Intentionally depends only on `speed`: `settings.matchSpeed` would cause
@@ -1033,6 +1038,10 @@ const MatchDayInner = () => {
     let hShots = 0, aShots = 0, hSoT = 0, aSoT = 0, hFouls = 0, aFouls = 0;
     let hGoals = 0, aGoals = 0, hYellows = 0, aYellows = 0, hReds = 0, aReds = 0;
     let lastMomentum = 0, lastHomeXG = 0, lastAwayXG = 0;
+    // Injured players still on the pitch count as off until they are replaced
+    // (a side with no subs left plays on a man short — the header said 11).
+    const hInjuredOff = new Set<string>(), aInjuredOff = new Set<string>();
+    let prev: MatchEvent | undefined;
     for (const ev of visibleEvents) {
       if (!matchHomeClubId) continue;
       const isHomeEv = ev.clubId === matchHomeClubId;
@@ -1043,8 +1052,13 @@ const MatchDayInner = () => {
       } else if (ev.type === 'shot_missed' || ev.type === 'hit_woodwork') {
         if (isHomeEv) hShots++; else aShots++;
       } else if (ev.type === 'foul' || ev.type === 'yellow_card' || ev.type === 'red_card') {
-        if (isHomeEv) hFouls++; else aFouls++;
+        // A second yellow is emitted as yellow_card + red_card for ONE foul.
+        const secondYellow = ev.type === 'red_card' && prev?.type === 'yellow_card' && prev.playerId === ev.playerId && prev.minute === ev.minute;
+        if (!secondYellow) { if (isHomeEv) hFouls++; else aFouls++; }
       }
+      if (ev.type === 'injury' && ev.playerId) (isHomeEv ? hInjuredOff : aInjuredOff).add(ev.playerId);
+      if (ev.type === 'substitution' && ev.assistPlayerId) (isHomeEv ? hInjuredOff : aInjuredOff).delete(ev.assistPlayerId);
+      prev = ev;
       if (isScoreChangingEvent(ev)) { if (isHomeEv) hGoals++; else aGoals++; }
       if (ev.type === 'yellow_card') { if (isHomeEv) hYellows++; else aYellows++; }
       if (ev.type === 'red_card') { if (isHomeEv) hReds++; else aReds++; }
@@ -1055,6 +1069,7 @@ const MatchDayInner = () => {
       hShots, aShots, hSoT, aSoT, hFouls, aFouls,
       hGoals, aGoals, hYellows, aYellows, hReds, aReds,
       lastMomentum, lastHomeXG, lastAwayXG,
+      hInjuredOff: hInjuredOff.size, aInjuredOff: aInjuredOff.size,
     };
   }, [visibleEvents, matchHomeClubId]);
 
@@ -1098,8 +1113,8 @@ const MatchDayInner = () => {
   const awayYellowCards = liveStats.aYellows;
   const homeRedCards = liveStats.hReds;
   const awayRedCards = liveStats.aReds;
-  const homePlayersOnPitch = Math.max(7, 11 - homeRedCards);
-  const awayPlayersOnPitch = Math.max(7, 11 - awayRedCards);
+  const homePlayersOnPitch = Math.max(7, 11 - homeRedCards - liveStats.hInjuredOff);
+  const awayPlayersOnPitch = Math.max(7, 11 - awayRedCards - liveStats.aInjuredOff);
 
   // Use firstHalfState for half-time display
   const htHomeGoals = firstHalfState?.homeGoals ?? homeGoals;
@@ -1391,8 +1406,8 @@ const MatchDayInner = () => {
                   players={players}
                   orientation={matchView === 'split' ? 'landscape' : 'portrait'}
                   showOverall={settings.showOverallOnPitch}
-                  reducedMotion={settings.reducedMotion || settings.performanceMode}
-                  msPerMinute={speed}
+                  reducedMotion={reduceMotion}
+                  msPerMinute={tickMs}
                   showScoreBug={false}
                 />
               </Suspense>
@@ -1798,8 +1813,8 @@ const MatchDayInner = () => {
                     players={players}
                     orientation={matchView === 'split' ? 'landscape' : 'portrait'}
                     showOverall={settings.showOverallOnPitch}
-                    reducedMotion={settings.reducedMotion || settings.performanceMode}
-                    msPerMinute={speed}
+                    reducedMotion={reduceMotion}
+                    msPerMinute={tickMs}
                     showScoreBug={false}
                   />
                 </Suspense>
@@ -1846,7 +1861,7 @@ const MatchDayInner = () => {
                 <div>
                   <button
                     onClick={() => setShowFitness(!showFitness)}
-                    className="flex items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
+                    className="flex min-h-[44px] items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
                   >
                     <Users className="w-3 h-3" /> Squad Fitness
                     {showFitness ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
@@ -1916,7 +1931,7 @@ const MatchDayInner = () => {
                 <div>
                   <button
                     onClick={() => setShowStats(!showStats)}
-                    className="flex items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
+                    className="flex min-h-[44px] items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
                   >
                     <BarChart3 className="w-3 h-3" /> Match Stats
                     {showStats ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}

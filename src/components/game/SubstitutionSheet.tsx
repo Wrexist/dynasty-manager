@@ -555,7 +555,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
       {selectedOutId && !selectedInId && (
         <button
           onClick={handleCancel}
-          className="mt-2 text-micro text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-1 min-h-[44px] text-micro text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           <ArrowLeft className="w-3 h-3" /> Back to full lineup
         </button>
@@ -640,7 +640,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               {forceMode && (
                 <button
                   onClick={() => { hapticLight(); onDismissWithoutSub?.(); }}
-                  className="w-full mt-3 py-2.5 rounded-lg bg-muted/20 border border-border/30 text-xs text-muted-foreground hover:bg-muted/40 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full mt-3 min-h-[44px] py-2.5 rounded-lg bg-muted/20 border border-border/30 text-xs text-muted-foreground hover:bg-muted/40 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <AlertCircle className="w-3 h-3" /> Continue without substitution
                 </button>

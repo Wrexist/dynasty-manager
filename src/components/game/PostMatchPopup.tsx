@@ -278,7 +278,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
           {lost && hasPerk(managerProgression, 'invincible') && !invincibleUsedThisSeason && preMatchSnapshot && (
             <button
               onClick={() => { hapticHeavy(); rewindMatch(); }}
-              className="w-full flex items-center justify-center gap-2 h-10 mb-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-sm font-bold hover:bg-amber-500/25 transition-all"
+              className="w-full flex items-center justify-center gap-2 h-11 mb-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-sm font-bold hover:bg-amber-500/25 transition-all"
             >
               <RotateCcw className="w-4 h-4" /> Rewind Match (1 per season)
             </button>
