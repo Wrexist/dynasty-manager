@@ -57,7 +57,7 @@ TikTok's Commercial Music Library, synced to the walkout flash.
 | 15 | Mon 12 Oct | P-road | EP.3 — TOP OF THE TABLE? | Predict where we finish | Road to Glory |
 | 16 | Tue 13 Oct | A02 (new hero) | RATE MY PULL 1–10 | Round 2 | — |
 | 17 | Wed 14 Oct | P-sun | SUNDAY LEAGUE: THE KIT MONEY'S GONE | Funniest excuse for missing a game? | Sunday League |
-| 18 | Thu 15 Oct | P-road | EP.4 — DERBY DAY | Worst derby loss you've had? | Road to Glory |
+| 18 | Thu 15 Oct | P-road | EP.4 — BIGGEST GAME YET | Worst result you've had in a save? | Road to Glory |
 | 19 | Fri 16 Oct | A04 | THE MANAGER GAME WITHOUT TIMERS | Play at your own pace | — |
 | 20 | Sat 17 Oct | S-card ×3 carousel | 3 PULLS, 1 SPOT IN THE XI | Who starts? | — |
 | 21 | Sun 18 Oct | P-luck | PACK LUCK · DAY 14 | Two weeks unbroken | Pack Luck Week |
@@ -73,6 +73,37 @@ TikTok's Commercial Music Library, synced to the walkout flash.
 
 Check the real Ballon d'Or ceremony date and move day 27 so it posts that
 evening.
+
+## Rendered videos (2026-09-29)
+
+Every row above that uses a capture exists as a finished file — 1080×1920,
+60 fps, owned synthesised score, brand end card — in two variants:
+`<id>-ios.mp4` ("Free on iPhone") to post now, and `<id>-android.mp4`
+("Free on iPhone & Android") for after the Play launch. The list, file names
+and post captions are in `videos.md`; the source of truth is `videos.mjs`, and
+`node marketing/postproduction/render-calendar.mjs` regenerates them.
+
+Changes from the table as first written:
+- **Day 18** was "EP.4 — DERBY DAY". The 4th tier has no modelled derby
+  (`DERBIES` in `data/league.ts` has none there), so a derby caption would be
+  false. It is now the season's biggest game, captioned with both clubs' real
+  table positions.
+- **Road to Glory and Sunday League captions are read from the save.** If the
+  season went badly, the episode says so. Re-rendering re-simulates, so a
+  re-render tells a different (equally true) story — post a series from one
+  render.
+- **Day 20** (S-card carousel) and **day 29** (re-cut of the best performer)
+  are not pre-rendered: the first uses real share cards from the day's pulls,
+  the second depends on the analytics.
+
+## Android launch beats (add when the Play listing is live)
+
+| When | Post | Notes |
+|---|---|---|
+| Closed test starts | "Android testers wanted" (`outreach.md` §4) + pinned comment | 12 testers × 14 days is Google's gate |
+| Launch day | Best-performing video so far, re-posted as its `-android` variant, caption "Now on Android" | Only once the Play URL resolves |
+| Launch day | Discord + press email (`outreach.md` §5) | |
+| From launch on | Switch every post to `-android` variants | Pinned comment: "Free on iPhone & Android — search Dynasty Manager" |
 
 ## Weekly review (Monday, 15 minutes)
 

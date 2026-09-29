@@ -164,3 +164,49 @@ Preview. Nobody has listened to the mix on a phone yet. The balance was set by
 band-energy measurement, keeping the 150–2000 Hz band at 30–50%, because a
 phone speaker plays almost nothing below 150 Hz. An on-device listen is the
 check still owed.
+
+## The real app: `capture-app.mjs` + `scenes/`
+
+`capture-ad.mjs` films components in `capture.html`. The story series (Road to
+Glory, Sunday League, Pack Luck, the pilots) need a real save moving through
+real weeks, so `capture-app.mjs` drives `index.html` itself:
+
+- **State goes through the app's own store.** Vite dev serves
+  `/src/store/gameStore.ts`, and a dynamic `import()` of that URL inside the
+  page returns the *same* instance the app renders from. Scenes call real
+  actions (`initGame`, `playCurrentMatch`, `advanceWeek`, `endSeason`,
+  `openPack` via the UI). Nothing is mocked except what is mocked off-device
+  anyway (purchases).
+- **Setup is un-recorded and runs at 1×; the take runs dilated** (same clock
+  patch as capture-ad, but with a variable rate, so a season of sims does not
+  crawl).
+- **Persistent profiles** (`.cache/profiles/<name>`) keep a save between runs,
+  so Road to Glory episode 5 continues the episode-4 save. `fresh = true` in a
+  scene wipes its profile.
+- **Captions are DOM overlays written from state** (`h.caption`), and beats
+  are logged with `h.mark('drop')` into `marks.json`, which
+  `render-calendar.mjs` turns into the score's cue sheet.
+- **Viewport is 390×693 (exactly 9:16)**, so the encoder's centre crop removes
+  nothing.
+
+Things the scenes had to learn (all in `scenes/lib.mjs`):
+- `advanceWeek()` never ends a season — `endSeason()` does, when
+  `isSeasonOver`; and for a play-off club it first *enters* the play-off, and
+  the season rolls only after `playCurrentMatch()` has played each tie.
+- A new season can open on an international tournament waiting for the
+  national squad: `clearInternationalBreak` taps "Auto-pick best 23" and
+  locks in (a DOM click — the button sits under the bottom nav at 693 px).
+- Turbo and Instant match speed are Pro; tapping them opens the paywall. Use
+  Fast plus the free in-match 2×.
+- Store labels are CSS-uppercased: match `getByText` with a case-insensitive
+  RegExp, and allow whitespace between nodes (`/free\s*75\+/i`).
+
+```bash
+npm run dev -- --host 127.0.0.1
+node marketing/postproduction/render-calendar.mjs            # everything missing
+node marketing/postproduction/render-calendar.mjs road --force  # one series again
+node marketing/postproduction/videos-md.mjs                  # refresh content/videos.md
+```
+
+`finish-video.mjs` appends the end card (`endcard.html`) and lays the
+synthesised score, writing `-ios` and `-android` CTA variants of every video.

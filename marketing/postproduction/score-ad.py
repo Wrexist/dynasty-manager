@@ -7,6 +7,7 @@ usage: python3 marketing/postproduction/score-ad.py <style> <cue> <duration> <ou
 needs: pip install numpy scipy
 styles: anthem | phonk | cinematic | preview
 """
+import json
 import sys
 import numpy as np
 from scipy.signal import butter, sosfilt, fftconvolve
@@ -381,7 +382,9 @@ CUES = {
 
 if __name__ == '__main__':
     style, cue, dur, out = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
-    cues = dict(CUES[cue])
+    # A cue may also be inline JSON — capture-app.mjs takes write their own
+    # beat times (marks.json), so their score is cut to the actual take.
+    cues = dict(CUES[cue]) if not cue.startswith('{') else json.loads(cue)
     if len(sys.argv) > 5:
         # Re-rolled takes land the rating a few frames apart (the count-up
         # length depends on the card). Shift every beat after the flips by

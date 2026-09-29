@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- End card appended to every video by finish-video.mjs. ?v=ios|all.
+     Brand only — no player, no face, no name (PLAYBOOK §4). -->
+<html><head><meta charset="utf-8"><style>
+  @font-face { font-family: Oswald; font-weight: 700; src: url(../../node_modules/@fontsource/oswald/files/oswald-latin-700-normal.woff2); }
+  @font-face { font-family: DMSans; font-weight: 500; src: url(../../node_modules/@fontsource/dm-sans/files/dm-sans-latin-500-normal.woff2); }
+  html,body { margin:0; width:1080px; height:1920px; overflow:hidden; }
+  body { background: radial-gradient(ellipse 80% 50% at 50% 42%, #3a2a08 0%, #10131b 58%, #080a10 100%);
+         display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  img { width:300px; filter: drop-shadow(0 10px 40px rgba(234,179,8,.5)); }
+  h1 { margin:40px 0 0; font-family:Oswald; font-size:150px; line-height:.9; color:#f4f4f5; }
+  h2 { margin:14px 0 0; font-family:Oswald; font-size:66px; letter-spacing:.3em; color:#e8ad0c; padding-left:.3em; }
+  .pill { margin-top:90px; padding:26px 54px; border-radius:999px; background:#e8ad0c; color:#11141c;
+          font-family:Oswald; font-size:62px; text-transform:uppercase; }
+  p { margin:40px 0 0; font-family:DMSans; font-weight:500; font-size:44px; color:#c9c9cf; }
+</style></head><body>
+  <img src="../../public/logo.webp">
+  <h1>DYNASTY</h1><h2>MANAGER</h2>
+  <div class="pill" id="pill"></div>
+  <p>Search “Dynasty Manager”</p>
+<script>
+  const v = new URLSearchParams(location.search).get('v');
+  document.getElementById('pill').textContent = v === 'all' ? 'Free on iPhone & Android' : 'Free on iPhone';
+</script>
+</body></html>

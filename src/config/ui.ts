@@ -514,3 +514,20 @@ export const TEAM_TALK_OPTIONS = [
  *  so flipping this back on (or dropping `comingSoon` when it ships) is the
  *  whole re-enable. */
 export const SHOW_COMING_SOON_MODES = false;
+
+// ── Ballon d'Or Night (the 10→1 ceremony) ──
+// Pacing for BallonDorCeremony. Ranks below `podiumFrom` flip fast — the
+// countdown is the build-up, and ten slow reveals would bury it; the podium
+// slows down; the winner gets the full pack walkout (PACK_ANIM.walkout).
+export const BALLON_DOR_CEREMONY = {
+  /** Ranks at or above this number (3, 2) get the slow podium reveal. */
+  podiumFrom: 3,
+  /** Face-down card rising into the spotlight. */
+  dealMs: 520,
+  /** Card flip for ranks 10–4. */
+  flipMs: 620,
+  /** Card flip for the podium (3, 2). */
+  podiumFlipMs: 1050,
+  /** "And the Ballon d'Or goes to…" — the held breath before the walkout. */
+  drumrollMs: 1800,
+} as const;

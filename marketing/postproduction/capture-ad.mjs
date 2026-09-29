@@ -147,8 +147,9 @@ if (PLAN === 'icon') {
   //
   // NO TAPS. A one-card pack rips and walks out on its own as soon as it
   // mounts; the blind tap loop the 5-card plans use skipped straight past the
-  // walkout to the summary. Just hold and let it play.
-  await wait(9000);
+  // walkout to the summary. Just hold and let it play. ICON_HOLD lengthens
+  // the take so the finished card can sit on screen after it lands.
+  await wait(Number(process.env.ICON_HOLD || 9000));
 }
 
 if (PLAN === 'squad') {

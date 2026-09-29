@@ -9,7 +9,7 @@
 // `detectShareCapability`). There is no clipboard tier — you can't reliably put
 // a PNG on the clipboard inside WKWebView.
 import { Capacitor } from '@capacitor/core';
-import { APP_STORE_URL } from '@/config/legal';
+import { APP_STORE_URL, storeUrlFor } from '@/config/legal';
 import { getPlayerCardArt } from '@/utils/uiHelpers';
 import { getPlayerPortrait } from '@/utils/playerPortrait';
 import type { Player } from '@/types/game';
@@ -233,6 +233,11 @@ const PACK_CARD_TOP = 320;
  *  also carries the full URL). */
 export const APP_STORE_LINK_TEXT = APP_STORE_URL.replace(/^https?:\/\//, '');
 
+/** The link printed on a card shared from `platform` — Play on Android. */
+export function storeLinkTextFor(platform: string): string {
+  return storeUrlFor(platform).replace(/^https?:\/\//, '');
+}
+
 /** Build the pack best-pull card from a pulled player. Pure. The portrait goes
  *  through the same resolver as `PlayerCard`, so it appears on the share card
  *  exactly when it appears in the app. The name is read only by that resolver
@@ -338,7 +343,7 @@ export function drawPackPullCard(
 
   ctx.fillStyle = MUTED;
   ctx.font = `600 34px ${BODY_FONT}`;
-  ctx.fillText(APP_STORE_LINK_TEXT, cx, h - 120);
+  ctx.fillText(storeLinkTextFor(Capacitor.getPlatform()), cx, h - 120);
 }
 
 /** Best-effort pre-check for whether a share/download path exists at all, so
@@ -457,7 +462,7 @@ async function tryShareFile(blob: Blob, filename: string, message: string): Prom
     if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return null;
     const file = new File([blob], filename, { type: 'image/png' });
     if (!navigator.canShare({ files: [file] })) return null;
-    await navigator.share({ files: [file], text: message, url: APP_STORE_URL, title: 'Dynasty Manager' });
+    await navigator.share({ files: [file], text: message, url: storeUrlFor(Capacitor.getPlatform()), title: 'Dynasty Manager' });
     return { ok: true, method: 'share' };
   } catch (err) {
     // User dismissed the sheet — a deliberate cancel, not a fall-through.

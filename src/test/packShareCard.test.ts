@@ -11,6 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   APP_STORE_LINK_TEXT,
+  storeLinkTextFor,
   CARD_HEIGHT,
   CARD_WIDTH,
   buildMomentFilename,
@@ -88,6 +89,12 @@ describe('drawPackPullCard', () => {
     expect(fillTexts).toContain('Pulled in Dynasty Manager');
     expect(fillTexts).toContain(APP_STORE_LINK_TEXT);
     expect(APP_STORE_LINK_TEXT).toBe('apps.apple.com/app/id6760918006');
+  });
+
+  it('points an Android share at Google Play, every other platform at the App Store', () => {
+    expect(storeLinkTextFor('android')).toBe('play.google.com/store/apps/details?id=com.dynastymanager');
+    expect(storeLinkTextFor('ios')).toBe(APP_STORE_LINK_TEXT);
+    expect(storeLinkTextFor('web')).toBe(APP_STORE_LINK_TEXT);
   });
 
   it('carries the portrait exactly when the in-app card shows one', () => {

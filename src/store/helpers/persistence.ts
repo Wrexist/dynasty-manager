@@ -436,6 +436,11 @@ export const STORAGE_KEYS = {
    *  (`dynasty-hint-<screen>-shown`, see PageHint.tsx). Cleared as a prefix
    *  by Settings → Replay Tutorial. */
   HINT_PREFIX: 'dynasty-hint-',
+  /** localStorage flag prefix: a Ballon d'Or ceremony has been watched
+   *  (`dynasty-bdo-seen-<careerKey>-<season>`, see utils/ballonDorCeremony.ts).
+   *  Device-level on purpose — "have I watched this reveal" is about this
+   *  screen, not the career, so it stays out of the save (no schema bump). */
+  BALLON_CEREMONY_PREFIX: 'dynasty-bdo-seen-',
   /** localStorage: the user's preferred MatchDay view (`pitch`/`commentary`/
    *  `split`). A pure UI preference kept device-global so it survives app
    *  restarts; not part of any save slot. */
