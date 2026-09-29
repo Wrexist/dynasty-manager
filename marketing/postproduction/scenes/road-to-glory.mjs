@@ -157,6 +157,9 @@ export async function shoot(h) {
       await h.wait(900);
       const second = h.page.getByRole('button', { name: /start 2nd half/i });
       if (await second.count()) { await second.first().tap().catch(() => {}); continue; }
+      // Key Moment prompts pause the match until the manager answers.
+      const moment = h.page.getByRole('button', { name: /stay composed|go aggressive|shore up|keep going|push on|stay calm/i });
+      if (await moment.count()) { await moment.first().tap().catch(() => {}); await h.wait(500); continue; }
       const txt = await h.page.evaluate(() => document.body.innerText);
       const min = +((txt.match(/(\d+)'/) || [])[1] || 0);
       if (!skipped && min >= 46) {
