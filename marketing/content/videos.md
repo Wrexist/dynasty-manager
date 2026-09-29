@@ -43,7 +43,7 @@ pilots caption what the engine actually did in that render.
 | 12 | `day12-sunday-ep1` | ✅ | 4.6 | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
 | 17 | `day17-sunday-ep2` | ✅ | 1.3 | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
 | 24 | `day24-sunday-ep3` | ✅ | 4.1 | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
-| 27 | `day27-ballon-dor` | ✅ | 5.6 | Who wins the Ballon d'Or in my save? Guess before the end. #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 27 | `day27-ballon-dor` | ✅ | 22.4 | Who wins the Ballon d'Or in my save? Guess before the end. #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | pilot | `pilot-club-wrexham` | ✅ | 1.3 | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
 | pilot | `pilot-club-sunderland` | ✅ | 1.3 | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
 | pilot | `pilot-club-leeds-united` | ✅ | 1.1 | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
