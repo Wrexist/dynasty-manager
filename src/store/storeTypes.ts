@@ -125,6 +125,10 @@ export interface GameState {
   /** Highest minute the interactive second half has been simulated to. Drives
    *  segmented resumption so in-play subs and shouts affect later minutes.
    *  Transient — reset with the rest of the match state, never persisted. */
+  /** Highest first-half minute simulated (0 before kickoff). The live first
+   *  half is simulated in segments like the second; not persisted — a reload
+   *  replays the match from kickoff (R14). */
+  firstHalfSimulatedTo: number;
   secondHalfSimulatedTo: number;
   /** Player ids substituted OFF during the current match (transient — NOT
    *  persisted; reset each match alongside matchSubsUsed). makeMatchSub
@@ -453,7 +457,7 @@ export interface GameState {
 
   // Actions — Match
   playCurrentMatch: () => Match | null;
-  playFirstHalf: () => HalfState | null;
+  playFirstHalf: (untilMin?: number) => HalfState | null;
   playSecondHalf: (untilMin?: number) => Match | null;
   playExtraTime: () => Match | null;
   playPenalties: () => void;

@@ -49,12 +49,12 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { PAGE_HINTS, GOAL_FLASH_MS, LIVE_PITCH_CHROME_PX, LIVE_PITCH_MIN_WIDTH_PX } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
-import { canSkipToFullTime, playOutSecondHalf } from '@/utils/skipToFullTime';
+import { canSkipToFullTime, playOutFirstHalf, playOutSecondHalf } from '@/utils/skipToFullTime';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
-import { GOAL_EVENT_TYPES, GOAL_SHOT_TYPES, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
+import { FIRST_HALF_SEGMENTS, GOAL_EVENT_TYPES, GOAL_SHOT_TYPES, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
 const isGoalEvent = (e: MatchEvent) => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type);
 const isScoreChangingEvent = (e: MatchEvent) => isGoalEvent(e) || e.type === 'own_goal';
 
@@ -396,7 +396,9 @@ const MatchDayInner = () => {
     // the kickoff whistle. The crowd bed starts via the live-phase effect.
     resumeSfx();
     sfxWhistle();
-    const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
+    // Only the first segment: the rest of the half is simulated as the clock
+    // reaches it, so decisions made during the first half count too.
+    const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf(FIRST_HALF_SEGMENTS[0]);
     // A null here used to be the end of it: the button did nothing, no toast, no
     // navigation, and the save was stuck on that fixture forever. The engine now
     // fields an emergency XI rather than refuse (`buildPlayerMatchXI`), so this
@@ -421,6 +423,7 @@ const MatchDayInner = () => {
         awayClub: freshClubs[match.awayClubId] ?? awayClub,
       };
     }
+    firstHalfFrontierRef.current = isWorldCup ? 45 : FIRST_HALF_SEGMENTS[0];
     setFirstHalfState(halfState);
     setAllEvents(halfState.events);
     setPhase('first_half');
@@ -440,6 +443,9 @@ const MatchDayInner = () => {
   // the half). Mirrors the store's `secondHalfSimulatedTo`; kept as a ref so the
   // interval callback reads it without re-subscribing.
   const secondHalfFrontierRef = useRef(45);
+  // Same for the first half (0 before kickoff), mirroring `firstHalfSimulatedTo`.
+  const firstHalfFrontierRef = useRef(0);
+  const extendFirstHalfRef = useRef<((untilMin: number) => HalfState | null) | null>(null);
   // Held in refs so the match-clock interval can extend the simulation without
   // listing these in its dep array — re-creating the interval mid-match would
   // reset the tick cadence. Same pattern as `matchPhaseRef` / `checkKeyMomentRef`.
@@ -638,6 +644,7 @@ const MatchDayInner = () => {
   const matchPhaseRef = useRef(matchPhase);
   matchPhaseRef.current = matchPhase;
   extendSecondHalfRef.current = playSecondHalf;
+  extendFirstHalfRef.current = playFirstHalf;
   isWorldCupRef.current = isWorldCup;
 
   // Forward-only pointer into allEvents so each tick advances by O(k) where k
@@ -685,9 +692,30 @@ const MatchDayInner = () => {
       // Extend the simulation when the clock reaches the frontier. `playSecondHalf`
       // re-reads the CURRENT lineup/subs/shouts each time, which is what makes an
       // in-play decision matter. World Cup mode keeps the single-shot path.
+      // Simulate the minute the clock is about to show, and no further: a
+      // decision made at minute M then shapes M+1 onward.
+      if (phase === 'first_half' && !isWorldCupRef.current) {
+        const frontier = firstHalfFrontierRef.current;
+        if (frontier < 45 && next > frontier) {
+          const nextBoundary = FIRST_HALF_SEGMENTS.find(b => b > frontier) ?? 45;
+          try {
+            const extended = extendFirstHalfRef.current?.(nextBoundary) ?? null;
+            if (extended) {
+              firstHalfFrontierRef.current = nextBoundary;
+              setFirstHalfState(extended);
+              setAllEvents(extended.events);
+            } else {
+              firstHalfFrontierRef.current = 45;
+            }
+          } catch (err) {
+            Sentry.captureException(err, { tags: { context: 'firstHalfSegment' } });
+            firstHalfFrontierRef.current = 45;
+          }
+        }
+      }
       if (phase === 'second_half' && !isWorldCupRef.current) {
         const frontier = secondHalfFrontierRef.current;
-        if (frontier < 90 && next >= frontier) {
+        if (frontier < 90 && next > frontier) {
           const nextBoundary = SECOND_HALF_SEGMENTS.find(b => b > frontier) ?? 90;
           try {
             const extended = extendSecondHalfRef.current?.(nextBoundary) ?? null;
@@ -892,6 +920,12 @@ const MatchDayInner = () => {
     try {
       let reachedExtraTimeBreak = from === 'extra_time_break';
       if (from === 'first_half' || from === 'half_time' || from === 'second_half') {
+        // = the clock simulating the rest of the first half, segment by segment
+        if (from === 'first_half' && !isWorldCup) {
+          const out = playOutFirstHalf(firstHalfFrontierRef.current, playFirstHalf);
+          firstHalfFrontierRef.current = out.frontier;
+          if (out.match) { events = out.match.events; setFirstHalfState(out.match); }
+        }
         if (from !== 'second_half') {
           // = "Start 2nd Half" (resumeSecondHalf)
           const started = isWorldCup ? playWorldCupSecondHalf() : playSecondHalf(SECOND_HALF_SEGMENTS[0]);

@@ -146,20 +146,20 @@ export const DEFENSE_QUALITY_FALLBACK = 0.3;
 export const GK_DEFENDING_WEIGHT = 0.4;
 export const GK_MENTAL_WEIGHT = 0.3;
 export const GK_PHYSICAL_WEIGHT = 0.3;
-/** Minute boundaries the interactive second half is simulated up to, in order.
+/** Minute boundaries the interactive halves are simulated up to, in order.
  *
- *  The second half used to be simulated 46->90 in ONE call, with MatchDay merely
- *  revealing a pre-computed event array on a timer. So a substitution made during
- *  playback changed the lineup and fabricated an event but could not affect a
- *  single subsequent minute; a touchline shout did nothing at all; and the
- *  marquee key-moment overlay was cosmetic for everything after minute 45.
+ *  A half used to be simulated in one call, with MatchDay merely revealing a
+ *  pre-computed event array on a timer, so a substitution, a touchline shout or
+ *  a key-moment choice changed nothing until the next boundary. The second half
+ *  was cut at [60, 75, 90] — everything decided after 75' was theatre (the
+ *  "Waste" shout is only offered from 80') — and the first half not at all: a
+ *  player subbed off at 20' could still score at 40'.
  *
- *  `simulateHalf` already accepts an arbitrary `startMin`/`endMin` and a
- *  `prevState` to resume from (extra time has always used it), so the fix is to
- *  simulate up to the next boundary only, then resume with whatever the player has
- *  changed. Boundaries sit near the existing key-moment minutes so a decision
- *  prompted by the overlay lands before the segment it is meant to influence. */
-export const SECOND_HALF_SEGMENTS = [60, 75, 90] as const;
+ *  `simulateHalf` resumes from any minute with a `prevState`, so both halves are
+ *  now simulated one minute at a time, as the clock reaches each minute: a
+ *  decision made at minute M shapes minute M+1 onward. */
+export const FIRST_HALF_SEGMENTS: readonly number[] = Array.from({ length: 45 }, (_, i) => i + 1);
+export const SECOND_HALF_SEGMENTS: readonly number[] = Array.from({ length: 45 }, (_, i) => i + 46);
 
 export const GK_SAVE_BASE = 0.18;
 export const GK_SAVE_RANGE = 0.28;
@@ -613,8 +613,6 @@ export const SHOUT_MODIFIERS = {
   time_waste: { eventChanceReduction: 0.15, stoppageTimeAdd: 1, fitnessDrainMod: 1.05 },
 } as const;
 
-/** Scale factor for cumulative shout effects on second-half simulation (0.5 = half as strong as team talks) */
-export const SHOUT_CUMULATIVE_SCALE = 0.5;
 
 // ── Tactical Insight Thresholds ──
 /** Minimum tactical bonus to show an insight pill */

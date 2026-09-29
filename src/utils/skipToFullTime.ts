@@ -9,7 +9,7 @@
  * match run the same simulation with the same inputs.
  */
 
-import { SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
+import { FIRST_HALF_SEGMENTS, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
 import { SKIP_TO_FULL_TIME_PHASES } from '@/config/matchSpeed';
 import type { Match, MatchDayPhase } from '@/types/game';
 
@@ -32,12 +32,30 @@ export function playOutSecondHalf(
   frontier: number,
   extend: (untilMin: number) => Match | null,
 ): { match: Match | null; frontier: number } {
+  return playOutHalf(frontier, 90, SECOND_HALF_SEGMENTS, extend);
+}
+
+/** The first-half counterpart: kickoff simulates only the first segment, so a
+ *  skip from the first half plays the rest of it out the way the clock would. */
+export function playOutFirstHalf<T>(
+  frontier: number,
+  extend: (untilMin: number) => T | null,
+): { match: T | null; frontier: number } {
+  return playOutHalf(frontier, 45, FIRST_HALF_SEGMENTS, extend);
+}
+
+function playOutHalf<T>(
+  frontier: number,
+  end: number,
+  segments: readonly number[],
+  extend: (untilMin: number) => T | null,
+): { match: T | null; frontier: number } {
   let reached = frontier;
-  let last: Match | null = null;
-  while (reached < 90) {
-    const nextBoundary = SECOND_HALF_SEGMENTS.find(b => b > reached) ?? 90;
+  let last: T | null = null;
+  while (reached < end) {
+    const nextBoundary = segments.find(b => b > reached) ?? end;
     const extended = extend(nextBoundary);
-    if (!extended) return { match: last, frontier: 90 };
+    if (!extended) return { match: last, frontier: end };
     last = extended;
     reached = nextBoundary;
   }

@@ -18,7 +18,7 @@ import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENA
 import { recordPlayerPlayoffResult } from '@/store/slices/orchestration/playoff';
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
-import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
+import { SHOUT_DURATION, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
 import { mergeGamePlanMods } from '@/config/gamePlan';
 import { advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
@@ -406,19 +406,33 @@ function processTournamentResultWithWinner(
   return { stateUpdates: updates, cleanedPlayers };
 }
 
-function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[]) {
-  if (matchShouts.length === 0) return { attackMod: 0, defenseMod: 0, foulMod: 0 };
+/**
+ * Touchline shouts over the simulated stretch `segStart..segEnd`.
+ *
+ * A shout covers the SHOUT_DURATION minutes after the one it was called in —
+ * what the UI promises ("Effect active for 5 minutes"). Each shout counts by
+ * the share of the stretch it overlaps. It used to be summed cumulatively at
+ * half strength for the REST of the match, applied only from the next
+ * segment boundary, because the match could not be simulated finely enough to
+ * honour a window; both halves are now simulated a minute at a time.
+ */
+export function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS; startMinute: number }[], segStart: number, segEnd: number) {
+  const len = Math.max(1, segEnd - segStart + 1);
   let aMod = 0, dMod = 0, fMod = 0;
   for (const s of matchShouts) {
+    const from = s.startMinute + 1;
+    const to = s.startMinute + SHOUT_DURATION;
+    const overlap = Math.min(to, segEnd) - Math.max(from, segStart) + 1;
+    if (overlap <= 0) continue;
+    const w = overlap / len;
     const m = SHOUT_MODIFIERS[s.type];
-    if ('attackMod' in m) aMod += m.attackMod;
-    if ('defenseMod' in m) dMod += m.defenseMod;
-    if ('cardReduction' in m) fMod -= m.cardReduction;
+    if ('attackMod' in m) aMod += m.attackMod * w;
+    if ('defenseMod' in m) dMod += m.defenseMod * w;
+    if ('cardReduction' in m) fMod -= m.cardReduction * w;
     // time_waste: convert event chance reduction to small defensive bump
-    if ('eventChanceReduction' in m) dMod += 0.05;
+    if ('eventChanceReduction' in m) dMod += 0.05 * w;
   }
-  const scale = SHOUT_CUMULATIVE_SCALE;
-  return { attackMod: aMod * scale, defenseMod: dMod * scale, foulMod: fMod * scale };
+  return { attackMod: aMod, defenseMod: dMod, foulMod: fMod };
 }
 
 /**
@@ -1223,9 +1237,16 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   }
 }
 
-export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
+export function playFirstHalfImpl(set: Set, get: Get, untilMin: number = 45): HalfState | null {
   const state = get();
   const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
+  // Kickoff simulates 1..untilMin; later calls resume the half from where the
+  // last one stopped (FIRST_HALF_SEGMENTS), re-reading lineup, tactics and
+  // shouts, exactly as the second half does.
+  const simulatedTo = state.firstHalfSimulatedTo || 0;
+  const resuming = state.matchPhase === 'first_half' && !!state.halfTimeState && simulatedTo > 0 && simulatedTo < 45;
+  const segStart = resuming ? simulatedTo + 1 : 1;
+  const segEnd = Math.max(segStart, Math.min(45, Math.round(untilMin)));
   // Playoff first, exactly as `playCurrentMatchImpl` orders it. This branch was
   // missing entirely: `useCurrentMatch` resolves the playoff tie, so Dashboard
   // offered Match Prep and MatchDay drew the Kick Off screen for it — and then
@@ -1316,7 +1337,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // R14: every random draw from here on comes from this match's seed, so a
   // replay after a reload (or a kill mid-match) plays out exactly as before
   // for the same decisions — a bad half can no longer be re-rolled.
-  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, 'first-half'));
+  // Kickoff keeps the original 'first-half' stream; each resumed segment has
+  // its own, keyed by its start minute (as the second half does).
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, resuming ? `first-half:${segStart}` : 'first-half'));
   try {
   if (ephemeralOppId) {
     ephemeralClub = createEphemeralClub((state.virtualClubs || {})[ephemeralOppId], season, state.communityPackEnabled);
@@ -1333,8 +1356,10 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // and make this function return null). AI: `pickAiMatchSquad`.
   const hSquad = buildMatchSquad(hc, effectivePlayers, week, playerClubId);
   const aSquad = buildMatchSquad(ac, effectivePlayers, week, playerClubId);
-  let hp = hSquad.xi;
-  let ap = aSquad.xi;
+  // A resumed segment continues with the XI that kicked off (live subs
+  // applied); the engine carries benches, subs-in and dismissals itself.
+  let hp = resuming ? resumeSideXI(hc, effectivePlayers, week, playerClubId) : hSquad.xi;
+  let ap = resuming ? resumeSideXI(ac, effectivePlayers, week, playerClubId) : aSquad.xi;
 
   // Only reachable now when a club has fewer than seven registered players who
   // are not out on loan. The callers report it — never fail silently here.
@@ -1343,7 +1368,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // One team sheet for the whole match: the user's lineup becomes the XI that
   // actually kicked off (see `fieldedLineup`).
   const userClub = effectiveClubs[playerClubId];
-  if (userClub && (match.homeClubId === playerClubId || match.awayClubId === playerClubId)) {
+  if (!resuming && userClub && (match.homeClubId === playerClubId || match.awayClubId === playerClubId)) {
     const fielded = fieldedLineup(userClub.lineup || [], match.homeClubId === playerClubId ? hp : ap);
     if (fielded.join('|') !== (userClub.lineup || []).join('|')) {
       const onPitch = new Set(fielded);
@@ -1389,7 +1414,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
   const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
   const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
-  const matchWeather = generateMatchWeather();
+  const matchWeather = resuming ? (state.currentMatchWeather ?? generateMatchWeather()) : generateMatchWeather();
   // Pre-kickoff team talk (G3): on high-stakes matches the player can give a
   // pre-match talk, which sets `matchTeamTalk` before kickoff. Apply it to the
   // FIRST half here, then clear it below so half-time starts fresh — the
@@ -1399,9 +1424,30 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // plan is a whole-match decision — it also applies to the second half and
   // extra time via the same merge, and is only cleared when the result screen
   // is dismissed (clearMatchResult).
-  const preMatchTalkMods = mergeGamePlanMods(teamTalkModifiers(state.matchTeamTalk), state.matchGamePlan);
+  // Touchline shouts made so far in this half apply over their own window.
+  const firstHalfShouts = computeShoutMods(state.matchShouts, segStart, segEnd);
+  const talkMods = teamTalkModifiers(state.matchTeamTalk);
+  const hasShout = !!(firstHalfShouts.attackMod || firstHalfShouts.defenseMod || firstHalfShouts.foulMod);
+  const talkAndShouts = talkMods
+    ? { ...talkMods, attackMod: talkMods.attackMod + firstHalfShouts.attackMod, defenseMod: talkMods.defenseMod + firstHalfShouts.defenseMod, foulMod: talkMods.foulMod + firstHalfShouts.foulMod }
+    : hasShout ? { ...firstHalfShouts, fitnessDrainMult: 1 as number } : undefined;
+  const preMatchTalkMods = mergeGamePlanMods(talkAndShouts, state.matchGamePlan);
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus, match.neutral);
+  const halfState = simulateHalf(hc, ac, hp, ap, segStart, segEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, resuming ? state.halfTimeState! : undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus, match.neutral);
+  const halfDone = segEnd >= 45;
+
+  // A resumed segment only banks its state: everything below is set once, at
+  // kickoff (ids, competition, league position, sub counts).
+  if (resuming) {
+    set({
+      halfTimeState: halfState,
+      firstHalfSimulatedTo: segEnd,
+      matchPhase: halfDone ? 'half_time' : 'first_half',
+      // The pre-match talk covers the whole first half; clear it at the break.
+      ...(halfDone ? { matchTeamTalk: 'none' as const } : {}),
+    });
+    return halfState;
+  }
 
   // Determine which cup tracking IDs to set
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
@@ -1416,12 +1462,14 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
     : null;
   set({
-    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
+    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: halfDone ? 'half_time' : 'first_half', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
+    firstHalfSimulatedTo: segEnd,
     // Second half hasn't started; segments resume from the break.
     secondHalfSimulatedTo: 45,
     // Clear the pre-match talk so the half-time team-talk sheet opens fresh at
-    // 'none' — the pre-match talk affected the first half only (G3).
-    matchTeamTalk: 'none',
+    // 'none' — the pre-match talk affects the first half only (G3). It stays
+    // set while the half is still being simulated in segments.
+    ...(halfDone ? { matchTeamTalk: 'none' as const } : {}),
     currentCupTieId: cupTie ? cupTie.id : isCupMatch ? '__tournament__' : null,
     currentLeagueCupTieId: leagueCupTie ? leagueCupTie.id : null,
     currentContinentalMatchId: continentalMatch ? match.id : null,
@@ -1571,8 +1619,11 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
     return { attackMod: DEMAND_ATTACK_BOOST, defenseMod: -DEMAND_DEFENSE_PENALTY, foulMod: 0, fitnessDrainMult: DEMAND_FITNESS_DRAIN_MULT };
   })();
 
-  // Aggregate first-half shout effects as second-half modifiers
-  const shoutMods = computeShoutMods(state.matchShouts);
+  // Shouts active over this segment (resumeFrom..segmentEnd, computed below
+  // from the same inputs).
+  const shoutFrom = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
+  const shoutTo = Math.max(shoutFrom, Math.min(90, Math.round(untilMin)));
+  const shoutMods = computeShoutMods(state.matchShouts, shoutFrom, shoutTo);
 
   // Merge team talk + shout modifiers, then fold in the pre-match game plan
   // (Opposition Game Plans) so it keeps applying through the second half.
@@ -1847,7 +1898,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
     if (talk === 'calm') return { attackMod: 0, defenseMod: CALM_DEFENSE_BOOST, foulMod: -CALM_FOUL_REDUCTION, fitnessDrainMult: CALM_FITNESS_DRAIN_MULT };
     return { attackMod: DEMAND_ATTACK_BOOST, defenseMod: -DEMAND_DEFENSE_PENALTY, foulMod: 0, fitnessDrainMult: DEMAND_FITNESS_DRAIN_MULT };
   })();
-  const etShoutMods = computeShoutMods(state.matchShouts);
+  const etShoutMods = computeShoutMods(state.matchShouts, 91, 120);
   const etTalkAndShoutMods = etTeamTalkMods
     ? { attackMod: etTeamTalkMods.attackMod + etShoutMods.attackMod, defenseMod: etTeamTalkMods.defenseMod + etShoutMods.defenseMod, foulMod: etTeamTalkMods.foulMod + etShoutMods.foulMod, fitnessDrainMult: etTeamTalkMods.fitnessDrainMult }
     : (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? { ...etShoutMods, fitnessDrainMult: 1 as number } : undefined;

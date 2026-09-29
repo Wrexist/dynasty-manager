@@ -580,7 +580,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     gameStarted: false, playerClubId: '', currentScreen: 'dashboard' as GameState['currentScreen'],
     clubs: {}, players: {}, fixtures: [], leagueTable: [],
     messages: [], seasonHistory: [], incomingOffers: [], boardUltimatum: null,
-    matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
+    matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, firstHalfSimulatedTo: 0, secondHalfSimulatedTo: 45,
     currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
     // Match-scoped state that previously persisted across resets — audit
     // finding O2 (stale shootout kicks, leftover team talk, etc.).
@@ -785,7 +785,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playCurrentMatch: () => playCurrentMatchImpl(set, get),
 
-  playFirstHalf: () => playFirstHalfImpl(set, get),
+  playFirstHalf: (untilMin?: number) => playFirstHalfImpl(set, get, untilMin),
 
   playSecondHalf: (untilMin?: number) => playSecondHalfImpl(set, get, untilMin),
 
@@ -1178,7 +1178,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         negotiationStrikes: data.negotiationStrikes || {},
         merchandise: data.merchandise || getDefaultMerchState(),
         halfTimeState: null,
-        matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
+        matchPhase: 'none' as const, firstHalfSimulatedTo: 0, secondHalfSimulatedTo: 45,
         pendingFarewell: Array.isArray(data.pendingFarewell) ? data.pendingFarewell : data.pendingFarewell ? [data.pendingFarewell] : [],
         // Purchases are device-scoped; slot progress is not. Both sides of this
         // can be the stale one, so they are MERGED rather than one picked:
@@ -1366,7 +1366,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
     set({
       ...(mutated ? { clubs: newClubs, players: newPlayers } : {}),
-      halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
+      halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, firstHalfSimulatedTo: 0, secondHalfSimulatedTo: 45,
       currentCupTieId: null, currentLeagueCupTieId: null,
       currentContinentalMatchId: null, currentContinentalCompetition: null,
       matchSubsUsed: 0,
