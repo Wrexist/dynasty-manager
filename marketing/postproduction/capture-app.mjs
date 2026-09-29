@@ -110,7 +110,6 @@ const h = {
   store: (fn, arg) => page.evaluate(async ([src, a]) => {
     const { useGameStore } = await import('/src/store/gameStore.ts');
     const persistence = await import('/src/store/helpers/persistence.ts');
-    // eslint-disable-next-line no-new-func
     const f = new Function('return (' + src + ')')();
     return f(useGameStore, persistence, a);
   }, [fn.toString(), arg]),

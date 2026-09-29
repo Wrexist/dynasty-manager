@@ -99,3 +99,94 @@ export async function kickOff(h, speed = /^fast$/i) {
   await h.page.getByRole('button', { name: /motivate/i }).first().tap().catch(() => {});
   await h.page.getByRole('button', { name: /kick off/i }).first().tap();
 }
+
+/** Play `weeks` Sunday League weeks the way a player would: arrive, play short
+ *  rather than pay ringers, auto-pick, play, take the first choice on any
+ *  event, advance. Returns one line per match. */
+export async function simSundayWeeks(h, weeks) {
+  return h.store(async (s, _p, n) => {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const g = () => s.getState();
+      try {
+        const ev = g().sunday?.pendingEvent;
+        if (ev?.choices?.length) await g().resolveSundayEvent(ev.choices[0].id);
+        await g().arriveSundayMatch();
+        await g().hireSundayRingers(0).catch(() => {});
+        await g().autoPickSundayTeamsheet();
+        const r = await g().playSundayMatch();
+        if (r) out.push(`${r.goalsFor > r.goalsAgainst ? 'W' : r.goalsFor < r.goalsAgainst ? 'L' : 'D'} ${r.goalsFor}-${r.goalsAgainst} vs ${r.opponentName} wk${r.week}`);
+        const ev2 = g().sunday?.pendingEvent;
+        if (ev2?.choices?.length) await g().resolveSundayEvent(ev2.choices[0].id);
+        await g().advanceWeek();
+      } catch (e) { out.push('ERR ' + e.message); }
+    }
+    return out;
+  }, weeks);
+}
+
+/** Sunday facts for captions. */
+export async function sundayFacts(h) {
+  return h.store((s) => {
+    const st = s.getState();
+    const su = st.sunday;
+    const avail = (su.squad || []).filter(m => !m.unavailable && !m.injuredWeeks).length;
+    return { week: st.week, season: st.season, totalWeeks: st.totalWeeks, balance: su.balance, name: su.identity?.name,
+      division: su.divisionId, squad: su.squad.length, avail, morale: su.teamMorale, arrival: su.arrival };
+  });
+}
+
+/** Play out the rest of the season (league, then any play-off) and call
+ *  endSeason() exactly when the Dashboard would offer "View season summary".
+ *  Returns the match lines. */
+export async function finishSeason(h) {
+  return h.page.evaluate(async () => {
+    const { useGameStore: s } = await import('/src/store/gameStore.ts');
+    const { isSeasonOver } = await import('/src/utils/dashboardSelectors.ts');
+    const out = [];
+    const season = s.getState().season;
+    for (let i = 0; i < 80 && s.getState().season === season; i++) {
+      const st = s.getState();
+      // endSeason() first ENTERS a promotion play-off when the club is in
+      // one, and the season only rolls once the player's ties are played.
+      if (st.seasonPhase === 'playoff') {
+        const pm = st.playoffState?.pendingMatch ? st.playCurrentMatch() : null;
+        if (pm) out.push(`playoff ${pm.homeGoals}-${pm.awayGoals}`);
+        else await s.getState().advanceWeek();
+        continue;
+      }
+      if (isSeasonOver(st)) { st.endSeason(); continue; }
+      const m = st.playCurrentMatch();
+      if (m) out.push(`wk${st.week} ${m.homeGoals}-${m.awayGoals}`);
+      await s.getState().advanceWeek();
+    }
+    s.getState().saveGame(s.getState().activeSlot || 1);
+    return out;
+  });
+}
+
+/** A new season can open on an international tournament that waits for the
+ *  national squad. Do what a player does: open the picker, "Auto-pick best
+ *  23", lock in — then play the tournament weeks out until club football
+ *  resumes. No-op when nothing is waiting. */
+export async function clearInternationalBreak(h) {
+  const phase = () => h.store((s) => s.getState().seasonPhase);
+  if ((await phase()) !== 'international') return false;
+  await h.go('#/game');
+  await h.wait(2000);
+  await h.screen('national-squad-picker');
+  await h.wait(2000);
+  const auto = h.page.getByRole('button', { name: /auto-pick best/i });
+  if (await auto.count()) {
+    await auto.first().tap();
+    await h.wait(800);
+    // The lock-in button sits under the bottom nav at this viewport; a DOM
+    // click is what a thumb that scrolled first would do.
+    await h.page.locator('button', { hasText: /lock in squad/i }).first().evaluate(b => b.click()).catch(() => {});
+    await h.wait(1200);
+  }
+  for (let i = 0; i < 30 && (await phase()) === 'international'; i++) {
+    await h.store(async (s) => { try { s.getState().playCurrentMatch(); } catch { /* none */ } await s.getState().advanceWeek(); });
+  }
+  return true;
+}
