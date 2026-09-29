@@ -21,31 +21,31 @@ pilots caption what the engine actually did in that render.
 | 3 | `day03-rate-my-pull` | ✅ | 8.3 | Rate it 1–10. Be honest. #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 6 | `day06-no-energy` | ✅ | 8.8 | What's the worst energy system you've played? #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 8 | `day08-pack-animation` | ✅ | 8.6 | Name a better one. I'll wait. #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| 11 | `day11-real-faces` | ✅ | 6.2 | A full manager game with real squads. Which league do you manage? #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 11 | `day11-real-faces` | ✅ | 7.6 | A full manager game with real squads. Which league do you manage? #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 13 | `day13-great-retired` | ✅ | 10.4 | He retired. Then he came back. Would you start him? #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 16 | `day16-rate-my-pull-2` | ✅ | 8.2 | Round 2. Better or worse than last time? #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 19 | `day19-no-timers` | ✅ | 8.9 | No energy bar, no waiting. How long do you play in one sitting? #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 23 | `day23-pack-animation-2` | ✅ | 8.9 | Still waiting. #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| 25 | `day25-every-face` | ✅ | 7.4 | 756 real clubs. Which one are you taking? #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 25 | `day25-every-face` | ✅ | 8.4 | 756 real clubs. Which one are you taking? #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 2 | `day02-pack-luck-d1` | ✅ | 6.8 | Free pack, day 1 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
 | 4 | `day04-pack-luck-d3` | ✅ | 6.7 | Free pack, day 3 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| 7 | `day07-pack-luck-d7` | ❌ not rendered | — | Free pack, day 7 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| 14 | `day14-pack-luck-d14` | ❌ not rendered | — | Free pack, day 14 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| 21 | `day21-pack-luck-d21` | ❌ not rendered | — | Free pack, day 21 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| 28 | `day28-pack-luck-d28` | ❌ not rendered | — | Free pack, day 28 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| 5 | `day05-road-ep1` | ❌ not rendered | — | Road to Glory, episode 1. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| 10 | `day10-road-ep2` | ❌ not rendered | — | Road to Glory, episode 2. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| 15 | `day15-road-ep3` | ❌ not rendered | — | Road to Glory, episode 3. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| 18 | `day18-road-ep4` | ❌ not rendered | — | Road to Glory, episode 4. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| 22 | `day22-road-ep5` | ❌ not rendered | — | Road to Glory, episode 5. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| 26 | `day26-road-ep6` | ❌ not rendered | — | Road to Glory, episode 6. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| 30 | `day30-road-ep7` | ❌ not rendered | — | Road to Glory, episode 7. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| 12 | `day12-sunday-ep1` | ❌ not rendered | — | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
-| 17 | `day17-sunday-ep2` | ❌ not rendered | — | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
-| 24 | `day24-sunday-ep3` | ❌ not rendered | — | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
-| 27 | `day27-ballon-dor` | ❌ not rendered | — | Who wins the Ballon d'Or in my save? Guess before the end. #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| pilot | `pilot-club-wrexham` | ❌ not rendered | — | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| pilot | `pilot-club-sunderland` | ❌ not rendered | — | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| pilot | `pilot-club-leeds-united` | ❌ not rendered | — | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
-| pilot | `pilot-predict-arsenal-tottenham-hotspur` | ❌ not rendered | — | Simulated this one 1,000 times in my game's engine. Is it wrong? #footballgame #packopening #footballtiktok #managergame #iphonegames |
-| pilot | `pilot-predict-real-madrid-barcelona` | ❌ not rendered | — | Simulated this one 1,000 times in my game's engine. Is it wrong? #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 7 | `day07-pack-luck-d7` | ✅ | 6.6 | Free pack, day 7 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 14 | `day14-pack-luck-d14` | ✅ | 6.0 | Free pack, day 14 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 21 | `day21-pack-luck-d21` | ✅ | 5.5 | Free pack, day 21 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 28 | `day28-pack-luck-d28` | ✅ | 6.3 | Free pack, day 28 of the streak. Guess tomorrow's best pull 👇 #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| 5 | `day05-road-ep1` | ✅ | 3.8 | Road to Glory, episode 1. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| 10 | `day10-road-ep2` | ✅ | 3.0 | Road to Glory, episode 2. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| 15 | `day15-road-ep3` | ✅ | 1.5 | Road to Glory, episode 3. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| 18 | `day18-road-ep4` | ✅ | 3.1 | Road to Glory, episode 4. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| 22 | `day22-road-ep5` | ✅ | 2.6 | Road to Glory, episode 5. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| 26 | `day26-road-ep6` | ✅ | 3.3 | Road to Glory, episode 6. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| 30 | `day30-road-ep7` | ✅ | 1.6 | Road to Glory, episode 7. 4th tier, no money, one save. #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| 12 | `day12-sunday-ep1` | ✅ | 4.6 | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
+| 17 | `day17-sunday-ep2` | ✅ | 1.3 | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
+| 24 | `day24-sunday-ep3` | ✅ | 4.1 | Sunday League, week by week. Who's this in your team? #sundayleague #footballtiktok #grassrootsfootball #managergame #iphonegames |
+| 27 | `day27-ballon-dor` | ✅ | 5.6 | Who wins the Ballon d'Or in my save? Guess before the end. #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| pilot | `pilot-club-wrexham` | ✅ | 1.3 | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| pilot | `pilot-club-sunderland` | ✅ | 1.3 | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| pilot | `pilot-club-leeds-united` | ✅ | 1.1 | Can they win the league in 5 seasons? Simmed in my save. Which club next? #footballmanager #footballtiktok #managergame #iphonegames #roadtoglory |
+| pilot | `pilot-predict-arsenal-tottenham-hotspur` | ✅ | 2.4 | Simulated this one 1,000 times in my game's engine. Is it wrong? #footballgame #packopening #footballtiktok #managergame #iphonegames |
+| pilot | `pilot-predict-real-madrid-barcelona` | ✅ | 2.4 | Simulated this one 1,000 times in my game's engine. Is it wrong? #footballgame #packopening #footballtiktok #managergame #iphonegames |
