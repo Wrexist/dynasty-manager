@@ -55,6 +55,9 @@ export const PENDING_NEWS: PendingRelease = {
     '11 new storylines, new random events, and press questions that name your opponents and players.',
     'The Hall of Managers now records each career separately instead of one row per save slot.',
     'Open another pack straight from the results screen.',
+    'Ballon d\'Or Night: the season\'s top 10 is dealt face-down and turned one card at a time, from 10th to the winner, who gets a full walkout.',
+    'The Ballon d\'Or page now shows a podium for every season and lets you replay each ceremony.',
+    'The season summary and inbox no longer spoil the Ballon d\'Or winner before you have watched the ceremony.',
   ],
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
