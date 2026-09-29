@@ -45,3 +45,28 @@ platform :ios do
     )
   end
 end
+
+platform :android do
+  # Uploads an AAB that android-build.yml already built and signed — this lane
+  # never builds. Google refuses API uploads until the app has one release made
+  # by hand in the Console (docs/android-launch.md §6), so the very first AAB
+  # goes up manually and every later one through here.
+  desc "Upload a signed release AAB to a Google Play testing track"
+  lane :upload do
+    upload_to_play_store(
+      package_name:   "com.dynastymanager",
+      track:          ENV.fetch("PLAY_TRACK", "internal"),
+      aab:            ENV.fetch("AAB_PATH"),
+      json_key_data:  ENV.fetch("PLAY_SERVICE_ACCOUNT_JSON"),
+      # 'draft' is the only status Play accepts while the app itself is still
+      # a draft (nothing rolled out anywhere yet).
+      release_status: ENV.fetch("PLAY_RELEASE_STATUS", "completed"),
+      # The listing, graphics and release notes are managed in the Console
+      # (marketing/play/) — an upload must never overwrite them.
+      skip_upload_metadata:    true,
+      skip_upload_changelogs:  true,
+      skip_upload_images:      true,
+      skip_upload_screenshots: true
+    )
+  end
+end

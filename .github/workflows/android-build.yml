@@ -2,10 +2,31 @@ name: Android Build
 on:
   workflow_dispatch:
     inputs:
+      # Blank = this workflow's run number, which only ever increases, so Play
+      # never sees a reused code. Set it only to jump past a code Play already
+      # holds (e.g. a hand-uploaded build numbered higher than the run count).
       version_code:
-        description: 'Version code (integer, must increment each release)'
+        description: 'Version code. Leave blank to use the run number. Must be higher than every code already on Play.'
+        required: false
+        type: string
+        default: ''
+      play_track:
+        description: 'Upload the AAB to this Google Play track. "none" = artifact only (use for the first, hand-uploaded build).'
         required: true
-        type: number
+        type: choice
+        default: internal
+        options:
+          - internal
+          - alpha
+          - none
+      play_release_status:
+        description: 'Play release status. "draft" only while the app has never been rolled out anywhere.'
+        required: true
+        type: choice
+        default: completed
+        options:
+          - completed
+          - draft
       # Blank by default, NOT a literal. The old default was '1.0.0', so a
       # dispatch that accepted the form as-is built a 1.0.0 AAB whatever
       # package.json said — the same class of bug as TestFlight build #142,
@@ -28,6 +49,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
+      # Fail in seconds, not after a 30-minute preflight, when an upload is
+      # asked for but cannot happen.
+      - name: Check Play upload credentials
+        if: inputs.play_track != 'none'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo '::error::play_track is "${{ inputs.play_track }}" but the PLAY_SERVICE_ACCOUNT_JSON secret is not set. Add it (docs/android-launch.md §6b) or re-run with play_track = none.'
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -56,10 +89,18 @@ jobs:
       # One source for the version name: package.json (already overridden on
       # the runner above when the input was set). Gradle reads VERSION_NAME.
       - name: Resolve version name and code
+        env:
+          VERSION_CODE_INPUT: ${{ inputs.version_code }}
         run: |
           VERSION_NAME=$(node -p "require('./package.json').version")
+          VERSION_CODE="${VERSION_CODE_INPUT:-${{ github.run_number }}}"
+          if [[ ! "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::Version code must be a positive integer, got '${VERSION_CODE}'"
+            exit 1
+          fi
           echo "VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
-          echo "::notice::Building version_name=${VERSION_NAME} version_code=${{ inputs.version_code }}"
+          echo "VERSION_CODE=${VERSION_CODE}" >> "$GITHUB_ENV"
+          echo "::notice::Building version_name=${VERSION_NAME} version_code=${VERSION_CODE} play_track=${{ inputs.play_track }}"
 
       # Same guard as the iOS workflow: refuse a version name older than the
       # most recently sealed entry in src/data/whatsNew.ts.
@@ -79,7 +120,7 @@ jobs:
       # Validate the now-top entry and stamp it with this build's versionCode
       # (the Android counterpart of the iOS CFBundleVersion stamp).
       - name: Validate + stamp What's New build number
-        run: node scripts/check-whats-new.mjs --inject-build ${{ inputs.version_code }}
+        run: node scripts/check-whats-new.mjs --inject-build ${{ env.VERSION_CODE }}
 
       - name: Build web bundle with production keys
         env:
@@ -112,7 +153,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_CODE: ${{ env.VERSION_CODE }}
           VERSION_NAME: ${{ env.VERSION_NAME }}
         run: |
           cd android
@@ -124,3 +165,20 @@ jobs:
         with:
           name: dynasty-manager-release
           path: android/app/build/outputs/bundle/release/*.aab
+
+      # Upload after the artifact step, so a failed upload still leaves the
+      # AAB downloadable for a manual Console upload.
+      - uses: ruby/setup-ruby@v1
+        if: inputs.play_track != 'none'
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Upload to Google Play (${{ inputs.play_track }})
+        if: inputs.play_track != 'none'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_TRACK: ${{ inputs.play_track }}
+          PLAY_RELEASE_STATUS: ${{ inputs.play_release_status }}
+          AAB_PATH: android/app/build/outputs/bundle/release/app-release.aab
+        run: bundle exec fastlane android upload
