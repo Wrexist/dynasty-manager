@@ -7,6 +7,7 @@ import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/ty
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
+import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -72,6 +73,10 @@ export default function PitchView({
   // (`for (const t of targets)`), and shadowing it reads as a bug.
   const { t: tr } = useTranslation();
   const landscape = orientation === 'landscape';
+  // The score bug and caption overlay the top and bottom of the portrait pitch;
+  // the camera composes around them. Landscape (split) is too short to spare it.
+  const safeTop = landscape ? 0 : PITCH_RENDER.HUD_SAFE_TOP;
+  const safeBottom = landscape ? 0 : PITCH_RENDER.HUD_SAFE_BOTTOM;
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
 
   // Use the WebGL "Stunning" tier only on capable hardware; auto-fall back to
@@ -220,10 +225,10 @@ export default function PitchView({
       </div>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
-          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} className="absolute inset-0 h-full w-full" />
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
-            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} className="absolute inset-0 h-full w-full" />
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} safeTop={safeTop} safeBottom={safeBottom} className="absolute inset-0 h-full w-full" />
           }>
             <PixiPitch
               timeline={timeline}
@@ -236,7 +241,7 @@ export default function PitchView({
               reducedMotion={reducedMotion}
               msPerMinute={msPerMinute}
               hitTargetsRef={hitTargetsRef}
-              tacticalWideRef={tacticalWideRef}
+              tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom}
               onError={() => setPixiFailed(true)}
               className="absolute inset-0 h-full w-full"
             />
@@ -255,7 +260,7 @@ export default function PitchView({
           reducedMotion={reducedMotion}
           msPerMinute={msPerMinute}
           hitTargetsRef={hitTargetsRef}
-          tacticalWideRef={tacticalWideRef}
+          tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom}
           className="absolute inset-0 h-full w-full"
         />
       )}

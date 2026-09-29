@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState, type DisplayState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
+import { centreCirclePoints, frameCamera, penaltyArcPoints, type MarkPoint } from './pitchGeometry';
 import { shade, keeperKit } from './pitchColors';
 
 // Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
@@ -38,6 +39,9 @@ interface PitchCanvasProps {
   hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
   /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
   tacticalWideRef?: React.MutableRefObject<boolean>;
+  /** Screen strips (CSS px) the HUD covers; the camera composes inside the rest. */
+  safeTop?: number;
+  safeBottom?: number;
   className?: string;
 }
 
@@ -57,7 +61,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const msPerMinuteRef = useRef(msPerMinute);
@@ -82,6 +86,10 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
   showOverallRef.current = showOverall;
+  const safeTopRef = useRef(safeTop);
+  const safeBottomRef = useRef(safeBottom);
+  safeTopRef.current = safeTop;
+  safeBottomRef.current = safeBottom;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -175,10 +183,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.stroke();
       };
       seg(0, 50, 100, 50); // halfway
+      const poly = (pts: MarkPoint[]) => {
+        ctx.beginPath();
+        pts.forEach((pt, i) => {
+          const s = project(pt.x, pt.y);
+          if (i === 0) ctx.moveTo(s.sx, s.sy); else ctx.lineTo(s.sx, s.sy);
+        });
+        ctx.stroke();
+      };
+      poly(centreCirclePoints());
       const c = project(50, 50);
-      ctx.beginPath();
-      ctx.arc(c.sx, c.sy, (9 / 100) * unit, 0, Math.PI * 2);
-      ctx.stroke();
       ctx.fillStyle = LINE;
       ctx.beginPath();
       ctx.arc(c.sx, c.sy, Math.max(1.5, unit * 0.008), 0, Math.PI * 2);
@@ -194,9 +208,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.beginPath();
         ctx.arc(spot.sx, spot.sy, Math.max(1.2, unit * 0.006), 0, Math.PI * 2);
         ctx.fill();
-        ctx.beginPath();
-        ctx.arc(spot.sx, spot.sy, (7 / 100) * unit, 0, Math.PI * 2);
-        ctx.stroke();
+        poly(penaltyArcPoints(goalY, dir));
       };
       box(0, 1);
       box(100, -1);
@@ -448,6 +460,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const leadY = clamp(display.ballVY * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
       // Tactical-wide lock pulls back to the whole pitch and pauses the follow.
       const wide = tacticalWideRef?.current && !reducedMotion;
+      // Wide and reduced motion both show the whole pitch, fitted between the HUD.
+      const fitView = !!(wide || reducedMotion);
       const targetZoom = reducedMotion || wide ? PITCH_RENDER.ZOOM_MIN : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
       const targetCx = reducedMotion || wide ? 50 : clamp(display.ballX + leadX, 2, 98);
       const targetCy = reducedMotion || wide ? 50 : clamp(display.ballY + leadY, 2, 98);
@@ -460,13 +474,15 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       }
       const view = viewRef.current;
 
-      const { pad, innerW, innerH, project } = geom();
+      const { innerW, innerH, project } = geom();
       const focus = project(view.cx, view.cy);
-      const z = view.zoom;
-      const halfW = (w / 2) / z;
-      const halfH = (h / 2) / z;
-      const fsx = innerW >= 2 * halfW ? clamp(focus.sx, pad + halfW, pad + innerW - halfW) : pad + innerW / 2;
-      const fsy = innerH >= 2 * halfH ? clamp(focus.sy, pad + halfH, pad + innerH - halfH) : pad + innerH / 2;
+      const cam = frameCamera({
+        w, h, fieldH: innerH, focusX: focus.sx, focusY: focus.sy, zoom: view.zoom,
+        safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: fitView,
+      });
+      const z = cam.zoom;
+      const fsx = cam.pivotX;
+      const fsy = cam.pivotY;
       const shakeX = shake ? Math.sin(ts * 0.08) * shake : 0;
       const shakeY = shake ? Math.cos(ts * 0.07) * shake : 0;
 
@@ -474,7 +490,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.fillStyle = TURF_DARK;
       ctx.fillRect(0, 0, w, h);
       ctx.save();
-      ctx.translate(w / 2 + shakeX, h / 2 + shakeY);
+      ctx.translate(cam.anchorX + shakeX, cam.anchorY + shakeY);
       ctx.scale(z, z);
       ctx.translate(-fsx, -fsy);
 
@@ -492,7 +508,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         for (const p of display.players.values()) {
           if (!p.id) continue;
           const { sx, sy } = project(p.x, p.y);
-          targets.push({ id: p.id, x: (sx - fsx) * z + w / 2, y: (sy - fsy) * z + h / 2, r: chipR * z * 1.4 });
+          targets.push({ id: p.id, x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY, r: chipR * z * 1.4 });
         }
         hitTargetsRef.current = targets;
       }

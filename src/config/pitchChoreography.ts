@@ -216,4 +216,28 @@ export const PITCH_RENDER = {
   STANDS_DEPTH: 0.16,
   /** Speckle dots per stand band (the packed-crowd texture). Seeded, drawn once. */
   STANDS_SPECKLE: 130,
+
+  // ── Markings (pitchGeometry.ts) ──
+  /** Real pitch size. Pitch units are 0-100 on both axes, so metres convert
+   *  per axis — that is what keeps the circles round. */
+  PITCH_LENGTH_M: 105,
+  PITCH_WIDTH_M: 68,
+  /** Radius of the centre circle and of the penalty arc (Laws of the Game). */
+  CENTRE_CIRCLE_M: 9.15,
+  /** Penalty spot and penalty-area depth from the goal line, in pitch units
+   *  (the renderers draw the box at these). */
+  PENALTY_SPOT_Y: 11,
+  PENALTY_BOX_Y: 16,
+  /** Line segments per penalty arc (the centre circle uses twice as many). */
+  ARC_STEPS: 24,
+
+  // ── Camera framing (frameCamera) ──
+  /** Portrait pitch strips covered by PitchView's HUD (CSS px): the score bug
+   *  across the top, the commentary caption along the bottom. The camera
+   *  composes inside what is left, so neither goal mouth plays out under them. */
+  HUD_SAFE_TOP: 44,
+  HUD_SAFE_BOTTOM: 50,
+  /** Room a fitted (Wide / reduced-motion) view keeps past each goal line for
+   *  the net, as a fraction of field height. */
+  FIT_NET_MARGIN: 0.045,
 } as const;

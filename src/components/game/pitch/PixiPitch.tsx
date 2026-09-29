@@ -4,6 +4,7 @@ import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
+import { centreCirclePoints, frameCamera, penaltyArcPoints, type MarkPoint } from './pitchGeometry';
 import type { PitchHitTarget } from './PitchCanvas';
 
 // The "Stunning" WebGL pitch tier. Consumes the exact same MatchTimeline as the
@@ -44,6 +45,9 @@ interface PixiPitchProps {
   hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
   /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
   tacticalWideRef?: React.MutableRefObject<boolean>;
+  /** Screen strips (CSS px) the HUD covers; the camera composes inside the rest. */
+  safeTop?: number;
+  safeBottom?: number;
   className?: string;
   onError?: () => void;
 }
@@ -64,7 +68,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 
 export default function PixiPitch({
-  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, className, onError,
+  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, className, onError,
 }: PixiPitchProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef(minute);
@@ -80,6 +84,10 @@ export default function PixiPitch({
   const onErrorRef = useRef(onError);
   const hitTargetsRefRef = useRef(hitTargetsRef);
   const tacticalWideRefRef = useRef(tacticalWideRef);
+  const safeTopRef = useRef(safeTop);
+  const safeBottomRef = useRef(safeBottom);
+  safeTopRef.current = safeTop;
+  safeBottomRef.current = safeBottom;
   timelineRef.current = timeline;
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
@@ -219,7 +227,13 @@ export default function PixiPitch({
           const stroke = { width: lw, color: LINE, alpha: 0.55 };
           fieldG.rect(fx, fy, fw, fh).stroke(stroke);
           fieldG.moveTo(mapX(0), mapY(50)).lineTo(mapX(100), mapY(50)).stroke(stroke);
-          fieldG.circle(mapX(50), mapY(50), (9 / 100) * fw).stroke(stroke);
+          const poly = (pts: MarkPoint[]) => {
+            pts.forEach((pt, i) => {
+              if (i === 0) fieldG.moveTo(mapX(pt.x), mapY(pt.y)); else fieldG.lineTo(mapX(pt.x), mapY(pt.y));
+            });
+            fieldG.stroke(stroke);
+          };
+          poly(centreCirclePoints());
           fieldG.circle(mapX(50), mapY(50), Math.max(1.5, fw * 0.008)).fill({ color: LINE, alpha: 0.55 });
           const box = (goalY: number, dir: 1 | -1) => {
             const pY = goalY + dir * 16;
@@ -227,7 +241,7 @@ export default function PixiPitch({
             fieldG.rect(mapX(21), Math.min(mapY(goalY), mapY(pY)), mapX(79) - mapX(21), Math.abs(mapY(pY) - mapY(goalY))).stroke(stroke);
             fieldG.rect(mapX(37), Math.min(mapY(goalY), mapY(sY)), mapX(63) - mapX(37), Math.abs(mapY(sY) - mapY(goalY))).stroke(stroke);
             fieldG.circle(mapX(50), mapY(goalY + dir * 11), Math.max(1.2, fw * 0.006)).fill({ color: LINE, alpha: 0.55 });
-            fieldG.circle(mapX(50), mapY(goalY + dir * 11), (7 / 100) * fw).stroke(stroke);
+            poly(penaltyArcPoints(goalY, dir));
           };
           box(0, 1);
           box(100, -1);
@@ -306,7 +320,7 @@ export default function PixiPitch({
               trail.length = 0;
             }
 
-            const { w, h, fw, fh, mapX, mapY, fx, fy } = geom();
+            const { w, h, fw, fh, mapX, mapY } = geom();
 
             // Camera (world container transform) with a lead in the ball's direction.
             const leadX = clamp(display.ballVX * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
@@ -323,16 +337,18 @@ export default function PixiPitch({
               viewRef.current.cy = lerp(viewRef.current.cy, targetCy, ca);
             }
             const view = viewRef.current;
-            const z = view.zoom;
-            const halfW = (w / 2) / z;
-            const halfH = (h / 2) / z;
-            const fsx = fw >= 2 * halfW ? clamp(mapX(view.cx), fx + halfW, fx + fw - halfW) : fx + fw / 2;
-            const fsy = fh >= 2 * halfH ? clamp(mapY(view.cy), fy + halfH, fy + fh - halfH) : fy + fh / 2;
+            const cam = frameCamera({
+              w, h, fieldH: fh, focusX: mapX(view.cx), focusY: mapY(view.cy), zoom: view.zoom,
+              safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: !!(wide || reducedMotion),
+            });
+            const z = cam.zoom;
+            const fsx = cam.pivotX;
+            const fsy = cam.pivotY;
             const shakeX = shake ? Math.sin(performance.now() * 0.08) * shake : 0;
             const shakeY = shake ? Math.cos(performance.now() * 0.07) * shake : 0;
             world.scale.set(z);
             world.pivot.set(fsx, fsy);
-            world.position.set(w / 2 + shakeX, h / 2 + shakeY);
+            world.position.set(cam.anchorX + shakeX, cam.anchorY + shakeY);
 
             // Publish tappable chips in CSS px (world→screen = (p − pivot)·z + pos),
             // so PitchView can hit-test a tap back to a player.
@@ -342,7 +358,7 @@ export default function PixiPitch({
               const targets: PitchHitTarget[] = [];
               for (const p of display.players.values()) {
                 if (!p.id) continue;
-                targets.push({ id: p.id, x: (mapX(p.x) - fsx) * z + w / 2, y: (mapY(p.y) - fsy) * z + h / 2, r: hitR });
+                targets.push({ id: p.id, x: (mapX(p.x) - fsx) * z + cam.anchorX, y: (mapY(p.y) - fsy) * z + cam.anchorY, r: hitR });
               }
               htRef.current = targets;
             }
