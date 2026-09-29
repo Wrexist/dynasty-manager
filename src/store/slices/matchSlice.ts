@@ -266,7 +266,16 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       matchSubsUsed: state.matchSubsUsed + 1,
       matchSubbedOffIds: [...(state.matchSubbedOffIds || []), outId],
     };
-    if (state.currentMatchResult) {
+    if (state.matchPhase === 'extra_time' && state.halfTimeState) {
+      // Before extra time: extra time is simulated from `halfTimeState`, so
+      // the sub has to be recorded there to reach the final record (writing it
+      // only to `currentMatchResult`, the 90' result, lost it). Mirror it on
+      // the 90' result so the break screen's log shows it too.
+      updates.halfTimeState = { ...state.halfTimeState, events: [...state.halfTimeState.events, subEvent] };
+      if (state.currentMatchResult) {
+        updates.currentMatchResult = { ...state.currentMatchResult, events: [...state.currentMatchResult.events, subEvent] };
+      }
+    } else if (state.currentMatchResult) {
       updates.currentMatchResult = {
         ...state.currentMatchResult,
         events: [...state.currentMatchResult.events, subEvent],

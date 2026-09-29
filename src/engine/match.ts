@@ -2116,7 +2116,10 @@ export function finalizeMatch(
   // Full-time marker sits at the last simulated minute (extra time pushes it
   // to 120; a clamped regular match ends at 90) instead of a hardcoded 90.
   const lastSimulatedMinute = state.events.reduce((m, e) => Math.max(m, e.minute), 90);
-  state.events.push({ minute: lastSimulatedMinute, type: 'full_time', clubId: '', description: `— Full Time: ${homeClub.shortName} ${state.homeGoals} - ${state.awayGoals} ${awayClub.shortName} —` });
+  // A copy, never a push: the caller may carry `state` on (a level cup tie goes
+  // to extra time with it), and the pushed 90' Full Time event then sat in the
+  // record next to the 120' one.
+  const finalEvents = [...state.events, { minute: lastSimulatedMinute, type: 'full_time' as const, clubId: '', description: `— Full Time: ${homeClub.shortName} ${state.homeGoals} - ${state.awayGoals} ${awayClub.shortName} —` }];
 
   const stats: MatchStats = {
     homePossession: homePoss, awayPossession: 100 - homePoss,
@@ -2189,7 +2192,7 @@ export function finalizeMatch(
   });
 
   return {
-    result: { ...match, played: true, homeGoals: state.homeGoals, awayGoals: state.awayGoals, events: state.events, stats },
+    result: { ...match, played: true, homeGoals: state.homeGoals, awayGoals: state.awayGoals, events: finalEvents, stats },
     playerRatings,
   };
 }

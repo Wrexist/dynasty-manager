@@ -924,17 +924,32 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
         let aGoals = result.awayGoals;
         const cupEvents = [...result.events];
 
-        // Dynasty Cup: extra time first, then penalties
+        // Dynasty Cup: extra time first, then penalties. An extra-time goal is
+        // a real goal: it has a scorer (weighted by shooting), counts in the
+        // player's ratings / season stats, and is an ordinary `goal` event so
+        // counting goals from events agrees with the score. It used to be an
+        // `extra_time_goal` (not a scoring type) with no scorer at all.
         if (cupTie) {
           const homeStr = hc.reputation / CUP_EXTRA_TIME_REPUTATION_DIVISOR;
           const awayStr = ac.reputation / CUP_EXTRA_TIME_REPUTATION_DIVISOR;
-          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * homeStr) {
-            hGoals++;
-            cupEvents.push({ minute: 105, type: 'extra_time_goal', clubId: match.homeClubId, description: `${hc.shortName} score in extra time!` });
-          }
-          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * awayStr) {
-            aGoals++;
-            cupEvents.push({ minute: 115, type: 'extra_time_goal', clubId: match.awayClubId, description: `${ac.shortName} score in extra time!` });
+          const etGoal = (minute: number, club: Club, xi: Player[]) => {
+            const shooters = xi.filter(p => p.position !== 'GK');
+            const pool = shooters.length ? shooters : xi;
+            const total = pool.reduce((t, p) => t + Math.max(1, p.attributes.shooting), 0);
+            let r = Math.random() * total;
+            const scorer = pool.find(p => (r -= Math.max(1, p.attributes.shooting)) < 0) ?? pool[pool.length - 1];
+            cupEvents.push({ minute, type: 'goal', playerId: scorer?.id, clubId: club.id, description: scorer ? `GOAL! ${scorer.firstName} ${scorer.lastName} scores in extra time for ${club.shortName}!` : `${club.shortName} score in extra time!` });
+            const rating = scorer ? playerRatings.find(pr => pr.playerId === scorer.id) : undefined;
+            if (rating) rating.goals += 1;
+          };
+          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * homeStr) { hGoals++; etGoal(105, hc, hp); }
+          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * awayStr) { aGoals++; etGoal(115, ac, ap); }
+          // The 90' Full Time line quoted the 90-minute score; the match now
+          // ends at 120 with the final one.
+          const ft = cupEvents.findIndex(e => e.type === 'full_time');
+          if (ft >= 0) {
+            cupEvents.splice(ft, 1);
+            cupEvents.push({ minute: 120, type: 'full_time', clubId: '', description: `— Full Time (a.e.t.): ${hc.shortName} ${hGoals} - ${aGoals} ${ac.shortName} —` });
           }
         }
 
@@ -1680,7 +1695,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       currentMatchResult: result,
       halfTimeState: fullState, // carry forward for extra time continuation
       matchPhase: 'extra_time',
-      matchSubsUsed: 0,
+      // The substitution count carries into extra time. It was reset to 0
+      // here, handing the user five more (ten in all) while the AI stayed at 5.
       matchPlayerRatings: playerRatings,
     });
     return result;
@@ -2284,7 +2300,11 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
     return;
   }
   // players lookup rates participants subbed out earlier in the tie — see playSecondHalfImpl
-  const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState, players);
+  const finalized = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState, players);
+  // finalizeMatch rebuilds the events from the carried state, which knows
+  // nothing of the shootout — the kicks used to vanish from the stored match.
+  const result: Match = { ...finalized.result, events: [...finalized.result.events, ...penEvents], penaltyShootout };
+  const { playerRatings } = finalized;
 
   const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {}, winnerId);
   const penDrama = detectMatchDrama(result, playerClubId, clubs);
