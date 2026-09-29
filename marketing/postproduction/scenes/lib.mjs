@@ -190,3 +190,17 @@ export async function clearInternationalBreak(h) {
   }
   return true;
 }
+
+/** Mark THIS capture save as Pro (a one-time entitlement in its state — the
+ *  off-device build mocks purchases anyway; nothing is bought, no store is
+ *  touched). Used only so a take can "Skip to FT" from kickoff instead of
+ *  filming 80 s of first half. Pro never changes a result (monetization
+ *  invariant 4), so the scoreline on camera is the one a free player gets. */
+export async function captureAsPro(h) {
+  await h.store((s) => {
+    const m = s.getState().monetization;
+    if (!m.entitlements.includes('com.dynastymanager.pro')) {
+      s.setState({ monetization: { ...m, entitlements: [...m.entitlements, 'com.dynastymanager.pro'] } });
+    }
+  });
+}

@@ -3,7 +3,7 @@
  *  so the series says what the engine actually did — including a bad run.
  *
  *    EP=3 node capture-app.mjs scenes/road-to-glory.mjs <dir>              */
-import { resume, startCareer, simWeeks, hideHints, kickOff, finishSeason, clearInternationalBreak } from './lib.mjs';
+import { resume, startCareer, simWeeks, hideHints, kickOff, finishSeason, clearInternationalBreak, captureAsPro } from './lib.mjs';
 
 // PROFILE/FRESH re-film one episode from its own save when the shared one has
 // moved past it (the caption still reads that save, so it stays true).
@@ -84,6 +84,7 @@ export async function setup(h) {
     await simTo(h, WEEK[EP] && EP !== 4 && EP !== 6 ? WEEK[EP] : WEEK[EP] - 1);
   }
   await hideHints(h);
+  await captureAsPro(h);
   await h.go('#/game');
   await h.wait(2500);
   await clearPopups(h);
@@ -152,12 +153,12 @@ export async function shoot(h) {
     await kickOff(h, /^fast$/i);
     await h.wait(1200);
     // The in-match 2x (free) keeps a half inside ~30s of video.
-    await h.page.getByRole('button', { name: /^2x$/i }).first().tap().catch(() => {});
+    await h.page.locator('button', { hasText: /^\s*2x\s*$/i }).first().evaluate(b => b.click()).catch(() => {});
     h.mark('build');
     let skipped = false;
     for (let i = 0; i < 80; i++) {
       await h.wait(900);
-      const second = h.page.getByRole('button', { name: /start 2nd half/i });
+      const second = h.page.locator('button', { hasText: /start 2nd half/i });
       // DOM clicks throughout: these controls sit under the bottom nav at
       // this viewport, where a tap waits out its timeout and never lands.
       if (await second.count()) { await second.first().evaluate(b => b.click()).catch(() => {}); continue; }
@@ -167,9 +168,17 @@ export async function shoot(h) {
       if (await moment.count()) { await moment.first().evaluate(b => b.click()).catch(() => {}); await h.wait(500); continue; }
       const txt = await h.page.evaluate(() => document.body.innerText);
       const min = +((txt.match(/(\d+)'/) || [])[1] || 0);
-      if (!skipped && min >= 46) {
-        const skip = h.page.getByRole('button', { name: /skip to ft/i });
-        if (await skip.count()) { await skip.first().evaluate(b => b.click()).catch(() => {}); skipped = true; h.mark('drop'); }
+      // ~10 s of live play, then Skip to FT (the capture save is Pro, see
+      // captureAsPro) and confirm the dialog it opens.
+      if (!skipped && (min >= 46 || i >= 10)) {
+        // By visible text: the button's aria-label is not "Skip to FT".
+        const skip = h.page.locator('button', { hasText: /skip to ft/i });
+        if (await skip.count()) {
+          await skip.first().evaluate(b => b.click()).catch(() => {});
+          await h.wait(500);
+          await h.page.locator('[aria-labelledby="skip-ft-title"] button').first().evaluate(b => b.click()).catch(() => {});
+          skipped = true; h.mark('drop');
+        }
       }
       if (/full time|full-time/i.test(txt) || (skipped && i > 2 && !/(\d+)'/.test(txt))) break;
     }
@@ -177,8 +186,10 @@ export async function shoot(h) {
     const res = await h.store((s) => {
       const st = s.getState();
       const me = st.playerClubId;
-      const m = [...(st.fixtures || [])].reverse().find(x => x.played && (x.homeClubId === me || x.awayClubId === me));
-      if (!m) return null;
+      // The match just played — a cup tie is not in `fixtures`, so the last
+      // league fixture would caption the wrong score.
+      const m = st.currentMatchResult;
+      if (!m || (m.homeClubId !== me && m.awayClubId !== me)) return null;
       const home = m.homeClubId === me;
       return { gf: home ? m.homeGoals : m.awayGoals, ga: home ? m.awayGoals : m.homeGoals };
     });

@@ -34,12 +34,31 @@ async function playMatchDay(h, capFn) {
   await h.page.getByRole('button', { name: /kick off/i }).first().tap();
   h.mark('build');
   await h.caption('', 'top');
-  for (let i = 0; i < 70; i++) {
+  let restarted = false;
+  for (let i = 0; i < 90; i++) {
     await h.wait(700);
-    const more = h.page.getByRole('button', { name: /second half|back out|carry on|restart/i });
-    if (await more.count()) { await more.first().tap().catch(() => {}); continue; }
-    if (!(await h.page.getByText(/playing…|playing\.\.\./i).count()) && i > 4) break;
+    // Half-time: the four tactic buttons ARE the whistle; tapping the one
+    // already in use goes back out unchanged (SundayMatchDay atTheBreak).
+    const st = await h.page.evaluate(async () => {
+      const { useGameStore } = await import('/src/store/gameStore.ts');
+      const { SUNDAY_TACTICS } = await import('/src/config/sundayLeague.ts');
+      const s = useGameStore.getState();
+      const ht = s.sunday?.halfTime;
+      const played = (s.fixtures || []).some(m => m.week === s.week && m.played);
+      return { tactic: ht ? SUNDAY_TACTICS.find(t => t.id === ht.tactic)?.name : null, played };
+    });
+    if (st.tactic && !restarted) {
+      const again = h.page.locator('button', { hasText: st.tactic });
+      if (await again.count()) {
+        await h.wait(1200);
+        await again.first().evaluate(b => b.click()).catch(() => {});
+        restarted = true;
+        continue;
+      }
+    }
+    if (st.played && !(await h.page.getByText(/playing…|playing\.\.\./i).count())) break;
   }
+  await h.wait(1200);
   h.mark('drop');
   await h.scroll(900, 1600);
 }
@@ -91,16 +110,19 @@ export async function shoot(h) {
   } else if (EP === 2) {
     const ev = await h.store((s) => {
       const e = s.getState().sunday.pendingEvent;
-      return e ? { title: e.title, n: e.choices.length } : null;
+      return e ? { title: e.title, labels: e.choices.map(c => c.label) } : null;
     });
     await h.caption(`SUNDAY LEAGUE · EP.2|${(ev?.title || 'THIS WEEK').toUpperCase()}`, 'top', { size: 30 });
     await h.wait(4200);
     await h.caption('WHAT WOULD YOU DO? 👇', 'low');
     await h.wait(3600);
     // Take the last option — in this game it is usually the funniest one.
-    const opts = h.page.locator('[role="dialog"] button').filter({ hasNotText: /^$/ });
-    const count = await opts.count();
-    if (count > 1) { await opts.nth(count - 1).tap().catch(() => {}); h.mark('drop'); }
+    // By the choice's own label (the modal is not role="dialog"), DOM click.
+    const last = ev?.labels?.[ev.labels.length - 1];
+    if (last) {
+      await h.page.locator('button', { hasText: last }).first().evaluate(b => b.click()).catch(() => {});
+      h.mark('drop');
+    }
     await h.caption('', 'low');
     await h.wait(3800);
     await h.caption('RIGHT CALL? 👇', 'top');
