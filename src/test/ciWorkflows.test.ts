@@ -69,7 +69,7 @@ describe('android-build.yml', () => {
   it('seals and stamps What\'s New like the iOS workflow, before the web build', () => {
     // Without the seal an AAB shipped the previous release's notes in-app.
     const sealAt = src.indexOf('npm run whats-new:seal');
-    const checkAt = src.search(/node scripts\/check-whats-new\.mjs --inject-build \$\{\{ inputs\.version_code \}\}/);
+    const checkAt = src.search(/node scripts\/check-whats-new\.mjs --inject-build \$\{\{ env\.VERSION_CODE \}\}/);
     const buildAt = src.indexOf('run: npm run build');
     expect(sealAt, 'no whats-new:seal').toBeGreaterThan(-1);
     expect(checkAt, 'no check-whats-new --inject-build <version_code>').toBeGreaterThan(-1);
@@ -78,6 +78,27 @@ describe('android-build.yml', () => {
     expect(checkAt).toBeLessThan(buildAt);
     // Runner-only, as on iOS: nothing is committed or pushed back.
     expect(src).not.toMatch(/git (commit|push)/);
+  });
+
+  it('stamps What\'s New and gradle with the same resolved version code', () => {
+    // Blank input falls back to the run number; both consumers read the
+    // resolved env value so the in-app card and the AAB cannot disagree.
+    expect(block(src, 'version_code')).toMatch(/required:\s*false/);
+    expect(src).toMatch(/VERSION_CODE="\$\{VERSION_CODE_INPUT:-\$\{\{ github\.run_number \}\}\}"/);
+    expect(src).toMatch(/VERSION_CODE:\s*\$\{\{ env\.VERSION_CODE \}\}/);
+    expect(src).not.toMatch(/(VERSION_CODE:|--inject-build)\s*\$\{\{\s*inputs\.version_code/);
+  });
+
+  it('uploads to Play only for testing tracks, after the artifact is saved', () => {
+    const tracks = block(src, 'play_track');
+    expect(tracks).toMatch(/default:\s*internal/);
+    expect(tracks).not.toMatch(/production/);
+    const artifactAt = src.indexOf('actions/upload-artifact');
+    const uploadAt = src.indexOf('bundle exec fastlane android upload');
+    expect(uploadAt, 'no Play upload step').toBeGreaterThan(-1);
+    expect(artifactAt).toBeLessThan(uploadAt);
+    // The credential check runs before checkout, so a missing secret fails fast.
+    expect(src.indexOf('Check Play upload credentials')).toBeLessThan(src.indexOf('actions/checkout'));
   });
 });
 
