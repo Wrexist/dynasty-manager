@@ -285,7 +285,7 @@ export default function PitchView({
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setTacticalWide((v) => !v)}
-          className="absolute left-2 top-11 z-[6] flex items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95"
+          className="absolute left-2 top-11 z-[6] flex items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95 before:absolute before:-inset-2.5 before:content-['']"
           aria-label={tacticalWide ? 'Switch to broadcast camera' : 'Switch to tactical wide view'}
           aria-pressed={tacticalWide}
         >
@@ -313,8 +313,9 @@ export default function PitchView({
       {/* Replay last goal — hidden during a celebration or an active replay. */}
       {lastGoal && !celebration && !replay && (
         <button
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 })}
-          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95"
+          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95 before:absolute before:-inset-2.5 before:content-['']"
           aria-label={tr('pitchView.replayLastGoal')}
         >
           <RotateCcw className="h-3 w-3 text-primary" />
@@ -391,7 +392,7 @@ export default function PitchView({
               <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Fit</p>
               <p className="text-sm font-bold leading-none text-foreground tabular-nums">{Math.round(inspectPlayer.fitness)}%</p>
             </div>
-            <button onClick={() => setInspectId(null)} className="ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-bold text-muted-foreground active:scale-90" aria-label="Close player card">✕</button>
+            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setInspectId(null)} className="relative ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-bold text-muted-foreground active:scale-90 before:absolute before:-inset-2.5 before:content-['']" aria-label="Close player card">✕</button>
           </div>
         </div>
       )}
