@@ -40,7 +40,7 @@ function duration(file) {
 // End cards are rendered once and cached.
 const cards = { ios: join(tmp, 'endcard-ios.png'), all: join(tmp, 'endcard-all.png') };
 if (!existsSync(cards.ios) || !existsSync(cards.all)) {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || (process.platform === 'linux' ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined) });
   const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
   for (const v of ['ios', 'all']) {
     await p.goto(`${pathToFileURL(join(HERE, 'endcard.html')).href}?v=${v}`, { waitUntil: 'networkidle' });
@@ -58,7 +58,7 @@ const cueArg = CUE.startsWith('{')
   : CUE;
 const scoreArgs = [join(HERE, 'score-ad.py'), STYLE, cueArg, total.toFixed(2), wav];
 if (DROP) scoreArgs.push(DROP);
-execFileSync('python3', scoreArgs, { stdio: 'inherit' });
+execFileSync(process.env.PYTHON || 'python3', scoreArgs, { stdio: 'inherit' });
 
 for (const [variant, suffix] of [['ios', 'ios'], ['all', 'android']]) {
   const out = `${OUT}-${suffix}.mp4`;

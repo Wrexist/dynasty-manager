@@ -17,7 +17,7 @@ import { join } from 'path';
 import { pipeline } from 'stream/promises';
 
 const RELEASE = 'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0';
-const PLATFORM = { 'linux-x64': 'ffmpeg-linux-x64', 'darwin-arm64': 'ffmpeg-darwin-arm64', 'darwin-x64': 'ffmpeg-darwin-x64', 'win32-x64': 'ffmpeg-win32-x64.exe' };
+const PLATFORM = { 'linux-x64': 'ffmpeg-linux-x64', 'darwin-arm64': 'ffmpeg-darwin-arm64', 'darwin-x64': 'ffmpeg-darwin-x64', 'win32-x64': 'ffmpeg-win32-x64' };
 
 const key = `${process.platform}-${process.arch}`;
 const asset = PLATFORM[key];

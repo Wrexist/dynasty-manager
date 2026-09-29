@@ -49,7 +49,10 @@ if (scene.fresh) rmSync(profileDir, { recursive: true, force: true });
 mkdirSync(profileDir, { recursive: true });
 
 const ctx = await chromium.launchPersistentContext(profileDir, {
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  // The pinned path is the Linux capture rig's; CHROME_PATH overrides it, and
+  // elsewhere Playwright's own bundled Chromium is used.
+  executablePath: process.env.CHROME_PATH
+    || (process.platform === 'linux' ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined),
   args: [`--force-device-scale-factor=${SCALE}`],
   viewport: { width: 390, height: 693 },
   deviceScaleFactor: SCALE,
