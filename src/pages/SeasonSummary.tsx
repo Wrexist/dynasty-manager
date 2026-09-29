@@ -12,11 +12,14 @@ import { LEAGUES } from '@/data/league';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
-import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { isCelebratorySeason, maybeRequestReview, pickSeasonReviewTrigger } from '@/utils/appReview';
 import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
+import { CardBack } from '@/components/game/pack/CardBack';
+import { BallonDorCeremony } from '@/components/game/ballonDor/BallonDorCeremony';
+import { useBallonCeremonySeen } from '@/hooks/useBallonCeremonySeen';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AWARD_ICONS: Record<string, string> = {
   'Golden Boot': 'footprints',
@@ -51,6 +54,11 @@ const SeasonSummary = () => {
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
   const { t } = useTranslation();
+  // Ballon d'Or night: the winner stays sealed here until the ceremony has
+  // been watched (useBallonCeremonySeen), so this screen never spoils it.
+  const bdoSeason = latest?.ballonDOrRanking?.length ? latest.season : null;
+  const [bdoSeen, markBdoSeen] = useBallonCeremonySeen(bdoSeason);
+  const [bdoOpen, setBdoOpen] = useState(false);
 
   // Promotion / relegation ceremony. These are the emotional peak (and nadir)
   // of a lower-league save and used to be a static text banner with a haptic:
@@ -125,6 +133,22 @@ const SeasonSummary = () => {
             : `${clubName} are going up. Promotion earned, on merit, over a full season.`
         }
       />
+
+      <AnimatePresence>
+        {bdoOpen && latest.ballonDOrRanking && (
+          <BallonDorCeremony
+            season={latest.season}
+            ranking={latest.ballonDOrRanking}
+            players={players}
+            playerClubName={playerClubShort}
+            onFinish={markBdoSeen}
+            onClose={(toRankings) => {
+              setBdoOpen(false);
+              if (toRankings) setScreen('ballon-dor');
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <PageHint
         screen="season-summary"
@@ -454,8 +478,30 @@ const SeasonSummary = () => {
           </GlassPanel>
         )}
 
+        {/* Ballon d'Or Night — sealed until watched */}
+        {latest.ballonDOrRanking && latest.ballonDOrRanking.length > 0 && !bdoSeen && (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7, duration: 0.5, type: 'spring' }}>
+            <GlassPanel className="p-4 border-gold/40 relative overflow-hidden">
+              <div aria-hidden className="absolute inset-0 pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse 70% 70% at 15% 30%, hsl(var(--gold) / 0.22), transparent 70%)' }} />
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="relative w-14 shrink-0" style={{ aspectRatio: '2 / 3' }} aria-hidden>
+                  <CardBack maskSrc="/player-cards/ballondor.webp" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-micro text-gold uppercase tracking-wider font-black">{t('ballonDor.night.teaserTitle')}</p>
+                  <p className="text-[12px] text-muted-foreground leading-snug mt-0.5">{t('ballonDor.night.teaserBody')}</p>
+                </div>
+              </div>
+              <Button className="relative z-10 mt-3 w-full h-11 font-black bg-gold text-background hover:bg-gold/90" onClick={() => setBdoOpen(true)}>
+                {t('ballonDor.night.teaserCta')}
+              </Button>
+            </GlassPanel>
+          </motion.div>
+        )}
+
         {/* Ballon d'Or Winner */}
-        {latest.ballonDOrRanking && latest.ballonDOrRanking.length > 0 && (() => {
+        {latest.ballonDOrRanking && latest.ballonDOrRanking.length > 0 && bdoSeen && (() => {
           const winner = latest.ballonDOrRanking[0];
           const winnerPlayer = players[winner.playerId];
           const yourPlayers = latest.ballonDOrRanking.filter(e => e.clubName === playerClubShort);
