@@ -32,7 +32,7 @@ import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { aiMatchTactics, applyAIMatchEvents, buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
-import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
+import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, onPitchAtFinalWhistle, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
 import { markSuperCupPlayed, pendingSuperCup } from '@/utils/superCup';
 import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, generateKnockoutFromGroups, isGroupStageComplete, isKnockoutRoundComplete } from '@/utils/continental';
@@ -624,6 +624,12 @@ export function fieldedLineup(saved: string[], xi: Player[]): string[] {
 export function resumeSideXI(club: Club, players: Record<string, Player>, week: number, playerClubId: string): Player[] {
   if (club.id === playerClubId) return [...new Set(club.lineup || [])].map(id => players[id]).filter(Boolean);
   return pickAiMatchSquad(club, players, week).xi;
+}
+
+/** A side's shootout pool: its resumed XI, as it stands at the final whistle. */
+export function shootoutPool(club: Club, players: Record<string, Player>, week: number, playerClubId: string, events: MatchEvent[]): Player[] {
+  const xi = resumeSideXI(club, players, week, playerClubId).map(p => p.id);
+  return onPitchAtFinalWhistle(xi, events, club.id).map(id => players[id]).filter(Boolean);
 }
 
 /**
@@ -2069,8 +2075,11 @@ export function beginInteractiveShootoutImpl(set: Set, get: Get): Match | null {
   const ac = clubs[currentMatchResult.awayClubId];
   if (!hc || !ac) return null;
 
+  // Only players still on the pitch at the final whistle take part: the
+  // keeper may have been sent off, and an AI club's saved lineup is not the
+  // XI that played (see `onPitchAtFinalWhistle`).
   const findGK = (club: Club): Player | null =>
-    (club.lineup || []).map(id => players[id]).filter(Boolean).find(p => p.position === 'GK') ?? null;
+    shootoutPool(club, players, state.week, playerClubId, currentMatchResult.events).find(p => p.position === 'GK') ?? null;
   const homeGK = findGK(hc);
   const awayGK = findGK(ac);
 
@@ -2137,7 +2146,7 @@ export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: 
   // Real shootout rules: nobody kicks twice until the whole eligible pool has
   // gone — reset availability once everyone on the pitch has taken one.
   const playerClub = clubs[ctx.playerIsHome ? currentMatchResult.homeClubId : currentMatchResult.awayClubId];
-  const eligibleCount = (playerClub?.lineup ?? []).filter(id => players[id]).length;
+  const eligibleCount = playerClub ? shootoutPool(playerClub, players, state.week, state.playerClubId, currentMatchResult.events).length : 0;
   const used = [...ctx.usedTakerIds, takerId];
   set({
     penaltyShootoutKicks: newKicks,
@@ -2158,8 +2167,7 @@ export function revealOpponentPenaltyImpl(set: Set, get: Get): PenaltyKick | nul
 
   const oppIsHome = !ctx.playerIsHome;
   const oppClub = clubs[oppIsHome ? currentMatchResult.homeClubId : currentMatchResult.awayClubId];
-  const oppTakers = (oppClub?.lineup ?? [])
-    .map(id => players[id]).filter(Boolean)
+  const oppTakers = (oppClub ? shootoutPool(oppClub, players, state.week, state.playerClubId, currentMatchResult.events) : [])
     .filter(p => p.position !== 'GK')
     .sort((a, b) => getPenaltyTakerQuality(b) - getPenaltyTakerQuality(a));
   const oppKicksTaken = kicks.filter(k => k.isHome === oppIsHome).length;

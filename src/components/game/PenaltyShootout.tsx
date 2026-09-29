@@ -12,7 +12,7 @@ import { PenaltyGoalScene, shotTimings, type SceneShot } from '@/components/game
 import { PackConfetti } from '@/components/game/pack/PackConfetti';
 import { ShareMomentButton } from '@/components/game/ShareMomentButton';
 import type { MomentCardData } from '@/utils/shareCard';
-import { getKickStakes, getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
+import { getKickStakes, getPenaltyTakerQuality, getShootoutProgress, onPitchAtFinalWhistle } from '@/utils/penaltyShootout';
 import { getFlag } from '@/utils/nationality';
 import { hapticError, hapticHeavy, hapticLight, hapticMedium, hapticSuccess } from '@/utils/haptics';
 import { resumeSfx, setSfxEnabled, sfxGroan, sfxKick, sfxNet, sfxRoar, sfxWhistle, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
@@ -256,9 +256,12 @@ export function PenaltyShootout() {
   const myClub = myClubId ? clubs[myClubId] : undefined;
   const oppClub = oppClubId ? clubs[oppClubId] : undefined;
 
+  // Only players still on the pitch at the final whistle may take a kick — the
+  // lineup keeps a sent-off (or injured, no subs left) player in it.
   const onPitch = useMemo(
-    () => (myClub?.lineup ?? []).map(id => players[id]).filter(Boolean),
-    [myClub, players],
+    () => (myClub ? onPitchAtFinalWhistle(myClub.lineup ?? [], currentMatchResult?.events ?? [], myClub.id) : [])
+      .map(id => players[id]).filter(Boolean),
+    [myClub, players, currentMatchResult?.events],
   );
   const takerPool = useMemo(() => {
     const used = new Set(ctx?.usedTakerIds ?? []);

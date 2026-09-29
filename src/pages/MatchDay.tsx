@@ -874,8 +874,15 @@ const MatchDayInner = () => {
   };
 
   const dismissKeyMoment = () => {
-    setKeyMoment(null);
-    // Resume will happen via useEffect since keyMoment becomes null
+    // Several things can happen in one minute — a goal conceded AND an injury,
+    // say. `checkKeyMoment` returns one moment per call (marking it seen), and
+    // the clock's next check only looks at the NEXT minute's events, so the
+    // rest were lost: an injury in the same minute as a conceded goal never
+    // opened the forced-sub sheet and the side played on a man short. Ask again
+    // for this minute before letting the clock resume.
+    const another = checkKeyMomentRef.current(currentMinRef.current, visibleEvents);
+    setKeyMoment(another || null);
+    // Resume will happen via useEffect once keyMoment becomes null
   };
 
   // ── Skip to full time ──

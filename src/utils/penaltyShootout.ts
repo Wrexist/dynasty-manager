@@ -1,6 +1,6 @@
 import { CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, PEN_AIM } from '@/config/gameBalance';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
-import type { Club, PenaltyKick, Player } from '@/types/game';
+import type { Club, MatchEvent, PenaltyKick, Player } from '@/types/game';
 
 interface ShootoutOpts {
   homeName: string;
@@ -304,4 +304,28 @@ export function getClubGKQuality(club: Club | undefined, players: Record<string,
   const gk = candidates.find(p => p.position === 'GK');
   if (!gk) return 0.5;
   return (gk.attributes.defending + gk.attributes.mental) / 200;
+}
+
+/**
+ * Who is on the pitch for `clubId` when the final whistle goes: the XI that
+ * started, replayed through the match's substitutions, red cards and injuries.
+ *
+ * Only those players may take (or face) a shootout kick. The taker pools read
+ * `club.lineup`, which the engine deliberately never edits for a dismissal or
+ * an injury with no subs left — so a sent-off player could step up — and which
+ * for an AI club is not even the XI that played. Idempotent for the user's
+ * lineup, which live substitutions already rewrite.
+ */
+export function onPitchAtFinalWhistle(startXI: string[], events: MatchEvent[], clubId: string): string[] {
+  const on = new Set(startXI);
+  for (const e of events) {
+    if (e.clubId !== clubId || !e.playerId) continue;
+    if (e.type === 'substitution') {
+      if (e.assistPlayerId) on.delete(e.assistPlayerId);
+      on.add(e.playerId);
+    } else if (e.type === 'red_card' || e.type === 'injury') {
+      on.delete(e.playerId);
+    }
+  }
+  return [...on];
 }

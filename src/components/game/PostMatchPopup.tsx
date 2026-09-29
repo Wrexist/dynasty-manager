@@ -57,8 +57,14 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const isHome = currentMatchResult.homeClubId === playerClubId;
   const goalsFor = isHome ? currentMatchResult.homeGoals : currentMatchResult.awayGoals;
   const goalsAgainst = isHome ? currentMatchResult.awayGoals : currentMatchResult.homeGoals;
-  const won = goalsFor > goalsAgainst;
-  const lost = goalsFor < goalsAgainst;
+  // A level cup tie is decided by its shootout — a 1-1, 5-4 on penalties win
+  // used to read as an amber "Draw" (and a shootout exit didn't count as lost).
+  const pens = currentMatchResult.penaltyShootout;
+  const pensFor = pens ? (isHome ? pens.home : pens.away) : 0;
+  const pensAgainst = pens ? (isHome ? pens.away : pens.home) : 0;
+  const decidedOnPens = !!pens && goalsFor === goalsAgainst && pensFor !== pensAgainst;
+  const won = goalsFor > goalsAgainst || (decidedOnPens && pensFor > pensAgainst);
+  const lost = goalsFor < goalsAgainst || (decidedOnPens && pensFor < pensAgainst);
 
 
   const homeClub = resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId);
@@ -133,7 +139,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               'text-xs font-bold uppercase tracking-wider mb-1',
               won ? 'text-emerald-400' : lost ? 'text-destructive' : 'text-amber-400'
             )}>
-              {won ? 'Victory' : lost ? 'Defeat' : 'Draw'}
+              {decidedOnPens ? (won ? 'Won on penalties' : 'Lost on penalties') : won ? 'Victory' : lost ? 'Defeat' : 'Draw'}
             </p>
             <div className="flex items-center justify-center gap-4">
               <div className="text-center">
@@ -143,6 +149,11 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               <p className="text-2xl font-black text-foreground tabular-nums font-display">
                 {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals}
               </p>
+              {decidedOnPens && (
+                <p className="text-micro font-semibold text-foreground/80 tabular-nums mt-0.5">
+                  {pens!.home} - {pens!.away} pens
+                </p>
+              )}
               {currentMatchResult.stats?.homeXG != null && (
                 <p className="text-micro text-muted-foreground tabular-nums mt-0.5">
                   xG: {currentMatchResult.stats.homeXG.toFixed(1)} - {(currentMatchResult.stats.awayXG ?? 0).toFixed(1)}
