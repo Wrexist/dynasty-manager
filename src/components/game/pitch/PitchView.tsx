@@ -10,6 +10,7 @@ import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
+import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
 import { PitchCanvas, type PitchHitTarget } from './PitchCanvas';
@@ -47,6 +48,10 @@ interface PitchViewProps {
   /** Wall-clock ms per match minute (live match speed) — paces the pitch so
    *  player motion stays continuous at every speed. */
   msPerMinute?: number;
+  /** The corner score bug. Off when the page already shows the score right
+   *  above the pitch (MatchDay's compact scoreboard) — twice is clutter, and
+   *  the bug is what covers the goal the player attacks. */
+  showScoreBug?: boolean;
 }
 
 const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
@@ -67,7 +72,7 @@ const SCORING_TYPES = new Set<MatchEvent['type']>(GOAL_SCORING_TYPES as unknown 
 const teamCode = (s: string) => (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || '—';
 
 export default function PitchView({
-  worldCup = false, match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute,
+  worldCup = false, match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute, showScoreBug = true,
 }: PitchViewProps) {
   // Aliased: this file already uses `t` as a loop variable further down
   // (`for (const t of targets)`), and shadowing it reads as a bug.
@@ -75,7 +80,8 @@ export default function PitchView({
   const landscape = orientation === 'landscape';
   // The score bug and caption overlay the top and bottom of the portrait pitch;
   // the camera composes around them. Landscape (split) is too short to spare it.
-  const safeTop = landscape ? 0 : PITCH_RENDER.HUD_SAFE_TOP;
+  // Without the bug only small corner buttons sit up there, clear of the box.
+  const safeTop = landscape || !showScoreBug ? 0 : PITCH_RENDER.HUD_SAFE_TOP;
   const safeBottom = landscape ? 0 : PITCH_RENDER.HUD_SAFE_BOTTOM;
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
 
@@ -269,6 +275,7 @@ export default function PitchView({
 
       {/* Broadcast score bug — clock + crests + running scoreline, overlaid on
           the live pitch (the big panel stays for pre/HT/FT in MatchDay). */}
+      {showScoreBug && (
       <div className="pointer-events-none absolute left-2 top-2 z-[6] flex items-center gap-1.5 rounded-md border border-border/40 bg-card/85 px-1.5 py-1 shadow-lg backdrop-blur-md">
         {worldCup ? <span>{getFlag(homeClub.id)}</span> : <ClubCrest club={homeClub} size="xs" />}
         <span className="text-[11px] font-bold tracking-tight text-foreground">{teamCode(homeClub.shortName)}</span>
@@ -279,13 +286,14 @@ export default function PitchView({
         {worldCup ? <span>{getFlag(awayClub.id)}</span> : <ClubCrest club={awayClub} size="xs" />}
         <span className="ml-0.5 rounded bg-primary/15 px-1 py-0.5 text-micro font-semibold leading-none tabular-nums text-primary">{minute}'</span>
       </div>
+      )}
 
       {/* Tactical-wide / broadcast-follow camera toggle. */}
       {!reducedMotion && !celebration && !replay && (
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setTacticalWide((v) => !v)}
-          className="absolute left-2 top-11 z-[6] flex items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95 before:absolute before:-inset-2.5 before:content-['']"
+          className={cn('absolute left-2 z-[6] flex', showScoreBug ? 'top-11' : 'top-2', 'items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95 before:absolute before:-inset-2.5 before:content-[""]')}
           aria-label={tacticalWide ? 'Switch to broadcast camera' : 'Switch to tactical wide view'}
           aria-pressed={tacticalWide}
         >

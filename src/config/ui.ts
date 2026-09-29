@@ -514,3 +514,15 @@ export const TEAM_TALK_OPTIONS = [
  *  so flipping this back on (or dropping `comingSoon` when it ships) is the
  *  whole re-enable. */
 export const SHOW_COMING_SOON_MODES = false;
+
+/**
+ * Live MatchDay, Pitch view: vertical space the page takes around the pitch
+ * (top bar, compact scoreboard, momentum bar + its label, view toggle, gaps,
+ * bottom nav) at a 390x844 layout, in CSS px, safe areas excluded. The
+ * portrait pitch is sized so it fits the rest of the viewport — measured 334
+ * without the momentum label (44pt view toggle), +22 reserved for it. Transient pills (tactical
+ * insight, active shout) may still push it a little under the nav.
+ */
+export const LIVE_PITCH_CHROME_PX = 356;
+/** Never shrink the live portrait pitch below this width (iPhone SE class). */
+export const LIVE_PITCH_MIN_WIDTH_PX = 260;

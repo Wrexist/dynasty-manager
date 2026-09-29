@@ -45,7 +45,8 @@ import { PageHint } from '@/components/game/PageHint';
 import { ScoreHeader } from '@/components/matchday/ScoreHeader';
 import { MatchSpeedPicker } from '@/components/matchday/MatchSpeedPicker';
 import { TacticalInsightPill } from '@/components/matchday/TacticalInsightPill';
-import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { PAGE_HINTS, GOAL_FLASH_MS, LIVE_PITCH_CHROME_PX, LIVE_PITCH_MIN_WIDTH_PX } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
 import { canSkipToFullTime, playOutSecondHalf } from '@/utils/skipToFullTime';
@@ -115,6 +116,10 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
   return parts.length ? parts.join(' · ') : 'Balanced';
 }
 
+// Width of the live portrait pitch: whatever fits the viewport's height at
+// 68:104, never narrower than a small phone can read, never wider than the column.
+const LIVE_PITCH_WIDTH = `min(100%, max(${LIVE_PITCH_MIN_WIDTH_PX}px, calc((100dvh - ${LIVE_PITCH_CHROME_PX}px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 68 / 104)))`;
+
 const MatchDayInner = () => {
   const { t } = useTranslation();
   const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, penaltyShootoutCtx, gameMode, internationalTournament, managerNationality, leagueTable } = useGameStore(useShallow(s => ({
@@ -181,8 +186,13 @@ const MatchDayInner = () => {
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>(() =>
     wcPenaltyResume ? (useGameStore.getState().currentMatchResult?.events ?? []) : []);
   const [matchView, setMatchView] = useState<MatchViewMode>(() => readMatchViewMode() ?? 'commentary');
+  // Until a player has picked a view once, the Pitch tab carries a discovery
+  // dot: the default stays Log (a locked product call), but a new manager
+  // should learn the match can be watched. Any pick stores a mode and ends it.
+  const [viewChosen, setViewChosen] = useState(() => readMatchViewMode() !== null);
   const changeMatchView = useCallback((mode: MatchViewMode) => {
     setMatchView(mode);
+    setViewChosen(true);
     writeMatchViewMode(mode);
   }, []);
   const [speed, setSpeed] = useState(() => {
@@ -206,6 +216,18 @@ const MatchDayInner = () => {
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
   const [keyMoment, setKeyMoment] = useState<{ type: string; description: string; playerId?: string } | null>(null);
+  // The decision card renders beneath the pitch, which on a phone is below the
+  // fold — and the clock is stopped until it is answered. Bring it into view
+  // (clear of the bottom nav via its scroll margin) the moment it appears.
+  const keyMomentCardRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotionPref();
+  useEffect(() => {
+    if (!keyMoment || keyMoment.type === 'injury') return;
+    const id = requestAnimationFrame(() => {
+      keyMomentCardRef.current?.scrollIntoView?.({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [keyMoment, reduceMotion]);
   const [injurySubMode, setInjurySubMode] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showFitness, setShowFitness] = useState(false);
@@ -1121,6 +1143,7 @@ const MatchDayInner = () => {
         liveAwayXG={liveAwayXG}
         goalFlash={goalFlash}
         worldCup={isWorldCup}
+        compact={isLive && matchView !== 'commentary'}
       />
 
       {/* Momentum Meter & Tactical Insights */}
@@ -1329,6 +1352,7 @@ const MatchDayInner = () => {
                   showOverall={settings.showOverallOnPitch}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
                   msPerMinute={speed}
+                  showScoreBug={false}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -1676,10 +1700,71 @@ const MatchDayInner = () => {
         </motion.div>
       )}
 
-      {/* Live Controls (first or second half) — hidden during key moments */}
-      {isLive && !keyMoment && (
+      {/* Live play. The view toggle and the pitch come first so the match is
+          what the player sees at 390x844 without scrolling; the controls sit
+          below it, in thumb reach. The pitch stays mounted through key moments
+          — the decision card rises beneath it — so a conceded goal's
+          celebration and replay are not torn down mid-flight. */}
+      {isLive && (
         <>
-          {paused ? (
+          {/* Match-view toggle: pitch / split / commentary. Always a toggle,
+              never forced — persists the user's choice across sessions. */}
+          <div className="flex gap-1 rounded-lg bg-muted/30 p-1">
+            {([
+              { k: 'pitch', label: 'Pitch' },
+              { k: 'split', label: 'Split' },
+              { k: 'commentary', label: 'Log' },
+            ] as { k: MatchViewMode; label: string }[]).map(({ k, label }) => (
+              <button
+                key={k}
+                onClick={() => changeMatchView(k)}
+                aria-pressed={matchView === k}
+                aria-label={k === 'pitch' && !viewChosen ? `${label} — watch the match live on the pitch` : undefined}
+                className={cn(
+                  'relative flex-1 rounded-md py-1.5 min-h-[44px] text-[11px] font-semibold transition-all active:scale-[0.98]',
+                  matchView === k ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {label}
+                {k === 'pitch' && !viewChosen && (
+                  <span className="absolute right-2 top-1.5 flex h-2 w-2" aria-hidden>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {matchView !== 'commentary' && (
+            // Portrait: sized so the whole pitch fits the viewport beneath the
+            // scoreboard — width follows height at the pitch's 68:104 aspect.
+            <div className="mx-auto w-full" style={matchView === 'pitch' ? { width: LIVE_PITCH_WIDTH } : undefined}>
+              <ErrorBoundary fallback={() => null}>
+                <Suspense fallback={<div className="w-full rounded-xl bg-black/20 border border-border/40" style={{ aspectRatio: '68 / 104' }} />}>
+                  <PitchView
+                    worldCup={isWorldCup}
+                    match={match}
+                    homeClub={homeClub}
+                    awayClub={awayClub}
+                    events={visibleEvents}
+                    minute={currentMin}
+                    playerIsHome={playerClubId === match.homeClubId}
+                    homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    players={players}
+                    orientation={matchView === 'split' ? 'landscape' : 'portrait'}
+                    showOverall={settings.showOverallOnPitch}
+                    reducedMotion={settings.reducedMotion || settings.performanceMode}
+                    msPerMinute={speed}
+                    showScoreBug={false}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          )}
+
+          {!keyMoment && (paused ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
               <GlassPanel className="p-4 border-primary/40 space-y-4">
                 {/* Header — centered with thin divider for a calmer pause moment */}
@@ -1999,56 +2084,11 @@ const MatchDayInner = () => {
                 )}
               </div>
             </div>
-          )}
-
-          {/* Match-view toggle: pitch / split / commentary. Always a toggle,
-              never forced — persists the user's choice across sessions. */}
-          <div className="flex gap-1 rounded-lg bg-muted/30 p-1">
-            {([
-              { k: 'pitch', label: 'Pitch' },
-              { k: 'split', label: 'Split' },
-              { k: 'commentary', label: 'Log' },
-            ] as { k: MatchViewMode; label: string }[]).map(({ k, label }) => (
-              <button
-                key={k}
-                onClick={() => changeMatchView(k)}
-                aria-pressed={matchView === k}
-                className={cn(
-                  'flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-all active:scale-[0.98]',
-                  matchView === k ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {matchView !== 'commentary' && (
-            <ErrorBoundary fallback={() => null}>
-              <Suspense fallback={<div className="w-full rounded-xl bg-black/20 border border-border/40" style={{ aspectRatio: '68 / 104' }} />}>
-                <PitchView
-                  worldCup={isWorldCup}
-                  match={match}
-                  homeClub={homeClub}
-                  awayClub={awayClub}
-                  events={visibleEvents}
-                  minute={currentMin}
-                  playerIsHome={playerClubId === match.homeClubId}
-                  homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  players={players}
-                  orientation={matchView === 'split' ? 'landscape' : 'portrait'}
-                  showOverall={settings.showOverallOnPitch}
-                  reducedMotion={settings.reducedMotion || settings.performanceMode}
-                  msPerMinute={speed}
-                />
-              </Suspense>
-            </ErrorBoundary>
-          )}
+          ))}
 
           {/* Event Log — cap by viewport but never collapse below ~2 events on
               short landscape screens (30vh ≈ 112px there). */}
-          {matchView !== 'pitch' && (
+          {matchView !== 'pitch' && !keyMoment && (
           <GlassPanel className="p-4 max-h-[min(40vh,300px)] overflow-y-auto">
             {/* Newest first (liveLogRows): the latest event is always the top
                 row, with no auto-scroll to animate. */}
@@ -2080,7 +2120,7 @@ const MatchDayInner = () => {
 
       {/* Key Moment Decision Overlay — injury moments handled by SubstitutionSheet directly */}
       {keyMoment && keyMoment.type !== 'injury' && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+        <motion.div ref={keyMomentCardRef} className="scroll-mb-28" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
           <GlassPanel className="p-4 border-primary/40">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-4 h-4 text-primary" />
