@@ -48,21 +48,28 @@ export function WeatherOverlay({ weather, pitch, density = 1, reducedMotion }: W
           transition={{ duration: 6, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
         />
       )}
+      {/* Each particle is a full-height column moved by transform, so its
+          y% is a share of the PITCH (a translate % is of the element's own
+          height — on the bare 12px streak '120%' moved it 14px, and the rain
+          never reached the pitch). The visible streak sits at its top. */}
       {!reducedMotion && drops.map((d, i) => (
         <motion.div
           key={i}
-          className="absolute rounded-full"
-          style={{
-            left: `${d.left}%`,
-            top: '-8%',
-            width: weather === 'snow' ? d.size : 1.2,
-            height: weather === 'snow' ? d.size : 12,
-            backgroundColor: weather === 'snow' ? 'rgba(255,255,255,0.7)' : 'rgba(200,215,235,0.5)',
-          }}
-          initial={{ y: '-10%', x: 0, opacity: 0 }}
-          animate={{ y: '120%', x: weather === 'snow' ? 12 : 6, opacity: [0, 1, 1, 0] }}
+          className="absolute top-0 h-full"
+          style={{ left: `${d.left}%`, width: weather === 'snow' ? d.size : 1.2 }}
+          initial={{ y: '-12%', x: 0, opacity: 0 }}
+          animate={{ y: '100%', x: weather === 'snow' ? 12 : 6, opacity: [0, 1, 1, 0] }}
           transition={{ duration: d.dur, delay: d.delay, repeat: Infinity, ease: 'linear' }}
-        />
+        >
+          <div
+            className="rounded-full"
+            style={{
+              width: '100%',
+              height: weather === 'snow' ? d.size : 12,
+              backgroundColor: weather === 'snow' ? 'rgba(255,255,255,0.7)' : 'rgba(200,215,235,0.5)',
+            }}
+          />
+        </motion.div>
       ))}
     </div>
   );

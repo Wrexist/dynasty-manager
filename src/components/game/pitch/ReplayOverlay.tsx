@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
@@ -26,6 +26,11 @@ const STEP_MS = 650;
 
 export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, to, flip, orientation, showOverall, reducedMotion, onDone }: ReplayOverlayProps) {
   const [minute, setMinute] = useState(from);
+  // Read through a ref: the parent passes a fresh `onDone` every match minute,
+  // and keying the effect on it restarted the replay from `from` on each tick,
+  // so a replay longer than one minute of play looped until skipped.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     let m = from;
@@ -37,13 +42,13 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
       m += 1;
       if (m > to) {
         clearInterval(id);
-        doneTimer = setTimeout(onDone, 900);
+        doneTimer = setTimeout(() => onDoneRef.current(), 900);
         return;
       }
       setMinute(m);
     }, STEP_MS);
     return () => { clearInterval(id); if (doneTimer !== undefined) clearTimeout(doneTimer); };
-  }, [from, to, onDone]);
+  }, [from, to]);
 
   return (
     <motion.div
@@ -77,8 +82,9 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
         <span className="text-micro font-bold uppercase tracking-wide text-foreground">Replay</span>
       </div>
       <button
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={onDone}
-        className="absolute bottom-2 right-2 rounded-full bg-card/80 px-3 py-1 text-micro font-semibold text-foreground backdrop-blur-md border border-border/40 active:scale-95"
+        className="absolute bottom-2 right-2 rounded-full bg-card/80 px-3 py-1 text-micro font-semibold text-foreground backdrop-blur-md border border-border/40 active:scale-95 before:absolute before:-inset-3 before:content-['']"
       >
         Skip
       </button>

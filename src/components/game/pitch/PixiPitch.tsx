@@ -101,7 +101,12 @@ export default function PixiPitch({
     if (!host) return;
 
     let app: Application | null = null;
+    // Only an app whose init() has resolved can be destroyed cleanly (v8's
+    // ResizePlugin.destroy throws before init). Cleanup that runs mid-init
+    // leaves destruction to the init continuation below.
+    let ready = false;
     let destroyed = false;
+    let ro: ResizeObserver | null = null;
     let failed = false;
     const fail = (err: unknown) => {
       if (failed) return;
@@ -118,16 +123,28 @@ export default function PixiPitch({
 
     (async () => {
       try {
-        app = new Application();
-        await app.init({
+        const local = new Application();
+        app = local;
+        await local.init({
           resizeTo: host,
           antialias: true,
           backgroundAlpha: 0,
           autoDensity: true,
           resolution: Math.min(window.devicePixelRatio || 1, quality.dprCap),
         });
-        if (destroyed || !app) { app?.destroy(true); return; }
-        host.appendChild(app.canvas);
+        // Unmounted while init was in flight: cleanup could not destroy the
+        // half-built app (and used to null `app`, so this check then leaked a
+        // live WebGL context + ticker + window listener). Destroy it here.
+        if (destroyed) { try { local.destroy(true, { children: true }); } catch { /* ignore */ } return; }
+        ready = true;
+        host.appendChild(local.canvas);
+        // resizeTo only follows window resizes; follow the host box itself, as
+        // the Canvas tier does, so a layout change never leaves a stretched
+        // canvas with stale hit targets.
+        if (typeof ResizeObserver !== 'undefined') {
+          ro = new ResizeObserver(() => { if (!destroyed) local.resize(); });
+          ro.observe(host);
+        }
 
         const world = new Container();
         const standsG = new Graphics();
@@ -493,7 +510,10 @@ export default function PixiPitch({
 
     return () => {
       destroyed = true;
-      try { app?.destroy(true, { children: true }); } catch { /* already gone */ }
+      ro?.disconnect();
+      if (ready) {
+        try { app?.destroy(true, { children: true }); } catch { /* already gone */ }
+      }
       app = null;
       const ht = hitTargetsRefRef.current;
       if (ht) ht.current = null;

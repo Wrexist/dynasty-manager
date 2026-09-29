@@ -140,6 +140,12 @@ export default function PitchView({
   const [inspectId, setInspectId] = useState<string | null>(null);
   const inspectPlayer = inspectId ? players?.[inspectId] : undefined;
   const inspectIsHome = !!(inspectId && homeClub.playerIds?.includes(inspectId));
+  // A player subbed off or sent off leaves the pitch; don't keep a card open
+  // for someone who is no longer out there.
+  const lastBeatPlayers = timeline.beats[timeline.beats.length - 1]?.players;
+  useEffect(() => {
+    if (inspectId && lastBeatPlayers && !lastBeatPlayers.some(p => p.id === inspectId)) setInspectId(null);
+  }, [inspectId, lastBeatPlayers]);
 
   // Tactical-wide toggle: pull the camera back to the whole pitch (pauses the
   // broadcast follow-cam). Mirrored into a ref the renderer reads each frame.
@@ -234,7 +240,7 @@ export default function PitchView({
           <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
-            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} safeTop={safeTop} safeBottom={safeBottom} className="absolute inset-0 h-full w-full" />
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} className="absolute inset-0 h-full w-full" />
           }>
             <PixiPitch
               timeline={timeline}
@@ -293,7 +299,7 @@ export default function PitchView({
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setTacticalWide((v) => !v)}
-          className={cn('absolute left-2 z-[6] flex', showScoreBug ? 'top-11' : 'top-2', 'items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95 before:absolute before:-inset-2.5 before:content-[""]')}
+          className={cn('absolute left-2 z-[6] flex', showScoreBug ? 'top-11' : 'top-2', 'items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95 before:absolute before:-inset-3 before:content-[""]')}
           aria-label={tacticalWide ? 'Switch to broadcast camera' : 'Switch to tactical wide view'}
           aria-pressed={tacticalWide}
         >
@@ -323,7 +329,7 @@ export default function PitchView({
         <button
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 })}
-          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95 before:absolute before:-inset-2.5 before:content-['']"
+          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95 before:absolute before:-inset-3 before:content-['']"
           aria-label={tr('pitchView.replayLastGoal')}
         >
           <RotateCcw className="h-3 w-3 text-primary" />
@@ -400,7 +406,7 @@ export default function PitchView({
               <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Fit</p>
               <p className="text-sm font-bold leading-none text-foreground tabular-nums">{Math.round(inspectPlayer.fitness)}%</p>
             </div>
-            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setInspectId(null)} className="relative ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-bold text-muted-foreground active:scale-90 before:absolute before:-inset-2.5 before:content-['']" aria-label="Close player card">✕</button>
+            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setInspectId(null)} className="relative ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-bold text-muted-foreground active:scale-90 before:absolute before:-inset-3 before:content-['']" aria-label="Close player card">✕</button>
           </div>
         </div>
       )}
