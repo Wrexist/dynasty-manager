@@ -5,7 +5,7 @@ import { seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDispl
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
 import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
-import type { PitchHitTarget } from './PitchCanvas';
+import type { PitchHitTarget, PitchTokenStyle } from './PitchCanvas';
 
 // The "Stunning" WebGL pitch tier. Consumes the exact same MatchTimeline as the
 // Canvas renderer, so the pure choreography is shared. WebGL buys crisp scaling,
@@ -48,6 +48,7 @@ interface PixiPitchProps {
   /** Screen strips (CSS px) the HUD covers; the camera composes inside the rest. */
   safeTop?: number;
   safeBottom?: number;
+  tokenStyle?: PitchTokenStyle;
   className?: string;
   onError?: () => void;
 }
@@ -68,7 +69,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 
 export default function PixiPitch({
-  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, className, onError,
+  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', className, onError,
 }: PixiPitchProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef(minute);
@@ -88,6 +89,8 @@ export default function PixiPitch({
   const safeBottomRef = useRef(safeBottom);
   safeTopRef.current = safeTop;
   safeBottomRef.current = safeBottom;
+  const tokenStyleRef = useRef(tokenStyle);
+  tokenStyleRef.current = tokenStyle;
   timelineRef.current = timeline;
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
@@ -384,7 +387,7 @@ export default function PixiPitch({
               const targets: PitchHitTarget[] = [];
               for (const p of display.players.values()) {
                 if (!p.id) continue;
-                targets.push({ id: p.id, x: (mapX(p.x) - fsx) * z + cam.anchorX, y: (mapY(p.y) - fsy) * z + cam.anchorY, r: hitR });
+                targets.push({ id: p.id, x: (mapX(p.x) - fsx) * z + cam.anchorX, y: (mapY(p.y) - fsy) * z + cam.anchorY, r: hitR, team: p.team, highlighted: !!p.highlighted });
               }
               htRef.current = targets;
             }
@@ -454,6 +457,14 @@ export default function PixiPitch({
               const teamColor = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
               const color = p.pos === 'GK' ? keeperKit(teamColor) : (teamColor || '#888888');
               chipsG.ellipse(cx, groundY + chipR * 0.48, chipR * 0.78, chipR * 0.34).fill({ color: 0x000000, alpha: 0.42 });
+              if (tokenStyleRef.current === 'cards') {
+                // Cards mode: the standee's foot only (see PitchCanvas).
+                chipsG.ellipse(cx, groundY + chipR * 0.32, chipR * 0.72, chipR * 0.26).fill({ color: p.highlighted ? GOLD : color, alpha: 0.9 });
+                if (labels[li]) labels[li].visible = false;
+                if (nameLabels[li]) nameLabels[li].visible = false;
+                li++;
+                continue;
+              }
               if (p.highlighted) {
                 // Additive bloom ring.
                 glowG.circle(cx, cy, r + chipR * 0.7).fill({ color: GOLD, alpha: 0.18 });

@@ -444,3 +444,14 @@ describe('buildMatchTimeline — the pitch shows the goal the commentary describ
     expect(carriersBefore(t, 'penalty_scored').at(-1)).toBe('home-p9');
   });
 });
+
+describe('buildMatchTimeline — the XIs that kicked off', () => {
+  it('stands the given XI in the formation slots instead of club.lineup', () => {
+    const xi = Array.from({ length: 11 }, (_, i) => `fielded-${i}`);
+    const t = buildMatchTimeline(makeMatch([]), home, away, { lineups: { home: xi } });
+    const homeIds = t.beats[0].players.filter(p => p.team === 'home').map(p => p.id).sort();
+    expect(homeIds).toEqual([...xi].sort());
+    // The side with no override still reads club.lineup.
+    expect(t.beats[0].players.filter(p => p.team === 'away').map(p => p.id).sort()).toEqual([...away.lineup].sort());
+  });
+});

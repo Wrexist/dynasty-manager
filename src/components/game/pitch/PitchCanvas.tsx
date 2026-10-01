@@ -13,7 +13,16 @@ import { shade, keeperKit, withAlpha } from './pitchColors';
 
 /** A tappable player, published each frame in CSS px relative to the canvas so
  *  the React layer (PitchView) can hit-test taps without knowing the camera. */
-export interface PitchHitTarget { id: string; x: number; y: number; r: number }
+export interface PitchHitTarget {
+  id: string; x: number; y: number; r: number;
+  /** Side and spotlight, so an overlay (the Cards layer) can dress the token. */
+  team?: 'home' | 'away';
+  highlighted?: boolean;
+}
+
+/** How players are drawn: the renderer's kit chips, or (`cards`) only their
+ *  planted base, with PitchCardLayer standing a player card on each one. */
+export type PitchTokenStyle = 'chips' | 'cards';
 
 interface PitchCanvasProps {
   timeline: MatchTimeline;
@@ -42,6 +51,7 @@ interface PitchCanvasProps {
   /** Screen strips (CSS px) the HUD covers; the camera composes inside the rest. */
   safeTop?: number;
   safeBottom?: number;
+  tokenStyle?: PitchTokenStyle;
   className?: string;
 }
 
@@ -61,7 +71,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const msPerMinuteRef = useRef(msPerMinute);
@@ -92,6 +102,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   const safeBottomRef = useRef(safeBottom);
   safeTopRef.current = safeTop;
   safeBottomRef.current = safeBottom;
+  const tokenStyleRef = useRef(tokenStyle);
+  tokenStyleRef.current = tokenStyle;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -329,6 +341,18 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.beginPath();
         ctx.ellipse(cx, groundY + chipR * 0.48, chipR * 0.78, chipR * 0.34, 0, 0, Math.PI * 2);
         ctx.fill();
+        if (tokenStyleRef.current === 'cards') {
+          // Cards mode: only the standee's foot — a kit-colour base (gold when
+          // spotlit) under the planted shadow. The card itself is DOM, drawn
+          // by PitchCardLayer at this player's published position.
+          ctx.fillStyle = p.highlighted ? GOLD : color;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.ellipse(cx, groundY + chipR * 0.32, chipR * 0.72, chipR * 0.26, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          continue;
+        }
         if (p.highlighted) {
           ctx.strokeStyle = GOLD;
           ctx.lineWidth = Math.max(2, chipR * 0.28);
@@ -526,7 +550,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         for (const p of display.players.values()) {
           if (!p.id) continue;
           const { sx, sy } = project(p.x, p.y);
-          targets.push({ id: p.id, x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY, r: chipR * z * 1.4 });
+          targets.push({ id: p.id, x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY, r: chipR * z * 1.4, team: p.team, highlighted: !!p.highlighted });
         }
         hitTargetsRef.current = targets;
       }

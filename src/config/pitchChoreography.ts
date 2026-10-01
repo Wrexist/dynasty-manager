@@ -251,4 +251,11 @@ export const PITCH_RENDER = {
   /** Bands the WebGL tier stacks to draw the fade (Pixi has no cheap gradient
    *  fill on a Graphics rect). */
   TINT_BANDS: 8,
+
+  // ── Cards mode (PitchCardLayer) ──
+  /** Layout width of a pitch card token (CSS px) before zoom scaling. */
+  CARD_TOKEN_BASE_W: 40,
+  /** Card width as a multiple of the published hit radius (which already
+   *  carries the camera zoom): ~31px wide at zoom 1 on a 390px phone. */
+  CARD_TOKEN_R_SCALE: 2.4,
 } as const;

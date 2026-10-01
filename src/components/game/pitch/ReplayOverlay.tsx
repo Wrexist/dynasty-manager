@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
-import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { PitchCanvas } from './PitchCanvas';
+import type { Player, MatchTimeline, PitchQuality } from '@/types/game';
+import { PitchCanvas, type PitchHitTarget, type PitchTokenStyle } from './PitchCanvas';
+import { PitchCardLayer } from './PitchCardLayer';
 
 // Lightweight goal replay: re-runs just the goal's beats on a fresh PitchCanvas
 // seeded at `from`, advancing a local minute up to `to`. Reuses the Canvas
@@ -19,12 +20,16 @@ interface ReplayOverlayProps {
   orientation?: 'portrait' | 'landscape';
   showOverall?: boolean;
   reducedMotion?: boolean;
+  /** Cards mode: replay with player cards, like the live pitch. */
+  tokenStyle?: PitchTokenStyle;
+  players?: Record<string, Player>;
   onDone: () => void;
 }
 
 const STEP_MS = 650;
 
-export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, to, flip, orientation, showOverall, reducedMotion, onDone }: ReplayOverlayProps) {
+export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, to, flip, orientation, showOverall, reducedMotion, tokenStyle = 'chips', players, onDone }: ReplayOverlayProps) {
+  const hitTargetsRef = useRef<PitchHitTarget[] | null>(null);
   const [minute, setMinute] = useState(from);
   // Read through a ref: the parent passes a fresh `onDone` every match minute,
   // and keying the effect on it restarted the replay from `from` on each tick,
@@ -68,8 +73,13 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
         orientation={orientation}
         flip={flip}
         reducedMotion={reducedMotion}
+        tokenStyle={tokenStyle}
+        hitTargetsRef={hitTargetsRef}
         className="absolute inset-0 h-full w-full"
       />
+      {tokenStyle === 'cards' && (
+        <PitchCardLayer hitTargetsRef={hitTargetsRef} players={players} homeColor={homeColor} awayColor={awayColor} />
+      )}
       {/* Broadcast letterbox bars. */}
       {!reducedMotion && (
         <>

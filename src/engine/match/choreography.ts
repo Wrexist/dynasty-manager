@@ -99,9 +99,9 @@ interface BasePlayer {
 }
 
 /** Resolve a team's resting positions in home-oriented coords, shaped by tactics. */
-function baseTeam(club: Club, team: 'home' | 'away', tactics: TacticalInstructions): BasePlayer[] {
+function baseTeam(club: Club, team: 'home' | 'away', tactics: TacticalInstructions, xi?: string[]): BasePlayer[] {
   const slots: FormationSlot[] = FORMATION_POSITIONS[club.formation] || FORMATION_POSITIONS['4-4-2'];
-  const lineup = club.lineup || [];
+  const lineup = xi ?? club.lineup ?? [];
   const lineShift = tactics.defensiveLine === 'high' ? PITCH_CHOREO.LINE_HIGH
     : tactics.defensiveLine === 'deep' ? -PITCH_CHOREO.LINE_DEEP : 0;
   const widthDir = tactics.width === 'wide' ? 1 : tactics.width === 'narrow' ? -1 : 0;
@@ -361,6 +361,11 @@ function pickChain(
 interface BuildOpts {
   tactics?: { home: TacticalInstructions; away: TacticalInstructions };
   players?: Record<string, Player>;
+  /** The XIs that actually kicked off, slot-ordered. Without them each side is
+   *  read from `club.lineup`, which for an AI club is its stale saved XI — not
+   *  who the engine fielded — so the pitch showed the wrong players (a keeper
+   *  in midfield was the tell once the tokens became cards). */
+  lineups?: { home?: string[]; away?: string[] };
 }
 
 /**
@@ -377,8 +382,8 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
   let homeTactics = homeTactics0;
   let awayTactics = awayTactics0;
   const lookup = opts.players;
-  const baseHome = baseTeam(homeClub, 'home', homeTactics);
-  const baseAway = baseTeam(awayClub, 'away', awayTactics);
+  const baseHome = baseTeam(homeClub, 'home', homeTactics, opts.lineups?.home);
+  const baseAway = baseTeam(awayClub, 'away', awayTactics, opts.lineups?.away);
   const removed = new Set<string>();
   const beats: MatchBeat[] = [];
   let seq = 0;

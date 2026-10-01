@@ -49,6 +49,7 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { PAGE_HINTS, GOAL_FLASH_MS, LIVE_PITCH_CHROME_PX, LIVE_PITCH_MIN_WIDTH_PX } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
+import { resumeSideXI } from '@/store/slices/orchestration/matchActions';
 import { canSkipToFullTime, playOutFirstHalf, playOutSecondHalf } from '@/utils/skipToFullTime';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
@@ -179,6 +180,7 @@ const MatchDayInner = () => {
     isWorldCup && matchPhase === 'penalties' && !!useGameStore.getState().currentMatchResult);
   const [phase, setPhase] = useState<MatchDayPhase>(wcPenaltyResume ? 'penalties' : 'pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
+  const [pitchLineups, setPitchLineups] = useState<{ home: string[]; away: string[] } | undefined>(undefined);
   const [allEvents, setAllEvents] = useState<MatchEvent[]>(() =>
     wcPenaltyResume ? (useGameStore.getState().currentMatchResult?.events ?? []) : []);
   const [currentMin, setCurrentMin] = useState(wcPenaltyResume ? 120 : 0);
@@ -424,6 +426,19 @@ const MatchDayInner = () => {
       };
     }
     firstHalfFrontierRef.current = isWorldCup ? 45 : FIRST_HALF_SEGMENTS[0];
+    // The XIs the engine fielded, for the pitch (see BuildOpts.lineups): read
+    // after kickoff, which rewrote the user's lineup to the XI that started.
+    if (!isWorldCup) {
+      const st = useGameStore.getState();
+      const hc = st.clubs[match.homeClubId];
+      const ac = st.clubs[match.awayClubId];
+      if (hc && ac) {
+        setPitchLineups({
+          home: resumeSideXI(hc, st.players, st.week, st.playerClubId).map(p => p.id),
+          away: resumeSideXI(ac, st.players, st.week, st.playerClubId).map(p => p.id),
+        });
+      }
+    }
     setFirstHalfState(halfState);
     setAllEvents(halfState.events);
     setPhase('first_half');
@@ -1409,6 +1424,7 @@ const MatchDayInner = () => {
                   reducedMotion={reduceMotion}
                   msPerMinute={tickMs}
                   showScoreBug={false}
+                  lineups={pitchLineups}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -1816,6 +1832,7 @@ const MatchDayInner = () => {
                     reducedMotion={reduceMotion}
                     msPerMinute={tickMs}
                     showScoreBug={false}
+                    lineups={pitchLineups}
                   />
                 </Suspense>
               </ErrorBoundary>
