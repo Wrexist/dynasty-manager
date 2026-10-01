@@ -258,4 +258,18 @@ export const PITCH_RENDER = {
   /** Card width as a multiple of the published hit radius (which already
    *  carries the camera zoom): ~31px wide at zoom 1 on a 390px phone. */
   CARD_TOKEN_R_SCALE: 2.4,
+
+  // ── Your-goal card celebration (CardGoalCelebration) ──
+  /** The scorer's card lifting off his spot and flying to centre (ms). */
+  CARD_GOAL_FLY_MS: 650,
+  /** Time the big card holds centre stage, from landing to the return (ms). */
+  CARD_GOAL_HOLD_MS: 2300,
+  /** The card flying back down to his spot on the pitch (ms). */
+  CARD_GOAL_RETURN_MS: 450,
+  /** Reduced motion: a still card that fades in, holds and fades out (ms). */
+  CARD_GOAL_REDUCED_MS: 1800,
+  /** Big card width as a share of the pitch width, capped by its height. */
+  CARD_GOAL_W_FRAC: 0.44,
+  /** Vertical room (px) kept free for the GOAL! line and the lower third. */
+  CARD_GOAL_TEXT_ROOM: 150,
 } as const;

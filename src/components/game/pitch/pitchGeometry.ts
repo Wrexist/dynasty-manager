@@ -9,6 +9,7 @@
 // orientation and flip.
 
 import { PITCH_RENDER } from '@/config/pitchChoreography';
+import type { PitchHitTarget } from './PitchCanvas';
 
 export interface MarkPoint {
   x: number;
@@ -140,4 +141,28 @@ export function stepTint(state: TintState, possession: TintSide, dtMs: number, t
 export function tintSpan(side: TintSide): { from: number; to: number } {
   const d = PITCH_RENDER.TINT_DEPTH;
   return side === 'home' ? { from: 100, to: 100 - d } : { from: 0, to: d };
+}
+
+// ── Your-goal card celebration ──
+
+/** Where a celebration card sits: its top-left corner and its scale about its
+ *  centre (CardGoalCelebration). */
+export interface CardPose { x: number; y: number; scale: number }
+
+/** The pose (top-left + scale about the centre) that puts a `cardW` card
+ *  exactly over the pitch card standing on `t` — see PitchCardLayer. */
+export function pitchCardPose(t: PitchHitTarget | undefined, cardW: number, width: number, height: number): CardPose {
+  const cardH = cardW * 1.5;
+  if (!t) return { x: width / 2 - cardW / 2, y: height - cardH / 2, scale: 0.15 };
+  const w = t.r * PITCH_RENDER.CARD_TOKEN_R_SCALE;
+  const cy = t.y - t.r * 0.18 - (w * 1.5) / 2;
+  return { x: t.x - cardW / 2, y: cy - cardH / 2, scale: w / cardW };
+}
+
+/** Big card width: a share of the pitch width, capped so the GOAL! line and
+ *  the lower third still fit above and below it. */
+export function celebrationCardWidth(width: number, height: number): number {
+  const byWidth = width * PITCH_RENDER.CARD_GOAL_W_FRAC;
+  const byHeight = Math.max(0, height - PITCH_RENDER.CARD_GOAL_TEXT_ROOM) / 1.5;
+  return Math.round(Math.max(80, Math.min(byWidth, byHeight, 240)));
 }

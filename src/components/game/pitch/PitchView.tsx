@@ -17,6 +17,7 @@ import { PitchCanvas, type PitchHitTarget, type PitchTokenStyle } from './PitchC
 import { PitchCardLayer } from './PitchCardLayer';
 import { readPitchTokenStyle, writePitchTokenStyle } from '@/store/helpers/persistence';
 import { GoalCelebration } from './GoalCelebration';
+import { CardGoalCelebration } from './CardGoalCelebration';
 import { WeatherOverlay } from './WeatherOverlay';
 import { ReplayOverlay } from './ReplayOverlay';
 
@@ -68,6 +69,8 @@ const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
 interface Celebration {
   key: string; color: string; text: string; minute: string;
   scorer?: string; homeShort: string; awayShort: string; homeGoals: number; awayGoals: number; scoredByHome: boolean;
+  /** Cards mode, your goal: the scorer whose card flies out (and its stage). */
+  card?: { scorerId: string; assistName?: string; width: number; height: number };
 }
 
 const SCORING_TYPES = new Set<MatchEvent['type']>(GOAL_SCORING_TYPES as unknown as MatchEvent['type'][]);
@@ -173,7 +176,7 @@ export default function PitchView({
   const lastGoalKeyRef = useRef<string | null>(null);
 
   // The scorer whose card is out on its celebration (his pitch card hides).
-  const cardCelebrationId: string | null = null;
+  const cardCelebrationId = celebration?.card?.scorerId ?? null;
 
   // Goal replay: re-run the most recent goal's beats in an overlay.
   const [replay, setReplay] = useState<{ from: number; to: number } | null>(null);
@@ -209,14 +212,38 @@ export default function PitchView({
         const e = events[i];
         if (SCORING_TYPES.has(e.type)) { if (e.clubId === homeClub.id) hg++; else ag++; }
       }
+      // Cards mode, and the goal is yours with a scorer from your side (not
+      // an own goal by theirs): his card takes the stage.
+      const rect = containerRef.current?.getBoundingClientRect();
+      const card = tokenStyle === 'cards' && g.clubId === playerClub.id && g.type !== 'own_goal'
+        && g.playerId && players?.[g.playerId] && playerClub.playerIds?.includes(g.playerId) && rect && rect.width > 0
+        ? {
+          scorerId: g.playerId,
+          assistName: g.assistPlayerId ? players?.[g.assistPlayerId]?.lastName : undefined,
+          width: rect.width, height: rect.height,
+        }
+        : undefined;
       setCelebration({
         key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'`,
         scorer: g.playerId ? players?.[g.playerId]?.lastName : undefined,
         homeShort: homeClub.shortName, awayShort: awayClub.shortName, homeGoals: hg, awayGoals: ag, scoredByHome,
+        card,
       });
       setInspectId(null); // a goal interrupts any open inspect card
     }
+    // tokenStyle/playerClub are read at the goal, not reasons to re-run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, minute, homeClub.id, homeClub.shortName, awayClub.shortName, homeColor, awayColor, players]);
+
+  const finishCelebration = () => {
+    const done = celebration;
+    setCelebration(null);
+    // Auto-replay the goal once (broadcast rhythm), unless reduced motion.
+    if (done && !reducedMotion && lastGoal && autoReplayedRef.current !== done.key) {
+      autoReplayedRef.current = done.key;
+      setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 });
+    }
+  };
 
   // Hit-test a tap on the pitch against the renderer's published chip positions.
   // A hit opens the inspect card; tapping empty turf dismisses it. Suppressed
@@ -404,7 +431,26 @@ export default function PitchView({
       </AnimatePresence>
 
       <AnimatePresence>
-        {celebration && (
+        {celebration?.card && players?.[celebration.card.scorerId] ? (
+          <CardGoalCelebration
+            key={celebration.key}
+            player={players[celebration.card.scorerId]}
+            hitTargetsRef={hitTargetsRef}
+            width={celebration.card.width}
+            height={celebration.card.height}
+            color={celebration.color}
+            minute={celebration.minute}
+            assistName={celebration.card.assistName}
+            homeShort={celebration.homeShort}
+            awayShort={celebration.awayShort}
+            homeGoals={celebration.homeGoals}
+            awayGoals={celebration.awayGoals}
+            scoredByHome={celebration.scoredByHome}
+            confettiCount={quality.confetti}
+            reducedMotion={reducedMotion}
+            onDone={finishCelebration}
+          />
+        ) : celebration && (
           <GoalCelebration
             key={celebration.key}
             color={celebration.color}
@@ -418,15 +464,7 @@ export default function PitchView({
             scoredByHome={celebration.scoredByHome}
             confettiCount={quality.confetti}
             reducedMotion={reducedMotion}
-            onDone={() => {
-              const done = celebration;
-              setCelebration(null);
-              // Auto-replay the goal once (broadcast rhythm), unless reduced motion.
-              if (done && !reducedMotion && lastGoal && autoReplayedRef.current !== done.key) {
-                autoReplayedRef.current = done.key;
-                setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 });
-              }
-            }}
+            onDone={finishCelebration}
           />
         )}
       </AnimatePresence>
