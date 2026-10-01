@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { MatchEvent, Match, Club, ContinentalTournamentState, TeamTalkType } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, useAnimate } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, SkipForward, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
 import { resumeSfx, sfxWhistle, sfxRoar, sfxNet, sfxGroan, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
@@ -192,10 +192,18 @@ const MatchDayInner = () => {
   // dot: the default stays Log (a locked product call), but a new manager
   // should learn the match can be watched. Any pick stores a mode and ends it.
   const [viewChosen, setViewChosen] = useState(() => readMatchViewMode() !== null);
+  // Pitch ↔ Split re-lays the same board (no remount, so the camera, cards
+  // and any celebration carry on): a short fade covers the jump in shape.
+  // Coming back from Log mounts it fresh, which its own entrance covers.
+  const [pitchScope, animatePitch] = useAnimate<HTMLDivElement>();
   const changeMatchView = useCallback((mode: MatchViewMode) => {
+    if (pitchScope.current && mode !== 'commentary' && !reduceMotionRef.current) {
+      animatePitch(pitchScope.current, { opacity: [0, 1] }, { duration: 0.28, ease: 'easeOut' });
+    }
     setMatchView(mode);
     setViewChosen(true);
     writeMatchViewMode(mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [speed, setSpeed] = useState(() => {
     // Clamp a persisted Pro-tier speed for non-Pro users (lapsed trial/sub):
@@ -223,6 +231,8 @@ const MatchDayInner = () => {
   // (clear of the bottom nav via its scroll margin) the moment it appears.
   const keyMomentCardRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotionPref();
+  const reduceMotionRef = useRef(reduceMotion);
+  reduceMotionRef.current = reduceMotion;
   useEffect(() => {
     if (!keyMoment || keyMoment.type === 'injury') return;
     const id = requestAnimationFrame(() => {
@@ -1404,30 +1414,40 @@ const MatchDayInner = () => {
             </p>
           </GlassPanel>
 
-          {/* Tactical board: the pitch stays on screen at half-time (not in Log mode). */}
+          {/* Tactical board: the pitch stays on screen at half-time (not in Log
+              mode), sized like the live pitch and opened on the whole pitch. */}
           {matchView !== 'commentary' && (
-            <ErrorBoundary fallback={() => null}>
-              <Suspense fallback={null}>
-                <PitchView
-                  worldCup={isWorldCup}
-                  match={match}
-                  homeClub={homeClub}
-                  awayClub={awayClub}
-                  events={visibleEvents}
-                  minute={currentMin}
-                  playerIsHome={playerClubId === match.homeClubId}
-                  homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  players={players}
-                  orientation={matchView === 'split' ? 'landscape' : 'portrait'}
-                  showOverall={settings.showOverallOnPitch}
-                  reducedMotion={reduceMotion}
-                  msPerMinute={tickMs}
-                  showScoreBug={false}
-                  lineups={pitchLineups}
-                />
-              </Suspense>
-            </ErrorBoundary>
+            <motion.div
+              className="mx-auto w-full"
+              style={matchView === 'pitch' ? { width: LIVE_PITCH_WIDTH } : undefined}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+            >
+              <ErrorBoundary fallback={() => null}>
+                <Suspense fallback={null}>
+                  <PitchView
+                    worldCup={isWorldCup}
+                    match={match}
+                    homeClub={homeClub}
+                    awayClub={awayClub}
+                    events={visibleEvents}
+                    minute={currentMin}
+                    playerIsHome={playerClubId === match.homeClubId}
+                    homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    players={players}
+                    orientation={matchView === 'split' ? 'landscape' : 'portrait'}
+                    showOverall={settings.showOverallOnPitch}
+                    reducedMotion={reduceMotion}
+                    msPerMinute={tickMs}
+                    showScoreBug={false}
+                    lineups={pitchLineups}
+                    defaultWide
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            </motion.div>
           )}
 
           {/* Halftime Tactics — compact merged panel */}
@@ -1813,7 +1833,14 @@ const MatchDayInner = () => {
           {matchView !== 'commentary' && (
             // Portrait: sized so the whole pitch fits the viewport beneath the
             // scoreboard — width follows height at the pitch's 68:104 aspect.
-            <div className="mx-auto w-full" style={matchView === 'pitch' ? { width: LIVE_PITCH_WIDTH } : undefined}>
+            <motion.div
+              ref={pitchScope}
+              className="mx-auto w-full"
+              style={matchView === 'pitch' ? { width: LIVE_PITCH_WIDTH } : undefined}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+            >
               <ErrorBoundary fallback={() => null}>
                 <Suspense fallback={<div className="w-full rounded-xl bg-black/20 border border-border/40" style={{ aspectRatio: '68 / 104' }} />}>
                   <PitchView
@@ -1836,7 +1863,7 @@ const MatchDayInner = () => {
                   />
                 </Suspense>
               </ErrorBoundary>
-            </div>
+            </motion.div>
           )}
 
           {!keyMoment && (paused ? (

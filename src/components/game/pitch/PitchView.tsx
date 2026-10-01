@@ -57,6 +57,9 @@ interface PitchViewProps {
   showScoreBug?: boolean;
   /** The XIs that kicked off (slot-ordered); see BuildOpts.lineups. */
   lineups?: { home: string[]; away: string[] };
+  /** Open on the tactical wide camera (the half-time board shows the whole
+   *  pitch, not wherever the ball was at 45'). The toggle still works. */
+  defaultWide?: boolean;
 }
 
 const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
@@ -79,7 +82,7 @@ const SCORING_TYPES = new Set<MatchEvent['type']>(GOAL_SCORING_TYPES as unknown 
 const teamCode = (s: string) => (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || '—';
 
 export default function PitchView({
-  worldCup = false, match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute, showScoreBug = true, lineups,
+  worldCup = false, match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute, showScoreBug = true, lineups, defaultWide = false,
 }: PitchViewProps) {
   // Aliased: this file already uses `t` as a loop variable further down
   // (`for (const t of targets)`), and shadowing it reads as a bug.
@@ -164,7 +167,7 @@ export default function PitchView({
     writePitchTokenStyle(next);
     return next;
   });
-  const [tacticalWide, setTacticalWide] = useState(false);
+  const [tacticalWide, setTacticalWide] = useState(defaultWide);
   const tacticalWideRef = useRef(false);
   tacticalWideRef.current = tacticalWide;
 
@@ -384,7 +387,10 @@ export default function PitchView({
       <AnimatePresence>
         {showDir && (
           <motion.div
-            className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2"
+            // Top-right: the Wide/Cards row owns the top-left, and this slot is
+            // free at kickoff (the replay button only exists after a goal).
+            // Above the card layer, like every other HUD piece.
+            className="pointer-events-none absolute right-2 top-2 z-[6]"
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
