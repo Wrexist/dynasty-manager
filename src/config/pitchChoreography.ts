@@ -258,6 +258,12 @@ export const PITCH_RENDER = {
   /** Card width as a multiple of the published hit radius (which already
    *  carries the camera zoom): ~31px wide at zoom 1 on a 390px phone. */
   CARD_TOKEN_R_SCALE: 2.4,
+  /** Height of the name label under a pitch card, in the card's layout px
+   *  (scaled with the card). The card stands this much higher so the label
+   *  sits just above the player's spot, clear of his base and the ball. */
+  CARD_TOKEN_LABEL_H: 13,
+  /** Gap between the player's spot and the label, as a share of the hit radius. */
+  CARD_TOKEN_LIFT_R: 0.18,
 
   // ── Your-goal card celebration (CardGoalCelebration) ──
   /** The scorer's card lifting off his spot and flying to centre (ms). */

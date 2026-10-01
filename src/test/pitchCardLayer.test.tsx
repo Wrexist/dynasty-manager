@@ -37,4 +37,14 @@ describe('PitchCardLayer', () => {
     // Lower on screen draws on top.
     expect(Number(a.style.zIndex)).toBeGreaterThan(Number(b.style.zIndex));
   });
+
+  it('labels every card with the player\'s short name, underlined in his kit', () => {
+    const ref = { current: [{ id: 'a', x: 100, y: 200, r: 10, team: 'away' }] as PitchHitTarget[] };
+    const players = { a: { ...player('a', 84, 'RW'), firstName: 'Vinicius', lastName: 'Jr.' } as Player };
+    const { getByText } = render(<PitchCardLayer hitTargetsRef={ref} players={players} homeColor="#ff0000" awayColor="#0000ff" />);
+    act(() => { vi.advanceTimersByTime(50); });
+    act(() => { vi.advanceTimersByTime(50); });
+    const label = getByText('Vinicius'); // suffix-only surname falls back to the first name
+    expect(label.parentElement!.style.boxShadow).toContain('#0000ff');
+  });
 });

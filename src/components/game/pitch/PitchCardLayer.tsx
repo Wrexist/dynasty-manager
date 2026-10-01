@@ -1,8 +1,12 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import type { Player } from '@/types/game';
+import { PlayerPortrait } from '@/components/game/PlayerPortrait';
 import { getPlayerCardArt } from '@/utils/uiHelpers';
+import { getPlayerDisplayName } from '@/utils/playerDisplay';
+import { getPlayerPortrait } from '@/utils/playerPortrait';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import type { PitchHitTarget } from './PitchCanvas';
+import { pitchCardBox } from './pitchGeometry';
 
 // Cards mode for the live pitch: a player card stands on every player's spot.
 //
@@ -24,6 +28,7 @@ interface PitchCardLayerProps {
 
 /** The card's layout width (CSS px); the frame loop scales it to the zoom. */
 const BASE_W = PITCH_RENDER.CARD_TOKEN_BASE_W;
+const LABEL_H = PITCH_RENDER.CARD_TOKEN_LABEL_H;
 
 export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, hiddenId }: PitchCardLayerProps) {
   const [ids, setIds] = useState<string[]>([]);
@@ -46,12 +51,11 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
       for (const t of targets) {
         const el = nodes.current.get(t.id);
         if (!el) continue;
-        // r tracks the chip radius at the current zoom; the card stands on the
-        // player's spot (bottom edge just above it, so his base and the ball at
-        // his feet stay visible).
-        const s = (t.r * PITCH_RENDER.CARD_TOKEN_R_SCALE) / BASE_W;
-        const h = BASE_W * 1.5 * s;
-        el.style.transform = `translate3d(${t.x - (BASE_W * s) / 2}px, ${t.y - h - t.r * 0.18}px, 0) scale(${s})`;
+        // r tracks the chip radius at the current zoom; the card and its name
+        // stand on the player's spot (the label's bottom edge just above it,
+        // so his base and the ball at his feet stay visible).
+        const b = pitchCardBox(t);
+        el.style.transform = `translate3d(${b.x}px, ${b.y}px, 0) scale(${b.scale})`;
         el.style.zIndex = String(Math.round(t.y));
         el.style.opacity = t.id === hiddenRef.current ? '0' : '1';
         const lit = t.highlighted ? '1' : '0';
@@ -89,34 +93,47 @@ interface PitchCardProps {
   nodeRef: (el: HTMLDivElement | null) => void;
 }
 
-/** One standee: the player's card art, his rating and position, and a band in
- *  his kit so the two sides read apart (the art is by tier, not by club). A
- *  spotlit player (on the ball, the scorer) glows gold. Memoised: the frame
- *  loop moves it by transform and never re-renders it. */
+/** One standee: the player's card (tier shield or pack frame, his portrait
+ *  when the catalogue has one, his rating and position) with his name on a
+ *  label under it, underlined in his kit so the two sides read apart (the art
+ *  is by tier, not by club). A spotlit player (on the ball, the scorer) glows
+ *  gold. Memoised: the frame loop moves it by transform and never re-renders it. */
 const PitchCard = memo(function PitchCard({ player, kit, nodeRef }: PitchCardProps) {
   const art = getPlayerCardArt(player.overall, {
     ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
     packFrame: player.packFrame,
   });
+  const portrait = getPlayerPortrait(player);
   return (
     <div
       ref={nodeRef}
       className="absolute left-0 top-0 origin-top-left opacity-0 transition-[opacity,filter] duration-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.65)] data-[lit=1]:drop-shadow-[0_0_7px_rgba(245,185,21,0.95)]"
-      style={{ width: BASE_W, height: BASE_W * 1.5, willChange: 'transform', ['--kit' as string]: kit }}
+      style={{ width: BASE_W, height: BASE_W * 1.5 + LABEL_H, willChange: 'transform' }}
     >
-      <img
-        src={art.src}
-        alt=""
-        draggable={false}
-        className="absolute inset-0 h-full w-full select-none"
-        style={art.filter ? { filter: art.filter } : undefined}
-      />
-      {/* type-floor: graphic — a scaled pitch token, drawn like the chips' glyphs */}
-      <div className="absolute left-[16%] top-[15%] flex flex-col items-center leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)]">
-        <span className="font-display text-base font-black tabular-nums">{player.overall}</span>
-        <span className="mt-0.5 text-micro font-bold uppercase">{player.position}</span>
+      <div className="absolute inset-x-0 top-0" style={{ height: BASE_W * 1.5 }}>
+        <img
+          src={art.src}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 h-full w-full select-none"
+          style={art.filter ? { filter: art.filter } : undefined}
+        />
+        {portrait && <PlayerPortrait key={portrait.src} src={portrait.src} chip={false} frame={art.src} />}
+        {/* type-floor: graphic — a scaled pitch token, drawn like the chips' glyphs */}
+        <div className="absolute left-[15%] top-[14%] flex flex-col items-center leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)]">
+          <span className="font-display text-base font-black tabular-nums">{player.overall}</span>
+          <span className="mt-0.5 text-micro font-bold uppercase">{player.position}</span>
+        </div>
       </div>
-      <div className="absolute bottom-[10%] left-[24%] right-[24%] h-[7%] rounded-full" style={{ backgroundColor: kit, boxShadow: '0 0 0 1px rgba(0,0,0,0.45)' }} />
+      {/* The name, under the card. Wider than the card if it must be — a
+          name is worth more than the gap between two cards. */}
+      {/* type-floor: graphic — scaled with the token */}
+      <div
+        className="absolute bottom-0 left-1/2 flex max-w-[88px] -translate-x-1/2 items-center justify-center whitespace-nowrap rounded-[3px] bg-black/75 px-1 text-micro font-bold uppercase leading-none text-white"
+        style={{ height: LABEL_H - 1, boxShadow: `inset 0 -2px 0 ${kit}` }}
+      >
+        <span className="truncate">{getPlayerDisplayName(player)}</span>
+      </div>
     </div>
   );
 });

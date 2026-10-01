@@ -8,6 +8,7 @@ import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
+import { pitchCardBox } from './pitchGeometry';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
@@ -265,11 +266,8 @@ export default function PitchView({
       // PitchCardLayer), so a tap on the card is tested against its body.
       let cx = t.x, cy = t.y, r = t.r;
       if (tokenStyle === 'cards') {
-        const w = t.r * PITCH_RENDER.CARD_TOKEN_R_SCALE;
-        const h = w * 1.5;
-        cy = t.y - t.r * 0.18 - h / 2;
-        r = h * 0.55;
-        cx = t.x;
+        const b = pitchCardBox(t);
+        cx = b.cx; cy = b.cy; r = b.h * 0.55;
       }
       const d = Math.hypot(cx - x, cy - y);
       if (d <= r && (!best || d < best.d)) best = { id: t.id, d };

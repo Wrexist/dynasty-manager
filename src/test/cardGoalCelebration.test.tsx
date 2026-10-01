@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent, render } from '@testing-library/react';
 import { CardGoalCelebration } from '@/components/game/pitch/CardGoalCelebration';
-import { celebrationCardWidth, pitchCardPose } from '@/components/game/pitch/pitchGeometry';
+import { celebrationCardWidth, pitchCardBox, pitchCardPose } from '@/components/game/pitch/pitchGeometry';
 import type { PitchHitTarget } from '@/components/game/pitch/PitchCanvas';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import type { Player } from '@/types/game';
@@ -41,11 +41,22 @@ describe('card celebration geometry', () => {
     const t = { id: 's', x: 120, y: 300, r: 10 } as PitchHitTarget;
     const cardW = 160;
     const p = pitchCardPose(t, cardW, 390, 480);
-    // The pitch card (PitchCardLayer): width r*R_SCALE, bottom edge r*0.18 above the spot.
-    const w = t.r * PITCH_RENDER.CARD_TOKEN_R_SCALE;
-    expect(p.scale).toBeCloseTo(w / cardW);
-    expect(p.x + cardW / 2).toBeCloseTo(t.x); // same centre x
-    expect(p.y + (cardW * 1.5) / 2).toBeCloseTo(t.y - t.r * 0.18 - (w * 1.5) / 2); // same centre y
+    const b = pitchCardBox(t);
+    expect(p.scale).toBeCloseTo(b.w / cardW);
+    expect(p.x + cardW / 2).toBeCloseTo(b.cx); // same centre
+    expect(p.y + (cardW * 1.5) / 2).toBeCloseTo(b.cy);
+  });
+
+  it('stands the card and its name label just above the player\'s spot', () => {
+    const t = { id: 's', x: 120, y: 300, r: 10 } as PitchHitTarget;
+    const b = pitchCardBox(t);
+    expect(b.w).toBeCloseTo(t.r * PITCH_RENDER.CARD_TOKEN_R_SCALE);
+    expect(b.h).toBeCloseTo(b.w * 1.5);
+    expect(b.cx).toBe(t.x);
+    // Label bottom = top + card + label (all scaled), sitting LIFT_R*r above the spot.
+    const labelBottom = b.y + b.h + PITCH_RENDER.CARD_TOKEN_LABEL_H * b.scale;
+    expect(labelBottom).toBeCloseTo(t.y - t.r * PITCH_RENDER.CARD_TOKEN_LIFT_R);
+    expect(b.y + b.h).toBeLessThan(t.y); // the card body never covers the spot
   });
 
   it('falls back to a small card rising from the bottom when the scorer is not on screen', () => {

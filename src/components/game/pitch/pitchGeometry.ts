@@ -143,6 +143,31 @@ export function tintSpan(side: TintSide): { from: number; to: number } {
   return side === 'home' ? { from: 100, to: 100 - d } : { from: 0, to: d };
 }
 
+// ── Cards mode ──
+
+/** Where a pitch card stands for one published player position: the layout
+ *  box's top-left (card + name label), its scale, and the card body's own
+ *  screen centre and size. The one geometry PitchCardLayer draws with, the
+ *  tap test hits against and the goal celebration flies from. */
+export interface PitchCardBox {
+  /** Top-left of the whole token (card + label), screen px. */
+  x: number; y: number;
+  /** Scale applied to the CARD_TOKEN_BASE_W layout. */
+  scale: number;
+  /** The card body (art only): centre and size on screen. */
+  cx: number; cy: number; w: number; h: number;
+}
+
+export function pitchCardBox(t: PitchHitTarget): PitchCardBox {
+  const w = t.r * PITCH_RENDER.CARD_TOKEN_R_SCALE;
+  const scale = w / PITCH_RENDER.CARD_TOKEN_BASE_W;
+  const h = w * 1.5;
+  const labelH = PITCH_RENDER.CARD_TOKEN_LABEL_H * scale;
+  const bottom = t.y - t.r * PITCH_RENDER.CARD_TOKEN_LIFT_R; // label's bottom edge
+  const y = bottom - labelH - h;
+  return { x: t.x - w / 2, y, scale, cx: t.x, cy: y + h / 2, w, h };
+}
+
 // ── Your-goal card celebration ──
 
 /** Where a celebration card sits: its top-left corner and its scale about its
@@ -154,9 +179,8 @@ export interface CardPose { x: number; y: number; scale: number }
 export function pitchCardPose(t: PitchHitTarget | undefined, cardW: number, width: number, height: number): CardPose {
   const cardH = cardW * 1.5;
   if (!t) return { x: width / 2 - cardW / 2, y: height - cardH / 2, scale: 0.15 };
-  const w = t.r * PITCH_RENDER.CARD_TOKEN_R_SCALE;
-  const cy = t.y - t.r * 0.18 - (w * 1.5) / 2;
-  return { x: t.x - cardW / 2, y: cy - cardH / 2, scale: w / cardW };
+  const b = pitchCardBox(t);
+  return { x: b.cx - cardW / 2, y: b.cy - cardH / 2, scale: b.w / cardW };
 }
 
 /** Big card width: a share of the pitch width, capped so the GOAL! line and
