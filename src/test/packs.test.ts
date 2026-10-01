@@ -1017,9 +1017,23 @@ describe('Pack opening — openPack action', () => {
     // user pays for. Silver/Gold now have a 1/day free allowance, so
     // back-to-back opens require ad/IAP — covered by the dedicated
     // daily-limit test above.
+    // Room for both packs whatever the real clock says: a limited deal or the
+    // weekly featured bonus adds cards (real-week dependent), and the squad
+    // cap is a different rule from the cooldown this pins.
     const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    const keep = club.playerIds.slice(0, 22); // + 2 x (5 cards + up to 3 bonus) <= 40
     useGameStore.setState({
-      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 1_000_000_000 } },
+      clubs: {
+        ...state.clubs,
+        [state.playerClubId]: {
+          ...club,
+          budget: 1_000_000_000,
+          playerIds: keep,
+          lineup: club.lineup.filter(id => keep.includes(id)),
+          subs: club.subs.filter(id => keep.includes(id)),
+        },
+      },
     });
     const first = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
     expect(first.success).toBe(true);
