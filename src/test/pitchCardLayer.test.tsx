@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { PitchCardLayer } from '@/components/game/pitch/PitchCardLayer';
-import type { PitchHitTarget } from '@/components/game/pitch/PitchCanvas';
+import type { PitchBallScreen, PitchHitTarget } from '@/components/game/pitch/PitchCanvas';
 import type { Player } from '@/types/game';
 
 const player = (id: string, overall: number, position = 'CM'): Player => ({ id, overall, position, firstName: id, lastName: id } as unknown as Player);
@@ -46,5 +46,23 @@ describe('PitchCardLayer', () => {
     act(() => { vi.advanceTimersByTime(50); });
     const label = getByText('Vinicius'); // suffix-only surname falls back to the first name
     expect(label.parentElement!.style.boxShadow).toContain('#0000ff');
+  });
+
+  it('draws the ball above every card, lifted by its arc, and hides it when none is published', () => {
+    const ref = { current: [{ id: 'a', x: 100, y: 200, r: 10, team: 'home' }] as PitchHitTarget[] };
+    const ballRef = { current: { x: 120, y: 210, r: 6, lift: 8 } as PitchBallScreen | null };
+    const { container } = render(<PitchCardLayer hitTargetsRef={ref} ballRef={ballRef} players={{ a: player('a', 80) }} homeColor="#f00" awayColor="#00f" />);
+    act(() => { vi.advanceTimersByTime(50); });
+    act(() => { vi.advanceTimersByTime(50); });
+    const ball = container.querySelector<HTMLDivElement>('.rounded-full[style*="z-index: 100000"]')!;
+    expect(ball).toBeTruthy();
+    expect(ball.style.opacity).toBe('1');
+    expect(ball.style.width).toBe('12px');
+    expect(ball.style.transform).toBe('translate3d(114px, 196px, 0)'); // x - r, y - lift - r
+    const card = container.querySelector<HTMLDivElement>('[data-lit]')!;
+    expect(Number(ball.style.zIndex)).toBeGreaterThan(Number(card.style.zIndex));
+    ballRef.current = null;
+    act(() => { vi.advanceTimersByTime(50); });
+    expect(ball.style.opacity).toBe('0');
   });
 });

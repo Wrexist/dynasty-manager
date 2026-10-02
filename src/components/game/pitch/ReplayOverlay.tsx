@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
 import type { Player, MatchTimeline, PitchQuality } from '@/types/game';
-import { PitchCanvas, type PitchHitTarget, type PitchTokenStyle } from './PitchCanvas';
+import { PitchCanvas, type PitchBallScreen, type PitchHitTarget, type PitchTokenStyle } from './PitchCanvas';
 import { PitchCardLayer } from './PitchCardLayer';
 
 // Lightweight goal replay: re-runs just the goal's beats on a fresh PitchCanvas
@@ -30,6 +30,7 @@ const STEP_MS = 650;
 
 export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, to, flip, orientation, showOverall, reducedMotion, tokenStyle = 'chips', players, onDone }: ReplayOverlayProps) {
   const hitTargetsRef = useRef<PitchHitTarget[] | null>(null);
+  const ballRef = useRef<PitchBallScreen | null>(null);
   const [minute, setMinute] = useState(from);
   // Read through a ref: the parent passes a fresh `onDone` every match minute,
   // and keying the effect on it restarted the replay from `from` on each tick,
@@ -75,10 +76,11 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
         reducedMotion={reducedMotion}
         tokenStyle={tokenStyle}
         hitTargetsRef={hitTargetsRef}
+        ballRef={ballRef}
         className="absolute inset-0 h-full w-full"
       />
       {tokenStyle === 'cards' && (
-        <PitchCardLayer hitTargetsRef={hitTargetsRef} players={players} homeColor={homeColor} awayColor={awayColor} />
+        <PitchCardLayer hitTargetsRef={hitTargetsRef} ballRef={ballRef} players={players} homeColor={homeColor} awayColor={awayColor} />
       )}
       {/* Broadcast letterbox bars. */}
       {!reducedMotion && (

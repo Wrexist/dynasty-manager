@@ -24,6 +24,11 @@ export interface PitchHitTarget {
  *  planted base, with PitchCardLayer standing a player card on each one. */
 export type PitchTokenStyle = 'chips' | 'cards';
 
+/** The ball's screen position (CSS px, same space as PitchHitTarget): its spot
+ *  on the ground, radius, and how high the arc has lifted it. Published each
+ *  frame so the Cards layer can draw the ball ABOVE the cards. */
+export interface PitchBallScreen { x: number; y: number; r: number; lift: number }
+
 interface PitchCanvasProps {
   timeline: MatchTimeline;
   minute: number;
@@ -52,6 +57,7 @@ interface PitchCanvasProps {
   safeTop?: number;
   safeBottom?: number;
   tokenStyle?: PitchTokenStyle;
+  ballRef?: React.MutableRefObject<PitchBallScreen | null>;
   className?: string;
 }
 
@@ -71,7 +77,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', ballRef, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const msPerMinuteRef = useRef(msPerMinute);
@@ -314,7 +320,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
     const drawFrame = (display: DisplayState, liftPx: number, showAllNames: boolean, ts: number) => {
       const { innerH, project, unit } = geom();
       const chipR = Math.max(5, unit * 0.028);
-      const ballR = Math.max(3, unit * 0.016);
+      const ballR = Math.max(4, unit * PITCH_RENDER.BALL_R_FRAC);
 
       for (const p of display.players.values()) {
         const base = project(p.x, p.y);
@@ -417,8 +423,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.beginPath();
       ctx.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (innerH || 1)), ballR * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Ball as a lit sphere: white hotspot top-left → soft grey.
       const byy = by - liftPx;
+      // Halo: a soft white glow so the ball reads against grass and kits.
+      const halo = ctx.createRadialGradient(bx, byy, ballR * 0.6, bx, byy, ballR * PITCH_RENDER.BALL_HALO_R);
+      halo.addColorStop(0, `rgba(255,255,255,${PITCH_RENDER.BALL_HALO_ALPHA})`);
+      halo.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(bx, byy, ballR * PITCH_RENDER.BALL_HALO_R, 0, Math.PI * 2);
+      ctx.fill();
+      // Ball as a lit sphere: white hotspot top-left → soft grey.
       const bg = ctx.createRadialGradient(bx - ballR * 0.35, byy - ballR * 0.35, ballR * 0.1, bx, byy, ballR);
       bg.addColorStop(0, '#ffffff');
       bg.addColorStop(1, '#c6ccd6');
@@ -426,8 +440,9 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.beginPath();
       ctx.arc(bx, byy, ballR, 0, Math.PI * 2);
       ctx.fill();
-      ctx.lineWidth = Math.max(1, ballR * 0.22);
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      // A crisp dark rim: the edge is what the eye finds at this size.
+      ctx.lineWidth = Math.max(1.2, ballR * 0.3);
+      ctx.strokeStyle = 'rgba(8,12,20,0.85)';
       ctx.stroke();
     };
 
@@ -553,6 +568,13 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
           targets.push({ id: p.id, x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY, r: chipR * z * 1.4, team: p.team, highlighted: !!p.highlighted });
         }
         hitTargetsRef.current = targets;
+      }
+      if (ballRef) {
+        const { sx, sy } = project(display.ballX, display.ballY);
+        ballRef.current = {
+          x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY,
+          r: Math.max(4, Math.min(innerW, innerH) * PITCH_RENDER.BALL_R_FRAC) * z, lift: liftPx * z,
+        };
       }
 
       ctx.restore();

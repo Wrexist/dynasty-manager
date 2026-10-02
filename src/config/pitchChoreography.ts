@@ -277,6 +277,13 @@ export const PITCH_RENDER = {
   /** Card width as a multiple of the published hit radius (which already
    *  carries the camera zoom): ~31px wide at zoom 1 on a 390px phone. */
   CARD_TOKEN_R_SCALE: 2.4,
+  /** Ball radius as a share of the pitch's short side. 0.016 drew a ~5px ball
+   *  on a phone that players said they could hardly see. */
+  BALL_R_FRAC: 0.024,
+  /** Soft white halo around the ball (radius multiple, peak alpha), so it
+   *  reads against grass, kit colours and the cards alike. */
+  BALL_HALO_R: 2.3,
+  BALL_HALO_ALPHA: 0.32,
   /** Height of the name label under a pitch card, in the card's layout px
    *  (scaled with the card). The card stands this much higher so the label
    *  sits just above the player's spot, clear of his base and the ball. */

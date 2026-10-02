@@ -5,7 +5,7 @@ import { seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDispl
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
 import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
-import type { PitchHitTarget, PitchTokenStyle } from './PitchCanvas';
+import type { PitchBallScreen, PitchHitTarget, PitchTokenStyle } from './PitchCanvas';
 
 // The "Stunning" WebGL pitch tier. Consumes the exact same MatchTimeline as the
 // Canvas renderer, so the pure choreography is shared. WebGL buys crisp scaling,
@@ -49,6 +49,7 @@ interface PixiPitchProps {
   safeTop?: number;
   safeBottom?: number;
   tokenStyle?: PitchTokenStyle;
+  ballRef?: React.MutableRefObject<PitchBallScreen | null>;
   className?: string;
   onError?: () => void;
 }
@@ -69,7 +70,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 
 export default function PixiPitch({
-  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', className, onError,
+  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', ballRef, className, onError,
 }: PixiPitchProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef(minute);
@@ -91,6 +92,8 @@ export default function PixiPitch({
   safeBottomRef.current = safeBottom;
   const tokenStyleRef = useRef(tokenStyle);
   tokenStyleRef.current = tokenStyle;
+  const ballRefRef = useRef(ballRef);
+  ballRefRef.current = ballRef;
   timelineRef.current = timeline;
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
@@ -506,14 +509,17 @@ export default function PixiPitch({
 
             // Ball with additive glow + arc lift.
             const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (fh / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
-            const ballR = Math.max(3, fw * 0.016);
+            const ballR = Math.max(4, fw * PITCH_RENDER.BALL_R_FRAC);
             const bx = mapX(display.ballX);
             const by = mapY(display.ballY);
             ballG.clear();
             ballG.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (fh || 1)), ballR * 0.4).fill({ color: 0x000000, alpha: 0.4 });
-            glowG.circle(bx, by - liftPx, ballR * 2).fill({ color: 0xffffff, alpha: 0.1 });
-            // Lit sphere: soft grey base + white hotspot top-left.
-            ballG.circle(bx, by - liftPx, ballR).fill('#dfe3ea').stroke({ width: Math.max(1, ballR * 0.22), color: 0x000000, alpha: 0.5 });
+            // Halo (bloomed by the glow layer) so the ball reads against grass and kits.
+            glowG.circle(bx, by - liftPx, ballR * PITCH_RENDER.BALL_HALO_R).fill({ color: 0xffffff, alpha: PITCH_RENDER.BALL_HALO_ALPHA * 0.6 });
+            // Lit sphere with a crisp dark rim: soft grey base + white hotspot.
+            ballG.circle(bx, by - liftPx, ballR).fill('#eef1f5').stroke({ width: Math.max(1.2, ballR * 0.3), color: 0x080c14, alpha: 0.85 });
+            const br = ballRefRef.current;
+            if (br) br.current = { x: (bx - fsx) * z + cam.anchorX, y: (by - fsy) * z + cam.anchorY, r: ballR * z, lift: liftPx * z };
             ballG.circle(bx - ballR * 0.3, by - liftPx - ballR * 0.3, ballR * 0.5).fill({ color: 0xffffff, alpha: 0.9 });
           } catch (err) {
             fail(err);

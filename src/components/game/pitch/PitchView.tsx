@@ -14,7 +14,7 @@ import { areColorsSimilar } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RotateCcw, Maximize2, Minimize2, IdCard } from 'lucide-react';
-import { PitchCanvas, type PitchHitTarget, type PitchTokenStyle } from './PitchCanvas';
+import { PitchCanvas, type PitchBallScreen, type PitchHitTarget, type PitchTokenStyle } from './PitchCanvas';
 import { PitchCardLayer } from './PitchCardLayer';
 import { readPitchTokenStyle, writePitchTokenStyle } from '@/store/helpers/persistence';
 import { GoalCelebration } from './GoalCelebration';
@@ -149,6 +149,7 @@ export default function PitchView({
   // positions here; a tap on the pitch is hit-tested against them.
   const containerRef = useRef<HTMLDivElement>(null);
   const hitTargetsRef = useRef<PitchHitTarget[] | null>(null);
+  const ballRef = useRef<PitchBallScreen | null>(null);
   const [inspectId, setInspectId] = useState<string | null>(null);
   const inspectPlayer = inspectId ? players?.[inspectId] : undefined;
   const inspectIsHome = !!(inspectId && homeClub.playerIds?.includes(inspectId));
@@ -290,10 +291,10 @@ export default function PitchView({
       </div>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
-          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle} className="absolute inset-0 h-full w-full" />
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} ballRef={ballRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
-            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle} className="absolute inset-0 h-full w-full" />
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} ballRef={ballRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle} className="absolute inset-0 h-full w-full" />
           }>
             <PixiPitch
               timeline={timeline}
@@ -305,7 +306,7 @@ export default function PitchView({
               flip={!playerIsHome}
               reducedMotion={reducedMotion}
               msPerMinute={msPerMinute}
-              hitTargetsRef={hitTargetsRef}
+              hitTargetsRef={hitTargetsRef} ballRef={ballRef}
               tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle}
               onError={() => setPixiFailed(true)}
               className="absolute inset-0 h-full w-full"
@@ -324,14 +325,14 @@ export default function PitchView({
           flip={!playerIsHome}
           reducedMotion={reducedMotion}
           msPerMinute={msPerMinute}
-          hitTargetsRef={hitTargetsRef}
+          hitTargetsRef={hitTargetsRef} ballRef={ballRef}
           tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle}
           className="absolute inset-0 h-full w-full"
         />
       )}
 
       {tokenStyle === 'cards' && (
-        <PitchCardLayer hitTargetsRef={hitTargetsRef} players={players} homeColor={homeColor} awayColor={awayColor} hiddenId={cardCelebrationId} />
+        <PitchCardLayer hitTargetsRef={hitTargetsRef} ballRef={ballRef} players={players} homeColor={homeColor} awayColor={awayColor} hiddenId={cardCelebrationId} />
       )}
       <WeatherOverlay weather={match.weather?.weather} pitch={match.weather?.pitch} density={quality.weatherScale} reducedMotion={reducedMotion} />
 
