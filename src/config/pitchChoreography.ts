@@ -96,6 +96,19 @@ export const PITCH_CHOREO = {
   LINE_MAX_DEPTH: 52,
   /** Resting depth of the back line, used to anchor the line shift. */
   BACKLINE_BASE: 10,
+  /** Vertical length of the defending block: nobody out of possession sits
+   *  further than this ahead of his own back line (a forward left 50 m upfield
+   *  is not "staying high", it is a broken team). */
+  BLOCK_LENGTH: 40,
+  /** How far ahead of the ball the attacking front line runs (depth units):
+   *  the striker leads by the most, wingers and the No. 10 by less. Their depth
+   *  follows the ball instead of camping at the box from kickoff. */
+  FRONT_LEAD_ST: 24,
+  FRONT_LEAD_W: 16,
+  FRONT_LEAD_CAM: 12,
+  /** Offside: an off-ball attacker stays at least this far onside of the
+   *  defending team's last outfield player (covers the idle sway). */
+  OFFSIDE_MARGIN: 2,
   /** Below this ball depth (ball near their own goal) a 2nd defender presses. */
   PRESS_NEAR_THRESHOLD: 38,
   /** Amplitude of the smooth deterministic idle sway (replaces random jitter,

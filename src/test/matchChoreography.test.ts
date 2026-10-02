@@ -455,3 +455,39 @@ describe('buildMatchTimeline — the XIs that kicked off', () => {
     expect(t.beats[0].players.filter(p => p.team === 'away').map(p => p.id).sort()).toEqual([...away.lineup].sort());
   });
 });
+
+describe('offside and shape (open play)', () => {
+  const adv = (team: 'home' | 'away', y: number) => (team === 'home' ? y : 100 - y);
+  const events: MatchEvent[] = [];
+  for (let m = 3; m < 88; m += 7) {
+    events.push(ev(m, m % 2 ? 'shot_saved' : 'shot_missed', m % 3 ? 'home' : 'away', { playerId: `${m % 3 ? 'home' : 'away'}-p10` }));
+  }
+  const tl = buildMatchTimeline(makeMatch(events), home, away);
+  const open = tl.beats.filter(b => b.eventType == null && b.players.length === 22);
+
+  it('has open-play beats to check', () => {
+    expect(open.length).toBeGreaterThan(50);
+  });
+
+  it('never leaves an off-ball attacker beyond the last outfield defender', () => {
+    for (const b of open) {
+      const att = b.possession;
+      const def = att === 'home' ? 'away' : 'home';
+      const line = Math.max(...b.players.filter(p => p.team === def && p.pos !== 'GK').map(p => adv(att, p.point.y)));
+      const cap = Math.max(line, adv(att, b.ball.y), 50);
+      for (const p of b.players) {
+        if (p.team !== att || p.pos === 'GK' || (p.id && b.highlightIds.includes(p.id))) continue;
+        expect(adv(att, p.point.y), `${p.id} at minute ${b.minute}`).toBeLessThanOrEqual(cap + 0.5);
+      }
+    }
+  });
+
+  it('keeps the striker out of the box while his side builds from the back', () => {
+    for (const b of open) {
+      if (adv(b.possession, b.ball.y) > 40) continue;
+      for (const p of b.players) {
+        if (p.team === b.possession && p.pos === 'ST') expect(adv(b.possession, p.point.y)).toBeLessThan(80);
+      }
+    }
+  });
+});

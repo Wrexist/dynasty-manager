@@ -196,6 +196,10 @@ function placeBeatPlayers(
     }
   };
 
+  /** The defenders' last outfield player, as an attacking depth — set once the
+   *  defending side is placed, read by placeAttack. */
+  let offsideLine: number | null = null;
+
   const placeAttack = (squad: BasePlayer[], team: 'home' | 'away', tactics: TacticalInstructions) => {
     const ment = (MENTALITY_PUSH[tactics.mentality] - 1) * 12 + (o.extraPush ?? 0);
     const ballDepth = advancement(team, ball.y);
@@ -214,13 +218,15 @@ function placeBeatPlayers(
         depth = clamp(lerp(baseDepth, ballDepth, 0.55) + ment * 0.5, baseDepth, 88);
       } else if (WINGER_POS.has(p.pos)) {
         x = lane < 50 ? lerp(lane, 7, 0.6) : lerp(lane, 93, 0.6);
-        depth = clamp(Math.max(baseDepth, ballDepth + 3) + ment, 32, 92);
+        depth = clamp(Math.max(baseDepth, ballDepth + PITCH_CHOREO.FRONT_LEAD_W) + ment, 32, 92);
       } else if (p.pos === 'ST') {
+        // The striker leads the ball, up to the box — not parked in it from
+        // the moment his side wins the ball in their own half.
         x = lerp(lane, 50, 0.45);
-        depth = clamp(Math.max(baseDepth, PITCH_CHOREO.BOX_Y) + ment, 58, 93);
+        depth = clamp(Math.max(baseDepth, Math.min(PITCH_CHOREO.BOX_Y, ballDepth + PITCH_CHOREO.FRONT_LEAD_ST)) + ment, 40, 93);
       } else if (p.pos === 'CAM') {
         x = lerp(lane, 50, 0.3);
-        depth = clamp(Math.max(baseDepth, PITCH_CHOREO.ATTACK_THIRD_Y) + ment, 50, 90);
+        depth = clamp(Math.max(baseDepth, Math.min(PITCH_CHOREO.ATTACK_THIRD_Y, ballDepth + PITCH_CHOREO.FRONT_LEAD_CAM)) + ment, 40, 90);
       } else {
         // CB / CDM / CM: support, stay a touch behind the ball.
         x = lerp(lane, ball.x, 0.18);
@@ -249,6 +255,16 @@ function placeBeatPlayers(
       nearest.x = lerp(nearest.x, ball.x, PITCH_CHOREO.SUPPORT_PULL);
       nearest.y = lerp(nearest.y, ball.y, PITCH_CHOREO.SUPPORT_PULL);
     }
+    // Offside: no off-ball attacker beyond the defending team's last outfield
+    // player — unless the ball is further on (level with it is fine), or he
+    // is in his own half, where he cannot be offside.
+    if (offsideLine != null) {
+      const cap = Math.max(offsideLine, ballDepth, 50) - PITCH_CHOREO.OFFSIDE_MARGIN;
+      for (const q of placed) {
+        if (q.p.pos === 'GK' || (q.p.id && highlight.has(q.p.id))) continue;
+        if (advancement(team, q.y) > cap) q.y = depthToY(team, cap);
+      }
+    }
     for (const q of placed) emit(q.p, team, q.x, q.y);
   };
 
@@ -275,8 +291,10 @@ function placeBeatPlayers(
         const depth = lerp(baseDepth + lineShift, ballDepthDef, PITCH_CHOREO.PRESS_PULL);
         emit(p, team, x, depthToY(team, clamp(depth, 5, 95)));
       } else {
+        // Compact block: nobody further ahead of the back line than its length.
         const x = lerp(p.base.x, ball.x, PITCH_CHOREO.COMPACT_X);
-        emit(p, team, x, depthToY(team, clamp(baseDepth + lineShift, 5, 92)));
+        const depth = Math.min(baseDepth + lineShift, lineDepth + PITCH_CHOREO.BLOCK_LENGTH);
+        emit(p, team, x, depthToY(team, clamp(depth, 5, 92)));
       }
     }
   };
@@ -286,14 +304,17 @@ function placeBeatPlayers(
     placeResting(baseAway, 'away');
     return out;
   }
-  if (possession === 'home') {
-    placeAttack(baseHome, 'home', homeTactics);
-    placeDefend(baseAway, 'away');
-  } else {
-    placeDefend(baseHome, 'home');
-    placeAttack(baseAway, 'away', awayTactics);
+  // Defenders first: their deepest outfield player sets the offside line the
+  // attackers are held to. Output stays home-then-away.
+  const defTeam: 'home' | 'away' = possession === 'home' ? 'away' : 'home';
+  placeDefend(defTeam === 'home' ? baseHome : baseAway, defTeam);
+  for (const c of out) {
+    if (c.team !== defTeam || c.pos === 'GK') continue;
+    const d = advancement(possession, c.point.y);
+    if (offsideLine == null || d > offsideLine) offsideLine = d;
   }
-  return out;
+  placeAttack(possession === 'home' ? baseHome : baseAway, possession, possession === 'home' ? homeTactics : awayTactics);
+  return defTeam === 'home' ? out : [...out.filter(c => c.team === 'home'), ...out.filter(c => c.team === 'away')];
 }
 
 /** Build a chain of carriers for a possession, weighted toward better passers,
