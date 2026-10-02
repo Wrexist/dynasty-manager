@@ -491,3 +491,27 @@ describe('offside and shape (open play)', () => {
     }
   });
 });
+
+describe('offside event', () => {
+  const adv = (team: 'home' | 'away', y: number) => (team === 'home' ? y : 100 - y);
+  const tl = buildMatchTimeline(makeMatch([ev(30, 'offside', 'home', { playerId: 'home-p10' })]), home, away);
+  const i = tl.beats.findIndex(b => b.eventType === 'offside');
+
+  it('plays the ball to a runner who is beyond the last defender', () => {
+    expect(i).toBeGreaterThan(0);
+    const b = tl.beats[i];
+    expect(b.possession).toBe('home');
+    expect(b.ballMotion).toBe('longball');
+    expect(b.highlightIds).toContain('home-p10');
+    const runner = b.players.find(p => p.id === 'home-p10')!;
+    const line = Math.max(...b.players.filter(p => p.team === 'away' && p.pos !== 'GK').map(p => adv('home', p.point.y)));
+    expect(adv('home', runner.point.y)).toBeGreaterThan(line);
+    expect(b.caption).toBe('offside@30');
+  });
+
+  it('gives the free kick to the defenders from where he was caught', () => {
+    const fk = tl.beats[i + 1];
+    expect(fk.possession).toBe('away');
+    expect(fk.ball).toEqual(tl.beats[i].ball);
+  });
+});

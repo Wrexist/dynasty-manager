@@ -655,6 +655,23 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
             // Missed shot → the other team restarts.
             prevPossession = isHome ? 'away' : 'home';
           }
+        } else if (ev.type === 'offside') {
+          // Build-up, then the ball over the top to a runner who is visibly a
+          // stride beyond the last defender — the flag — and the defenders'
+          // free kick from where he was caught.
+          const def: 'home' | 'away' = possession === 'home' ? 'away' : 'home';
+          emitPossession(minute, possession, null);
+          const hl = highlightFor(ev.playerId ?? null);
+          const passFrom = { x: clamp(50 + (rng() * 2 - 1) * 16, 15, 85), y: depthToY(possession, PITCH_CHOREO.OFFSIDE_PASS_DEPTH) };
+          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, passFrom, removed, hl, { phaseTime: seq, lookup });
+          const line = Math.max(50, ...players.filter(p => p.team === def && p.pos !== 'GK').map(p => advancement(possession, p.point.y)));
+          const runner = ev.playerId ? players.find(p => p.id === ev.playerId) : null;
+          const caught = { x: runner ? runner.point.x : passFrom.x, y: depthToY(possession, clamp(line + PITCH_CHOREO.OFFSIDE_RUNNER_GAP, 5, 95)) };
+          if (runner) runner.point = { ...caught };
+          pushBeat(minute, ev.type, possession, caught, ev.playerId ?? null, 'longball', zoomFor(possession, caught), players, hl, ev.description);
+          const fkPlayers = placeBeatPlayers(baseHome, baseAway, def, homeTactics, awayTactics, caught, removed, new Set(), { phaseTime: seq, lookup });
+          pushBeat(minute, null, def, caught, null, 'idle', PITCH_CHOREO.ZOOM_WIDE, fkPlayers, new Set(), undefined);
+          prevPossession = def;
         } else if (DUEL_EVENTS.has(ev.type)) {
           // A foul/card free kick goes to the OTHER (non-offending) team.
           const offence = ev.type === 'foul' || ev.type === 'yellow_card' || ev.type === 'red_card';

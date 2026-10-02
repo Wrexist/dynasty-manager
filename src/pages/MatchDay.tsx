@@ -1060,7 +1060,7 @@ const MatchDayInner = () => {
   // Live match stats derived from visible events (must be before early return for hooks rules)
   const matchHomeClubId = match?.homeClubId;
   const liveStats = useMemo(() => {
-    let hShots = 0, aShots = 0, hSoT = 0, aSoT = 0, hFouls = 0, aFouls = 0;
+    let hShots = 0, aShots = 0, hSoT = 0, aSoT = 0, hFouls = 0, aFouls = 0, hOffsides = 0, aOffsides = 0;
     let hGoals = 0, aGoals = 0, hYellows = 0, aYellows = 0, hReds = 0, aReds = 0;
     let lastMomentum = 0, lastHomeXG = 0, lastAwayXG = 0;
     // Injured players still on the pitch count as off until they are replaced
@@ -1081,6 +1081,7 @@ const MatchDayInner = () => {
         const secondYellow = ev.type === 'red_card' && prev?.type === 'yellow_card' && prev.playerId === ev.playerId && prev.minute === ev.minute;
         if (!secondYellow) { if (isHomeEv) hFouls++; else aFouls++; }
       }
+      if (ev.type === 'offside') { if (isHomeEv) hOffsides++; else aOffsides++; }
       if (ev.type === 'injury' && ev.playerId) (isHomeEv ? hInjuredOff : aInjuredOff).add(ev.playerId);
       if (ev.type === 'substitution' && ev.assistPlayerId) (isHomeEv ? hInjuredOff : aInjuredOff).delete(ev.assistPlayerId);
       prev = ev;
@@ -1091,7 +1092,7 @@ const MatchDayInner = () => {
       if (ev.homeXG !== undefined) { lastHomeXG = ev.homeXG; lastAwayXG = ev.awayXG ?? 0; }
     }
     return {
-      hShots, aShots, hSoT, aSoT, hFouls, aFouls,
+      hShots, aShots, hSoT, aSoT, hFouls, aFouls, hOffsides, aOffsides,
       hGoals, aGoals, hYellows, aYellows, hReds, aReds,
       lastMomentum, lastHomeXG, lastAwayXG,
       hInjuredOff: hInjuredOff.size, aInjuredOff: aInjuredOff.size,
@@ -1986,6 +1987,7 @@ const MatchDayInner = () => {
                         { label: 'Shots', home: liveStats.hShots, away: liveStats.aShots },
                         { label: 'On Target', home: liveStats.hSoT, away: liveStats.aSoT },
                         { label: 'Fouls', home: liveStats.hFouls, away: liveStats.aFouls },
+                        { label: 'Offsides', home: liveStats.hOffsides, away: liveStats.aOffsides },
                         { label: 'xG', home: liveHomeXG, away: liveAwayXG, decimal: true },
                       ].map(stat => {
                         const total = (stat.home as number) + (stat.away as number) || 1;

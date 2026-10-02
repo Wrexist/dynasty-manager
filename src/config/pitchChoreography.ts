@@ -106,6 +106,10 @@ export const PITCH_CHOREO = {
   FRONT_LEAD_ST: 24,
   FRONT_LEAD_W: 16,
   FRONT_LEAD_CAM: 12,
+  /** Offside event: where the ball is played over the top from (attacking
+   *  depth), and how far beyond the last defender the flagged runner stands. */
+  OFFSIDE_PASS_DEPTH: 52,
+  OFFSIDE_RUNNER_GAP: 3,
   /** Offside: an off-ball attacker stays at least this far onside of the
    *  defending team's last outfield player (covers the idle sway). */
   OFFSIDE_MARGIN: 2,

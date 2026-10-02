@@ -216,6 +216,10 @@ export const LATE_GAME_THRESHOLD_MINUTE = 85;
 export const COMMENTARY_GAP_MAX = 4;
 /** Chance to generate a commentary event when event roll succeeds but no shot/foul/injury triggers */
 export const COMMENTARY_CHANCE = 0.35;
+/** Chance a quiet minute (no shot/foul/injury) ends with an attacker flagged
+ *  offside. Tuned so a match averages ~3.5 offsides, about the top-flight
+ *  norm (≈1.7–2 per team). */
+export const OFFSIDE_CHANCE = 0.07;
 /** Fraction of event rolls that become shot attempts (before per-side tempo shift).
  *
  *  MEASURED at 0.40: 20.5 shots per match against a real top-five-league ~25.

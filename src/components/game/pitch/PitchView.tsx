@@ -67,7 +67,7 @@ const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
   'goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'header_goal', 'solo_goal',
   'long_range_goal', 'counter_attack_goal', 'free_kick_goal', 'extra_time_goal',
   'shot_saved', 'shot_missed', 'hit_woodwork', 'goal_line_clearance', 'goalkeeper_error',
-  'yellow_card', 'red_card', 'foul', 'injury', 'substitution', 'var_check', 'var_disallowed',
+  'yellow_card', 'red_card', 'foul', 'offside', 'injury', 'substitution', 'var_check', 'var_disallowed',
 ]);
 
 interface Celebration {

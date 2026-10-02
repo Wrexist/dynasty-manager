@@ -41,7 +41,7 @@ import {
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
-  COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
+  COMMENTARY_GAP_MAX, COMMENTARY_CHANCE, OFFSIDE_CHANCE,
   MIN_PLAYERS_TO_CONTINUE,
   MAX_SUBSTITUTIONS, SUB_ENTRY_FITNESS_BOOST,
   AI_SUB_CHECK_MINUTES, AI_SUB_FITNESS_THRESHOLD, AI_TACTICAL_SUB_CHANCE,
@@ -689,6 +689,13 @@ export function simulateHalf(
     (shooter: string, gk: string) => `Full stretch from ${gk} to tip ${shooter}'s effort away!`,
     (shooter: string, gk: string) => `${shooter} thought he'd scored but ${gk} had other ideas.`,
   ];
+  const offsideDescs = [
+    (n: string) => `${n} times the run a fraction too early — the flag goes up.`,
+    (n: string) => `Offside. ${n} had strayed beyond the last defender.`,
+    (n: string) => `The through ball finds ${n}, but the assistant's flag is already raised.`,
+    (n: string) => `${n} is caught offside as the line steps up perfectly.`,
+    (n: string) => `Flag up — ${n} was a yard beyond the defence. Free kick.`,
+  ];
   const missDescs = [
     (name: string) => `${name} fires wide.`,
     (name: string) => `${name}'s effort goes over the bar.`,
@@ -1267,6 +1274,24 @@ export function simulateHalf(
     // frantic match).
     const eventChance = BASE_EVENT_CHANCE + (min > LATE_GAME_THRESHOLD_MINUTE ? LATE_GAME_EVENT_BONUS : 0) + derbyEventMod + tempoEventMod;
     if (Math.random() > eventChance) {
+      // A quiet minute can still end with the flag up: a forward caught
+      // offside, free kick to the defenders. The stronger side attacks more,
+      // so it is caught more. Display-only for the result: no shot is lost.
+      if (Math.random() < OFFSIDE_CHANCE) {
+        const total = homeStr + awayStr;
+        const attHome = total > 0 ? Math.random() < homeStr / total : Math.random() < 0.5;
+        const pool = (attHome ? [...homePlayers, ...homeSubbedIn] : [...awayPlayers, ...awaySubbedIn])
+          .filter(p => !unavailable.has(p.id) && p.position !== 'GK');
+        if (pool.length > 0) {
+          const runner = pickAttacker(pool);
+          momentum = attHome
+            ? Math.max(-100, momentum - MOMENTUM_COMMENTARY_SWING)
+            : Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING);
+          events.push({ minute: min, type: 'offside', playerId: runner.id, clubId: attHome ? homeClub.id : awayClub.id, description: pick(offsideDescs)(runner.lastName), momentum });
+          lastEventMinute = min;
+          continue;
+        }
+      }
       // Late drama atmosphere: inject once when game is tight in the final minutes
       if (!lateDramaFired && min >= LATE_GAME_THRESHOLD_MINUTE && Math.abs(homeGoals - awayGoals) <= 1) {
         lateDramaFired = true;
