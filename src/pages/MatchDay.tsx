@@ -16,8 +16,8 @@ import { Button } from '@/components/ui/button';
 import { MatchEvent, Match, Club, ContinentalTournamentState, TeamTalkType } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
-import { motion, useAnimate } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, SkipForward, type LucideIcon } from 'lucide-react';
+import { AnimatePresence, motion, useAnimate } from 'framer-motion';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, SkipForward } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
 import { resumeSfx, sfxWhistle, sfxRoar, sfxNet, sfxGroan, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
@@ -25,7 +25,7 @@ import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DR
 import { getDerbyIntensity } from '@/data/league';
 import { evaluateHighStakes, highStakesLabel } from '@/utils/highStakesMatch';
 import type { HalfState } from '@/engine/match';
-import type { ShoutType, KeyMomentChoice } from '@/types/game';
+import type { KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { pendingSuperCup } from '@/utils/superCup';
@@ -38,7 +38,7 @@ import { isStructuredEvent, liveLogRows } from '@/utils/matchEventDisplay';
 import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED, GOAL_PAUSE_MS } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
-import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
+import { getAvailableFormations } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
 import { infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
@@ -53,7 +53,8 @@ import { resumeSideXI } from '@/store/slices/orchestration/matchActions';
 import { canSkipToFullTime, playOutFirstHalf, playOutSecondHalf } from '@/utils/skipToFullTime';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
-import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
+import { LiveControlDock, TeamInstructionPicker } from '@/components/game/match/LiveControlDock';
+import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers, SlidersHorizontal } from 'lucide-react';
 
 import { FIRST_HALF_SEGMENTS, GOAL_EVENT_TYPES, GOAL_SHOT_TYPES, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
 const isGoalEvent = (e: MatchEvent) => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type);
@@ -242,6 +243,7 @@ const MatchDayInner = () => {
   }, [keyMoment, reduceMotion]);
   const [injurySubMode, setInjurySubMode] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [showFitness, setShowFitness] = useState(false);
   const [showCustomTactics, setShowCustomTactics] = useState(false);
   const [selectedHalftimePreset, setSelectedHalftimePreset] = useState<string | null>(null);
@@ -1879,18 +1881,6 @@ const MatchDayInner = () => {
                   <p className="text-micro text-muted-foreground tabular-nums">{currentMin}'</p>
                 </div>
 
-                {/* Tactical sliders — same Liquid Glass control as the Tactics page */}
-                <div className="space-y-2">
-                  <p className="text-micro text-muted-foreground/80 uppercase tracking-wider font-semibold">Adjustments</p>
-                  <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
-                </div>
-
-                {/* Formation */}
-                <div className="space-y-2">
-                  <p className="text-micro text-muted-foreground/80 uppercase tracking-wider font-semibold">Formation</p>
-                  <FormationPicker />
-                </div>
-
                 {/* Primary action — substitution */}
                 {matchSubsUsed < MAX_SUBSTITUTIONS && (
                   <button
@@ -1901,6 +1891,43 @@ const MatchDayInner = () => {
                     <span className="text-micro font-medium opacity-70">({MAX_SUBSTITUTIONS - matchSubsUsed} left)</span>
                   </button>
                 )}
+
+                {/* Team instruction — the same three choices as the live bar. */}
+                <TeamInstructionPicker mentality={tactics.mentality} onMentality={(m) => setTactics({ mentality: m })} reducedMotion={reduceMotion} layoutId="paused-team-choice" />
+
+                {/* Formation (the picker carries its own heading) */}
+                <FormationPicker />
+
+                {/* Advanced tactics — the five-step mentality, tempo, width,
+                    line and pressing. Collapsed: most managers never need it. */}
+                <div>
+                  <button
+                    onClick={() => setShowAdvanced(v => !v)}
+                    aria-expanded={showAdvanced}
+                    className="flex min-h-[44px] w-full items-center gap-1.5 text-micro font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    <SlidersHorizontal className="h-3 w-3" /> Advanced tactics
+                    <motion.span className="ml-auto" animate={{ rotate: showAdvanced ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="h-3 w-3" />
+                    </motion.span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {showAdvanced && (
+                      <motion.div
+                        key="advanced"
+                        initial={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        animate={reduceMotion ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
+                        exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-1">
+                          <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Player Fitness Dashboard */}
                 <div>
@@ -2073,120 +2100,37 @@ const MatchDayInner = () => {
                 );
               })()}
 
-              {/* Mentality — connected segmented pill with endpoint icons */}
-              <div className="relative flex items-center bg-muted/20 rounded-lg border border-border/30 p-0.5">
-                <Shield className="w-3 h-3 text-muted-foreground/30 ml-1.5 shrink-0" />
-                {MENTALITIES.map((m, idx) => (
-                  <button
-                    key={m.value}
-                    onClick={() => { hapticLight(); setTactics({ mentality: m.value }); }}
-                    aria-label={`Set mentality to ${m.label}`}
-                    className={cn(
-                      // 44pt minimum — this is set mid-match with the clock
-                      // running; the old py-1.5 gave a ~25px target.
-                      'relative z-10 flex-1 min-h-[44px] px-0.5 text-micro font-semibold capitalize transition-all',
-                      idx === 0 && 'rounded-l-md',
-                      idx === MENTALITIES.length - 1 && 'rounded-r-md',
-                      tactics.mentality === m.value
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {tactics.mentality === m.value && (
-                      <motion.div
-                        layoutId="mentality-indicator"
-                        className="absolute inset-0 bg-primary/15 border border-primary/30 rounded-md"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10">{m.label}</span>
-                  </button>
-                ))}
-                <Flame className="w-3 h-3 text-muted-foreground/30 mr-1.5 shrink-0" />
-              </div>
-
-              {/* Pause + Speed. Split off the shouts onto their own row below:
-                  cramming five controls into one 343px row forced 26px targets
-                  at the highest-pressure moment in the app. */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePause}
-                  aria-label={t('matchDay.pauseMatch')}
-                  className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
-                >
-                  <Pause className="w-3.5 h-3.5" /> Pause
-                </button>
-
-                <div className="flex-1" />
-
-                {/* Skip to full time — playback-only; see skipToFullTime(). */}
-                {canSkip && (
-                  <button
-                    onClick={requestSkip}
-                    aria-label={t('matchDay.skipToFullTime')}
-                    className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 active:scale-[0.97] transition-all"
-                  >
-                    <SkipForward className="w-3.5 h-3.5" aria-hidden="true" /> {t('matchDay.skipShort')}
-                  </button>
-                )}
-
-                {/* Speed */}
-                <button
-                  onClick={() => {
-                    const available = MATCH_SPEEDS.filter(s => !s.pro || userIsPro);
-                    const idx = available.findIndex(s => s.value === speed);
-                    const next = available[(idx + 1) % available.length];
-                    setSpeed(next.value);
-                  }}
-                  aria-label={`Match speed: ${MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}. Tap to change.`}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold active:scale-[0.97] border transition-all",
-                    speed < DEFAULT_MATCH_SPEED
-                      ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/20'
-                      : 'bg-muted/30 text-foreground border-border/30 hover:bg-muted/50'
-                  )}
-                >
-                  <FastForward className="w-3.5 h-3.5" /> {MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
-                </button>
-              </div>
-
-              {/* Touchline Shouts — full-width row, 44pt targets, names visible
-                  (a `title=` tooltip does nothing on a touch screen). */}
-              <div className="flex items-center gap-2">
-                {shoutsRemaining > 0 && !shoutOnCooldown ? ([
-                  { type: 'push_forward' as ShoutType, label: 'Push', Icon: Flame },
-                  { type: 'hold_the_line' as ShoutType, label: 'Hold', Icon: Shield },
-                  { type: 'calm_down' as ShoutType, label: 'Calm', Icon: Hand },
-                  ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste', Icon: Clock }] : []),
-                ] as { type: ShoutType; label: string; Icon: LucideIcon }[]).map(s => (
-                  <button
-                    key={s.type}
-                    onClick={() => {
-                      hapticMedium();
-                      const success = activateShout(s.type, currentMin);
-                      if (success) infoToast(`${s.label} — Effect active for ${SHOUT_DURATION} minutes`);
-                    }}
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[44px] rounded-lg active:scale-[0.93] transition-all border",
-                      activeShout?.type === s.type
-                        ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
-                        : 'bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-amber-500/15'
-                    )}
-                    aria-label={`Shout: ${s.label}`}
-                    aria-pressed={activeShout?.type === s.type}
-                  >
-                    <s.Icon className="w-3.5 h-3.5" aria-hidden />
-                    <span className="text-micro font-semibold leading-none">{s.label}</span>
-                  </button>
-                )) : (
-                  <span className="text-micro text-muted-foreground/40">
-                    {shoutsRemaining === 0 ? 'No shouts left' : `Cooldown (${SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0))}')`}
-                  </span>
-                )}
-                {shoutsRemaining > 0 && !shoutOnCooldown && (
-                  <span className="text-micro text-muted-foreground/50 tabular-nums shrink-0 w-4 text-right">{shoutsRemaining}</span>
-                )}
-              </div>
+              {/* The touchline: team instruction + Pause · Subs · Shout · Speed.
+                  Skip to full time and the five-step mentality live in the
+                  Paused panel. */}
+              <LiveControlDock
+                mentality={tactics.mentality}
+                onMentality={(m) => setTactics({ mentality: m })}
+                onPause={handlePause}
+                subsLeft={MAX_SUBSTITUTIONS - matchSubsUsed}
+                onSubs={() => setSubSheetOpen(true)}
+                shouts={{
+                  remaining: shoutsRemaining,
+                  cooldownLeft: shoutOnCooldown ? SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0)) : 0,
+                  active: activeShout ? { type: activeShout.type, minutesLeft: activeShout.startMinute + SHOUT_DURATION - currentMin } : undefined,
+                  canTimeWaste: currentMin >= 80,
+                }}
+                onShout={(type) => {
+                  const success = activateShout(type, currentMin);
+                  const name = type === 'push_forward' ? 'Push forward' : type === 'hold_the_line' ? 'Hold the line' : type === 'calm_down' ? 'Calm down' : 'Waste time';
+                  if (success) infoToast(`${name}!`, `For the next ${SHOUT_DURATION} minutes`);
+                }}
+                speedLabel={MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}
+                speedShortLabel={MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
+                speedBoosted={speed < DEFAULT_MATCH_SPEED}
+                onSpeed={() => {
+                  const available = MATCH_SPEEDS.filter(s => !s.pro || userIsPro);
+                  const idx = available.findIndex(s => s.value === speed);
+                  const next = available[(idx + 1) % available.length];
+                  setSpeed(next.value);
+                }}
+                reducedMotion={reduceMotion}
+              />
             </div>
           ))}
 
