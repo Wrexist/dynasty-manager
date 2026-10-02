@@ -19,6 +19,24 @@ export const createClubSlice = (set: Set, get: Get) => ({
   setFormation: (formation: FormationType) => {
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
+    // During a live match a formation change re-shapes the eleven on the
+    // pitch — it re-slots the SAME players. Re-picking the best XI from the
+    // whole squad here (right before kickoff) handed out free, uncounted
+    // substitutions mid-match, since the next segment resumes from
+    // club.lineup.
+    const live = state.matchPhase === 'first_half' || state.matchPhase === 'half_time'
+      || state.matchPhase === 'second_half' || state.matchPhase === 'extra_time';
+    if (live) {
+      const onPitch = [...new Set(club.lineup || [])].map(id => state.players[id]).filter(Boolean);
+      const ids = selectBestLineup(onPitch, formation, state.week).lineup.map(p => p.id);
+      // Whoever the picker left out (it skips players it deems unavailable)
+      // stays on the pitch all the same — nobody silently disappears.
+      for (const p of onPitch) if (!ids.includes(p.id)) ids.push(p.id);
+      club.formation = formation;
+      club.lineup = ids;
+      set({ clubs: { ...state.clubs, [club.id]: club } });
+      return;
+    }
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
     const { lineup, subs } = selectBestLineup(squad, formation, state.week);
     club.formation = formation;
