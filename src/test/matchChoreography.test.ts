@@ -515,3 +515,33 @@ describe('offside event', () => {
     expect(fk.ball).toEqual(tl.beats[i].ball);
   });
 });
+
+describe('restarts and turnovers', () => {
+  it('a missed shot is followed by the defending keeper taking a goal kick', () => {
+    const tl = buildMatchTimeline(makeMatch([ev(20, 'shot_missed', 'home', { playerId: 'home-p10' })]), home, away);
+    const i = tl.beats.findIndex(b => b.eventType === 'shot_missed');
+    const gk = tl.beats[i + 1];
+    expect(gk.possession).toBe('away');
+    expect(gk.ballMotion).toBe('restart');
+    expect(100 - gk.ball.y).toBeLessThan(10); // away keeper's six-yard box (away defends y=100)
+    const keeper = gk.players.find(p => p.team === 'away' && p.pos === 'GK')!;
+    expect(gk.ballCarrierId).toBe(keeper.id);
+    expect(keeper.point).toEqual(gk.ball);
+  });
+
+  it('wins the ball where the move broke down, not back in its own half', () => {
+    const tl = buildMatchTimeline(makeMatch([]), home, away);
+    let checked = 0;
+    for (let i = 1; i < tl.beats.length; i++) {
+      const prev = tl.beats[i - 1], b = tl.beats[i];
+      if (b.eventType !== null || prev.eventType !== null || b.possession === prev.possession || b.ballMotion !== 'idle') continue;
+      expect(b.ball.x).toBeCloseTo(Math.min(94, Math.max(6, prev.ball.x)));
+      expect(b.ball.y).toBeCloseTo(Math.min(94, Math.max(6, prev.ball.y)));
+      const winner = b.players.find(p => p.id === b.ballCarrierId)!;
+      expect(winner.team).toBe(b.possession);
+      expect(winner.highlighted).toBe(true);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(5);
+  });
+});

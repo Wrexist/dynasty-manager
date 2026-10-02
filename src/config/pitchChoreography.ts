@@ -59,8 +59,8 @@ export const PITCH_CHOREO = {
   POSSESSION_KEEP: 0.68,
   /** Flow line a fresh possession starts at (build from deep). */
   FLOW_START: 0.12,
-  /** Flow line after winning the ball in midfield (turnover). */
-  FLOW_TURNOVER: 0.28,
+  /** Goal kick: the keeper's spot (own depth, the edge of the six-yard box). */
+  GOAL_KICK_DEPTH: 6,
   /** How far up the pitch the flow line advances per retained minute — steady
    *  forward progress. Monotonic until a turnover, so the ball never snaps back. */
   FLOW_ADVANCE: 0.16,
