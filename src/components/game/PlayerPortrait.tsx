@@ -4,7 +4,12 @@ import { memo, useState } from 'react';
  * Transparent cutouts are feathered into the shield; no image is fetched
  * for unresolved identities. A keyed instance retries only when the URL changes.
  */
-export const PlayerPortrait = memo(function PlayerPortrait({ src, chip, frame }: { src: string; chip: boolean; frame: string }) {
+export const PlayerPortrait = memo(function PlayerPortrait({ src, chip, frame, centered = false }: {
+  src: string; chip: boolean; frame: string;
+  /** Face centred and larger — for a card whose rating is not in the top-left
+   *  corner (the live pitch tokens put it under the face). */
+  centered?: boolean;
+}) {
   const [failed, setFailed] = useState(false);
   if (failed) return null;
   return (
@@ -13,7 +18,9 @@ export const PlayerPortrait = memo(function PlayerPortrait({ src, chip, frame }:
       WebkitMaskSize: '100% 100%', maskSize: '100% 100%',
     }}>
     <div className="absolute" style={{
-      top: chip ? '1%' : '9%', left: '25%', width: '70%', height: chip ? '52%' : '49%',
+      ...(centered
+        ? { top: '7%', left: '12%', width: '76%', height: '57%' }
+        : { top: chip ? '1%' : '9%', left: '25%', width: '70%', height: chip ? '52%' : '49%' }),
       WebkitMaskImage: 'radial-gradient(ellipse 65% 80% at 52% 35%, black 48%, transparent 85%)',
       maskImage: 'radial-gradient(ellipse 65% 80% at 52% 35%, black 48%, transparent 85%)',
     }}>

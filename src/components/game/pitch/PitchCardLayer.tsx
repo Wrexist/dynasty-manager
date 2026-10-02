@@ -118,11 +118,13 @@ const PitchCard = memo(function PitchCard({ player, kit, nodeRef }: PitchCardPro
           className="absolute inset-0 h-full w-full select-none"
           style={art.filter ? { filter: art.filter } : undefined}
         />
-        {portrait && <PlayerPortrait key={portrait.src} src={portrait.src} chip={false} frame={art.src} />}
+        {portrait && <PlayerPortrait key={portrait.src} src={portrait.src} chip={false} frame={art.src} centered />}
         {/* type-floor: graphic — a scaled pitch token, drawn like the chips' glyphs */}
-        <div className="absolute left-[15%] top-[14%] flex flex-col items-center leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)]">
-          <span className="font-display text-base font-black tabular-nums">{player.overall}</span>
-          <span className="mt-0.5 text-micro font-bold uppercase">{player.position}</span>
+        {/* Rating and position side by side, under the face, so the face
+            has the top of the card to itself. */}
+        <div className="absolute inset-x-0 top-[63%] flex items-baseline justify-center gap-[3px] leading-none text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.95)]">
+          <span className="font-display text-sm font-black tabular-nums">{player.overall}</span>
+          <span className="text-micro font-bold uppercase opacity-90">{player.position}</span>
         </div>
       </div>
       {/* The name, under the card. Wider than the card if it must be — a
