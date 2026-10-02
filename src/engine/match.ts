@@ -56,7 +56,7 @@ import {
   MORALE_BASELINE, MORALE_PERFORMANCE_WEIGHT,
   DEFENSE_MODIFIER_SCALE, GOAL_SCORING_TYPES,
 } from '@/config/matchEngine';
-import { generateCommentary } from '@/utils/matchCommentary';
+import { commentaryCast, generateCommentary } from '@/utils/matchCommentary';
 import { getDerbyName } from '@/data/league';
 import {
   AI_DEFAULT_TACTICS,
@@ -550,6 +550,8 @@ export function simulateHalf(
   // Helper: get available players for a side (starters + subs - unavailable)
   const homeAvail = () => [...homePlayers, ...homeSubbedIn].filter(p => !unavailable.has(p.id));
   const awayAvail = () => [...awayPlayers, ...awaySubbedIn].filter(p => !unavailable.has(p.id));
+  // Who is on the pitch right now, by role — lets filler commentary name players.
+  const liveCast = () => ({ home: commentaryCast(homeAvail()), away: commentaryCast(awayAvail()) });
 
   // Refresh GK save/error chances from the available pools — called whenever
   // availability changes (red card, injury, sub) so the chances follow the
@@ -1301,7 +1303,7 @@ export function simulateHalf(
       // Gap-filler: inject commentary if too many silent minutes have passed
       if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
         const isHome = Math.random() < 0.5;
-        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines);
+        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines, liveCast());
         // Possession shifts toward the team with the ball
         momentum = isHome
           ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
@@ -1996,7 +1998,7 @@ export function simulateHalf(
     }
     // === COMMENTARY FALLBACK (event roll passed but no shot/foul/injury triggered) ===
     else if (Math.random() < COMMENTARY_CHANCE) {
-      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines);
+      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines, liveCast());
       // Possession shifts toward the team with the ball
       momentum = isHome
         ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)

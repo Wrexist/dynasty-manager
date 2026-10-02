@@ -1,4 +1,4 @@
-import type { MatchEvent, WeatherCondition, PitchCondition } from '@/types/game';
+import type { MatchEvent, WeatherCondition, PitchCondition, Player } from '@/types/game';
 import { pick } from '@/utils/helpers';
 import {
   COMMENTARY_LATE_MINUTE, GOAL_DISPLAY_TYPES,
@@ -47,6 +47,93 @@ export function enrichDescription(event: MatchEvent, ctx: CommentaryContext): st
 }
 
 // ── Commentary Generation ──
+
+/** Who is on the pitch for one side, by role, as display surnames — so a
+ *  filler line can name the players actually involved. */
+export interface CommentaryCast {
+  gk: string[]; def: string[]; mid: string[]; wide: string[]; fwd: string[];
+}
+
+const ROLE_OF: Record<string, keyof CommentaryCast> = {
+  GK: 'gk', CB: 'def', LB: 'wide', RB: 'wide', LWB: 'wide', RWB: 'wide',
+  CDM: 'mid', CM: 'mid', CAM: 'mid', LM: 'wide', RM: 'wide', LW: 'wide', RW: 'wide',
+  ST: 'fwd', CF: 'fwd',
+};
+
+/** Group the players still on the pitch by role. */
+export function commentaryCast(players: Player[]): CommentaryCast {
+  const cast: CommentaryCast = { gk: [], def: [], mid: [], wide: [], fwd: [] };
+  for (const p of players) cast[ROLE_OF[p.position] ?? 'mid'].push(p.lastName);
+  return cast;
+}
+
+// Named lines: {mid} {mid2} {wide} {fwd} {def} {gk} are the side in
+// possession; {oppDef} {oppGk} the side defending. A line is only used when
+// every name it needs is on the pitch (and {mid}/{mid2} are two different
+// players), so a back three or a side without a striker never reads wrong.
+const NAMED_BUILDUP_LINES = [
+  '{mid} picks it up in the centre circle and looks for options.',
+  '{def} steps out from the back and plays it into {mid}.',
+  '{mid} and {mid2} exchanging passes, waiting for the gap.',
+  '{mid} switches the play out to {wide}.',
+  '{wide} receives on the touchline and turns back inside.',
+  '{gk} rolls it out to {def}. {team} starting again from the back.',
+  '{mid} drops deep to collect, trying to set the tempo.',
+  '{wide} overlaps and asks for it — {mid} chooses the safer pass.',
+  '{fwd} drops off the front line to link the play.',
+  '{mid} is finding pockets of space. {opp} need to pick him up.',
+];
+
+const NAMED_CHANCE_LINES = [
+  '{mid} threads it through for {fwd} — {oppDef} gets across just in time.',
+  '{wide} whips one in, but {oppGk} comes and claims it.',
+  '{fwd} spins {oppDef} but takes one touch too many.',
+  '{wide} skips past his man and cuts it back — cleared by {oppDef}.',
+  '{mid} tries his luck from distance. Well over.',
+  '{fwd} holds it up well and lays it off to {mid}; the move fizzles out.',
+  '{wide} drives at {oppDef}, who stands him up superbly.',
+  'Lovely feet from {mid} on the edge of the area, but {opp} crowd him out.',
+  '{fwd} gambles on the through ball — {oppGk} is out quickly to sweep.',
+  '{mid} lofts it towards {fwd}. {oppDef} wins the header.',
+];
+
+const NAMED_DEFENSIVE_LINES = [
+  'Big moment from {oppDef} — a perfectly timed tackle on {fwd}.',
+  '{oppDef} reads it and intercepts. {opp} can breathe again.',
+  '{oppGk} gathers comfortably. {team} reset.',
+  '{oppDef} heads clear under pressure from {fwd}.',
+];
+
+/** Early and pre-half-time framing, which a broadcaster never misses. */
+const OPENING_LINES = [
+  'A cagey opening few minutes — both sides feeling each other out.',
+  '{team} trying to settle into the game early on.',
+  'Plenty of early ball-watching. Nobody wants to make the first mistake.',
+];
+const BEFORE_BREAK_LINES = [
+  '{team} pushing for one more chance before the break.',
+  'Not long until half-time now.',
+  'The fourth official is getting ready for the end of the half.',
+];
+
+function fillNames(line: string, team: CommentaryCast | undefined, opp: CommentaryCast | undefined): string | null {
+  if (!/\{(mid2?|wide|fwd|def|gk|oppDef|oppGk)\}/.test(line)) return line;
+  if (!team || !opp) return null;
+  const pickOf = (xs: string[]) => (xs.length ? xs[Math.floor(Math.random() * xs.length)] : null);
+  const mid = /\{mid2?\}/.test(line) ? pickOf(team.mid) : '';
+  const mid2 = line.includes('{mid2}') ? pickOf(team.mid.filter(n => n !== mid)) : '';
+  const names: Record<string, string | null> = {
+    mid, mid2,
+    wide: line.includes('{wide}') ? pickOf(team.wide) : '',
+    fwd: line.includes('{fwd}') ? pickOf(team.fwd) : '',
+    def: line.includes('{def}') ? pickOf(team.def) : '',
+    gk: line.includes('{gk}') ? pickOf(team.gk) : '',
+    oppDef: line.includes('{oppDef}') ? pickOf(opp.def) : '',
+    oppGk: line.includes('{oppGk}') ? pickOf(opp.gk) : '',
+  };
+  if (Object.values(names).some(v => v === null)) return null;
+  return line.replace(/\{(mid2?|wide|fwd|def|gk|oppDef|oppGk)\}/g, (_, k: string) => names[k] as string);
+}
 
 // Pools are deliberately generous. `pickFreshLine` avoids repeats WITHIN a
 // match, but `usedLines` resets at kickoff, so a thin pool reads as repetitive
@@ -256,6 +343,8 @@ export function generateCommentary(
   pitch?: PitchCondition,
   derbyIntensity?: number,
   usedLines?: string[],
+  /** Who is on the pitch, home and away — enables the player-named lines. */
+  cast?: { home: CommentaryCast; away: CommentaryCast },
 ): string {
   const team = isHome ? homeShortName : awayShortName;
   const opp = isHome ? awayShortName : homeShortName;
@@ -282,6 +371,13 @@ export function generateCommentary(
   // Always include general pools
   pools.push(POSSESSION_LINES, CHANCE_LINES);
 
+  // Player-named play — weighted in twice, so most filler names somebody.
+  if (cast) pools.push(NAMED_BUILDUP_LINES, NAMED_CHANCE_LINES, NAMED_BUILDUP_LINES, NAMED_CHANCE_LINES, NAMED_DEFENSIVE_LINES);
+
+  // Time framing
+  if (minute <= 8) pools.push(OPENING_LINES);
+  else if (minute >= 40 && minute <= 45) pools.push(BEFORE_BREAK_LINES);
+
   // Momentum-based: dominant team presses
   if (Math.abs(momentum) > 15) {
     pools.push(PRESSURE_LINES);
@@ -305,9 +401,12 @@ export function generateCommentary(
   if (pitch === 'poor') pools.push(POOR_PITCH_LINES);
   else if (pitch === 'waterlogged') pools.push(WATERLOGGED_LINES);
 
-  // Pick from a random pool, then a fresh line (avoiding recent repeats)
+  // Pick from a random pool, then a fresh line (avoiding recent repeats).
+  // A named line whose roles this side can't fill falls back to a team line.
   const pool = pick(pools);
   const line = pickFreshLine(pool, used);
-
-  return fmt(line);
+  const teamCast = cast ? (isHome ? cast.home : cast.away) : undefined;
+  const oppCast = cast ? (isHome ? cast.away : cast.home) : undefined;
+  const named = fillNames(line, teamCast, oppCast);
+  return fmt(named ?? pickFreshLine(POSSESSION_LINES, used));
 }
