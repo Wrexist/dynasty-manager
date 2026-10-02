@@ -388,7 +388,8 @@ export default function PitchView({
             // Top-right: the Wide/Cards row owns the top-left, and this slot is
             // free at kickoff (the replay button only exists after a goal).
             // Above the card layer, like every other HUD piece.
-            className="pointer-events-none absolute right-2 top-2 z-[6]"
+            // Under the Replay button when there is one (same corner).
+            className={cn('pointer-events-none absolute right-2 z-[6]', lastGoal && !celebration && !replay ? 'top-11' : 'top-2')}
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
