@@ -2137,6 +2137,7 @@ const MatchDayInner = () => {
                   const next = available[(idx + 1) % available.length];
                   setSpeed(next.value);
                 }}
+                onSkip={canSkip ? requestSkip : undefined}
                 reducedMotion={reduceMotion}
               />
             </div>

@@ -42,7 +42,8 @@ describe('MatchDay live layout', () => {
     await kickOff();
     const toggle = screen.getByRole('button', { name: /^pitch/i });
     expect(precedes(toggle, byLabel(/pause match/i))).toBe(true);
-    expect(precedes(toggle, byLabel(/set mentality to balanced/i))).toBe(true);
+    // The team instruction is a three-way radio group in the live dock now.
+    expect(precedes(toggle, screen.getByRole('radio', { name: /balanced/i }))).toBe(true);
   });
 
   it('marks the Pitch tab until a view has been picked, then never again', async () => {

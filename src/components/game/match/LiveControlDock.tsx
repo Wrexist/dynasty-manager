@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Clock, FastForward, Flame, Hand, Megaphone, Pause, RefreshCw, Shield, Swords, Scale, type LucideIcon } from 'lucide-react';
+import { Clock, FastForward, Flame, Hand, Megaphone, Pause, RefreshCw, Shield, SkipForward, Swords, Scale, type LucideIcon } from 'lucide-react';
 import type { Mentality, ShoutType } from '@/types/game';
 import { useTranslation } from '@/hooks/useTranslation';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
@@ -37,6 +37,9 @@ interface LiveControlDockProps {
   /** A faster-than-default speed is on (the button reads as active). */
   speedBoosted: boolean;
   onSpeed: () => void;
+  /** Skip to full time, when this match allows it (free from half-time, Pro
+   *  from kickoff): a quiet link under the bar, absent otherwise. */
+  onSkip?: () => void;
   reducedMotion?: boolean;
 }
 
@@ -67,7 +70,7 @@ const SPRING = { type: 'spring', stiffness: 420, damping: 32 } as const;
 
 export function LiveControlDock({
   mentality, onMentality, onPause, subsLeft, onSubs, shouts, onShout,
-  speedLabel, speedShortLabel, speedBoosted, onSpeed, reducedMotion,
+  speedLabel, speedShortLabel, speedBoosted, onSpeed, onSkip, reducedMotion,
 }: LiveControlDockProps) {
   const { t } = useTranslation();
   const [shoutOpen, setShoutOpen] = useState(false);
@@ -81,7 +84,7 @@ export function LiveControlDock({
 
       {/* Actions — Pause · Subs · Shout · Speed. */}
       <div className="relative grid grid-cols-4 gap-2">
-        <DockButton onClick={onPause} Icon={Pause} label={t('liveDock.pause')} />
+        <DockButton onClick={onPause} Icon={Pause} label={t('liveDock.pause')} ariaLabel={t('matchDay.pauseMatch')} />
         <DockButton
           onClick={() => { hapticLight(); onSubs(); }}
           Icon={RefreshCw}
@@ -117,7 +120,7 @@ export function LiveControlDock({
               <motion.button
                 key="scrim"
                 aria-label="Close"
-                className="fixed inset-0 z-30 cursor-default"
+                className="fixed inset-0 z-[45] cursor-default"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -126,7 +129,7 @@ export function LiveControlDock({
               <motion.div
                 key="menu"
                 role="menu"
-                className="absolute bottom-full right-0 z-40 mb-2 w-[min(19rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-amber-500/25 bg-card/95 p-1.5 shadow-2xl backdrop-blur-xl"
+                className="absolute bottom-full right-0 z-[46] mb-2 w-[min(19rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-amber-500/25 bg-card/95 p-1.5 shadow-2xl backdrop-blur-xl"
                 style={{ transformOrigin: '75% 100%' }}
                 initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 8 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -169,6 +172,22 @@ export function LiveControlDock({
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence initial={false}>
+        {onSkip && (
+          <motion.button
+            key="skip"
+            onClick={onSkip}
+            aria-label={t('matchDay.skipToFullTime')}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, height: 44 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            className="mx-auto flex min-h-[44px] items-center gap-1.5 overflow-hidden px-3 text-xs font-semibold text-primary/90 hover:text-primary"
+          >
+            <SkipForward className="h-3.5 w-3.5" aria-hidden /> {t('matchDay.skipToFullTime')}
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
