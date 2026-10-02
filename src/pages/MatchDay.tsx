@@ -225,6 +225,8 @@ const MatchDayInner = () => {
   const goalPauseTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(goalPauseTimerRef.current), []);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
+  // Subs opened from the live bar paused the clock; closing the sheet resumes.
+  const resumeAfterSubsRef = useRef(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
   const [keyMoment, setKeyMoment] = useState<{ type: string; description: string; playerId?: string } | null>(null);
   // The decision card renders beneath the pitch, which on a phone is below the
@@ -2108,7 +2110,13 @@ const MatchDayInner = () => {
                 onMentality={(m) => setTactics({ mentality: m })}
                 onPause={handlePause}
                 subsLeft={MAX_SUBSTITUTIONS - matchSubsUsed}
-                onSubs={() => setSubSheetOpen(true)}
+                onSubs={() => {
+                  // The clock stops while you choose, and runs again when the
+                  // sheet closes (a sub opened from Pause leaves it paused).
+                  resumeAfterSubsRef.current = true;
+                  handlePause();
+                  setSubSheetOpen(true);
+                }}
                 shouts={{
                   remaining: shoutsRemaining,
                   cooldownLeft: shoutOnCooldown ? SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0)) : 0,
@@ -2353,6 +2361,10 @@ const MatchDayInner = () => {
         onOpenChange={(open) => {
           if (!open && injurySubMode) return; // prevent dismissal in injury mode
           setSubSheetOpen(open);
+          if (!open && resumeAfterSubsRef.current) {
+            resumeAfterSubsRef.current = false;
+            handleResume();
+          }
         }}
         onSubMade={() => {
           if (injurySubMode) {
