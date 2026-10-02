@@ -83,18 +83,18 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
       {/* Broadcast letterbox bars. */}
       {!reducedMotion && (
         <>
-          <motion.div className="pointer-events-none absolute inset-x-0 top-0 bg-black" initial={{ height: 0 }} animate={{ height: '8%' }} exit={{ height: 0 }} transition={{ duration: 0.25 }} />
-          <motion.div className="pointer-events-none absolute inset-x-0 bottom-0 bg-black" initial={{ height: 0 }} animate={{ height: '8%' }} exit={{ height: 0 }} transition={{ duration: 0.25 }} />
+          <motion.div className="pointer-events-none absolute inset-x-0 top-0 z-[3] bg-black" initial={{ height: 0 }} animate={{ height: '8%' }} exit={{ height: 0 }} transition={{ duration: 0.25 }} />
+          <motion.div className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] bg-black" initial={{ height: 0 }} animate={{ height: '8%' }} exit={{ height: 0 }} transition={{ duration: 0.25 }} />
         </>
       )}
-      <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-card/80 px-2.5 py-1 backdrop-blur-md border border-border/40">
+      <div className="absolute left-2 top-2 z-[4] flex items-center gap-1 rounded-full bg-card/80 px-2.5 py-1 backdrop-blur-md border border-border/40">
         <RotateCcw className="h-3 w-3 text-primary" />
         <span className="text-micro font-bold uppercase tracking-wide text-foreground">Replay</span>
       </div>
       <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={onDone}
-        className="absolute bottom-2 right-2 rounded-full bg-card/80 px-3 py-1 text-micro font-semibold text-foreground backdrop-blur-md border border-border/40 active:scale-95 before:absolute before:-inset-3 before:content-['']"
+        className="absolute bottom-2 right-2 z-[4] rounded-full bg-card/80 px-3 py-1 text-micro font-semibold text-foreground backdrop-blur-md border border-border/40 active:scale-95 before:absolute before:-inset-3 before:content-['']"
       >
         Skip
       </button>

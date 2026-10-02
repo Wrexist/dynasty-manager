@@ -97,7 +97,7 @@ export function CardGoalCelebration({
   }, []);
 
   // A tap hurries it along: straight to the flight home.
-  const skip = (e: React.MouseEvent) => {
+  const skip = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     if (phase !== 'return') startReturn.current();
   };
@@ -141,7 +141,9 @@ export function CardGoalCelebration({
       className="absolute inset-0 z-10 overflow-hidden"
       role="button"
       aria-label={t('pitchView.cardCelebrationLabel', { name, minute })}
+      tabIndex={0}
       onClick={skip}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skip(e); } }}
       data-testid="card-goal-celebration"
       data-phase={phase}
     >

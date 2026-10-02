@@ -35,13 +35,29 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
   const nodes = useRef(new Map<string, HTMLDivElement>());
   const hiddenRef = useRef(hiddenId);
   hiddenRef.current = hiddenId;
+  // One stable ref callback per player: an inline arrow is a new prop every
+  // render, which defeated PitchCard's memo and re-attached all 22 refs each
+  // time the parent re-rendered (every match minute).
+  const refCallbacks = useRef(new Map<string, (el: HTMLDivElement | null) => void>());
+  const refFor = (id: string) => {
+    let cb = refCallbacks.current.get(id);
+    if (!cb) {
+      cb = (el) => { if (el) nodes.current.set(id, el); else nodes.current.delete(id); };
+      refCallbacks.current.set(id, cb);
+    }
+    return cb;
+  };
 
   useEffect(() => {
     let raf = 0;
     let key = '';
     let shown = new Set<string>();
-    // Label widths in layout px (unaffected by the transform), measured once.
+    // Label widths in layout px (unaffected by the transform), measured once —
+    // and again once the web font has loaded, or a first measure taken in the
+    // fallback font would undercount every name.
     const labelW = new Map<string, number>();
+    let alive = true;
+    document.fonts?.ready.then(() => { if (alive) labelW.clear(); });
     const frame = () => {
       const targets = hitTargetsRef.current ?? [];
       // Who is on the pitch changes rarely (a sub, a red card): re-render the
@@ -88,7 +104,7 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    return () => { alive = false; cancelAnimationFrame(raf); };
   }, [hitTargetsRef]);
 
   if (!players) return null;
@@ -103,7 +119,7 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
             key={id}
             player={p}
             kit={(home ? homeColor : awayColor) || '#888888'}
-            nodeRef={(el) => { if (el) nodes.current.set(id, el); else nodes.current.delete(id); }}
+            nodeRef={refFor(id)}
           />
         );
       })}

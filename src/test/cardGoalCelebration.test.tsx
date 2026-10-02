@@ -113,3 +113,15 @@ describe('CardGoalCelebration', () => {
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('CardGoalCelebration keyboard', () => {
+  it('Enter skips to the flight home, like a tap', () => {
+    const { root, onDone } = setup();
+    act(() => { vi.advanceTimersByTime(FLY + 50); });
+    expect(root().tabIndex).toBe(0);
+    fireEvent.keyDown(root(), { key: 'Enter' });
+    expect(root().dataset.phase).toBe('return');
+    act(() => { vi.advanceTimersByTime(RET); });
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+});

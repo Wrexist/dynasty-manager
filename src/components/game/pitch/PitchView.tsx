@@ -502,7 +502,8 @@ export default function PitchView({
       )}
 
       {caption && !celebration && !inspectId && (
-        <div className="absolute inset-x-0 bottom-0 p-2">
+        // z above the card layer (z-[2]): a card must never print over the caption.
+        <div className="absolute inset-x-0 bottom-0 z-[8] p-2">
           <div className="mx-auto max-w-[92%] rounded-lg bg-card/70 px-3 py-1.5 backdrop-blur-md border border-border/40">
             <p className="text-[11px] leading-snug text-foreground">
               <span className="font-bold text-primary tabular-nums mr-1.5">{caption.minute}</span>

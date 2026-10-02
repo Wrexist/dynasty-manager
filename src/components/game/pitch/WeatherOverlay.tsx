@@ -36,7 +36,8 @@ export function WeatherOverlay({ weather, pitch, density = 1, reducedMotion }: W
   if (!precip && !weatherTint && !pitchTint) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    // z-[3]: rain and snow fall in FRONT of the players (above the Cards layer).
+    <div className="pointer-events-none absolute inset-0 z-[3] overflow-hidden">
       {pitchTint && <div className="absolute inset-0" style={{ backgroundColor: pitchTint }} />}
       {weatherTint && <div className="absolute inset-0" style={{ backgroundColor: weatherTint }} />}
       {pitch === 'waterlogged' && !reducedMotion && (
