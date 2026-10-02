@@ -52,3 +52,34 @@ describe('formation change during a live match', () => {
     expect(before.size).toBe(11);
   });
 });
+
+describe('Optimize Lineup during a live match', () => {
+  beforeEach(() => {
+    useGameStore.getState().resetGame();
+    useGameStore.getState().initGame(CLUB);
+    const s = useGameStore.getState();
+    useGameStore.setState({ monetization: { ...s.monetization, entitlements: ['com.dynastymanager.pro'] } });
+  });
+
+  it('chooses only from the matchday squad — a reserve off the bench never comes on', { timeout: 60_000 }, () => {
+    const s0 = useGameStore.getState();
+    const club = s0.clubs[CLUB];
+    const matchday = new Set([...club.lineup, ...club.subs]);
+    const reserveId = club.playerIds.find(id => !matchday.has(id) && s0.players[id]?.position !== 'GK');
+    expect(reserveId).toBeTruthy();
+    const r = s0.players[reserveId!];
+    // Make him the best player at the club: a whole-squad pick would start him.
+    useGameStore.setState({ players: { ...s0.players, [r.id]: { ...r, overall: 99, injured: false } } });
+
+    expect(useGameStore.getState().playFirstHalf()).toBeTruthy();
+    const before = useGameStore.getState().clubs[CLUB];
+    const beforeSet = new Set([...before.lineup, ...before.subs]);
+    const res = useGameStore.getState().autoFillTeam();
+    expect(res.proRequired).toBeFalsy();
+    const after = useGameStore.getState().clubs[CLUB];
+    expect(after.lineup).not.toContain(r.id);
+    expect(after.subs).not.toContain(r.id);
+    // Same matchday squad, just redistributed.
+    expect(new Set([...after.lineup, ...after.subs])).toEqual(beforeSet);
+  });
+});
