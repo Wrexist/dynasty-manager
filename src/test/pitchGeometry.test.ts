@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan } from '@/components/game/pitch/pitchGeometry';
+import { centreCirclePoints, declutterLabels, frameCamera, penaltyArcPoints, stepTint, tintSpan, type PitchLabel } from '@/components/game/pitch/pitchGeometry';
 import { withAlpha } from '@/components/game/pitch/pitchColors';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 
@@ -128,5 +128,26 @@ describe('possession tint', () => {
     expect(withAlpha('#ff8000', 0)).toBe('rgba(255,128,0,0)');
     expect(withAlpha('#f80', 0.5)).toBe('rgba(255,136,0,0.5)');
     expect(withAlpha('not-a-colour', 2)).toBe('rgba(136,136,136,1)');
+  });
+});
+
+describe('declutterLabels', () => {
+  const lab = (id: string, cx: number, bottom: number, lit = false): PitchLabel => ({ id, cx, bottom, w: 40, h: 10, lit });
+
+  it('keeps labels that do not touch', () => {
+    expect(declutterLabels([lab('a', 0, 100), lab('b', 50, 100), lab('c', 0, 120)], new Set()).size).toBe(0);
+  });
+
+  it('hides the higher of two overlapping names (the lower card is drawn on top)', () => {
+    expect([...declutterLabels([lab('a', 0, 100), lab('b', 10, 104)], new Set())]).toEqual(['a']);
+  });
+
+  it('never hides the spotlit player, and keeps last frame\'s name (no flicker)', () => {
+    expect([...declutterLabels([lab('a', 0, 100, true), lab('b', 10, 104)], new Set())]).toEqual(['b']);
+    expect([...declutterLabels([lab('a', 0, 100), lab('b', 10, 104)], new Set(['a']))]).toEqual(['b']);
+  });
+
+  it('ignores a sliver of corner overlap', () => {
+    expect(declutterLabels([lab('a', 0, 100), lab('b', 39.5, 100)], new Set()).size).toBe(0);
   });
 });

@@ -190,3 +190,38 @@ export function celebrationCardWidth(width: number, height: number): number {
   const byHeight = Math.max(0, height - PITCH_RENDER.CARD_GOAL_TEXT_ROOM) / 1.5;
   return Math.round(Math.max(80, Math.min(byWidth, byHeight, 240)));
 }
+
+// ── Cards mode: name-label declutter ──
+
+/** A name label's screen rectangle, centred on `cx`, sitting on `bottom`. */
+export interface PitchLabel {
+  id: string;
+  cx: number; bottom: number; w: number; h: number;
+  /** Spotlit (on the ball, the scorer): always keeps its name. */
+  lit?: boolean;
+}
+
+/**
+ * Which name labels to hide so no two overlap when players bunch together.
+ * Greedy, in priority order: spotlit players first, then labels shown last
+ * frame (hysteresis — a name doesn't flicker off and on as two players cross),
+ * then the player lower on screen (drawn on top). Returns the hidden ids.
+ */
+export function declutterLabels(labels: PitchLabel[], shownBefore: ReadonlySet<string>): Set<string> {
+  const order = [...labels].sort((a, b) =>
+    Number(!!b.lit) - Number(!!a.lit)
+    || Number(shownBefore.has(b.id)) - Number(shownBefore.has(a.id))
+    || b.bottom - a.bottom);
+  const kept: PitchLabel[] = [];
+  const hidden = new Set<string>();
+  // A sliver of overlap (the rounded corners) is fine; a name over a name is not.
+  const slack = 1;
+  for (const l of order) {
+    const clash = !l.lit && kept.some(k =>
+      Math.abs(k.cx - l.cx) < (k.w + l.w) / 2 - slack
+      && Math.abs(k.bottom - l.bottom) < (k.h + l.h) / 2 - slack);
+    if (clash) hidden.add(l.id);
+    else kept.push(l);
+  }
+  return hidden;
+}

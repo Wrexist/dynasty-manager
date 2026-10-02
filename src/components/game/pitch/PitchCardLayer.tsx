@@ -6,7 +6,7 @@ import { getPlayerDisplayName } from '@/utils/playerDisplay';
 import { getPlayerPortrait } from '@/utils/playerPortrait';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import type { PitchHitTarget } from './PitchCanvas';
-import { pitchCardBox } from './pitchGeometry';
+import { declutterLabels, pitchCardBox, type PitchLabel } from './pitchGeometry';
 
 // Cards mode for the live pitch: a player card stands on every player's spot.
 //
@@ -39,6 +39,9 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
   useEffect(() => {
     let raf = 0;
     let key = '';
+    let shown = new Set<string>();
+    // Label widths in layout px (unaffected by the transform), measured once.
+    const labelW = new Map<string, number>();
     const frame = () => {
       const targets = hitTargetsRef.current ?? [];
       // Who is on the pitch changes rarely (a sub, a red card): re-render the
@@ -48,6 +51,7 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
         key = nextKey;
         setIds(targets.map(t => t.id));
       }
+      const labels: PitchLabel[] = [];
       for (const t of targets) {
         const el = nodes.current.get(t.id);
         if (!el) continue;
@@ -60,6 +64,26 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
         el.style.opacity = t.id === hiddenRef.current ? '0' : '1';
         const lit = t.highlighted ? '1' : '0';
         if (el.dataset.lit !== lit) el.dataset.lit = lit;
+        if (t.id === hiddenRef.current) continue;
+        let w = labelW.get(t.id);
+        if (w == null) {
+          w = (el.querySelector('[data-name]') as HTMLElement | null)?.offsetWidth || BASE_W;
+          labelW.set(t.id, w);
+        }
+        labels.push({
+          id: t.id, lit: t.highlighted,
+          cx: t.x, bottom: b.y + (BASE_W * 1.5 + LABEL_H) * b.scale,
+          w: w * b.scale, h: LABEL_H * b.scale,
+        });
+      }
+      // Bunched players: one readable name beats three overprinted ones.
+      const hide = declutterLabels(labels, shown);
+      shown = new Set(labels.filter(l => !hide.has(l.id)).map(l => l.id));
+      for (const l of labels) {
+        const name = nodes.current.get(l.id)?.querySelector('[data-name]') as HTMLElement | null;
+        if (!name) continue;
+        const v = hide.has(l.id) ? '0' : '1';
+        if (name.dataset.show !== v) name.dataset.show = v;
       }
       raf = requestAnimationFrame(frame);
     };
@@ -131,7 +155,8 @@ const PitchCard = memo(function PitchCard({ player, kit, nodeRef }: PitchCardPro
           name is worth more than the gap between two cards. */}
       {/* type-floor: graphic — scaled with the token */}
       <div
-        className="absolute bottom-0 left-1/2 flex max-w-[88px] -translate-x-1/2 items-center justify-center whitespace-nowrap rounded-[3px] bg-black/75 px-1 text-micro font-bold uppercase leading-none text-white"
+        data-name
+        className="absolute bottom-0 left-1/2 flex max-w-[88px] -translate-x-1/2 items-center justify-center whitespace-nowrap rounded-[3px] bg-black/75 px-1 text-micro font-bold uppercase leading-none text-white transition-opacity duration-200 data-[show=0]:opacity-0"
         style={{ height: LABEL_H - 1, boxShadow: `inset 0 -2px 0 ${kit}` }}
       >
         <span className="truncate">{getPlayerDisplayName(player)}</span>
