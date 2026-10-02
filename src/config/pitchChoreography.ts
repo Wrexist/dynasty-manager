@@ -61,6 +61,8 @@ export const PITCH_CHOREO = {
   FLOW_START: 0.12,
   /** Goal kick: the keeper's spot (own depth, the edge of the six-yard box). */
   GOAL_KICK_DEPTH: 6,
+  /** Where a long restart is won back by the other side (its own depth). */
+  RESTART_CONTEST_DEPTH: 48,
   /** How far up the pitch the flow line advances per retained minute — steady
    *  forward progress. Monotonic until a turnover, so the ball never snaps back. */
   FLOW_ADVANCE: 0.16,

@@ -493,9 +493,14 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
   // Returns the flow line the new possession starts from.
   const emitTurnover = (minute: number, possession: 'home' | 'away'): number => {
     const last = beats[beats.length - 1];
-    const spot = last
-      ? { x: clamp(last.ball.x, 6, 94), y: clamp(last.ball.y, 6, 94) }
-      : { x: 50, y: depthToY(possession, 32) };
+    // After a restart (a goal kick, a kick-off) the ball was played before it
+    // was lost: it is contested where a long restart lands, around halfway —
+    // not taken off the keeper's toes in his six-yard box.
+    const spot = !last
+      ? { x: 50, y: depthToY(possession, 32) }
+      : last.ballMotion === 'restart'
+        ? { x: clamp(last.ball.x, 20, 80), y: depthToY(possession, PITCH_CHOREO.RESTART_CONTEST_DEPTH) }
+        : { x: clamp(last.ball.x, 6, 94), y: clamp(last.ball.y, 6, 94) };
     const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, spot, removed, new Set(), { phaseTime: seq, lookup });
     let winner: ChoreoPlayer | null = null;
     let best = Infinity;

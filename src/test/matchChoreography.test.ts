@@ -545,3 +545,23 @@ describe('restarts and turnovers', () => {
     expect(checked).toBeGreaterThan(5);
   });
 });
+
+describe('turnover after a goal kick', () => {
+  it('is contested around halfway, never in the keeper\'s six-yard box', () => {
+    const adv = (team: 'home' | 'away', y: number) => (team === 'home' ? y : 100 - y);
+    let hits = 0;
+    for (let seed = 0; seed < 60; seed++) {
+      const events = [ev(10, 'shot_missed', 'home', { playerId: 'home-p10' })];
+      const tl = buildMatchTimeline(makeMatch(events, { id: `gk${seed}` }), home, away);
+      const i = tl.beats.findIndex(b => b.eventType === 'shot_missed');
+      const gk = tl.beats[i + 1];
+      const next = tl.beats[i + 2];
+      if (!next || next.possession === gk.possession) continue;
+      const d = adv(next.possession, next.ball.y);
+      expect(d).toBeGreaterThan(30);
+      expect(d).toBeLessThan(70); // not in the keeper's box (~94 from the winner's side)
+      hits++;
+    }
+    expect(hits).toBeGreaterThan(0);
+  });
+});
