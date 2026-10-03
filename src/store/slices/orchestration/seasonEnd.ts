@@ -628,17 +628,18 @@ export function endSeasonImpl(set: Set, get: Get) {
     newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'League Turnover', body: `${replacedNames} departed the league.` });
   }
 
-  // Announce Ballon d'Or winner via inbox message
+  // Announce the Ballon d'Or night via inbox. The winner is NOT named here:
+  // the ceremony (BallonDorCeremony) reveals the top 10 from 10th to 1st, and
+  // an inbox line read first would spoil it. Same for your players' ranks.
   if (ballonDOrRanking.length > 0) {
-    const bdWinner = ballonDOrRanking[0];
     const yourRanked = ballonDOrRanking.filter(e => e.clubName === clubs[playerClubId]?.shortName);
     const yourNote = yourRanked.length > 0
       ? ` ${yourRanked.length} of your player${yourRanked.length > 1 ? 's' : ''} made the Top 25.`
       : '';
     newMessages = addMsg(newMessages, {
       week: state.week, season, type: 'general',
-      title: "Ballon d'Or Announced",
-      body: `${bdWinner.playerName} (${bdWinner.clubName}) has won the Ballon d'Or with a score of ${bdWinner.score.toFixed(1)}.${yourNote}`,
+      title: "Ballon d'Or Night",
+      body: `The Season ${season} top 10 is sealed. Open the Ballon d'Or to turn the cards and find out who wins.${yourNote}`,
     });
 
     // Dedicated celebration message for any of your players who made the
@@ -648,10 +649,10 @@ export function endSeasonImpl(set: Set, get: Get) {
       .filter(e => e.rank <= BALLON_DOR_TOP10_RANK && e.clubName === clubs[playerClubId]?.shortName)
       .sort((a, b) => a.rank - b.rank);
     if (yourTop10.length > 0) {
-      const lines = yourTop10.map(e => `• ${e.playerName} — #${e.rank}`).join('\n');
+      const lines = yourTop10.map(e => `• ${e.playerName}`).join('\n');
       const headline = yourTop10.length === 1
-        ? `${yourTop10[0].playerName} finished #${yourTop10[0].rank} in the Ballon d'Or.`
-        : `${yourTop10.length} of your players cracked the Ballon d'Or top 10.`;
+        ? `${yourTop10[0].playerName} made the Ballon d'Or top 10 — watch the ceremony to see where they finished.`
+        : `${yourTop10.length} of your players cracked the Ballon d'Or top 10 — watch the ceremony to see where they finished.`;
       newMessages = addMsg(newMessages, {
         week: state.week, season, type: 'general',
         title: "Ballon d'Or Top 10 — Your Squad",

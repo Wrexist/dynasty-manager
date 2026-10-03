@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Google Play feature graphic, 1024x500. Rendered by marketing/play/render-graphics.mjs
+     against the dev server (asset URLs are served from public/). No player
+     faces or names: pack covers + logo only (PLAYBOOK §4). -->
+<html><head><meta charset="utf-8">
+<style>
+  @font-face { font-family: Oswald; font-weight: 700; src: url(../../../node_modules/@fontsource/oswald/files/oswald-latin-700-normal.woff2); }
+  @font-face { font-family: DMSans; font-weight: 500; src: url(../../../node_modules/@fontsource/dm-sans/files/dm-sans-latin-500-normal.woff2); }
+  html,body { margin:0; width:1024px; height:500px; overflow:hidden; }
+  body { background: radial-gradient(ellipse 60% 90% at 72% 40%, #3a2a08 0%, #11141c 55%, #080a10 100%); position:relative; }
+  .glow { position:absolute; right:40px; top:-120px; width:620px; height:620px; border-radius:50%;
+          background: radial-gradient(circle, rgba(234,179,8,.28), rgba(234,179,8,0) 65%); }
+  .left { position:absolute; left:64px; top:0; bottom:0; display:flex; flex-direction:column; justify-content:center; width:430px; }
+  .logo { width:92px; filter: drop-shadow(0 6px 22px rgba(234,179,8,.45)); margin-bottom:14px; }
+  h1 { margin:0; font-family:Oswald; font-weight:700; font-size:74px; line-height:.92; color:#f4f4f5; letter-spacing:.01em; }
+  h1 span { color:#e8ad0c; letter-spacing:.2em; font-size:34px; display:block; margin-top:8px; }
+  p { margin:22px 0 0; font-family:DMSans; font-weight:500; font-size:25px; line-height:1.3; color:#d4d4d8; }
+  p b { color:#e8ad0c; font-weight:500; }
+  .pack { position:absolute; height:360px; top:70px; border-radius:6px; filter: drop-shadow(0 18px 30px rgba(0,0,0,.7)); }
+  .p1 { right:318px; transform: rotate(-11deg); top:92px; }
+  .p3 { right:40px; transform: rotate(11deg); top:92px; }
+  .p2 { right:170px; height:390px; top:52px; z-index:2; }
+</style></head><body>
+<div class="glow"></div>
+<div class="left">
+  <img class="logo" src="../../../public/logo.webp">
+  <h1>DYNASTY<span>MANAGER</span></h1>
+  <p>756 real clubs. <b>3 free packs a day.</b><br>No energy timers.</p>
+</div>
+<img class="pack p1" src="../../../public/packs/elite.webp">
+<img class="pack p3" src="../../../public/packs/world-class.webp">
+<img class="pack p2" src="../../../public/packs/legends.webp">
+</body></html>

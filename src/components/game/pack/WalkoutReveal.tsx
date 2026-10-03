@@ -24,6 +24,12 @@ interface WalkoutRevealProps {
   /** Called when the user taps to hurry an already-finished hero — advance now
    *  instead of waiting out the inter-hero linger. */
   onAdvance?: () => void;
+  /** Replaces the tier pill ("Legendary", "Hall of Legends") — the Ballon
+   *  d'Or night reuses this walkout for its winner. Pack pulls omit it. */
+  badgeLabel?: string;
+  /** Hide the potential bar: a pack pull is a signing, so its ceiling
+   *  matters; a Ballon d'Or winner is being crowned, not scouted. */
+  hidePotential?: boolean;
 }
 
 /** 3D-rendered stage the card lands on (scripts/3d/walkout/plinth.scene.js). */
@@ -139,7 +145,7 @@ function ClueSlot({ shown, accent, reduced, children }: {
  * Tap anywhere (or the Skip pill, whose ring drains over the cinematic) to
  * skip.
  */
-export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealProps) {
+export function WalkoutReveal({ player, onComplete, onAdvance, badgeLabel, hidePotential }: WalkoutRevealProps) {
   const { t } = useTranslation();
   const tier = tierForOvr(player.overall);
   // Hall of Legends provenance: without it a 95 hall icon and a 95 ordinary
@@ -405,8 +411,8 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: 0.35 }}
                 >
-                  <span aria-hidden style={{ color: accent, textShadow: `0 0 8px ${accent}` }}>{legend ? '♛' : '★'}</span>
-                  <span>{legend ? 'Hall of Legends' : tier.label}</span>
+                  <span aria-hidden style={{ color: accent, textShadow: `0 0 8px ${accent}` }}>{badgeLabel || legend ? '♛' : '★'}</span>
+                  <span>{badgeLabel ?? (legend ? 'Hall of Legends' : tier.label)}</span>
                 </motion.div>
                 {/* The name — withheld until now, wiped on left to right. */}
                 <motion.h1
@@ -435,7 +441,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
                     {legend.era}
                   </motion.p>
                 )}
-                <motion.div
+                {!hidePotential && <motion.div
                   className="mt-3 mx-auto max-w-[240px]"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: holding ? 1 : 0, y: holding ? 0 : 8 }}
@@ -454,7 +460,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
                       transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
                     />
                   </div>
-                </motion.div>
+                </motion.div>}
               </motion.div>
             )}
           </AnimatePresence>
@@ -520,7 +526,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
 
       {revealed && (
         <div className="sr-only" aria-live="polite" role="status">
-          {`${legend ? 'Hall of Legends' : tier.label} pull — ${player.firstName} ${player.lastName}, ${player.overall} overall, ${player.position}, ${player.nationality}.${legend ? ` ${legend.era}` : ''}`}
+          {`${badgeLabel ?? `${legend ? 'Hall of Legends' : tier.label} pull`} — ${player.firstName} ${player.lastName}, ${player.overall} overall, ${player.position}, ${player.nationality}.${legend ? ` ${legend.era}` : ''}`}
         </div>
       )}
     </motion.div>

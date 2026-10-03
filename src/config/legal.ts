@@ -36,3 +36,15 @@ export function subscriptionSettingsPathFor(platform: string): string {
 /** Public App Store listing for Dynasty Manager (id 6760918006). Used in
  *  share messages so recipients can install the app. */
 export const APP_STORE_URL = 'https://apps.apple.com/app/id6760918006';
+
+/** Google Play listing (package `com.dynastymanager`, the Android
+ *  `applicationId`). Resolves once the app is published on Play. */
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.dynastymanager';
+
+/** The store listing a share from `platform` (`Capacitor.getPlatform()`)
+ *  should point at: a friend of an Android player is most likely on Android
+ *  too, and an App Store link is a dead end there. Web shares keep iOS, the
+ *  store the app is live on. */
+export function storeUrlFor(platform: string): string {
+  return platform === 'android' ? PLAY_STORE_URL : APP_STORE_URL;
+}
