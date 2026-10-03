@@ -34,13 +34,35 @@ type StoreState = ReturnType<typeof useGameStore.getState>;
 let original: StoreState['playFirstHalf'];
 let base: Record<string, unknown>;
 
+function mulberry32(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t = (t + 0x6D2B79F5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 beforeAll(async () => {
-  useGameStore.getState().initGame(CLUB_ID);
-  for (let i = 0; i < 12; i++) {
-    const cur = useGameStore.getState();
-    if (cur.fixtures.some(m => m.week === cur.week && !m.played
-      && (m.homeClubId === cur.playerClubId || m.awayClubId === cur.playerClubId))) break;
-    await useGameStore.getState().advanceWeek();
+  // Pin the world (squads, fixture ids, and so the live match seed), as
+  // skipToFullTime does: unpinned, CI and a laptop played different matches.
+  let uuids = 0;
+  const randomSpy = vi.spyOn(Math, 'random').mockImplementation(mulberry32(1));
+  const uuidSpy = vi.spyOn(crypto, 'randomUUID').mockImplementation(
+    () => `00000000-0000-4000-8000-${(++uuids).toString(16).padStart(12, '0')}` as `${string}-${string}-${string}-${string}-${string}`,
+  );
+  try {
+    useGameStore.getState().initGame(CLUB_ID);
+    for (let i = 0; i < 12; i++) {
+      const cur = useGameStore.getState();
+      if (cur.fixtures.some(m => m.week === cur.week && !m.played
+        && (m.homeClubId === cur.playerClubId || m.awayClubId === cur.playerClubId))) break;
+      await useGameStore.getState().advanceWeek();
+    }
+  } finally {
+    randomSpy.mockRestore();
+    uuidSpy.mockRestore();
   }
   original = useGameStore.getState().playFirstHalf;
   base = {};
@@ -63,15 +85,19 @@ describe('the live clock', () => {
     expect(half?.events[0]).toMatchObject({ minute: 0, type: 'kickoff' });
   });
 
-  it('shows a goal on the tick that simulates its minute, not the next one', () => {
+  // Both sides: a goal against the player opens a different interruption
+  // (the substitution prompt) from one for them.
+  it.each(['home', 'away'] as const)('shows a %s goal on the tick that simulates its minute, not the next one', side => {
     useGameStore.setState(structuredClone(base) as Partial<StoreState>);
     vi.useFakeTimers();
-    // Every segment that reaches GOAL_MIN carries one home goal there, and the
-    // real engine's own goals are stripped, so the score is known minute by minute.
+    // Every segment that reaches GOAL_MIN carries one goal there, and the real
+    // engine's own goals are stripped, so the score is known minute by minute.
     let latest: HalfState | null = null;
     const st = useGameStore.getState();
-    const homeClubId = st.fixtures.find(f => f.week === st.week && !f.played
-      && (f.homeClubId === st.playerClubId || f.awayClubId === st.playerClubId))!.homeClubId;
+    const fixture = st.fixtures.find(f => f.week === st.week && !f.played
+      && (f.homeClubId === st.playerClubId || f.awayClubId === st.playerClubId))!;
+    const scorerClubId = side === 'home' ? fixture.homeClubId : fixture.awayClubId;
+    const scoreline = (n: number) => (side === 'home' ? `${n}-0` : `0-${n}`);
     let simulatedTo = 0;
     useGameStore.setState({
       playFirstHalf: (until?: number) => {
@@ -81,7 +107,7 @@ describe('the live clock', () => {
         const events = m.events.filter(e => !SCORING.includes(e.type));
         if ((until ?? 45) >= GOAL_MIN) {
           const at = events.findIndex(e => e.minute > GOAL_MIN);
-          const goal = { minute: GOAL_MIN, type: 'goal', clubId: homeClubId, description: 'Goal!' } as MatchEvent;
+          const goal = { minute: GOAL_MIN, type: 'goal', clubId: scorerClubId, description: 'Goal!' } as MatchEvent;
           events.splice(at < 0 ? events.length : at, 0, goal);
         }
         latest = { ...m, events };
@@ -97,10 +123,14 @@ describe('the live clock', () => {
       // A key moment pauses the clock; carry on untouched.
       const cont = screen.queryByRole('button', { name: /Continue Match/ });
       if (cont) fireEvent.click(cont);
+      const noSub = screen.queryByText('Continue without substitution');
+      if (noSub) fireEvent.click(noSub);
+      const ack = screen.queryByRole('button', { name: 'Acknowledge' });
+      if (ack) fireEvent.click(ack);
       act(() => { vi.advanceTimersByTime(3300); });
-      expect(score(), `score after simulating ${simulatedTo}'`).toBe(`${goalsIn(latest!.events, simulatedTo)}-0`);
+      expect(score(), `score after simulating ${simulatedTo}'`).toBe(scoreline(goalsIn(latest!.events, simulatedTo)));
     }
     expect(simulatedTo).toBeGreaterThanOrEqual(GOAL_MIN + 2);
-    expect(score()).toBe('1-0');
+    expect(score()).toBe(scoreline(1));
   });
 });
