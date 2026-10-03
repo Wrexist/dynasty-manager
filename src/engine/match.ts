@@ -1083,7 +1083,15 @@ export function simulateHalf(
     }
   }
 
+  // A segment resuming mid-half (the live path simulates one minute at a time)
+  // carries on the silence from the events already played, or the gap filler
+  // below could never fire — every one-minute call restarted the count.
   let lastEventMinute = startMin;
+  if (resumesMidHalf) {
+    const halfStart = startMin <= 45 ? 1 : 46;
+    lastEventMinute = halfStart;
+    for (const e of events) if (e.minute >= halfStart && e.minute < startMin && e.minute > lastEventMinute) lastEventMinute = e.minute;
+  }
   // Once per match: a segment that starts past the threshold is resuming a
   // stretch whose earlier segment already had its chance to fire it.
   let lateDramaFired = startMin > LATE_GAME_THRESHOLD_MINUTE && startMin <= 90;
