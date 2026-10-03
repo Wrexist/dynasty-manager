@@ -320,7 +320,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 4.1.11 + jsdom + Testing Library** — 359 test files in `src/test/`
+- **Vitest 4.1.11 + jsdom + Testing Library** — 361 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -369,7 +369,7 @@ src/
 │   │   pressConferences.ts, storylineChains.ts, boardPitches.ts,
 │   │   clubTemplateAliases.ts, whatsNew.ts, pendingNews.ts
 ├── engine/
-│   ├── match.ts         → match sim (2,310 LOC, event-based, minute-by-minute)
+│   ├── match.ts         → match sim (2,318 LOC, event-based, minute-by-minute)
 │   └── match/helpers.ts
 ├── hooks/               → 15 hooks: useGameSelectors, useLineupOptimizer,
 │                          useSwipeGesture, useKeyboardInset, useFocusTrap,
@@ -406,7 +406,7 @@ src/
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 359 test files incl. longevity/stress suites, adversarial
+├── test/                → 361 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode,
@@ -419,7 +419,7 @@ src/
 2. **`src/store/storeTypes.ts`** — complete `GameState` interface (755 LOC).
 3. **`src/types/game.ts`** — all types (3,900 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
-5. **`src/engine/match.ts`** — match simulation (2310 LOC).
+5. **`src/engine/match.ts`** — match simulation (2318 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
 - **Pack pulls sign on a discount (`PACK_WAGE_FACTOR`, 0.55)** that lives on the
@@ -820,7 +820,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (359 test files)
+npm run test         # Vitest (361 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
