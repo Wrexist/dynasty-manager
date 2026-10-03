@@ -29,3 +29,10 @@ export function shade(color: string, amt: number): string {
 export function keeperKit(teamColor: string): string {
   return shade(teamColor, -0.55);
 }
+
+/** The colour at `alpha` as an `rgba(...)` string — for gradient stops, which
+ *  must fade to the SAME hue at 0 (fading to `transparent` greys the edge). */
+export function withAlpha(color: string, alpha: number): string {
+  const [r, g, b] = color && color[0] === '#' ? parseHex(color) : [136, 136, 136];
+  return `rgba(${r},${g},${b},${Math.max(0, Math.min(1, alpha))})`;
+}

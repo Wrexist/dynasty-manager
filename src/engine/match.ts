@@ -41,7 +41,7 @@ import {
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
-  COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
+  COMMENTARY_GAP_MAX, COMMENTARY_CHANCE, OFFSIDE_CHANCE,
   MIN_PLAYERS_TO_CONTINUE,
   MAX_SUBSTITUTIONS, SUB_ENTRY_FITNESS_BOOST,
   AI_SUB_CHECK_MINUTES, AI_SUB_FITNESS_THRESHOLD, AI_TACTICAL_SUB_CHANCE,
@@ -56,7 +56,7 @@ import {
   MORALE_BASELINE, MORALE_PERFORMANCE_WEIGHT,
   DEFENSE_MODIFIER_SCALE, GOAL_SCORING_TYPES,
 } from '@/config/matchEngine';
-import { generateCommentary } from '@/utils/matchCommentary';
+import { commentaryCast, generateCommentary } from '@/utils/matchCommentary';
 import { getDerbyName } from '@/data/league';
 import {
   AI_DEFAULT_TACTICS,
@@ -419,7 +419,9 @@ export function simulateHalf(
   // 76 must not re-announce "Second half underway!" — that kickoff event reset
   // the pitch to kickoff shape and the momentum bar to 50/50 mid-half, and
   // re-stamped "Level at half-time" advice at 61'.
-  const resumesMidHalf = !!prevState && startMin > 46 && startMin <= 90;
+  // The first half is segmented the same way (FIRST_HALF_SEGMENTS), so a call
+  // resuming at 16 or 31 is mid-half too.
+  const resumesMidHalf = !!prevState && ((startMin > 1 && startMin <= 45) || (startMin > 46 && startMin <= 90));
 
   // Second-half: generate fresh score-aware tactical insights
   if (prevState && playerClubId && !resumesMidHalf) {
@@ -548,6 +550,8 @@ export function simulateHalf(
   // Helper: get available players for a side (starters + subs - unavailable)
   const homeAvail = () => [...homePlayers, ...homeSubbedIn].filter(p => !unavailable.has(p.id));
   const awayAvail = () => [...awayPlayers, ...awaySubbedIn].filter(p => !unavailable.has(p.id));
+  // Who is on the pitch right now, by role — lets filler commentary name players.
+  const liveCast = () => ({ home: commentaryCast(homeAvail()), away: commentaryCast(awayAvail()) });
 
   // Refresh GK save/error chances from the available pools — called whenever
   // availability changes (red card, injury, sub) so the chances follow the
@@ -686,6 +690,13 @@ export function simulateHalf(
     (shooter: string, gk: string) => `${gk} stands tall and blocks ${shooter}'s strike.`,
     (shooter: string, gk: string) => `Full stretch from ${gk} to tip ${shooter}'s effort away!`,
     (shooter: string, gk: string) => `${shooter} thought he'd scored but ${gk} had other ideas.`,
+  ];
+  const offsideDescs = [
+    (n: string) => `${n} times the run a fraction too early — the flag goes up.`,
+    (n: string) => `Offside. ${n} had strayed beyond the last defender.`,
+    (n: string) => `The through ball finds ${n}, but the assistant's flag is already raised.`,
+    (n: string) => `${n} is caught offside as the line steps up perfectly.`,
+    (n: string) => `Flag up — ${n} was a yard beyond the defence. Free kick.`,
   ];
   const missDescs = [
     (name: string) => `${name} fires wide.`,
@@ -1072,12 +1083,26 @@ export function simulateHalf(
     }
   }
 
+  // A segment resuming mid-half (the live path simulates one minute at a time)
+  // carries on the silence from the events already played, or the gap filler
+  // below could never fire — every one-minute call restarted the count.
   let lastEventMinute = startMin;
-  let lateDramaFired = false;
+  if (resumesMidHalf) {
+    const halfStart = startMin <= 45 ? 1 : 46;
+    lastEventMinute = halfStart;
+    for (const e of events) if (e.minute >= halfStart && e.minute < startMin && e.minute > lastEventMinute) lastEventMinute = e.minute;
+  }
+  // Once per match: a segment that starts past the threshold is resuming a
+  // stretch whose earlier segment already had its chance to fire it.
+  let lateDramaFired = startMin > LATE_GAME_THRESHOLD_MINUTE && startMin <= 90;
 
   // Calculate stoppage time for this half
   const isFirstHalf = startMin <= 45 && endMin <= 50;
   const nominalEnd = isFirstHalf ? 45 : 90;
+  // Stoppage is earned over the whole half, not the segment that reaches its
+  // end: counting from `startMin` gave a segmented half (the player's own
+  // match) ~0.8 fewer added minutes than an unsegmented one.
+  const halfStart = isFirstHalf ? 1 : 46;
   let stoppageTime = 0;
 
   const MAX_MATCH_MINUTES = 150; // Safety cap to prevent infinite loops
@@ -1148,7 +1173,7 @@ export function simulateHalf(
     // which suppressed the real Half Time divider (the some() check below)
     // and rendered a "HALF TIME" pill at minute 90 in the second half.
     if (min === nominalEnd && stoppageTime === 0) {
-      stoppageTime = calcStoppageTime(events, startMin, nominalEnd);
+      stoppageTime = calcStoppageTime(events, halfStart, nominalEnd);
       if (stoppageTime > 0) {
         events.push({ minute: nominalEnd, type: 'added_time', clubId: '', description: `+${stoppageTime} minutes added time` });
       }
@@ -1259,6 +1284,24 @@ export function simulateHalf(
     // frantic match).
     const eventChance = BASE_EVENT_CHANCE + (min > LATE_GAME_THRESHOLD_MINUTE ? LATE_GAME_EVENT_BONUS : 0) + derbyEventMod + tempoEventMod;
     if (Math.random() > eventChance) {
+      // A quiet minute can still end with the flag up: a forward caught
+      // offside, free kick to the defenders. The stronger side attacks more,
+      // so it is caught more. Display-only for the result: no shot is lost.
+      if (Math.random() < OFFSIDE_CHANCE) {
+        const total = homeStr + awayStr;
+        const attHome = total > 0 ? Math.random() < homeStr / total : Math.random() < 0.5;
+        const pool = (attHome ? [...homePlayers, ...homeSubbedIn] : [...awayPlayers, ...awaySubbedIn])
+          .filter(p => !unavailable.has(p.id) && p.position !== 'GK');
+        if (pool.length > 0) {
+          const runner = pickAttacker(pool);
+          momentum = attHome
+            ? Math.max(-100, momentum - MOMENTUM_COMMENTARY_SWING)
+            : Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING);
+          events.push({ minute: min, type: 'offside', playerId: runner.id, clubId: attHome ? homeClub.id : awayClub.id, description: pick(offsideDescs)(runner.lastName), momentum });
+          lastEventMinute = min;
+          continue;
+        }
+      }
       // Late drama atmosphere: inject once when game is tight in the final minutes
       if (!lateDramaFired && min >= LATE_GAME_THRESHOLD_MINUTE && Math.abs(homeGoals - awayGoals) <= 1) {
         lateDramaFired = true;
@@ -1268,7 +1311,7 @@ export function simulateHalf(
       // Gap-filler: inject commentary if too many silent minutes have passed
       if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
         const isHome = Math.random() < 0.5;
-        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines);
+        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines, liveCast());
         // Possession shifts toward the team with the ball
         momentum = isHome
           ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
@@ -1963,7 +2006,7 @@ export function simulateHalf(
     }
     // === COMMENTARY FALLBACK (event roll passed but no shot/foul/injury triggered) ===
     else if (Math.random() < COMMENTARY_CHANCE) {
-      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines);
+      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines, liveCast());
       // Possession shifts toward the team with the ball
       momentum = isHome
         ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
@@ -2034,7 +2077,10 @@ export function simulateHalf(
   // Add half-time marker at end of first half (only once). The 'added_time'
   // announcement no longer trips this check (it used to be typed half_time,
   // which suppressed the divider whenever stoppage time was announced).
-  if (isFirstHalf && !events.some(e => e.type === 'half_time')) {
+  // Only when this call actually reached the end of the half: the live first
+  // half is simulated a minute at a time, and a segment ending at 1' stamped
+  // "Half Time" at 45 while the clock read 1'.
+  if (isFirstHalf && endMin >= 45 && !events.some(e => e.type === 'half_time')) {
     events.push({ minute: 45 + stoppageTime, type: 'half_time', clubId: '', description: '— Half Time —' });
   }
 
@@ -2108,7 +2154,10 @@ export function finalizeMatch(
   // Full-time marker sits at the last simulated minute (extra time pushes it
   // to 120; a clamped regular match ends at 90) instead of a hardcoded 90.
   const lastSimulatedMinute = state.events.reduce((m, e) => Math.max(m, e.minute), 90);
-  state.events.push({ minute: lastSimulatedMinute, type: 'full_time', clubId: '', description: `— Full Time: ${homeClub.shortName} ${state.homeGoals} - ${state.awayGoals} ${awayClub.shortName} —` });
+  // A copy, never a push: the caller may carry `state` on (a level cup tie goes
+  // to extra time with it), and the pushed 90' Full Time event then sat in the
+  // record next to the 120' one.
+  const finalEvents = [...state.events, { minute: lastSimulatedMinute, type: 'full_time' as const, clubId: '', description: `— Full Time: ${homeClub.shortName} ${state.homeGoals} - ${state.awayGoals} ${awayClub.shortName} —` }];
 
   const stats: MatchStats = {
     homePossession: homePoss, awayPossession: 100 - homePoss,
@@ -2181,7 +2230,7 @@ export function finalizeMatch(
   });
 
   return {
-    result: { ...match, played: true, homeGoals: state.homeGoals, awayGoals: state.awayGoals, events: state.events, stats },
+    result: { ...match, played: true, homeGoals: state.homeGoals, awayGoals: state.awayGoals, events: finalEvents, stats },
     playerRatings,
   };
 }

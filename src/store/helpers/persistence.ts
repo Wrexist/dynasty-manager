@@ -445,6 +445,8 @@ export const STORAGE_KEYS = {
    *  `split`). A pure UI preference kept device-global so it survives app
    *  restarts; not part of any save slot. */
   MATCH_VIEW_MODE: 'dynasty-match-view-mode',
+  /** Live pitch tokens: kit chips or player cards (device-level UI preference). */
+  PITCH_TOKEN_STYLE: 'dynasty-pitch-token-style',
   /** localStorage: device-global daily login streak (JSON DailyStreakRecord).
    *  Tracks real-world consecutive days the player opened the app, independent
    *  of which career/slot is loaded — deliberately NOT save-scoped, so the
@@ -499,6 +501,18 @@ export function readMatchViewMode(): MatchViewMode | null {
     const v = localStorage.getItem(STORAGE_KEYS.MATCH_VIEW_MODE);
     return v === 'pitch' || v === 'commentary' || v === 'split' ? v : null;
   } catch { return null; }
+}
+
+/** The live pitch's token style ('chips' unless the player picked cards). */
+export function readPitchTokenStyle(): 'chips' | 'cards' {
+  try { return localStorage.getItem(STORAGE_KEYS.PITCH_TOKEN_STYLE) === 'cards' ? 'cards' : 'chips'; }
+  catch { return 'chips'; }
+}
+
+/** Persist the live pitch's token style. Swallows availability errors. */
+export function writePitchTokenStyle(style: 'chips' | 'cards'): void {
+  try { localStorage.setItem(STORAGE_KEYS.PITCH_TOKEN_STYLE, style); }
+  catch { /* storage unavailable — non-fatal, defaults to chips */ }
 }
 
 /** Persist the user's preferred MatchDay view. Swallows availability errors. */

@@ -16,8 +16,8 @@ import { Button } from '@/components/ui/button';
 import { MatchEvent, Match, Club, ContinentalTournamentState, TeamTalkType } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, SkipForward, type LucideIcon } from 'lucide-react';
+import { AnimatePresence, motion, useAnimate } from 'framer-motion';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, SkipForward } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
 import { resumeSfx, sfxWhistle, sfxRoar, sfxNet, sfxGroan, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
@@ -25,7 +25,7 @@ import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DR
 import { getDerbyIntensity } from '@/data/league';
 import { evaluateHighStakes, highStakesLabel } from '@/utils/highStakesMatch';
 import type { HalfState } from '@/engine/match';
-import type { ShoutType, KeyMomentChoice } from '@/types/game';
+import type { KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { pendingSuperCup } from '@/utils/superCup';
@@ -38,22 +38,25 @@ import { isStructuredEvent, liveLogRows } from '@/utils/matchEventDisplay';
 import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED, GOAL_PAUSE_MS } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
-import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
+import { getAvailableFormations } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
 import { infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { ScoreHeader } from '@/components/matchday/ScoreHeader';
 import { MatchSpeedPicker } from '@/components/matchday/MatchSpeedPicker';
 import { TacticalInsightPill } from '@/components/matchday/TacticalInsightPill';
-import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { PAGE_HINTS, GOAL_FLASH_MS, LIVE_PITCH_CHROME_PX, LIVE_PITCH_MIN_WIDTH_PX } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
-import { canSkipToFullTime, playOutSecondHalf } from '@/utils/skipToFullTime';
+import { resumeSideXI } from '@/store/slices/orchestration/matchActions';
+import { canSkipToFullTime, playOutFirstHalf, playOutSecondHalf } from '@/utils/skipToFullTime';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
-import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
+import { LiveControlDock, TeamInstructionPicker } from '@/components/game/match/LiveControlDock';
+import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers, SlidersHorizontal } from 'lucide-react';
 
-import { GOAL_EVENT_TYPES, GOAL_SHOT_TYPES, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
+import { FIRST_HALF_SEGMENTS, GOAL_EVENT_TYPES, GOAL_SHOT_TYPES, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
 const isGoalEvent = (e: MatchEvent) => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type);
 const isScoreChangingEvent = (e: MatchEvent) => isGoalEvent(e) || e.type === 'own_goal';
 
@@ -115,6 +118,10 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
   return parts.length ? parts.join(' · ') : 'Balanced';
 }
 
+// Width of the live portrait pitch: whatever fits the viewport's height at
+// 68:104, never narrower than a small phone can read, never wider than the column.
+const LIVE_PITCH_WIDTH = `min(100%, max(${LIVE_PITCH_MIN_WIDTH_PX}px, calc((100dvh - ${LIVE_PITCH_CHROME_PX}px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 68 / 104)))`;
+
 const MatchDayInner = () => {
   const { t } = useTranslation();
   const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, penaltyShootoutCtx, gameMode, internationalTournament, managerNationality, leagueTable } = useGameStore(useShallow(s => ({
@@ -174,6 +181,7 @@ const MatchDayInner = () => {
     isWorldCup && matchPhase === 'penalties' && !!useGameStore.getState().currentMatchResult);
   const [phase, setPhase] = useState<MatchDayPhase>(wcPenaltyResume ? 'penalties' : 'pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
+  const [pitchLineups, setPitchLineups] = useState<{ home: string[]; away: string[] } | undefined>(undefined);
   const [allEvents, setAllEvents] = useState<MatchEvent[]>(() =>
     wcPenaltyResume ? (useGameStore.getState().currentMatchResult?.events ?? []) : []);
   const [currentMin, setCurrentMin] = useState(wcPenaltyResume ? 120 : 0);
@@ -181,9 +189,22 @@ const MatchDayInner = () => {
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>(() =>
     wcPenaltyResume ? (useGameStore.getState().currentMatchResult?.events ?? []) : []);
   const [matchView, setMatchView] = useState<MatchViewMode>(() => readMatchViewMode() ?? 'commentary');
+  // Until a player has picked a view once, the Pitch tab carries a discovery
+  // dot: the default stays Log (a locked product call), but a new manager
+  // should learn the match can be watched. Any pick stores a mode and ends it.
+  const [viewChosen, setViewChosen] = useState(() => readMatchViewMode() !== null);
+  // Pitch ↔ Split re-lays the same board (no remount, so the camera, cards
+  // and any celebration carry on): a short fade covers the jump in shape.
+  // Coming back from Log mounts it fresh, which its own entrance covers.
+  const [pitchScope, animatePitch] = useAnimate<HTMLDivElement>();
   const changeMatchView = useCallback((mode: MatchViewMode) => {
+    if (pitchScope.current && mode !== 'commentary' && !reduceMotionRef.current) {
+      animatePitch(pitchScope.current, { opacity: [0, 1] }, { duration: 0.28, ease: 'easeOut' });
+    }
     setMatchView(mode);
+    setViewChosen(true);
     writeMatchViewMode(mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [speed, setSpeed] = useState(() => {
     // Clamp a persisted Pro-tier speed for non-Pro users (lapsed trial/sub):
@@ -204,10 +225,27 @@ const MatchDayInner = () => {
   const goalPauseTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(goalPauseTimerRef.current), []);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
+  // Subs opened from the live bar paused the clock; closing the sheet resumes.
+  const resumeAfterSubsRef = useRef(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
   const [keyMoment, setKeyMoment] = useState<{ type: string; description: string; playerId?: string } | null>(null);
+  // The decision card renders beneath the pitch, which on a phone is below the
+  // fold — and the clock is stopped until it is answered. Bring it into view
+  // (clear of the bottom nav via its scroll margin) the moment it appears.
+  const keyMomentCardRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotionPref();
+  const reduceMotionRef = useRef(reduceMotion);
+  reduceMotionRef.current = reduceMotion;
+  useEffect(() => {
+    if (!keyMoment || keyMoment.type === 'injury') return;
+    const id = requestAnimationFrame(() => {
+      keyMomentCardRef.current?.scrollIntoView?.({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [keyMoment, reduceMotion]);
   const [injurySubMode, setInjurySubMode] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [showFitness, setShowFitness] = useState(false);
   const [showCustomTactics, setShowCustomTactics] = useState(false);
   const [selectedHalftimePreset, setSelectedHalftimePreset] = useState<string | null>(null);
@@ -374,7 +412,9 @@ const MatchDayInner = () => {
     // the kickoff whistle. The crowd bed starts via the live-phase effect.
     resumeSfx();
     sfxWhistle();
-    const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
+    // Only the first segment: the rest of the half is simulated as the clock
+    // reaches it, so decisions made during the first half count too.
+    const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf(FIRST_HALF_SEGMENTS[0]);
     // A null here used to be the end of it: the button did nothing, no toast, no
     // navigation, and the save was stuck on that fixture forever. The engine now
     // fields an emergency XI rather than refuse (`buildPlayerMatchXI`), so this
@@ -399,6 +439,20 @@ const MatchDayInner = () => {
         awayClub: freshClubs[match.awayClubId] ?? awayClub,
       };
     }
+    firstHalfFrontierRef.current = isWorldCup ? 45 : FIRST_HALF_SEGMENTS[0];
+    // The XIs the engine fielded, for the pitch (see BuildOpts.lineups): read
+    // after kickoff, which rewrote the user's lineup to the XI that started.
+    if (!isWorldCup) {
+      const st = useGameStore.getState();
+      const hc = st.clubs[match.homeClubId];
+      const ac = st.clubs[match.awayClubId];
+      if (hc && ac) {
+        setPitchLineups({
+          home: resumeSideXI(hc, st.players, st.week, st.playerClubId).map(p => p.id),
+          away: resumeSideXI(ac, st.players, st.week, st.playerClubId).map(p => p.id),
+        });
+      }
+    }
     setFirstHalfState(halfState);
     setAllEvents(halfState.events);
     setPhase('first_half');
@@ -418,6 +472,9 @@ const MatchDayInner = () => {
   // the half). Mirrors the store's `secondHalfSimulatedTo`; kept as a ref so the
   // interval callback reads it without re-subscribing.
   const secondHalfFrontierRef = useRef(45);
+  // Same for the first half (0 before kickoff), mirroring `firstHalfSimulatedTo`.
+  const firstHalfFrontierRef = useRef(0);
+  const extendFirstHalfRef = useRef<((untilMin: number) => HalfState | null) | null>(null);
   // Held in refs so the match-clock interval can extend the simulation without
   // listing these in its dep array — re-creating the interval mid-match would
   // reset the tick cadence. Same pattern as `matchPhaseRef` / `checkKeyMomentRef`.
@@ -561,7 +618,7 @@ const MatchDayInner = () => {
       const key = `losing-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
-        return { type: 'losing_late', description: `You trail with 20 minutes left. Time for changes?` };
+        return { type: 'losing_late', description: `You trail with ${90 - minute} minutes left. Time for changes?` };
       }
     }
 
@@ -616,6 +673,7 @@ const MatchDayInner = () => {
   const matchPhaseRef = useRef(matchPhase);
   matchPhaseRef.current = matchPhase;
   extendSecondHalfRef.current = playSecondHalf;
+  extendFirstHalfRef.current = playFirstHalf;
   isWorldCupRef.current = isWorldCup;
 
   // Forward-only pointer into allEvents so each tick advances by O(k) where k
@@ -623,6 +681,11 @@ const MatchDayInner = () => {
   // full event list. Reset whenever allEvents reference changes (new half).
   const eventCursorRef = useRef(0);
   useEffect(() => { eventCursorRef.current = 0; }, [allEvents]);
+
+  // Wall-clock per match minute. The pitch view floors it so play is legible;
+  // the pitch is paced by this SAME value — it used to get the raw speed, so at
+  // Turbo/Instant it played a minute in 825/330ms, then froze until the tick.
+  const tickMs = matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED);
 
   // Animate events for current half
   useEffect(() => {
@@ -633,6 +696,11 @@ const MatchDayInner = () => {
     intervalRef.current = setInterval(() => {
       const next = currentMinRef.current + 1;
       const maxMin = phase === 'first_half' ? 45 : phase === 'extra_time' ? 120 : 90;
+      // The events this tick works from. A segment simulated below replaces it
+      // at once: setAllEvents only lands on the next render, so reading the
+      // closure's `allEvents` showed minute M's events — and checked its key
+      // moments — only on the following tick, after M+1 had been simulated.
+      let evts = allEvents;
 
       if (next > maxMin) {
         clearInterval(intervalRef.current!);
@@ -640,9 +708,9 @@ const MatchDayInner = () => {
         // records minutes past the nominal end (45+X / 90+X / 120+X), so a
         // 90+2' winner never rendered and the on-screen score could
         // contradict the final result.
-        if (eventCursorRef.current < allEvents.length) {
-          eventCursorRef.current = allEvents.length;
-          setVisibleEvents(allEvents);
+        if (eventCursorRef.current < evts.length) {
+          eventCursorRef.current = evts.length;
+          setVisibleEvents(evts);
         }
         if (phase === 'first_half') {
           setPhase('half_time');
@@ -663,15 +731,38 @@ const MatchDayInner = () => {
       // Extend the simulation when the clock reaches the frontier. `playSecondHalf`
       // re-reads the CURRENT lineup/subs/shouts each time, which is what makes an
       // in-play decision matter. World Cup mode keeps the single-shot path.
+      // Simulate the minute the clock is about to show, and no further: a
+      // decision made at minute M then shapes M+1 onward.
+      if (phase === 'first_half' && !isWorldCupRef.current) {
+        const frontier = firstHalfFrontierRef.current;
+        if (frontier < 45 && next > frontier) {
+          const nextBoundary = FIRST_HALF_SEGMENTS.find(b => b > frontier) ?? 45;
+          try {
+            const extended = extendFirstHalfRef.current?.(nextBoundary) ?? null;
+            if (extended) {
+              firstHalfFrontierRef.current = nextBoundary;
+              setFirstHalfState(extended);
+              evts = extended.events;
+              setAllEvents(evts);
+            } else {
+              firstHalfFrontierRef.current = 45;
+            }
+          } catch (err) {
+            Sentry.captureException(err, { tags: { context: 'firstHalfSegment' } });
+            firstHalfFrontierRef.current = 45;
+          }
+        }
+      }
       if (phase === 'second_half' && !isWorldCupRef.current) {
         const frontier = secondHalfFrontierRef.current;
-        if (frontier < 90 && next >= frontier) {
+        if (frontier < 90 && next > frontier) {
           const nextBoundary = SECOND_HALF_SEGMENTS.find(b => b > frontier) ?? 90;
           try {
             const extended = extendSecondHalfRef.current?.(nextBoundary) ?? null;
             if (extended) {
               secondHalfFrontierRef.current = nextBoundary;
-              setAllEvents(extended.events);
+              evts = extended.events;
+              setAllEvents(evts);
             } else {
               // Nothing came back — stop asking so the clock can't stall here.
               secondHalfFrontierRef.current = 90;
@@ -689,28 +780,28 @@ const MatchDayInner = () => {
       // of O(n). At "Instant" speed (20ms) this matters: the previous filter
       // was 50× n ops/sec — meaningful on low-end Android.
       let cursor = eventCursorRef.current;
-      const total = allEvents.length;
-      while (cursor < total && allEvents[cursor].minute <= next) cursor++;
+      const total = evts.length;
+      while (cursor < total && evts[cursor].minute <= next) cursor++;
       const cursorChanged = cursor !== eventCursorRef.current;
       eventCursorRef.current = cursor;
       currentMinRef.current = next;
       setCurrentMin(next);
       // Only allocate a new visibleEvents slice when the cursor actually
       // moved. Most ticks have no new events, especially on Instant speed.
-      const events = cursorChanged ? allEvents.slice(0, cursor) : null;
+      const events = cursorChanged ? evts.slice(0, cursor) : null;
       if (events) setVisibleEvents(events);
 
       // Check for key moment at this minute. Pass the cursor-truncated slice
       // when we computed one; otherwise re-use the last visibleEvents reference
       // (key-moment heuristics only care about events up to `next`).
-      const moment = checkKeyMomentRef.current(next, events ?? allEvents.slice(0, cursor));
+      const moment = checkKeyMomentRef.current(next, events ?? evts.slice(0, cursor));
       if (moment) {
         clearInterval(intervalRef.current!);
         setKeyMoment(moment);
       }
-    }, matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED));
+    }, tickMs);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused, goalPause, confirmSkip, matchView]);
+  }, [phase, allEvents, tickMs, keyMoment, paused, goalPause, confirmSkip]);
 
   // Persist speed preference to settings so it carries across matches.
   // Intentionally depends only on `speed`: `settings.matchSpeed` would cause
@@ -824,8 +915,15 @@ const MatchDayInner = () => {
   };
 
   const dismissKeyMoment = () => {
-    setKeyMoment(null);
-    // Resume will happen via useEffect since keyMoment becomes null
+    // Several things can happen in one minute — a goal conceded AND an injury,
+    // say. `checkKeyMoment` returns one moment per call (marking it seen), and
+    // the clock's next check only looks at the NEXT minute's events, so the
+    // rest were lost: an injury in the same minute as a conceded goal never
+    // opened the forced-sub sheet and the side played on a man short. Ask again
+    // for this minute before letting the clock resume.
+    const another = checkKeyMomentRef.current(currentMinRef.current, visibleEvents);
+    setKeyMoment(another || null);
+    // Resume will happen via useEffect once keyMoment becomes null
   };
 
   // ── Skip to full time ──
@@ -870,6 +968,12 @@ const MatchDayInner = () => {
     try {
       let reachedExtraTimeBreak = from === 'extra_time_break';
       if (from === 'first_half' || from === 'half_time' || from === 'second_half') {
+        // = the clock simulating the rest of the first half, segment by segment
+        if (from === 'first_half' && !isWorldCup) {
+          const out = playOutFirstHalf(firstHalfFrontierRef.current, playFirstHalf);
+          firstHalfFrontierRef.current = out.frontier;
+          if (out.match) { events = out.match.events; setFirstHalfState(out.match); }
+        }
         if (from !== 'second_half') {
           // = "Start 2nd Half" (resumeSecondHalf)
           const started = isWorldCup ? playWorldCupSecondHalf() : playSecondHalf(SECOND_HALF_SEGMENTS[0]);
@@ -967,9 +1071,13 @@ const MatchDayInner = () => {
   // Live match stats derived from visible events (must be before early return for hooks rules)
   const matchHomeClubId = match?.homeClubId;
   const liveStats = useMemo(() => {
-    let hShots = 0, aShots = 0, hSoT = 0, aSoT = 0, hFouls = 0, aFouls = 0;
+    let hShots = 0, aShots = 0, hSoT = 0, aSoT = 0, hFouls = 0, aFouls = 0, hOffsides = 0, aOffsides = 0;
     let hGoals = 0, aGoals = 0, hYellows = 0, aYellows = 0, hReds = 0, aReds = 0;
     let lastMomentum = 0, lastHomeXG = 0, lastAwayXG = 0;
+    // Injured players still on the pitch count as off until they are replaced
+    // (a side with no subs left plays on a man short — the header said 11).
+    const hInjuredOff = new Set<string>(), aInjuredOff = new Set<string>();
+    let prev: MatchEvent | undefined;
     for (const ev of visibleEvents) {
       if (!matchHomeClubId) continue;
       const isHomeEv = ev.clubId === matchHomeClubId;
@@ -980,8 +1088,14 @@ const MatchDayInner = () => {
       } else if (ev.type === 'shot_missed' || ev.type === 'hit_woodwork') {
         if (isHomeEv) hShots++; else aShots++;
       } else if (ev.type === 'foul' || ev.type === 'yellow_card' || ev.type === 'red_card') {
-        if (isHomeEv) hFouls++; else aFouls++;
+        // A second yellow is emitted as yellow_card + red_card for ONE foul.
+        const secondYellow = ev.type === 'red_card' && prev?.type === 'yellow_card' && prev.playerId === ev.playerId && prev.minute === ev.minute;
+        if (!secondYellow) { if (isHomeEv) hFouls++; else aFouls++; }
       }
+      if (ev.type === 'offside') { if (isHomeEv) hOffsides++; else aOffsides++; }
+      if (ev.type === 'injury' && ev.playerId) (isHomeEv ? hInjuredOff : aInjuredOff).add(ev.playerId);
+      if (ev.type === 'substitution' && ev.assistPlayerId) (isHomeEv ? hInjuredOff : aInjuredOff).delete(ev.assistPlayerId);
+      prev = ev;
       if (isScoreChangingEvent(ev)) { if (isHomeEv) hGoals++; else aGoals++; }
       if (ev.type === 'yellow_card') { if (isHomeEv) hYellows++; else aYellows++; }
       if (ev.type === 'red_card') { if (isHomeEv) hReds++; else aReds++; }
@@ -989,9 +1103,10 @@ const MatchDayInner = () => {
       if (ev.homeXG !== undefined) { lastHomeXG = ev.homeXG; lastAwayXG = ev.awayXG ?? 0; }
     }
     return {
-      hShots, aShots, hSoT, aSoT, hFouls, aFouls,
+      hShots, aShots, hSoT, aSoT, hFouls, aFouls, hOffsides, aOffsides,
       hGoals, aGoals, hYellows, aYellows, hReds, aReds,
       lastMomentum, lastHomeXG, lastAwayXG,
+      hInjuredOff: hInjuredOff.size, aInjuredOff: aInjuredOff.size,
     };
   }, [visibleEvents, matchHomeClubId]);
 
@@ -1035,8 +1150,8 @@ const MatchDayInner = () => {
   const awayYellowCards = liveStats.aYellows;
   const homeRedCards = liveStats.hReds;
   const awayRedCards = liveStats.aReds;
-  const homePlayersOnPitch = Math.max(7, 11 - homeRedCards);
-  const awayPlayersOnPitch = Math.max(7, 11 - awayRedCards);
+  const homePlayersOnPitch = Math.max(7, 11 - homeRedCards - liveStats.hInjuredOff);
+  const awayPlayersOnPitch = Math.max(7, 11 - awayRedCards - liveStats.aInjuredOff);
 
   // Use firstHalfState for half-time display
   const htHomeGoals = firstHalfState?.homeGoals ?? homeGoals;
@@ -1121,6 +1236,7 @@ const MatchDayInner = () => {
         liveAwayXG={liveAwayXG}
         goalFlash={goalFlash}
         worldCup={isWorldCup}
+        compact={isLive && matchView !== 'commentary'}
       />
 
       {/* Momentum Meter & Tactical Insights */}
@@ -1310,28 +1426,40 @@ const MatchDayInner = () => {
             </p>
           </GlassPanel>
 
-          {/* Tactical board: the pitch stays on screen at half-time (not in Log mode). */}
+          {/* Tactical board: the pitch stays on screen at half-time (not in Log
+              mode), sized like the live pitch and opened on the whole pitch. */}
           {matchView !== 'commentary' && (
-            <ErrorBoundary fallback={() => null}>
-              <Suspense fallback={null}>
-                <PitchView
-                  worldCup={isWorldCup}
-                  match={match}
-                  homeClub={homeClub}
-                  awayClub={awayClub}
-                  events={visibleEvents}
-                  minute={currentMin}
-                  playerIsHome={playerClubId === match.homeClubId}
-                  homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  players={players}
-                  orientation={matchView === 'split' ? 'landscape' : 'portrait'}
-                  showOverall={settings.showOverallOnPitch}
-                  reducedMotion={settings.reducedMotion || settings.performanceMode}
-                  msPerMinute={speed}
-                />
-              </Suspense>
-            </ErrorBoundary>
+            <motion.div
+              className="mx-auto w-full"
+              style={matchView === 'pitch' ? { width: LIVE_PITCH_WIDTH } : undefined}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+            >
+              <ErrorBoundary fallback={() => null}>
+                <Suspense fallback={null}>
+                  <PitchView
+                    worldCup={isWorldCup}
+                    match={match}
+                    homeClub={homeClub}
+                    awayClub={awayClub}
+                    events={visibleEvents}
+                    minute={currentMin}
+                    playerIsHome={playerClubId === match.homeClubId}
+                    homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    players={players}
+                    orientation={matchView === 'split' ? 'landscape' : 'portrait'}
+                    showOverall={settings.showOverallOnPitch}
+                    reducedMotion={reduceMotion}
+                    msPerMinute={tickMs}
+                    showScoreBug={false}
+                    lineups={pitchLineups}
+                    defaultWide
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            </motion.div>
           )}
 
           {/* Halftime Tactics — compact merged panel */}
@@ -1676,10 +1804,81 @@ const MatchDayInner = () => {
         </motion.div>
       )}
 
-      {/* Live Controls (first or second half) — hidden during key moments */}
-      {isLive && !keyMoment && (
+      {/* Live play. The view toggle and the pitch come first so the match is
+          what the player sees at 390x844 without scrolling; the controls sit
+          below it, in thumb reach. The pitch stays mounted through key moments
+          — the decision card rises beneath it — so a conceded goal's
+          celebration and replay are not torn down mid-flight. */}
+      {isLive && (
         <>
-          {paused ? (
+          {/* Match-view toggle: pitch / split / commentary. Always a toggle,
+              never forced — persists the user's choice across sessions. */}
+          <div className="flex gap-1 rounded-lg bg-muted/30 p-1">
+            {([
+              { k: 'pitch', label: 'Pitch' },
+              { k: 'split', label: 'Split' },
+              { k: 'commentary', label: 'Log' },
+            ] as { k: MatchViewMode; label: string }[]).map(({ k, label }) => (
+              <button
+                key={k}
+                onClick={() => changeMatchView(k)}
+                aria-pressed={matchView === k}
+                aria-label={k === 'pitch' && !viewChosen ? `${label} — watch the match live on the pitch` : undefined}
+                className={cn(
+                  'relative flex-1 rounded-md py-1.5 min-h-[44px] text-[11px] font-semibold transition-all active:scale-[0.98]',
+                  matchView === k ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <span className="relative">
+                  {label}
+                  {k === 'pitch' && !viewChosen && (
+                    <span className="absolute -right-3 -top-0.5 flex h-2 w-2" aria-hidden>
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                    </span>
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {matchView !== 'commentary' && (
+            // Portrait: sized so the whole pitch fits the viewport beneath the
+            // scoreboard — width follows height at the pitch's 68:104 aspect.
+            <motion.div
+              ref={pitchScope}
+              className="mx-auto w-full"
+              style={matchView === 'pitch' ? { width: LIVE_PITCH_WIDTH } : undefined}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+            >
+              <ErrorBoundary fallback={() => null}>
+                <Suspense fallback={<div className="w-full rounded-xl bg-black/20 border border-border/40" style={{ aspectRatio: '68 / 104' }} />}>
+                  <PitchView
+                    worldCup={isWorldCup}
+                    match={match}
+                    homeClub={homeClub}
+                    awayClub={awayClub}
+                    events={visibleEvents}
+                    minute={currentMin}
+                    playerIsHome={playerClubId === match.homeClubId}
+                    homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                    players={players}
+                    orientation={matchView === 'split' ? 'landscape' : 'portrait'}
+                    showOverall={settings.showOverallOnPitch}
+                    reducedMotion={reduceMotion}
+                    msPerMinute={tickMs}
+                    showScoreBug={false}
+                    lineups={pitchLineups}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            </motion.div>
+          )}
+
+          {!keyMoment && (paused ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
               <GlassPanel className="p-4 border-primary/40 space-y-4">
                 {/* Header — centered with thin divider for a calmer pause moment */}
@@ -1689,18 +1888,6 @@ const MatchDayInner = () => {
                     <p className="text-sm font-bold text-foreground tracking-wide">Match Paused</p>
                   </div>
                   <p className="text-micro text-muted-foreground tabular-nums">{currentMin}'</p>
-                </div>
-
-                {/* Tactical sliders — same Liquid Glass control as the Tactics page */}
-                <div className="space-y-2">
-                  <p className="text-micro text-muted-foreground/80 uppercase tracking-wider font-semibold">Adjustments</p>
-                  <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
-                </div>
-
-                {/* Formation */}
-                <div className="space-y-2">
-                  <p className="text-micro text-muted-foreground/80 uppercase tracking-wider font-semibold">Formation</p>
-                  <FormationPicker />
                 </div>
 
                 {/* Primary action — substitution */}
@@ -1714,11 +1901,48 @@ const MatchDayInner = () => {
                   </button>
                 )}
 
+                {/* Team instruction — the same three choices as the live bar. */}
+                <TeamInstructionPicker mentality={tactics.mentality} onMentality={(m) => setTactics({ mentality: m })} reducedMotion={reduceMotion} layoutId="paused-team-choice" />
+
+                {/* Formation (the picker carries its own heading) */}
+                <FormationPicker />
+
+                {/* Advanced tactics — the five-step mentality, tempo, width,
+                    line and pressing. Collapsed: most managers never need it. */}
+                <div>
+                  <button
+                    onClick={() => setShowAdvanced(v => !v)}
+                    aria-expanded={showAdvanced}
+                    className="flex min-h-[44px] w-full items-center gap-1.5 text-micro font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    <SlidersHorizontal className="h-3 w-3" /> Advanced tactics
+                    <motion.span className="ml-auto" animate={{ rotate: showAdvanced ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="h-3 w-3" />
+                    </motion.span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {showAdvanced && (
+                      <motion.div
+                        key="advanced"
+                        initial={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        animate={reduceMotion ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
+                        exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-1">
+                          <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                 {/* Player Fitness Dashboard */}
                 <div>
                   <button
                     onClick={() => setShowFitness(!showFitness)}
-                    className="flex items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
+                    className="flex min-h-[44px] items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
                   >
                     <Users className="w-3 h-3" /> Squad Fitness
                     {showFitness ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
@@ -1788,7 +2012,7 @@ const MatchDayInner = () => {
                 <div>
                   <button
                     onClick={() => setShowStats(!showStats)}
-                    className="flex items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
+                    className="flex min-h-[44px] items-center gap-1.5 text-micro text-muted-foreground uppercase tracking-wider w-full"
                   >
                     <BarChart3 className="w-3 h-3" /> Match Stats
                     {showStats ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
@@ -1799,6 +2023,7 @@ const MatchDayInner = () => {
                         { label: 'Shots', home: liveStats.hShots, away: liveStats.aShots },
                         { label: 'On Target', home: liveStats.hSoT, away: liveStats.aSoT },
                         { label: 'Fouls', home: liveStats.hFouls, away: liveStats.aFouls },
+                        { label: 'Offsides', home: liveStats.hOffsides, away: liveStats.aOffsides },
                         { label: 'xG', home: liveHomeXG, away: liveAwayXG, decimal: true },
                       ].map(stat => {
                         const total = (stat.home as number) + (stat.away as number) || 1;
@@ -1884,171 +2109,50 @@ const MatchDayInner = () => {
                 );
               })()}
 
-              {/* Mentality — connected segmented pill with endpoint icons */}
-              <div className="relative flex items-center bg-muted/20 rounded-lg border border-border/30 p-0.5">
-                <Shield className="w-3 h-3 text-muted-foreground/30 ml-1.5 shrink-0" />
-                {MENTALITIES.map((m, idx) => (
-                  <button
-                    key={m.value}
-                    onClick={() => { hapticLight(); setTactics({ mentality: m.value }); }}
-                    aria-label={`Set mentality to ${m.label}`}
-                    className={cn(
-                      // 44pt minimum — this is set mid-match with the clock
-                      // running; the old py-1.5 gave a ~25px target.
-                      'relative z-10 flex-1 min-h-[44px] px-0.5 text-micro font-semibold capitalize transition-all',
-                      idx === 0 && 'rounded-l-md',
-                      idx === MENTALITIES.length - 1 && 'rounded-r-md',
-                      tactics.mentality === m.value
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {tactics.mentality === m.value && (
-                      <motion.div
-                        layoutId="mentality-indicator"
-                        className="absolute inset-0 bg-primary/15 border border-primary/30 rounded-md"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10">{m.label}</span>
-                  </button>
-                ))}
-                <Flame className="w-3 h-3 text-muted-foreground/30 mr-1.5 shrink-0" />
-              </div>
-
-              {/* Pause + Speed. Split off the shouts onto their own row below:
-                  cramming five controls into one 343px row forced 26px targets
-                  at the highest-pressure moment in the app. */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePause}
-                  aria-label={t('matchDay.pauseMatch')}
-                  className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
-                >
-                  <Pause className="w-3.5 h-3.5" /> Pause
-                </button>
-
-                <div className="flex-1" />
-
-                {/* Skip to full time — playback-only; see skipToFullTime(). */}
-                {canSkip && (
-                  <button
-                    onClick={requestSkip}
-                    aria-label={t('matchDay.skipToFullTime')}
-                    className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 active:scale-[0.97] transition-all"
-                  >
-                    <SkipForward className="w-3.5 h-3.5" aria-hidden="true" /> {t('matchDay.skipShort')}
-                  </button>
-                )}
-
-                {/* Speed */}
-                <button
-                  onClick={() => {
-                    const available = MATCH_SPEEDS.filter(s => !s.pro || userIsPro);
-                    const idx = available.findIndex(s => s.value === speed);
-                    const next = available[(idx + 1) % available.length];
-                    setSpeed(next.value);
-                  }}
-                  aria-label={`Match speed: ${MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}. Tap to change.`}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold active:scale-[0.97] border transition-all",
-                    speed < DEFAULT_MATCH_SPEED
-                      ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/20'
-                      : 'bg-muted/30 text-foreground border-border/30 hover:bg-muted/50'
-                  )}
-                >
-                  <FastForward className="w-3.5 h-3.5" /> {MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
-                </button>
-              </div>
-
-              {/* Touchline Shouts — full-width row, 44pt targets, names visible
-                  (a `title=` tooltip does nothing on a touch screen). */}
-              <div className="flex items-center gap-2">
-                {shoutsRemaining > 0 && !shoutOnCooldown ? ([
-                  { type: 'push_forward' as ShoutType, label: 'Push', Icon: Flame },
-                  { type: 'hold_the_line' as ShoutType, label: 'Hold', Icon: Shield },
-                  { type: 'calm_down' as ShoutType, label: 'Calm', Icon: Hand },
-                  ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste', Icon: Clock }] : []),
-                ] as { type: ShoutType; label: string; Icon: LucideIcon }[]).map(s => (
-                  <button
-                    key={s.type}
-                    onClick={() => {
-                      hapticMedium();
-                      const success = activateShout(s.type, currentMin);
-                      if (success) infoToast(`${s.label} — Effect active for ${SHOUT_DURATION} minutes`);
-                    }}
-                    className={cn(
-                      "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[44px] rounded-lg active:scale-[0.93] transition-all border",
-                      activeShout?.type === s.type
-                        ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
-                        : 'bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-amber-500/15'
-                    )}
-                    aria-label={`Shout: ${s.label}`}
-                    aria-pressed={activeShout?.type === s.type}
-                  >
-                    <s.Icon className="w-3.5 h-3.5" aria-hidden />
-                    <span className="text-micro font-semibold leading-none">{s.label}</span>
-                  </button>
-                )) : (
-                  <span className="text-micro text-muted-foreground/40">
-                    {shoutsRemaining === 0 ? 'No shouts left' : `Cooldown (${SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0))}')`}
-                  </span>
-                )}
-                {shoutsRemaining > 0 && !shoutOnCooldown && (
-                  <span className="text-micro text-muted-foreground/50 tabular-nums shrink-0 w-4 text-right">{shoutsRemaining}</span>
-                )}
-              </div>
+              {/* The touchline: team instruction + Pause · Subs · Shout · Speed.
+                  Skip to full time and the five-step mentality live in the
+                  Paused panel. */}
+              <LiveControlDock
+                mentality={tactics.mentality}
+                onMentality={(m) => setTactics({ mentality: m })}
+                onPause={handlePause}
+                subsLeft={MAX_SUBSTITUTIONS - matchSubsUsed}
+                onSubs={() => {
+                  // The clock stops while you choose, and runs again when the
+                  // sheet closes (a sub opened from Pause leaves it paused).
+                  resumeAfterSubsRef.current = true;
+                  handlePause();
+                  setSubSheetOpen(true);
+                }}
+                shouts={{
+                  remaining: shoutsRemaining,
+                  cooldownLeft: shoutOnCooldown ? SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0)) : 0,
+                  active: activeShout ? { type: activeShout.type, minutesLeft: activeShout.startMinute + SHOUT_DURATION - currentMin } : undefined,
+                  canTimeWaste: currentMin >= 80,
+                }}
+                onShout={(type) => {
+                  const success = activateShout(type, currentMin);
+                  const name = type === 'push_forward' ? 'Push forward' : type === 'hold_the_line' ? 'Hold the line' : type === 'calm_down' ? 'Calm down' : 'Waste time';
+                  if (success) infoToast(`${name}!`, `For the next ${SHOUT_DURATION} minutes`);
+                }}
+                speedLabel={MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}
+                speedShortLabel={MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
+                speedBoosted={speed < DEFAULT_MATCH_SPEED}
+                onSpeed={() => {
+                  const available = MATCH_SPEEDS.filter(s => !s.pro || userIsPro);
+                  const idx = available.findIndex(s => s.value === speed);
+                  const next = available[(idx + 1) % available.length];
+                  setSpeed(next.value);
+                }}
+                onSkip={canSkip ? requestSkip : undefined}
+                reducedMotion={reduceMotion}
+              />
             </div>
-          )}
-
-          {/* Match-view toggle: pitch / split / commentary. Always a toggle,
-              never forced — persists the user's choice across sessions. */}
-          <div className="flex gap-1 rounded-lg bg-muted/30 p-1">
-            {([
-              { k: 'pitch', label: 'Pitch' },
-              { k: 'split', label: 'Split' },
-              { k: 'commentary', label: 'Log' },
-            ] as { k: MatchViewMode; label: string }[]).map(({ k, label }) => (
-              <button
-                key={k}
-                onClick={() => changeMatchView(k)}
-                aria-pressed={matchView === k}
-                className={cn(
-                  'flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-all active:scale-[0.98]',
-                  matchView === k ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {matchView !== 'commentary' && (
-            <ErrorBoundary fallback={() => null}>
-              <Suspense fallback={<div className="w-full rounded-xl bg-black/20 border border-border/40" style={{ aspectRatio: '68 / 104' }} />}>
-                <PitchView
-                  worldCup={isWorldCup}
-                  match={match}
-                  homeClub={homeClub}
-                  awayClub={awayClub}
-                  events={visibleEvents}
-                  minute={currentMin}
-                  playerIsHome={playerClubId === match.homeClubId}
-                  homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
-                  players={players}
-                  orientation={matchView === 'split' ? 'landscape' : 'portrait'}
-                  showOverall={settings.showOverallOnPitch}
-                  reducedMotion={settings.reducedMotion || settings.performanceMode}
-                  msPerMinute={speed}
-                />
-              </Suspense>
-            </ErrorBoundary>
-          )}
+          ))}
 
           {/* Event Log — cap by viewport but never collapse below ~2 events on
               short landscape screens (30vh ≈ 112px there). */}
-          {matchView !== 'pitch' && (
+          {matchView !== 'pitch' && !keyMoment && (
           <GlassPanel className="p-4 max-h-[min(40vh,300px)] overflow-y-auto">
             {/* Newest first (liveLogRows): the latest event is always the top
                 row, with no auto-scroll to animate. */}
@@ -2080,7 +2184,7 @@ const MatchDayInner = () => {
 
       {/* Key Moment Decision Overlay — injury moments handled by SubstitutionSheet directly */}
       {keyMoment && keyMoment.type !== 'injury' && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+        <motion.div ref={keyMomentCardRef} className="scroll-mb-28" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
           <GlassPanel className="p-4 border-primary/40">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-4 h-4 text-primary" />
@@ -2265,6 +2369,10 @@ const MatchDayInner = () => {
         onOpenChange={(open) => {
           if (!open && injurySubMode) return; // prevent dismissal in injury mode
           setSubSheetOpen(open);
+          if (!open && resumeAfterSubsRef.current) {
+            resumeAfterSubsRef.current = false;
+            handleResume();
+          }
         }}
         onSubMade={() => {
           if (injurySubMode) {

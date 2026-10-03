@@ -18,7 +18,12 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useGameStore } from '@/store/gameStore';
-import { SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
+import { FIRST_HALF_SEGMENTS, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
+
+/** The store calls a watched (or skipped) match makes: every first-half
+ *  minute from kickoff, then every second-half minute. */
+const FIRST = FIRST_HALF_SEGMENTS.map(b => `first:${b}`);
+const SECOND = SECOND_HALF_SEGMENTS.map(b => `second:${b}`);
 import { SKIP_TO_FULL_TIME_PHASES } from '@/config/matchSpeed';
 import { canSkipToFullTime, playOutSecondHalf } from '@/utils/skipToFullTime';
 import type { CupTie, Match, MatchDayPhase } from '@/types/game';
@@ -76,8 +81,8 @@ describe('playOutSecondHalf — the clock\'s own call sequence', () => {
   it('a refusal stops the loop, as the clock stops asking', () => {
     const calls: number[] = [];
     const out = playOutSecondHalf(45, until => { calls.push(until); return until >= 75 ? null : fakeMatch(until); });
-    expect(calls).toEqual([60, 75]);
-    expect(out).toEqual({ match: fakeMatch(60), frontier: 90 });
+    expect(calls).toEqual(SECOND_HALF_SEGMENTS.filter(b => b <= 75));
+    expect(out).toEqual({ match: fakeMatch(74), frontier: 90 });
   });
 });
 
@@ -159,7 +164,7 @@ function stage(base: DataSnapshot, seed: number) {
   const saveGame = vi.fn();
   const calls: string[] = [];
   useGameStore.setState({
-    playFirstHalf: reseeded('first', () => { calls.push('first'); return ORIGINAL.playFirstHalf(); }),
+    playFirstHalf: reseeded('first', (until?: number) => { calls.push(`first:${until}`); return ORIGINAL.playFirstHalf(until); }),
     playSecondHalf: reseeded('second', (until?: number) => { calls.push(`second:${until}`); return ORIGINAL.playSecondHalf(until); }),
     playExtraTime: reseeded('et', () => { calls.push('et'); return ORIGINAL.playExtraTime(); }),
     saveGame,
@@ -274,11 +279,11 @@ describe('MatchDay — Skip to full time', () => {
     fireEvent.click(button(/Start 2nd Half/)!);
     tick();
     expect(button(SKIP)).toBeTruthy();
-    // The confirmation holds the clock — 30 game minutes of time pass and the
-    // next segment (75') is never requested…
+    // The confirmation holds the clock — 30 game minutes of time pass and no
+    // further minute is requested…
     fireEvent.click(button(SKIP)!);
     for (let i = 0; i < 30; i++) tick();
-    expect(run.calls).toEqual(['first', 'second:60']);
+    expect(run.calls).toEqual([...FIRST, 'second:46']);
     // …and backing out simulates nothing and lets the match carry on.
     fireEvent.click(button('Keep watching')!);
     runClockUntil(() => run.calls.includes('second:75'));
@@ -317,7 +322,7 @@ describe('MatchDay — Skip to full time', () => {
     fireEvent.click(button(/^Skip$/)!);
     expect(isOver()).toBe(true);
     // Played out through the clock's own segment calls, nothing else.
-    expect(run.calls).toEqual(['first', ...SECOND_HALF_SEGMENTS.map(b => `second:${b}`)]);
+    expect(run.calls).toEqual([...FIRST, ...SECOND]);
   });
 
   it('the skipped match is the watched match — result, events, ratings, player stats', () => {
@@ -339,7 +344,7 @@ describe('MatchDay — Skip to full time', () => {
     expect(skippedResult.result.events.length).toBeGreaterThan(0);
     // …through the same store calls, in the same order, as watching…
     expect(skipped.calls).toEqual(watched.calls);
-    expect(skipped.calls).toEqual(['first', ...SECOND_HALF_SEGMENTS.map(b => `second:${b}`)]);
+    expect(skipped.calls).toEqual([...FIRST, ...SECOND]);
     // …saved through the same path…
     expect(skipped.saveGame).toHaveBeenCalled();
     expect(skipped.saveGame.mock.calls.length).toBe(watched.saveGame.mock.calls.length);
@@ -369,7 +374,7 @@ describe('MatchDay — Skip to full time', () => {
     let referenceCalls: string[] = [];
     for (let candidate = 1; candidate <= 80 && seed < 0; candidate++) {
       const run = stage(cupBase, candidate);
-      useGameStore.getState().playFirstHalf();
+      for (const b of FIRST_HALF_SEGMENTS) useGameStore.getState().playFirstHalf(b);
       for (const b of SECOND_HALF_SEGMENTS) useGameStore.getState().playSecondHalf(b);
       if (useGameStore.getState().matchPhase !== 'extra_time') continue;
       useGameStore.getState().playExtraTime();

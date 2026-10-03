@@ -18,7 +18,7 @@ import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENA
 import { recordPlayerPlayoffResult } from '@/store/slices/orchestration/playoff';
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
-import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
+import { SHOUT_DURATION, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
 import { mergeGamePlanMods } from '@/config/gamePlan';
 import { advanceCupRound, getRoundName, isNeutralCupRound } from '@/data/cup';
@@ -32,7 +32,7 @@ import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { aiMatchTactics, applyAIMatchEvents, buildFixtureWeeksByClub } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
-import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
+import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, onPitchAtFinalWhistle, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
 import { markSuperCupPlayed, pendingSuperCup } from '@/utils/superCup';
 import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, generateKnockoutFromGroups, isGroupStageComplete, isKnockoutRoundComplete } from '@/utils/continental';
@@ -406,19 +406,33 @@ function processTournamentResultWithWinner(
   return { stateUpdates: updates, cleanedPlayers };
 }
 
-function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[]) {
-  if (matchShouts.length === 0) return { attackMod: 0, defenseMod: 0, foulMod: 0 };
+/**
+ * Touchline shouts over the simulated stretch `segStart..segEnd`.
+ *
+ * A shout covers the SHOUT_DURATION minutes after the one it was called in —
+ * what the UI promises ("Effect active for 5 minutes"). Each shout counts by
+ * the share of the stretch it overlaps. It used to be summed cumulatively at
+ * half strength for the REST of the match, applied only from the next
+ * segment boundary, because the match could not be simulated finely enough to
+ * honour a window; both halves are now simulated a minute at a time.
+ */
+export function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS; startMinute: number }[], segStart: number, segEnd: number) {
+  const len = Math.max(1, segEnd - segStart + 1);
   let aMod = 0, dMod = 0, fMod = 0;
   for (const s of matchShouts) {
+    const from = s.startMinute + 1;
+    const to = s.startMinute + SHOUT_DURATION;
+    const overlap = Math.min(to, segEnd) - Math.max(from, segStart) + 1;
+    if (overlap <= 0) continue;
+    const w = overlap / len;
     const m = SHOUT_MODIFIERS[s.type];
-    if ('attackMod' in m) aMod += m.attackMod;
-    if ('defenseMod' in m) dMod += m.defenseMod;
-    if ('cardReduction' in m) fMod -= m.cardReduction;
+    if ('attackMod' in m) aMod += m.attackMod * w;
+    if ('defenseMod' in m) dMod += m.defenseMod * w;
+    if ('cardReduction' in m) fMod -= m.cardReduction * w;
     // time_waste: convert event chance reduction to small defensive bump
-    if ('eventChanceReduction' in m) dMod += 0.05;
+    if ('eventChanceReduction' in m) dMod += 0.05 * w;
   }
-  const scale = SHOUT_CUMULATIVE_SCALE;
-  return { attackMod: aMod * scale, defenseMod: dMod * scale, foulMod: fMod * scale };
+  return { attackMod: aMod, defenseMod: dMod, foulMod: fMod };
 }
 
 /**
@@ -564,6 +578,58 @@ export function buildMatchSquad(
   const bench = (club.subs || []).map(id => players[id]).filter(Boolean)
     .filter(p => !inXi.has(p.id) && !p.injured && !(p.suspendedUntilWeek != null && p.suspendedUntilWeek > week));
   return { xi, bench };
+}
+
+/**
+ * The user's saved lineup rewritten to the XI that actually kicked off: each
+ * stand-in takes the slot of the player he covers (formation slots align by
+ * index), extra cover goes on the end, and a duplicated id is dropped.
+ *
+ * Written back at kickoff so the live match has ONE team sheet. The sub sheet,
+ * the pitch and every later half read `club.lineup`; when it still named an
+ * injured player `buildPlayerMatchXI` had left out, the second half fielded
+ * him (he scored in audit runs), and his stand-in could not be substituted
+ * because the sheet did not list him.
+ */
+export function fieldedLineup(saved: string[], xi: Player[]): string[] {
+  const inXi = new Set(xi.map(p => p.id));
+  const savedSet = new Set(saved);
+  const fills = xi.map(p => p.id).filter(id => !savedSet.has(id));
+  const out: string[] = [];
+  const seen = new Set<string>();
+  let f = 0;
+  for (const id of saved) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (inXi.has(id)) out.push(id);
+    else if (f < fills.length) out.push(fills[f++]);
+  }
+  while (f < fills.length) out.push(fills[f++]);
+  return out;
+}
+
+/**
+ * The XI a side resumes with after a break — second half, extra time, the
+ * shootout — i.e. the XI that started (the engine adds its own subs-in and
+ * removes the sent off, injured and subbed off from its carried state).
+ *
+ * The user's side is `club.lineup`, which kickoff rewrote to the fielded XI and
+ * live substitutions keep current. An AI side is re-picked exactly as the first
+ * half picked it (`pickAiMatchSquad` is deterministic for the same week and
+ * squad). Reading an AI club's `club.lineup` here instead — written only at game
+ * start and season end — put a different, stale XI out after half-time: players
+ * the first half had left out as injured played on, and a first-half red card
+ * could be undone because the dismissed man was not in that list at all.
+ */
+export function resumeSideXI(club: Club, players: Record<string, Player>, week: number, playerClubId: string): Player[] {
+  if (club.id === playerClubId) return [...new Set(club.lineup || [])].map(id => players[id]).filter(Boolean);
+  return pickAiMatchSquad(club, players, week).xi;
+}
+
+/** A side's shootout pool: its resumed XI, as it stands at the final whistle. */
+export function shootoutPool(club: Club, players: Record<string, Player>, week: number, playerClubId: string, events: MatchEvent[]): Player[] {
+  const xi = resumeSideXI(club, players, week, playerClubId).map(p => p.id);
+  return onPitchAtFinalWhistle(xi, events, club.id).map(id => players[id]).filter(Boolean);
 }
 
 /**
@@ -858,17 +924,32 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
         let aGoals = result.awayGoals;
         const cupEvents = [...result.events];
 
-        // Dynasty Cup: extra time first, then penalties
+        // Dynasty Cup: extra time first, then penalties. An extra-time goal is
+        // a real goal: it has a scorer (weighted by shooting), counts in the
+        // player's ratings / season stats, and is an ordinary `goal` event so
+        // counting goals from events agrees with the score. It used to be an
+        // `extra_time_goal` (not a scoring type) with no scorer at all.
         if (cupTie) {
           const homeStr = hc.reputation / CUP_EXTRA_TIME_REPUTATION_DIVISOR;
           const awayStr = ac.reputation / CUP_EXTRA_TIME_REPUTATION_DIVISOR;
-          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * homeStr) {
-            hGoals++;
-            cupEvents.push({ minute: 105, type: 'extra_time_goal', clubId: match.homeClubId, description: `${hc.shortName} score in extra time!` });
-          }
-          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * awayStr) {
-            aGoals++;
-            cupEvents.push({ minute: 115, type: 'extra_time_goal', clubId: match.awayClubId, description: `${ac.shortName} score in extra time!` });
+          const etGoal = (minute: number, club: Club, xi: Player[]) => {
+            const shooters = xi.filter(p => p.position !== 'GK');
+            const pool = shooters.length ? shooters : xi;
+            const total = pool.reduce((t, p) => t + Math.max(1, p.attributes.shooting), 0);
+            let r = Math.random() * total;
+            const scorer = pool.find(p => (r -= Math.max(1, p.attributes.shooting)) < 0) ?? pool[pool.length - 1];
+            cupEvents.push({ minute, type: 'goal', playerId: scorer?.id, clubId: club.id, description: scorer ? `GOAL! ${scorer.firstName} ${scorer.lastName} scores in extra time for ${club.shortName}!` : `${club.shortName} score in extra time!` });
+            const rating = scorer ? playerRatings.find(pr => pr.playerId === scorer.id) : undefined;
+            if (rating) rating.goals += 1;
+          };
+          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * homeStr) { hGoals++; etGoal(105, hc, hp); }
+          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * awayStr) { aGoals++; etGoal(115, ac, ap); }
+          // The 90' Full Time line quoted the 90-minute score; the match now
+          // ends at 120 with the final one.
+          const ft = cupEvents.findIndex(e => e.type === 'full_time');
+          if (ft >= 0) {
+            cupEvents.splice(ft, 1);
+            cupEvents.push({ minute: 120, type: 'full_time', clubId: '', description: `— Full Time (a.e.t.): ${hc.shortName} ${hGoals} - ${aGoals} ${ac.shortName} —` });
           }
         }
 
@@ -1177,9 +1258,16 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   }
 }
 
-export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
+export function playFirstHalfImpl(set: Set, get: Get, untilMin: number = 45): HalfState | null {
   const state = get();
   const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
+  // Kickoff simulates 1..untilMin; later calls resume the half from where the
+  // last one stopped (FIRST_HALF_SEGMENTS), re-reading lineup, tactics and
+  // shouts, exactly as the second half does.
+  const simulatedTo = state.firstHalfSimulatedTo || 0;
+  const resuming = state.matchPhase === 'first_half' && !!state.halfTimeState && simulatedTo > 0 && simulatedTo < 45;
+  const segStart = resuming ? simulatedTo + 1 : 1;
+  const segEnd = Math.max(segStart, Math.min(45, Math.round(untilMin)));
   // Playoff first, exactly as `playCurrentMatchImpl` orders it. This branch was
   // missing entirely: `useCurrentMatch` resolves the playoff tie, so Dashboard
   // offered Match Prep and MatchDay drew the Kick Off screen for it — and then
@@ -1270,7 +1358,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // R14: every random draw from here on comes from this match's seed, so a
   // replay after a reload (or a kill mid-match) plays out exactly as before
   // for the same decisions — a bad half can no longer be re-rolled.
-  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, 'first-half'));
+  // Kickoff keeps the original 'first-half' stream; each resumed segment has
+  // its own, keyed by its start minute (as the second half does).
+  const restoreRandom = installSeededRandom(liveMatchSeed(state, match.id, resuming ? `first-half:${segStart}` : 'first-half'));
   try {
   if (ephemeralOppId) {
     ephemeralClub = createEphemeralClub((state.virtualClubs || {})[ephemeralOppId], season, state.communityPackEnabled);
@@ -1287,12 +1377,27 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // and make this function return null). AI: `pickAiMatchSquad`.
   const hSquad = buildMatchSquad(hc, effectivePlayers, week, playerClubId);
   const aSquad = buildMatchSquad(ac, effectivePlayers, week, playerClubId);
-  let hp = hSquad.xi;
-  let ap = aSquad.xi;
+  // A resumed segment continues with the XI that kicked off (live subs
+  // applied); the engine carries benches, subs-in and dismissals itself.
+  let hp = resuming ? resumeSideXI(hc, effectivePlayers, week, playerClubId) : hSquad.xi;
+  let ap = resuming ? resumeSideXI(ac, effectivePlayers, week, playerClubId) : aSquad.xi;
 
   // Only reachable now when a club has fewer than seven registered players who
   // are not out on loan. The callers report it — never fail silently here.
   if (hp.length < AI_MIN_MATCH_PLAYERS || ap.length < AI_MIN_MATCH_PLAYERS) return null;
+
+  // One team sheet for the whole match: the user's lineup becomes the XI that
+  // actually kicked off (see `fieldedLineup`).
+  const userClub = effectiveClubs[playerClubId];
+  if (!resuming && userClub && (match.homeClubId === playerClubId || match.awayClubId === playerClubId)) {
+    const fielded = fieldedLineup(userClub.lineup || [], match.homeClubId === playerClubId ? hp : ap);
+    if (fielded.join('|') !== (userClub.lineup || []).join('|')) {
+      const onPitch = new Set(fielded);
+      const fixed = { ...userClub, lineup: fielded, subs: (userClub.subs || []).filter(id => !onPitch.has(id)) };
+      effectiveClubs = { ...effectiveClubs, [playerClubId]: fixed };
+      set({ clubs: { ...get().clubs, [playerClubId]: fixed } });
+    }
+  }
 
   try {
   // For ephemeral clubs: inject their players and club into state temporarily
@@ -1330,7 +1435,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
   const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
   const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
-  const matchWeather = generateMatchWeather();
+  const matchWeather = resuming ? (state.currentMatchWeather ?? generateMatchWeather()) : generateMatchWeather();
   // Pre-kickoff team talk (G3): on high-stakes matches the player can give a
   // pre-match talk, which sets `matchTeamTalk` before kickoff. Apply it to the
   // FIRST half here, then clear it below so half-time starts fresh — the
@@ -1340,9 +1445,30 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // plan is a whole-match decision — it also applies to the second half and
   // extra time via the same merge, and is only cleared when the result screen
   // is dismissed (clearMatchResult).
-  const preMatchTalkMods = mergeGamePlanMods(teamTalkModifiers(state.matchTeamTalk), state.matchGamePlan);
+  // Touchline shouts made so far in this half apply over their own window.
+  const firstHalfShouts = computeShoutMods(state.matchShouts, segStart, segEnd);
+  const talkMods = teamTalkModifiers(state.matchTeamTalk);
+  const hasShout = !!(firstHalfShouts.attackMod || firstHalfShouts.defenseMod || firstHalfShouts.foulMod);
+  const talkAndShouts = talkMods
+    ? { ...talkMods, attackMod: talkMods.attackMod + firstHalfShouts.attackMod, defenseMod: talkMods.defenseMod + firstHalfShouts.defenseMod, foulMod: talkMods.foulMod + firstHalfShouts.foulMod }
+    : hasShout ? { ...firstHalfShouts, fitnessDrainMult: 1 as number } : undefined;
+  const preMatchTalkMods = mergeGamePlanMods(talkAndShouts, state.matchGamePlan);
   const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
-  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus, match.neutral);
+  const halfState = simulateHalf(hc, ac, hp, ap, segStart, segEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, resuming ? state.halfTimeState! : undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus, match.neutral);
+  const halfDone = segEnd >= 45;
+
+  // A resumed segment only banks its state: everything below is set once, at
+  // kickoff (ids, competition, league position, sub counts).
+  if (resuming) {
+    set({
+      halfTimeState: halfState,
+      firstHalfSimulatedTo: segEnd,
+      matchPhase: halfDone ? 'half_time' : 'first_half',
+      // The pre-match talk covers the whole first half; clear it at the break.
+      ...(halfDone ? { matchTeamTalk: 'none' as const } : {}),
+    });
+    return halfState;
+  }
 
   // Determine which cup tracking IDs to set
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
@@ -1357,12 +1483,14 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
     : null;
   set({
-    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
+    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: halfDone ? 'half_time' : 'first_half', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
+    firstHalfSimulatedTo: segEnd,
     // Second half hasn't started; segments resume from the break.
     secondHalfSimulatedTo: 45,
     // Clear the pre-match talk so the half-time team-talk sheet opens fresh at
-    // 'none' — the pre-match talk affected the first half only (G3).
-    matchTeamTalk: 'none',
+    // 'none' — the pre-match talk affects the first half only (G3). It stays
+    // set while the half is still being simulated in segments.
+    ...(halfDone ? { matchTeamTalk: 'none' as const } : {}),
     currentCupTieId: cupTie ? cupTie.id : isCupMatch ? '__tournament__' : null,
     currentLeagueCupTieId: leagueCupTie ? leagueCupTie.id : null,
     currentContinentalMatchId: continentalMatch ? match.id : null,
@@ -1484,10 +1612,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   if (!hc || !ac) return null;
   // Use current lineup (may have been changed by subs/rearrangement at half-time)
   // Deduplicate lineup IDs to prevent bugs from position optimization
-  const hLineup = [...new Set(hc.lineup || [])];
-  const aLineup = [...new Set(ac.lineup || [])];
-  const hp = hLineup.map(id => players[id]).filter(Boolean);
-  const ap = aLineup.map(id => players[id]).filter(Boolean);
+  const hp = resumeSideXI(hc, players, week, playerClubId);
+  const ap = resumeSideXI(ac, players, week, playerClubId);
   // Need minimum players to continue the match
   if (hp.length < 7 || ap.length < 7) return null;
 
@@ -1514,8 +1640,11 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
     return { attackMod: DEMAND_ATTACK_BOOST, defenseMod: -DEMAND_DEFENSE_PENALTY, foulMod: 0, fitnessDrainMult: DEMAND_FITNESS_DRAIN_MULT };
   })();
 
-  // Aggregate first-half shout effects as second-half modifiers
-  const shoutMods = computeShoutMods(state.matchShouts);
+  // Shouts active over this segment (resumeFrom..segmentEnd, computed below
+  // from the same inputs).
+  const shoutFrom = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
+  const shoutTo = Math.max(shoutFrom, Math.min(90, Math.round(untilMin)));
+  const shoutMods = computeShoutMods(state.matchShouts, shoutFrom, shoutTo);
 
   // Merge team talk + shout modifiers, then fold in the pre-match game plan
   // (Opposition Game Plans) so it keeps applying through the second half.
@@ -1566,7 +1695,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       currentMatchResult: result,
       halfTimeState: fullState, // carry forward for extra time continuation
       matchPhase: 'extra_time',
-      matchSubsUsed: 0,
+      // The substitution count carries into extra time. It was reset to 0
+      // here, handing the user five more (ten in all) while the AI stayed at 5.
       matchPlayerRatings: playerRatings,
     });
     return result;
@@ -1764,8 +1894,8 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
   const hc = clubs[currentMatchResult.homeClubId];
   const ac = clubs[currentMatchResult.awayClubId];
   if (!hc || !ac) return null;
-  const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
-  const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+  const hp = resumeSideXI(hc, players, state.week, playerClubId);
+  const ap = resumeSideXI(ac, players, state.week, playerClubId);
   // Need minimum players to continue into extra time
   if (hp.length < 7 || ap.length < 7) return null;
 
@@ -1790,7 +1920,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
     if (talk === 'calm') return { attackMod: 0, defenseMod: CALM_DEFENSE_BOOST, foulMod: -CALM_FOUL_REDUCTION, fitnessDrainMult: CALM_FITNESS_DRAIN_MULT };
     return { attackMod: DEMAND_ATTACK_BOOST, defenseMod: -DEMAND_DEFENSE_PENALTY, foulMod: 0, fitnessDrainMult: DEMAND_FITNESS_DRAIN_MULT };
   })();
-  const etShoutMods = computeShoutMods(state.matchShouts);
+  const etShoutMods = computeShoutMods(state.matchShouts, 91, 120);
   const etTalkAndShoutMods = etTeamTalkMods
     ? { attackMod: etTeamTalkMods.attackMod + etShoutMods.attackMod, defenseMod: etTeamTalkMods.defenseMod + etShoutMods.defenseMod, foulMod: etTeamTalkMods.foulMod + etShoutMods.foulMod, fitnessDrainMult: etTeamTalkMods.fitnessDrainMult }
     : (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? { ...etShoutMods, fitnessDrainMult: 1 as number } : undefined;
@@ -1961,8 +2091,11 @@ export function beginInteractiveShootoutImpl(set: Set, get: Get): Match | null {
   const ac = clubs[currentMatchResult.awayClubId];
   if (!hc || !ac) return null;
 
+  // Only players still on the pitch at the final whistle take part: the
+  // keeper may have been sent off, and an AI club's saved lineup is not the
+  // XI that played (see `onPitchAtFinalWhistle`).
   const findGK = (club: Club): Player | null =>
-    (club.lineup || []).map(id => players[id]).filter(Boolean).find(p => p.position === 'GK') ?? null;
+    shootoutPool(club, players, state.week, playerClubId, currentMatchResult.events).find(p => p.position === 'GK') ?? null;
   const homeGK = findGK(hc);
   const awayGK = findGK(ac);
 
@@ -2029,7 +2162,7 @@ export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: 
   // Real shootout rules: nobody kicks twice until the whole eligible pool has
   // gone — reset availability once everyone on the pitch has taken one.
   const playerClub = clubs[ctx.playerIsHome ? currentMatchResult.homeClubId : currentMatchResult.awayClubId];
-  const eligibleCount = (playerClub?.lineup ?? []).filter(id => players[id]).length;
+  const eligibleCount = playerClub ? shootoutPool(playerClub, players, state.week, state.playerClubId, currentMatchResult.events).length : 0;
   const used = [...ctx.usedTakerIds, takerId];
   set({
     penaltyShootoutKicks: newKicks,
@@ -2050,8 +2183,7 @@ export function revealOpponentPenaltyImpl(set: Set, get: Get): PenaltyKick | nul
 
   const oppIsHome = !ctx.playerIsHome;
   const oppClub = clubs[oppIsHome ? currentMatchResult.homeClubId : currentMatchResult.awayClubId];
-  const oppTakers = (oppClub?.lineup ?? [])
-    .map(id => players[id]).filter(Boolean)
+  const oppTakers = (oppClub ? shootoutPool(oppClub, players, state.week, state.playerClubId, currentMatchResult.events) : [])
     .filter(p => p.position !== 'GK')
     .sort((a, b) => getPenaltyTakerQuality(b) - getPenaltyTakerQuality(a));
   const oppKicksTaken = kicks.filter(k => k.isHome === oppIsHome).length;
@@ -2117,8 +2249,8 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
   const hc = clubs[currentMatchResult.homeClubId];
   const ac = clubs[currentMatchResult.awayClubId];
   if (!hc || !ac) return;
-  const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
-  const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+  const hp = resumeSideXI(hc, players, state.week, playerClubId);
+  const ap = resumeSideXI(ac, players, state.week, playerClubId);
 
   // Reconstruct penEvents and final totals from pre-computed kicks
   const penEvents: MatchEvent[] = penaltyShootoutKicks.map((kick) => {
@@ -2168,7 +2300,11 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
     return;
   }
   // players lookup rates participants subbed out earlier in the tie — see playSecondHalfImpl
-  const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState, players);
+  const finalized = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState, players);
+  // finalizeMatch rebuilds the events from the carried state, which knows
+  // nothing of the shootout — the kicks used to vanish from the stored match.
+  const result: Match = { ...finalized.result, events: [...finalized.result.events, ...penEvents], penaltyShootout };
+  const { playerRatings } = finalized;
 
   const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {}, winnerId);
   const penDrama = detectMatchDrama(result, playerClubId, clubs);

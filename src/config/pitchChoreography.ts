@@ -59,8 +59,10 @@ export const PITCH_CHOREO = {
   POSSESSION_KEEP: 0.68,
   /** Flow line a fresh possession starts at (build from deep). */
   FLOW_START: 0.12,
-  /** Flow line after winning the ball in midfield (turnover). */
-  FLOW_TURNOVER: 0.28,
+  /** Goal kick: the keeper's spot (own depth, the edge of the six-yard box). */
+  GOAL_KICK_DEPTH: 6,
+  /** Where a long restart is won back by the other side (its own depth). */
+  RESTART_CONTEST_DEPTH: 48,
   /** How far up the pitch the flow line advances per retained minute — steady
    *  forward progress. Monotonic until a turnover, so the ball never snaps back. */
   FLOW_ADVANCE: 0.16,
@@ -96,6 +98,23 @@ export const PITCH_CHOREO = {
   LINE_MAX_DEPTH: 52,
   /** Resting depth of the back line, used to anchor the line shift. */
   BACKLINE_BASE: 10,
+  /** Vertical length of the defending block: nobody out of possession sits
+   *  further than this ahead of his own back line (a forward left 50 m upfield
+   *  is not "staying high", it is a broken team). */
+  BLOCK_LENGTH: 40,
+  /** How far ahead of the ball the attacking front line runs (depth units):
+   *  the striker leads by the most, wingers and the No. 10 by less. Their depth
+   *  follows the ball instead of camping at the box from kickoff. */
+  FRONT_LEAD_ST: 24,
+  FRONT_LEAD_W: 16,
+  FRONT_LEAD_CAM: 12,
+  /** Offside event: where the ball is played over the top from (attacking
+   *  depth), and how far beyond the last defender the flagged runner stands. */
+  OFFSIDE_PASS_DEPTH: 52,
+  OFFSIDE_RUNNER_GAP: 3,
+  /** Offside: an off-ball attacker stays at least this far onside of the
+   *  defending team's last outfield player (covers the idle sway). */
+  OFFSIDE_MARGIN: 2,
   /** Below this ball depth (ball near their own goal) a 2nd defender presses. */
   PRESS_NEAR_THRESHOLD: 38,
   /** Amplitude of the smooth deterministic idle sway (replaces random jitter,
@@ -216,4 +235,77 @@ export const PITCH_RENDER = {
   STANDS_DEPTH: 0.16,
   /** Speckle dots per stand band (the packed-crowd texture). Seeded, drawn once. */
   STANDS_SPECKLE: 130,
+
+  // ── Markings (pitchGeometry.ts) ──
+  /** Real pitch size. Pitch units are 0-100 on both axes, so metres convert
+   *  per axis — that is what keeps the circles round. */
+  PITCH_LENGTH_M: 105,
+  PITCH_WIDTH_M: 68,
+  /** Radius of the centre circle and of the penalty arc (Laws of the Game). */
+  CENTRE_CIRCLE_M: 9.15,
+  /** Penalty spot and penalty-area depth from the goal line, in pitch units
+   *  (the renderers draw the box at these). */
+  PENALTY_SPOT_Y: 11,
+  PENALTY_BOX_Y: 16,
+  /** Line segments per penalty arc (the centre circle uses twice as many). */
+  ARC_STEPS: 24,
+
+  // ── Camera framing (frameCamera) ──
+  /** Portrait pitch strips covered by PitchView's HUD (CSS px): the score bug
+   *  across the top, the commentary caption (often two lines) along the bottom. The camera
+   *  composes inside what is left, so neither goal mouth plays out under them. */
+  HUD_SAFE_TOP: 44,
+  HUD_SAFE_BOTTOM: 64,
+  /** Room a fitted (Wide / reduced-motion) view keeps past each goal line for
+   *  the net, as a fraction of field height. */
+  FIT_NET_MARGIN: 0.045,
+
+  // ── Possession tint (stepTint / tintSpan) ──
+  /** Peak alpha of the attacking-third tint, at the goal line it fades from. */
+  TINT_ALPHA: 0.16,
+  /** How far up the pitch it reaches before it has faded out (pitch units). */
+  TINT_DEPTH: 30,
+  /** Cross-fade time constant between the two ends (ms). */
+  TINT_TAU: 450,
+  /** Bands the WebGL tier stacks to draw the fade (Pixi has no cheap gradient
+   *  fill on a Graphics rect). */
+  TINT_BANDS: 8,
+
+  // ── Cards mode (PitchCardLayer) ──
+  /** Layout width of a pitch card token (CSS px) before zoom scaling. */
+  CARD_TOKEN_BASE_W: 40,
+  /** Card width as a multiple of the published hit radius (which already
+   *  carries the camera zoom): ~31px wide at zoom 1 on a 390px phone. */
+  CARD_TOKEN_R_SCALE: 2.4,
+  /** Ball radius as a share of the pitch's short side. 0.016 drew a ~5px ball
+   *  on a phone that players said they could hardly see. */
+  BALL_R_FRAC: 0.024,
+  /** Soft white halo around the ball (radius multiple, peak alpha), so it
+   *  reads against grass, kit colours and the cards alike. */
+  BALL_HALO_R: 2.3,
+  BALL_HALO_ALPHA: 0.32,
+  /** A ball in the air looks bigger (nearer the camera): up to +30%, reached
+   *  when the arc has lifted it this many radii. */
+  BALL_LIFT_SCALE_MAX: 0.3,
+  BALL_LIFT_SCALE_DIV: 10,
+  /** Height of the name label under a pitch card, in the card's layout px
+   *  (scaled with the card). The card stands this much higher so the label
+   *  sits just above the player's spot, clear of his base and the ball. */
+  CARD_TOKEN_LABEL_H: 13,
+  /** Gap between the player's spot and the label, as a share of the hit radius. */
+  CARD_TOKEN_LIFT_R: 0.18,
+
+  // ── Your-goal card celebration (CardGoalCelebration) ──
+  /** The scorer's card lifting off his spot and flying to centre (ms). */
+  CARD_GOAL_FLY_MS: 650,
+  /** Time the big card holds centre stage, from landing to the return (ms). */
+  CARD_GOAL_HOLD_MS: 2300,
+  /** The card flying back down to his spot on the pitch (ms). */
+  CARD_GOAL_RETURN_MS: 450,
+  /** Reduced motion: a still card that fades in, holds and fades out (ms). */
+  CARD_GOAL_REDUCED_MS: 1800,
+  /** Big card width as a share of the pitch width, capped by its height. */
+  CARD_GOAL_W_FRAC: 0.44,
+  /** Vertical room (px) kept free for the GOAL! line and the lower third. */
+  CARD_GOAL_TEXT_ROOM: 150,
 } as const;

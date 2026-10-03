@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -36,10 +36,15 @@ export function GoalCelebration({
   color, text, minute, scorer, homeShort, awayShort, homeGoals, awayGoals, scoredByHome,
   confettiCount = 16, reducedMotion, onDone,
 }: GoalCelebrationProps) {
+  // The parent re-renders every match minute and passes a fresh `onDone`
+  // each time. Keyed on it, this timer restarted on every tick — at any
+  // match speed faster than its own duration the celebration never ended.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   useEffect(() => {
-    const id = setTimeout(onDone, reducedMotion ? REDUCED_MS : DURATION_MS);
+    const id = setTimeout(() => onDoneRef.current(), reducedMotion ? REDUCED_MS : DURATION_MS);
     return () => clearTimeout(id);
-  }, [onDone, reducedMotion]);
+  }, [reducedMotion]);
 
   const confetti = useMemo(
     () => (reducedMotion ? [] : Array.from({ length: Math.max(0, confettiCount) }, (_, i) => ({
@@ -78,14 +83,24 @@ export function GoalCelebration({
       )}
 
       {confetti.map((c, i) => (
+        // A full-height column moved by transform, so the fall is a share of
+        // the pitch (a translate % on the 8px piece itself moved it ~10px).
         <motion.div
           key={i}
-          className="absolute top-0 h-2 w-1.5 rounded-sm"
-          style={{ left: `${c.left}%`, backgroundColor: c.hue === 0 ? color : c.hue === 1 ? '#f5b915' : '#ffffff' }}
-          initial={{ y: -20, x: 0, opacity: 1, rotate: c.rotate }}
-          animate={{ y: '120%', x: c.drift, opacity: 0, rotate: c.rotate + 220 }}
+          className="absolute top-0 h-full w-1.5"
+          style={{ left: `${c.left}%` }}
+          initial={{ y: '-4%', x: 0, opacity: 1 }}
+          animate={{ y: '100%', x: c.drift, opacity: 0 }}
           transition={{ duration: 1.7, delay: c.delay, ease: 'easeIn' }}
-        />
+        >
+          <motion.div
+            className="h-2 w-1.5 rounded-sm"
+            style={{ backgroundColor: c.hue === 0 ? color : c.hue === 1 ? '#f5b915' : '#ffffff' }}
+            initial={{ rotate: c.rotate }}
+            animate={{ rotate: c.rotate + 220 }}
+            transition={{ duration: 1.7, delay: c.delay, ease: 'easeIn' }}
+          />
+        </motion.div>
       ))}
 
       <div className="absolute inset-0 flex flex-col items-center justify-center px-3">

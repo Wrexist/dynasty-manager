@@ -7,20 +7,19 @@ import { usePlayerClub } from '@/hooks/useGameSelectors';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
-import { FlagIcon } from '@/components/game/FlagIcon';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2, ArrowUp } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Zap, ArrowRight, Wand2, ArrowUp } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS, SLOT_Y_RANGE, SLOT_Y_BOTTOM } from '@/config/ui';
 import { LineupPlayerTile } from './LineupPlayerTile';
-import { BenchStrip } from './BenchStrip';
 import { YellowCardIcon, RedCardIcon } from './PlayerAvatar';
 import { computeSmartSub } from '@/utils/substitutionLogic';
 import { optimizeStarterPositions } from '@/utils/autoFillLineup';
 import { successToast, infoToast } from '@/utils/gameToast';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { SubBenchList, SubSwapCard, type BenchOption } from './match/SubstitutionParts';
 import { toast } from 'sonner';
 
 interface SubstitutionSheetProps {
@@ -53,13 +52,6 @@ interface SubstitutionSheetProps {
   subbedOnPlayerIds?: Set<string>;
 }
 
-function getFormLabel(form: number): { text: string; className: string } {
-  if (form >= 80) return { text: 'Hot', className: 'text-emerald-400' };
-  if (form >= 60) return { text: 'Good', className: 'text-sky-400' };
-  if (form >= 40) return { text: 'Avg', className: 'text-muted-foreground' };
-  return { text: 'Poor', className: 'text-destructive' };
-}
-
 function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (player.position === slotPos) return 'natural';
   // Alternate positions count as natural — same rule as the lineup editor;
@@ -74,6 +66,8 @@ function getCompatibility(player: { position: Position; alternatePositions?: Pos
 const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
+/** How long the confirm card plays the swap before the sheet closes (ms). */
+const SWAP_ANIM_MS = 750;
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals, playerCardStatus, playerMatchStats, subbedOnPlayerIds }: SubstitutionSheetProps) {
   const { t } = useTranslation();
@@ -91,12 +85,16 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);
   const [selectedInId, setSelectedInId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);
+  // The sub has been made and the swap is playing; the sheet closes after it.
+  const [swapDone, setSwapDone] = useState(false);
+  const reducedMotion = !!useReducedMotionPref();
 
   // Reset selection state when sheet opens/closes; pre-select if provided
   useEffect(() => {
     if (!open) {
       setSelectedOutId(null);
       setSelectedInId(null);
+      setSwapDone(false);
     } else if (preSelectedOutId) {
       setSelectedOutId(preSelectedOutId);
       setSelectedInId(null);
@@ -172,6 +170,29 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     return p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
   }).length;
 
+  // The bench, as the clean list shows it. Recommended: the Smart Sub pick
+  // when it is for this player, else the best fit (sortedSubs is already
+  // ordered by fit, then rating, then energy).
+  const benchOptions: BenchOption[] = sortedSubs
+    .map(id => players[id])
+    .filter(p => p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week))
+    .map(p => ({
+      player: p,
+      fit: selectedSlotPos ? getCompatibility(p, selectedSlotPos) : null,
+      energy: p.fitness,
+      booked: playerCardStatus?.get(p.id) === 'yellow',
+    }));
+  if (selectedOutId) {
+    const smartPick = smartSub && smartSub.outId === selectedOutId ? smartSub.inId : null;
+    const rec = benchOptions.find(o => o.player.id === smartPick) ?? benchOptions.find(o => o.fit !== 'wrong');
+    if (rec) {
+      rec.recommended = true;
+      // Recommended leads the list.
+      benchOptions.splice(benchOptions.indexOf(rec), 1);
+      benchOptions.unshift(rec);
+    }
+  }
+
   const hasMatchContext = matchMinute !== undefined && homeGoals !== undefined && awayGoals !== undefined;
 
   const handleLineupPlayerClick = (playerId: string) => {
@@ -202,10 +223,15 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     // Confirm the sub landed — manual subs were previously the only sub
     // path with no feedback toast (Smart Sub / Optimize both toast).
     if (outP && inP) successToast(`Sub made: ${inP.lastName} on for ${outP.lastName}.`);
-    setSelectedOutId(null);
-    setSelectedInId(null);
-    onOpenChange(false);
-    onSubMade?.();
+    // The sub is made; let the swap play on the card, then close.
+    setSwapDone(true);
+    window.setTimeout(() => {
+      setSelectedOutId(null);
+      setSelectedInId(null);
+      setSwapDone(false);
+      onOpenChange(false);
+      onSubMade?.();
+    }, reducedMotion ? 0 : SWAP_ANIM_MS);
   };
 
   const handleCancel = () => {
@@ -259,14 +285,23 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               className="absolute"
               style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
             >
-              <div className={cn(
-                'relative rounded-lg',
-                isSelectedOut && 'ring-2 ring-destructive scale-110 shadow-[0_0_12px_rgba(239,68,68,0.4)] animate-pulse',
-                isInjuredInMatch && !isSelectedOut && 'ring-2 ring-destructive/70 animate-pulse',
-                // A sent-off player cannot be replaced — the store rejects it.
-                // Show that here rather than letting the tap fail.
-                cardStatus === 'red' && 'opacity-40 pointer-events-none',
-              )}>
+              <motion.div
+                className={cn(
+                  'relative rounded-lg',
+                  isSelectedOut && 'ring-2 ring-red-400 shadow-[0_0_16px_rgba(248,113,113,0.55)]',
+                  isInjuredInMatch && !isSelectedOut && 'ring-2 ring-destructive/70',
+                  // A sent-off player cannot be replaced — the store rejects it.
+                  // Show that here rather than letting the tap fail.
+                  cardStatus === 'red' && 'pointer-events-none',
+                )}
+                // The one coming off lifts; everyone else steps back.
+                animate={{
+                  scale: isSelectedOut && !reducedMotion ? 1.12 : 1,
+                  y: isSelectedOut && !reducedMotion ? -3 : 0,
+                  opacity: cardStatus === 'red' ? 0.4 : selectedOutId && !isSelectedOut ? 0.45 : 1,
+                }}
+                transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+              >
                 {/* Injury badge — top right */}
                 {isInjuredInMatch && !isSelectedOut && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center z-10">
@@ -303,7 +338,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                     ))}
                   </div>
                 ) : null}
-              </div>
+              </motion.div>
             </div>
           );
         })}
@@ -485,24 +520,21 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           }}
           disabled={autoFilling}
           className={cn(
-            'w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 mt-2 transition-all active:scale-[0.98]',
-            autoFilling
-              ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
-              : 'bg-primary/10 border border-primary/30 hover:bg-primary/20'
+            'mx-auto mt-1 flex min-h-[44px] items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors',
+            autoFilling ? 'text-muted-foreground' : 'text-primary/90 hover:text-primary',
           )}
         >
-          <Wand2 className={cn('w-4 h-4 text-primary shrink-0', autoFilling && 'animate-spin')} />
-          <div className="flex-1 text-left min-w-0">
-            <p className="text-xs font-bold text-primary">{autoFilling ? 'Optimizing...' : 'Optimize Lineup'}</p>
-            <p className="text-micro text-muted-foreground">Best XI from starters & bench (uses subs)</p>
-          </div>
+          <Wand2 className={cn('h-3.5 w-3.5 shrink-0', autoFilling && 'animate-spin')} />
+          {autoFilling ? 'Optimizing…' : 'Optimize whole lineup (uses subs)'}
         </button>
       )}
 
-      {/* Bench section */}
-      <div className="mt-2">
-        <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">
-          {selectedOutId ? 'Select Replacement' : 'Tap a player on the pitch to sub them out'}
+      {/* Bench — step 2: who comes on. A preview until step 1 is done. */}
+      <div className="mt-3">
+        <p className="mb-2 px-1 text-xs font-semibold text-muted-foreground">
+          {selectedOutId && selectedOutPlayer
+            ? <>Who replaces <span className="text-foreground">{selectedOutPlayer.lastName}</span>{selectedSlotPos ? ` at ${selectedSlotPos}` : ''}?</>
+            : 'Your bench'}
         </p>
 
         {selectedOutId && availableBenchCount === 0 && (
@@ -512,50 +544,14 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           </div>
         )}
 
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-1">
-          {sortedSubs.map(id => {
-            const p = players[id];
-            if (!p) return null;
-            const isUnavailable = p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week);
-            if (isUnavailable) return null;
-            const benchCompat = selectedSlotPos
-              ? getCompatibility(p, selectedSlotPos)
-              : null;
-            const formInfo = getFormLabel(p.form);
-            const benchCardStatus = playerCardStatus?.get(id);
-            return (
-              <div
-                key={`bench-${id}`}
-                className={cn(
-                  'flex flex-col items-center shrink-0 relative',
-                  !selectedOutId && 'opacity-50 pointer-events-none',
-                )}
-              >
-                {benchCardStatus && (
-                  <div className="absolute -top-1.5 -left-1.5 z-20">
-                    {benchCardStatus === 'red' ? <RedCardIcon size={10} /> : <YellowCardIcon size={10} />}
-                  </div>
-                )}
-                <BenchStrip
-                  player={p}
-                  position={p.position}
-                  isSelected={false}
-                  chemistryLinkCount={0}
-                  compatRing={benchCompat}
-                  onClick={() => selectedOutId && handleBenchClick(id)}
-                />
-                <span className={cn('text-micro font-semibold mt-0.5', formInfo.className)}>{formInfo.text}</span>
-              </div>
-            );
-          })}
-        </div>
+        <SubBenchList options={benchOptions} locked={!selectedOutId} onPick={handleBenchClick} reducedMotion={reducedMotion} />
       </div>
 
       {/* Back button when a player is selected */}
       {selectedOutId && !selectedInId && (
         <button
           onClick={handleCancel}
-          className="mt-2 text-micro text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          className="mt-1 min-h-[44px] text-micro text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           <ArrowLeft className="w-3 h-3" /> Back to full lineup
         </button>
@@ -640,7 +636,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               {forceMode && (
                 <button
                   onClick={() => { hapticLight(); onDismissWithoutSub?.(); }}
-                  className="w-full mt-3 py-2.5 rounded-lg bg-muted/20 border border-border/30 text-xs text-muted-foreground hover:bg-muted/40 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full mt-3 min-h-[44px] py-2.5 rounded-lg bg-muted/20 border border-border/30 text-xs text-muted-foreground hover:bg-muted/40 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <AlertCircle className="w-3 h-3" /> Continue without substitution
                 </button>
@@ -658,95 +654,21 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               transition={{ duration: 0.2 }}
               className="mt-3 space-y-3"
             >
-              {/* Swap summary */}
-              <div className="flex items-center gap-3 bg-card/60 border border-border/50 rounded-xl p-3">
-                {/* OUT */}
-                <div className="flex-1 text-center">
-                  <p className="text-micro text-destructive uppercase tracking-wider font-semibold mb-1">Out</p>
-                  <div className={cn(
-                    'w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold mx-auto mb-1',
-                    getRatingBadgeClasses(selectedOutPlayer.overall)
-                  )}>
-                    {selectedOutPlayer.overall}
-                  </div>
-                  <p className="text-xs font-semibold text-foreground truncate">
-                    <FlagIcon nationality={selectedOutPlayer.nationality} size={14} /> {selectedOutPlayer.lastName}
-                  </p>
-                  <p className="text-micro text-muted-foreground">{selectedOutPlayer.position}</p>
-                  <p className="text-micro text-muted-foreground mt-0.5">FIT {Math.round(selectedOutPlayer.fitness)}%</p>
-                </div>
-
-                <ArrowRightLeft className="w-5 h-5 text-primary shrink-0" />
-
-                {/* IN */}
-                <div className="flex-1 text-center">
-                  <p className="text-micro text-emerald-400 uppercase tracking-wider font-semibold mb-1">In</p>
-                  <div className={cn(
-                    'w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold mx-auto mb-1',
-                    getRatingBadgeClasses(selectedInPlayer.overall)
-                  )}>
-                    {selectedInPlayer.overall}
-                  </div>
-                  <p className="text-xs font-semibold text-foreground truncate">
-                    <FlagIcon nationality={selectedInPlayer.nationality} size={14} /> {selectedInPlayer.lastName}
-                  </p>
-                  <p className="text-micro text-muted-foreground">{selectedInPlayer.position}</p>
-                  <p className="text-micro text-muted-foreground mt-0.5">FIT {Math.round(selectedInPlayer.fitness)}%</p>
-                </div>
-              </div>
-
-              {/* Attribute comparison — side by side bars */}
-              <div className="bg-card/40 border border-border/30 rounded-lg px-3 py-2 space-y-1.5">
-                <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold mb-1">Key Stats Comparison</p>
-                {(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const).map(attr => {
-                  const outVal = selectedOutPlayer.attributes[attr];
-                  const inVal = selectedInPlayer.attributes[attr];
-                  const diff = inVal - outVal;
-                  const maxVal = Math.max(outVal, inVal, 1);
-                  return (
-                    <div key={attr} className="flex items-center gap-1.5 text-micro">
-                      <span className="w-7 text-muted-foreground uppercase text-micro shrink-0">{attr.slice(0, 3)}</span>
-                      <span className="w-5 text-right text-foreground font-semibold shrink-0">{outVal}</span>
-                      {/* OUT bar (left, red) */}
-                      <div className="flex-1 flex items-center gap-0.5">
-                        <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden flex justify-end">
-                          <div className="bg-destructive/50 rounded-full" style={{ width: `${(outVal / maxVal) * 100}%` }} />
-                        </div>
-                        <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
-                          <div className="bg-emerald-500/50 rounded-full" style={{ width: `${(inVal / maxVal) * 100}%` }} />
-                        </div>
-                      </div>
-                      <span className="w-5 text-foreground font-semibold shrink-0">{inVal}</span>
-                      <span className={cn('w-7 text-micro font-bold text-right shrink-0', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-destructive' : 'text-muted-foreground')}>
-                        {diff > 0 ? `+${diff}` : diff === 0 ? '=' : diff}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Position fit warning — check against the formation slot, not the player's natural position */}
-              {(() => {
-                const slotPos = selectedSlotPos || selectedOutPlayer.position as Position;
-                return selectedInPlayer.position !== slotPos ? (
-                <p className={cn(
-                  'text-micro text-center px-2',
-                  canPlayPosition(selectedInPlayer, slotPos)
-                    ? 'text-amber-400' : 'text-destructive'
-                )}>
-                  {canPlayPosition(selectedInPlayer, slotPos)
-                    ? `${selectedInPlayer.position} is a compatible position for ${slotPos}`
-                    : `${selectedInPlayer.position} is not a natural fit for ${slotPos}`
-                  }
-                </p>
-              ) : null; })()}
+              <SubSwapCard
+                out={selectedOutPlayer}
+                outEnergy={halfTimeState?.playerFitness?.[selectedOutPlayer.id] ?? selectedOutPlayer.fitness}
+                incoming={selectedInPlayer}
+                fit={getCompatibility(selectedInPlayer, selectedSlotPos || selectedOutPlayer.position as Position)}
+                done={swapDone}
+                reducedMotion={reducedMotion}
+              />
 
               {/* Action buttons */}
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={handleCancel}>
+                <Button variant="outline" className="flex-1" onClick={handleCancel} disabled={swapDone}>
                   <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
                 </Button>
-                <Button className="flex-1 gap-1.5" onClick={handleConfirm} disabled={subsRemaining <= 0}>
+                <Button className="flex-1 gap-1.5" onClick={handleConfirm} disabled={subsRemaining <= 0 || swapDone}>
                   <Check className="w-3.5 h-3.5" /> {subsRemaining <= 0 ? 'No Subs Left' : 'Confirm Sub'}
                 </Button>
               </div>

@@ -36,6 +36,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   boardObjectives: [] as GameState['boardObjectives'],
   boardConfidence: 50,
   boardUltimatum: null as GameState['boardUltimatum'],
+  firstHalfSimulatedTo: 0,
   secondHalfSimulatedTo: 45,
   pendingPostSeason: null as GameState['pendingPostSeason'],
   careerRetired: false,

@@ -406,3 +406,162 @@ describe('buildMatchTimeline', () => {
     });
   });
 });
+
+describe('buildMatchTimeline — the pitch shows the goal the commentary describes', () => {
+  /** Carriers of the beats leading up to the first beat tagged `type`. */
+  const carriersBefore = (timeline: ReturnType<typeof buildMatchTimeline>, type: MatchEvent['type']) => {
+    const i = timeline.beats.findIndex(b => b.eventType === type);
+    expect(i).toBeGreaterThan(0);
+    return timeline.beats.slice(0, i).filter(b => b.minute === timeline.beats[i].minute).map(b => b.ballCarrierId);
+  };
+
+  it('the recorded assister plays the final pass to the scorer', () => {
+    for (const seed of ['m1', 'm2', 'm3', 'm4', 'm5']) {
+      const t = buildMatchTimeline(makeMatch([ev(34, 'goal', 'home', { playerId: 'home-p9', assistPlayerId: 'home-p4' })], { id: seed }), home, away);
+      const carriers = carriersBefore(t, 'goal');
+      expect(carriers.slice(-2)).toEqual(['home-p4', 'home-p9']);
+      // Neither touches it earlier in the move.
+      expect(carriers.slice(0, -2)).not.toContain('home-p9');
+      expect(carriers.slice(0, -2)).not.toContain('home-p4');
+    }
+  });
+
+  it('a counter-attack goal goes through the assister', () => {
+    const t = buildMatchTimeline(makeMatch([ev(50, 'counter_attack_goal', 'away', { playerId: 'away-p10', assistPlayerId: 'away-p7' })]), home, away);
+    expect(carriersBefore(t, 'counter_attack_goal').slice(-2)).toEqual(['away-p7', 'away-p10']);
+  });
+
+  it('the penalty is taken by whoever the engine says took it, not the designated taker', () => {
+    // The designated taker was subbed off; the engine gave it to home-p7.
+    const club = makeClub('home', { penaltyTakerId: 'home-p9' });
+    const t = buildMatchTimeline(makeMatch([ev(70, 'penalty_scored', 'home', { playerId: 'home-p7' })]), club, away);
+    expect(carriersBefore(t, 'penalty_scored').at(-1)).toBe('home-p7');
+  });
+
+  it('falls back to the designated taker when the event names nobody', () => {
+    const club = makeClub('home', { penaltyTakerId: 'home-p9' });
+    const t = buildMatchTimeline(makeMatch([ev(70, 'penalty_scored', 'home')]), club, away);
+    expect(carriersBefore(t, 'penalty_scored').at(-1)).toBe('home-p9');
+  });
+});
+
+describe('buildMatchTimeline — the XIs that kicked off', () => {
+  it('stands the given XI in the formation slots instead of club.lineup', () => {
+    const xi = Array.from({ length: 11 }, (_, i) => `fielded-${i}`);
+    const t = buildMatchTimeline(makeMatch([]), home, away, { lineups: { home: xi } });
+    const homeIds = t.beats[0].players.filter(p => p.team === 'home').map(p => p.id).sort();
+    expect(homeIds).toEqual([...xi].sort());
+    // The side with no override still reads club.lineup.
+    expect(t.beats[0].players.filter(p => p.team === 'away').map(p => p.id).sort()).toEqual([...away.lineup].sort());
+  });
+});
+
+describe('offside and shape (open play)', () => {
+  const adv = (team: 'home' | 'away', y: number) => (team === 'home' ? y : 100 - y);
+  const events: MatchEvent[] = [];
+  for (let m = 3; m < 88; m += 7) {
+    events.push(ev(m, m % 2 ? 'shot_saved' : 'shot_missed', m % 3 ? 'home' : 'away', { playerId: `${m % 3 ? 'home' : 'away'}-p10` }));
+  }
+  const tl = buildMatchTimeline(makeMatch(events), home, away);
+  const open = tl.beats.filter(b => b.eventType == null && b.players.length === 22);
+
+  it('has open-play beats to check', () => {
+    expect(open.length).toBeGreaterThan(50);
+  });
+
+  it('never leaves an off-ball attacker beyond the last outfield defender', () => {
+    for (const b of open) {
+      const att = b.possession;
+      const def = att === 'home' ? 'away' : 'home';
+      const line = Math.max(...b.players.filter(p => p.team === def && p.pos !== 'GK').map(p => adv(att, p.point.y)));
+      const cap = Math.max(line, adv(att, b.ball.y), 50);
+      for (const p of b.players) {
+        if (p.team !== att || p.pos === 'GK' || (p.id && b.highlightIds.includes(p.id))) continue;
+        expect(adv(att, p.point.y), `${p.id} at minute ${b.minute}`).toBeLessThanOrEqual(cap + 0.5);
+      }
+    }
+  });
+
+  it('keeps the striker out of the box while his side builds from the back', () => {
+    for (const b of open) {
+      if (adv(b.possession, b.ball.y) > 40) continue;
+      for (const p of b.players) {
+        if (p.team === b.possession && p.pos === 'ST') expect(adv(b.possession, p.point.y)).toBeLessThan(80);
+      }
+    }
+  });
+});
+
+describe('offside event', () => {
+  const adv = (team: 'home' | 'away', y: number) => (team === 'home' ? y : 100 - y);
+  const tl = buildMatchTimeline(makeMatch([ev(30, 'offside', 'home', { playerId: 'home-p10' })]), home, away);
+  const i = tl.beats.findIndex(b => b.eventType === 'offside');
+
+  it('plays the ball to a runner who is beyond the last defender', () => {
+    expect(i).toBeGreaterThan(0);
+    const b = tl.beats[i];
+    expect(b.possession).toBe('home');
+    expect(b.ballMotion).toBe('longball');
+    expect(b.highlightIds).toContain('home-p10');
+    const runner = b.players.find(p => p.id === 'home-p10')!;
+    const line = Math.max(...b.players.filter(p => p.team === 'away' && p.pos !== 'GK').map(p => adv('home', p.point.y)));
+    expect(adv('home', runner.point.y)).toBeGreaterThan(line);
+    expect(b.caption).toBe('offside@30');
+  });
+
+  it('gives the free kick to the defenders from where he was caught', () => {
+    const fk = tl.beats[i + 1];
+    expect(fk.possession).toBe('away');
+    expect(fk.ball).toEqual(tl.beats[i].ball);
+  });
+});
+
+describe('restarts and turnovers', () => {
+  it('a missed shot is followed by the defending keeper taking a goal kick', () => {
+    const tl = buildMatchTimeline(makeMatch([ev(20, 'shot_missed', 'home', { playerId: 'home-p10' })]), home, away);
+    const i = tl.beats.findIndex(b => b.eventType === 'shot_missed');
+    const gk = tl.beats[i + 1];
+    expect(gk.possession).toBe('away');
+    expect(gk.ballMotion).toBe('restart');
+    expect(100 - gk.ball.y).toBeLessThan(10); // away keeper's six-yard box (away defends y=100)
+    const keeper = gk.players.find(p => p.team === 'away' && p.pos === 'GK')!;
+    expect(gk.ballCarrierId).toBe(keeper.id);
+    expect(keeper.point).toEqual(gk.ball);
+  });
+
+  it('wins the ball where the move broke down, not back in its own half', () => {
+    const tl = buildMatchTimeline(makeMatch([]), home, away);
+    let checked = 0;
+    for (let i = 1; i < tl.beats.length; i++) {
+      const prev = tl.beats[i - 1], b = tl.beats[i];
+      if (b.eventType !== null || prev.eventType !== null || b.possession === prev.possession || b.ballMotion !== 'idle') continue;
+      expect(b.ball.x).toBeCloseTo(Math.min(94, Math.max(6, prev.ball.x)));
+      expect(b.ball.y).toBeCloseTo(Math.min(94, Math.max(6, prev.ball.y)));
+      const winner = b.players.find(p => p.id === b.ballCarrierId)!;
+      expect(winner.team).toBe(b.possession);
+      expect(winner.highlighted).toBe(true);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(5);
+  });
+});
+
+describe('turnover after a goal kick', () => {
+  it('is contested around halfway, never in the keeper\'s six-yard box', () => {
+    const adv = (team: 'home' | 'away', y: number) => (team === 'home' ? y : 100 - y);
+    let hits = 0;
+    for (let seed = 0; seed < 60; seed++) {
+      const events = [ev(10, 'shot_missed', 'home', { playerId: 'home-p10' })];
+      const tl = buildMatchTimeline(makeMatch(events, { id: `gk${seed}` }), home, away);
+      const i = tl.beats.findIndex(b => b.eventType === 'shot_missed');
+      const gk = tl.beats[i + 1];
+      const next = tl.beats[i + 2];
+      if (!next || next.possession === gk.possession) continue;
+      const d = adv(next.possession, next.ball.y);
+      expect(d).toBeGreaterThan(30);
+      expect(d).toBeLessThan(70); // not in the keeper's box (~94 from the winner's side)
+      hits++;
+    }
+    expect(hits).toBeGreaterThan(0);
+  });
+});

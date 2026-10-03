@@ -7,12 +7,18 @@ import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/ty
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
+import { PITCH_RENDER } from '@/config/pitchChoreography';
+import { pitchCardBox } from './pitchGeometry';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
+import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
-import { PitchCanvas, type PitchHitTarget } from './PitchCanvas';
+import { RotateCcw, Maximize2, Minimize2, IdCard } from 'lucide-react';
+import { PitchCanvas, type PitchBallScreen, type PitchHitTarget, type PitchTokenStyle } from './PitchCanvas';
+import { PitchCardLayer } from './PitchCardLayer';
+import { readPitchTokenStyle, writePitchTokenStyle } from '@/store/helpers/persistence';
 import { GoalCelebration } from './GoalCelebration';
+import { CardGoalCelebration } from './CardGoalCelebration';
 import { WeatherOverlay } from './WeatherOverlay';
 import { ReplayOverlay } from './ReplayOverlay';
 
@@ -46,18 +52,29 @@ interface PitchViewProps {
   /** Wall-clock ms per match minute (live match speed) — paces the pitch so
    *  player motion stays continuous at every speed. */
   msPerMinute?: number;
+  /** The corner score bug. Off when the page already shows the score right
+   *  above the pitch (MatchDay's compact scoreboard) — twice is clutter, and
+   *  the bug is what covers the goal the player attacks. */
+  showScoreBug?: boolean;
+  /** The XIs that kicked off (slot-ordered); see BuildOpts.lineups. */
+  lineups?: { home: string[]; away: string[] };
+  /** Open on the tactical wide camera (the half-time board shows the whole
+   *  pitch, not wherever the ball was at 45'). The toggle still works. */
+  defaultWide?: boolean;
 }
 
 const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
   'goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'header_goal', 'solo_goal',
   'long_range_goal', 'counter_attack_goal', 'free_kick_goal', 'extra_time_goal',
   'shot_saved', 'shot_missed', 'hit_woodwork', 'goal_line_clearance', 'goalkeeper_error',
-  'yellow_card', 'red_card', 'foul', 'injury', 'substitution', 'var_check', 'var_disallowed',
+  'yellow_card', 'red_card', 'foul', 'offside', 'injury', 'substitution', 'var_check', 'var_disallowed',
 ]);
 
 interface Celebration {
   key: string; color: string; text: string; minute: string;
   scorer?: string; homeShort: string; awayShort: string; homeGoals: number; awayGoals: number; scoredByHome: boolean;
+  /** Cards mode, your goal: the scorer whose card flies out (and its stage). */
+  card?: { scorerId: string; assistName?: string; width: number; height: number };
 }
 
 const SCORING_TYPES = new Set<MatchEvent['type']>(GOAL_SCORING_TYPES as unknown as MatchEvent['type'][]);
@@ -66,12 +83,17 @@ const SCORING_TYPES = new Set<MatchEvent['type']>(GOAL_SCORING_TYPES as unknown 
 const teamCode = (s: string) => (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || '—';
 
 export default function PitchView({
-  worldCup = false, match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute,
+  worldCup = false, match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute, showScoreBug = true, lineups, defaultWide = false,
 }: PitchViewProps) {
   // Aliased: this file already uses `t` as a loop variable further down
   // (`for (const t of targets)`), and shadowing it reads as a bug.
   const { t: tr } = useTranslation();
   const landscape = orientation === 'landscape';
+  // The score bug and caption overlay the top and bottom of the portrait pitch;
+  // the camera composes around them. Landscape (split) is too short to spare it.
+  // Without the bug only small corner buttons sit up there, clear of the box.
+  const safeTop = landscape || !showScoreBug ? 0 : PITCH_RENDER.HUD_SAFE_TOP;
+  const safeBottom = landscape ? 0 : PITCH_RENDER.HUD_SAFE_BOTTOM;
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
 
   // Use the WebGL "Stunning" tier only on capable hardware; auto-fall back to
@@ -94,9 +116,10 @@ export default function PitchView({
     () => buildMatchTimeline({ ...match, events }, homeClub, awayClub, {
       tactics: homeTactics && awayTactics ? { home: homeTactics, away: awayTactics } : undefined,
       players,
+      lineups,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [match.id, events.length, homeClub.id, awayClub.id, homeClub.formation, awayClub.formation, homeTactics, awayTactics],
+    [match.id, events.length, homeClub.id, awayClub.id, homeClub.formation, awayClub.formation, homeTactics, awayTactics, lineups],
   );
 
   // Most recent captionable event at or before the current minute.
@@ -126,13 +149,27 @@ export default function PitchView({
   // positions here; a tap on the pitch is hit-tested against them.
   const containerRef = useRef<HTMLDivElement>(null);
   const hitTargetsRef = useRef<PitchHitTarget[] | null>(null);
+  const ballRef = useRef<PitchBallScreen | null>(null);
   const [inspectId, setInspectId] = useState<string | null>(null);
   const inspectPlayer = inspectId ? players?.[inspectId] : undefined;
   const inspectIsHome = !!(inspectId && homeClub.playerIds?.includes(inspectId));
+  // A player subbed off or sent off leaves the pitch; don't keep a card open
+  // for someone who is no longer out there.
+  const lastBeatPlayers = timeline.beats[timeline.beats.length - 1]?.players;
+  useEffect(() => {
+    if (inspectId && lastBeatPlayers && !lastBeatPlayers.some(p => p.id === inspectId)) setInspectId(null);
+  }, [inspectId, lastBeatPlayers]);
 
   // Tactical-wide toggle: pull the camera back to the whole pitch (pauses the
   // broadcast follow-cam). Mirrored into a ref the renderer reads each frame.
-  const [tacticalWide, setTacticalWide] = useState(false);
+  // Player tokens: kit chips or player cards — a device-level preference.
+  const [tokenStyle, setTokenStyle] = useState<PitchTokenStyle>(() => readPitchTokenStyle());
+  const toggleTokenStyle = () => setTokenStyle(v => {
+    const next: PitchTokenStyle = v === 'cards' ? 'chips' : 'cards';
+    writePitchTokenStyle(next);
+    return next;
+  });
+  const [tacticalWide, setTacticalWide] = useState(defaultWide);
   const tacticalWideRef = useRef(false);
   tacticalWideRef.current = tacticalWide;
 
@@ -142,6 +179,9 @@ export default function PitchView({
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const initRef = useRef(false);
   const lastGoalKeyRef = useRef<string | null>(null);
+
+  // The scorer whose card is out on its celebration (his pitch card hides).
+  const cardCelebrationId = celebration?.card?.scorerId ?? null;
 
   // Goal replay: re-run the most recent goal's beats in an overlay.
   const [replay, setReplay] = useState<{ from: number; to: number } | null>(null);
@@ -177,14 +217,38 @@ export default function PitchView({
         const e = events[i];
         if (SCORING_TYPES.has(e.type)) { if (e.clubId === homeClub.id) hg++; else ag++; }
       }
+      // Cards mode, and the goal is yours with a scorer from your side (not
+      // an own goal by theirs): his card takes the stage.
+      const rect = containerRef.current?.getBoundingClientRect();
+      const card = tokenStyle === 'cards' && g.clubId === playerClub.id && g.type !== 'own_goal'
+        && g.playerId && players?.[g.playerId] && playerClub.playerIds?.includes(g.playerId) && rect && rect.width > 0
+        ? {
+          scorerId: g.playerId,
+          assistName: g.assistPlayerId ? players?.[g.assistPlayerId]?.lastName : undefined,
+          width: rect.width, height: rect.height,
+        }
+        : undefined;
       setCelebration({
         key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'`,
         scorer: g.playerId ? players?.[g.playerId]?.lastName : undefined,
         homeShort: homeClub.shortName, awayShort: awayClub.shortName, homeGoals: hg, awayGoals: ag, scoredByHome,
+        card,
       });
       setInspectId(null); // a goal interrupts any open inspect card
     }
+    // tokenStyle/playerClub are read at the goal, not reasons to re-run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, minute, homeClub.id, homeClub.shortName, awayClub.shortName, homeColor, awayColor, players]);
+
+  const finishCelebration = () => {
+    const done = celebration;
+    setCelebration(null);
+    // Auto-replay the goal once (broadcast rhythm), unless reduced motion.
+    if (done && !reducedMotion && lastGoal && autoReplayedRef.current !== done.key) {
+      autoReplayedRef.current = done.key;
+      setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 });
+    }
+  };
 
   // Hit-test a tap on the pitch against the renderer's published chip positions.
   // A hit opens the inspect card; tapping empty turf dismisses it. Suppressed
@@ -199,8 +263,15 @@ export default function PitchView({
     const y = e.clientY - rect.top;
     let best: { id: string; d: number } | null = null;
     for (const t of targets) {
-      const d = Math.hypot(t.x - x, t.y - y);
-      if (d <= t.r && (!best || d < best.d)) best = { id: t.id, d };
+      // In Cards mode the card stands ABOVE the player's spot (see
+      // PitchCardLayer), so a tap on the card is tested against its body.
+      let cx = t.x, cy = t.y, r = t.r;
+      if (tokenStyle === 'cards') {
+        const b = pitchCardBox(t);
+        cx = b.cx; cy = b.cy; r = b.h * 0.55;
+      }
+      const d = Math.hypot(cx - x, cy - y);
+      if (d <= r && (!best || d < best.d)) best = { id: t.id, d };
     }
     setInspectId(best && players?.[best.id] ? best.id : null);
   };
@@ -220,10 +291,10 @@ export default function PitchView({
       </div>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
-          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} className="absolute inset-0 h-full w-full" />
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} ballRef={ballRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
-            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} className="absolute inset-0 h-full w-full" />
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} ballRef={ballRef} tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle} className="absolute inset-0 h-full w-full" />
           }>
             <PixiPitch
               timeline={timeline}
@@ -235,8 +306,8 @@ export default function PitchView({
               flip={!playerIsHome}
               reducedMotion={reducedMotion}
               msPerMinute={msPerMinute}
-              hitTargetsRef={hitTargetsRef}
-              tacticalWideRef={tacticalWideRef}
+              hitTargetsRef={hitTargetsRef} ballRef={ballRef}
+              tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle}
               onError={() => setPixiFailed(true)}
               className="absolute inset-0 h-full w-full"
             />
@@ -254,16 +325,20 @@ export default function PitchView({
           flip={!playerIsHome}
           reducedMotion={reducedMotion}
           msPerMinute={msPerMinute}
-          hitTargetsRef={hitTargetsRef}
-          tacticalWideRef={tacticalWideRef}
+          hitTargetsRef={hitTargetsRef} ballRef={ballRef}
+          tacticalWideRef={tacticalWideRef} safeTop={safeTop} safeBottom={safeBottom} tokenStyle={tokenStyle}
           className="absolute inset-0 h-full w-full"
         />
       )}
 
+      {tokenStyle === 'cards' && (
+        <PitchCardLayer hitTargetsRef={hitTargetsRef} ballRef={ballRef} players={players} homeColor={homeColor} awayColor={awayColor} hiddenId={cardCelebrationId} />
+      )}
       <WeatherOverlay weather={match.weather?.weather} pitch={match.weather?.pitch} density={quality.weatherScale} reducedMotion={reducedMotion} />
 
       {/* Broadcast score bug — clock + crests + running scoreline, overlaid on
           the live pitch (the big panel stays for pre/HT/FT in MatchDay). */}
+      {showScoreBug && (
       <div className="pointer-events-none absolute left-2 top-2 z-[6] flex items-center gap-1.5 rounded-md border border-border/40 bg-card/85 px-1.5 py-1 shadow-lg backdrop-blur-md">
         {worldCup ? <span>{getFlag(homeClub.id)}</span> : <ClubCrest club={homeClub} size="xs" />}
         <span className="text-[11px] font-bold tracking-tight text-foreground">{teamCode(homeClub.shortName)}</span>
@@ -274,25 +349,48 @@ export default function PitchView({
         {worldCup ? <span>{getFlag(awayClub.id)}</span> : <ClubCrest club={awayClub} size="xs" />}
         <span className="ml-0.5 rounded bg-primary/15 px-1 py-0.5 text-micro font-semibold leading-none tabular-nums text-primary">{minute}'</span>
       </div>
+      )}
 
-      {/* Tactical-wide / broadcast-follow camera toggle. */}
-      {!reducedMotion && !celebration && !replay && (
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setTacticalWide((v) => !v)}
-          className="absolute left-2 top-11 z-[6] flex items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95"
-          aria-label={tacticalWide ? 'Switch to broadcast camera' : 'Switch to tactical wide view'}
-          aria-pressed={tacticalWide}
-        >
-          {tacticalWide ? <Minimize2 className="h-3 w-3 text-primary" /> : <Maximize2 className="h-3 w-3 text-primary" />}
-          <span className="text-micro font-semibold text-foreground">{tacticalWide ? 'Follow' : 'Wide'}</span>
-        </button>
+      {/* Camera (Wide / Follow) and token (Cards / Chips) toggles. The camera
+          toggle is moot under reduced motion (the view is always fitted). */}
+      {!celebration && !replay && (
+        <div className={cn('absolute left-2 z-[6] flex items-center gap-2', showScoreBug ? 'top-11' : 'top-2')}>
+          {!reducedMotion && (
+            <button
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setTacticalWide((v) => !v)}
+              className={'relative flex items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95 before:absolute before:-inset-3 before:content-[""]'}
+              aria-label={tacticalWide ? 'Switch to broadcast camera' : 'Switch to tactical wide view'}
+              aria-pressed={tacticalWide}
+            >
+              {tacticalWide ? <Minimize2 className="h-3 w-3 text-primary" /> : <Maximize2 className="h-3 w-3 text-primary" />}
+              <span className="text-micro font-semibold text-foreground">{tacticalWide ? 'Follow' : 'Wide'}</span>
+            </button>
+          )}
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={toggleTokenStyle}
+            className={cn(
+              'relative flex items-center gap-1 rounded-full border px-2 py-1 backdrop-blur-md active:scale-95 before:absolute before:-inset-3 before:content-[""]',
+              tokenStyle === 'cards' ? 'border-primary/50 bg-primary/20' : 'border-border/40 bg-card/80',
+            )}
+            aria-label={tokenStyle === 'cards' ? 'Show players as kit chips' : 'Show players as player cards'}
+            aria-pressed={tokenStyle === 'cards'}
+          >
+            <IdCard className="h-3 w-3 text-primary" />
+            <span className="text-micro font-semibold text-foreground">Cards</span>
+          </button>
+        </div>
       )}
 
       <AnimatePresence>
         {showDir && (
           <motion.div
-            className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2"
+            // Top-right: the Wide/Cards row owns the top-left, and this slot is
+            // free at kickoff (the replay button only exists after a goal).
+            // Above the card layer, like every other HUD piece.
+            // Under the Replay button when there is one (same corner).
+            className={cn('pointer-events-none absolute right-2 z-[6]', lastGoal && !celebration && !replay ? 'top-11' : 'top-2')}
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -308,8 +406,9 @@ export default function PitchView({
       {/* Replay last goal — hidden during a celebration or an active replay. */}
       {lastGoal && !celebration && !replay && (
         <button
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 })}
-          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95"
+          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95 before:absolute before:-inset-3 before:content-['']"
           aria-label={tr('pitchView.replayLastGoal')}
         >
           <RotateCcw className="h-3 w-3 text-primary" />
@@ -330,13 +429,34 @@ export default function PitchView({
             flip={!playerIsHome}
             orientation={orientation}
             reducedMotion={reducedMotion}
+            tokenStyle={tokenStyle}
+            players={players}
             onDone={() => setReplay(null)}
           />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {celebration && (
+        {celebration?.card && players?.[celebration.card.scorerId] ? (
+          <CardGoalCelebration
+            key={celebration.key}
+            player={players[celebration.card.scorerId]}
+            hitTargetsRef={hitTargetsRef}
+            width={celebration.card.width}
+            height={celebration.card.height}
+            color={celebration.color}
+            minute={celebration.minute}
+            assistName={celebration.card.assistName}
+            homeShort={celebration.homeShort}
+            awayShort={celebration.awayShort}
+            homeGoals={celebration.homeGoals}
+            awayGoals={celebration.awayGoals}
+            scoredByHome={celebration.scoredByHome}
+            confettiCount={quality.confetti}
+            reducedMotion={reducedMotion}
+            onDone={finishCelebration}
+          />
+        ) : celebration && (
           <GoalCelebration
             key={celebration.key}
             color={celebration.color}
@@ -350,15 +470,7 @@ export default function PitchView({
             scoredByHome={celebration.scoredByHome}
             confettiCount={quality.confetti}
             reducedMotion={reducedMotion}
-            onDone={() => {
-              const done = celebration;
-              setCelebration(null);
-              // Auto-replay the goal once (broadcast rhythm), unless reduced motion.
-              if (done && !reducedMotion && lastGoal && autoReplayedRef.current !== done.key) {
-                autoReplayedRef.current = done.key;
-                setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 });
-              }
-            }}
+            onDone={finishCelebration}
           />
         )}
       </AnimatePresence>
@@ -386,13 +498,14 @@ export default function PitchView({
               <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground">Fit</p>
               <p className="text-sm font-bold leading-none text-foreground tabular-nums">{Math.round(inspectPlayer.fitness)}%</p>
             </div>
-            <button onClick={() => setInspectId(null)} className="ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-bold text-muted-foreground active:scale-90" aria-label="Close player card">✕</button>
+            <button onPointerDown={(e) => e.stopPropagation()} onClick={() => setInspectId(null)} className="relative ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-bold text-muted-foreground active:scale-90 before:absolute before:-inset-3 before:content-['']" aria-label="Close player card">✕</button>
           </div>
         </div>
       )}
 
       {caption && !celebration && !inspectId && (
-        <div className="absolute inset-x-0 bottom-0 p-2">
+        // z above the card layer (z-[2]): a card must never print over the caption.
+        <div className="absolute inset-x-0 bottom-0 z-[8] p-2">
           <div className="mx-auto max-w-[92%] rounded-lg bg-card/70 px-3 py-1.5 backdrop-blur-md border border-border/40">
             <p className="text-[11px] leading-snug text-foreground">
               <span className="font-bold text-primary tabular-nums mr-1.5">{caption.minute}</span>

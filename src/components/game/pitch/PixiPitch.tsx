@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Application, BlurFilter, Container, Graphics, Text } from 'pixi.js';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { createPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
+import { seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
-import type { PitchHitTarget } from './PitchCanvas';
+import { identityOrientation, liftScale, rollBall, visiblePatches } from './pitchBall';
+import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
+import type { PitchBallScreen, PitchHitTarget, PitchTokenStyle } from './PitchCanvas';
 
 // The "Stunning" WebGL pitch tier. Consumes the exact same MatchTimeline as the
 // Canvas renderer, so the pure choreography is shared. WebGL buys crisp scaling,
@@ -44,6 +46,11 @@ interface PixiPitchProps {
   hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
   /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
   tacticalWideRef?: React.MutableRefObject<boolean>;
+  /** Screen strips (CSS px) the HUD covers; the camera composes inside the rest. */
+  safeTop?: number;
+  safeBottom?: number;
+  tokenStyle?: PitchTokenStyle;
+  ballRef?: React.MutableRefObject<PitchBallScreen | null>;
   className?: string;
   onError?: () => void;
 }
@@ -64,7 +71,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 
 export default function PixiPitch({
-  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, className, onError,
+  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', ballRef, className, onError,
 }: PixiPitchProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef(minute);
@@ -80,6 +87,16 @@ export default function PixiPitch({
   const onErrorRef = useRef(onError);
   const hitTargetsRefRef = useRef(hitTargetsRef);
   const tacticalWideRefRef = useRef(tacticalWideRef);
+  const safeTopRef = useRef(safeTop);
+  const safeBottomRef = useRef(safeBottom);
+  safeTopRef.current = safeTop;
+  safeBottomRef.current = safeBottom;
+  const tokenStyleRef = useRef(tokenStyle);
+  tokenStyleRef.current = tokenStyle;
+  const ballRefRef = useRef(ballRef);
+  ballRefRef.current = ballRef;
+  // The ball's 3-D orientation and last spot, so it rolls as it travels.
+  const ballSpinRef = useRef({ o: identityOrientation(), x: NaN, y: NaN });
   timelineRef.current = timeline;
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
@@ -93,7 +110,12 @@ export default function PixiPitch({
     if (!host) return;
 
     let app: Application | null = null;
+    // Only an app whose init() has resolved can be destroyed cleanly (v8's
+    // ResizePlugin.destroy throws before init). Cleanup that runs mid-init
+    // leaves destruction to the init continuation below.
+    let ready = false;
     let destroyed = false;
+    let ro: ResizeObserver | null = null;
     let failed = false;
     const fail = (err: unknown) => {
       if (failed) return;
@@ -102,22 +124,38 @@ export default function PixiPitch({
       onErrorRef.current?.();
     };
 
-    let playback: PlaybackState = createPlayback();
+    // Start at the revealed minute, not kickoff: a mid-match mount must not
+    // fast-forward the whole match to catch up (see PitchCanvas).
+    let playback: PlaybackState = seekPlayback(timelineRef.current.beats, minuteRef.current);
+    // Goals up to the mount minute were already shown — don't re-fire them.
+    const goalsAfterMinute = minuteRef.current;
     const viewRef: { current: View | null } = { current: null };
     const trail: { x: number; y: number }[] = [];
 
     (async () => {
       try {
-        app = new Application();
-        await app.init({
+        const local = new Application();
+        app = local;
+        await local.init({
           resizeTo: host,
           antialias: true,
           backgroundAlpha: 0,
           autoDensity: true,
           resolution: Math.min(window.devicePixelRatio || 1, quality.dprCap),
         });
-        if (destroyed || !app) { app?.destroy(true); return; }
-        host.appendChild(app.canvas);
+        // Unmounted while init was in flight: cleanup could not destroy the
+        // half-built app (and used to null `app`, so this check then leaked a
+        // live WebGL context + ticker + window listener). Destroy it here.
+        if (destroyed) { try { local.destroy(true, { children: true }); } catch { /* ignore */ } return; }
+        ready = true;
+        host.appendChild(local.canvas);
+        // resizeTo only follows window resizes; follow the host box itself, as
+        // the Canvas tier does, so a layout change never leaves a stretched
+        // canvas with stale hit targets.
+        if (typeof ResizeObserver !== 'undefined') {
+          ro = new ResizeObserver(() => { if (!destroyed) local.resize(); });
+          ro.observe(host);
+        }
 
         const world = new Container();
         const standsG = new Graphics();
@@ -169,6 +207,8 @@ export default function PixiPitch({
         let goalRipple = { seq: -1, t: 1, end: 100 };
         let goalImpact = { seq: -1, t: 1e9 };
         const display = createDisplay();
+        let tint: TintState = { home: 0, away: 0 };
+        let fitBlend = 0;
 
         // Crowd/stands backdrop — a dark stadium bowl + seeded speckle in the
         // margins around the pitch, denser behind the two goal-ends. Static, so
@@ -219,7 +259,13 @@ export default function PixiPitch({
           const stroke = { width: lw, color: LINE, alpha: 0.55 };
           fieldG.rect(fx, fy, fw, fh).stroke(stroke);
           fieldG.moveTo(mapX(0), mapY(50)).lineTo(mapX(100), mapY(50)).stroke(stroke);
-          fieldG.circle(mapX(50), mapY(50), (9 / 100) * fw).stroke(stroke);
+          const poly = (pts: MarkPoint[]) => {
+            pts.forEach((pt, i) => {
+              if (i === 0) fieldG.moveTo(mapX(pt.x), mapY(pt.y)); else fieldG.lineTo(mapX(pt.x), mapY(pt.y));
+            });
+            fieldG.stroke(stroke);
+          };
+          poly(centreCirclePoints());
           fieldG.circle(mapX(50), mapY(50), Math.max(1.5, fw * 0.008)).fill({ color: LINE, alpha: 0.55 });
           const box = (goalY: number, dir: 1 | -1) => {
             const pY = goalY + dir * 16;
@@ -227,7 +273,7 @@ export default function PixiPitch({
             fieldG.rect(mapX(21), Math.min(mapY(goalY), mapY(pY)), mapX(79) - mapX(21), Math.abs(mapY(pY) - mapY(goalY))).stroke(stroke);
             fieldG.rect(mapX(37), Math.min(mapY(goalY), mapY(sY)), mapX(63) - mapX(37), Math.abs(mapY(sY) - mapY(goalY))).stroke(stroke);
             fieldG.circle(mapX(50), mapY(goalY + dir * 11), Math.max(1.2, fw * 0.006)).fill({ color: LINE, alpha: 0.55 });
-            fieldG.circle(mapX(50), mapY(goalY + dir * 11), (7 / 100) * fw).stroke(stroke);
+            poly(penaltyArcPoints(goalY, dir));
           };
           box(0, 1);
           box(100, -1);
@@ -287,7 +333,7 @@ export default function PixiPitch({
             const sample = samplePlayback(timelineRef.current.beats, playback, minuteRef.current);
             if (!sample) return;
             const beat = sample.beat;
-            if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRipple.seq) {
+            if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRipple.seq && beat.minute > goalsAfterMinute) {
               goalRipple = { seq: beat.seq, t: 0, end: beat.possession === 'home' ? 100 : 0 };
               if (!reducedMotion) goalImpact = { seq: beat.seq, t: 0 };
             }
@@ -306,7 +352,7 @@ export default function PixiPitch({
               trail.length = 0;
             }
 
-            const { w, h, fw, fh, mapX, mapY, fx, fy } = geom();
+            const { w, h, fw, fh, mapX, mapY } = geom();
 
             // Camera (world container transform) with a lead in the ball's direction.
             const leadX = clamp(display.ballVX * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
@@ -323,16 +369,21 @@ export default function PixiPitch({
               viewRef.current.cy = lerp(viewRef.current.cy, targetCy, ca);
             }
             const view = viewRef.current;
-            const z = view.zoom;
-            const halfW = (w / 2) / z;
-            const halfH = (h / 2) / z;
-            const fsx = fw >= 2 * halfW ? clamp(mapX(view.cx), fx + halfW, fx + fw - halfW) : fx + fw / 2;
-            const fsy = fh >= 2 * halfH ? clamp(mapY(view.cy), fy + halfH, fy + fh - halfH) : fy + fh / 2;
+            // Ease into / out of the fitted Wide frame with the camera.
+            const fitTarget = wide || reducedMotion ? 1 : 0;
+            fitBlend = reducedMotion ? fitTarget : fitBlend + (fitTarget - fitBlend) * (1 - Math.exp(-dt / PITCH_RENDER.CAM_TAU));
+            const cam = frameCamera({
+              w, h, fieldH: fh, focusX: mapX(view.cx), focusY: mapY(view.cy), zoom: view.zoom,
+              safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: fitBlend,
+            });
+            const z = cam.zoom;
+            const fsx = cam.pivotX;
+            const fsy = cam.pivotY;
             const shakeX = shake ? Math.sin(performance.now() * 0.08) * shake : 0;
             const shakeY = shake ? Math.cos(performance.now() * 0.07) * shake : 0;
             world.scale.set(z);
             world.pivot.set(fsx, fsy);
-            world.position.set(w / 2 + shakeX, h / 2 + shakeY);
+            world.position.set(cam.anchorX + shakeX, cam.anchorY + shakeY);
 
             // Publish tappable chips in CSS px (world→screen = (p − pivot)·z + pos),
             // so PitchView can hit-test a tap back to a player.
@@ -342,7 +393,7 @@ export default function PixiPitch({
               const targets: PitchHitTarget[] = [];
               for (const p of display.players.values()) {
                 if (!p.id) continue;
-                targets.push({ id: p.id, x: (mapX(p.x) - fsx) * z + w / 2, y: (mapY(p.y) - fsy) * z + h / 2, r: hitR });
+                targets.push({ id: p.id, x: (mapX(p.x) - fsx) * z + cam.anchorX, y: (mapY(p.y) - fsy) * z + cam.anchorY, r: hitR, team: p.team, highlighted: !!p.highlighted });
               }
               htRef.current = targets;
             }
@@ -350,14 +401,23 @@ export default function PixiPitch({
             drawStands();
             drawField(ripple);
 
-            // Faint attacking-third tint for the team in possession.
+            // Attacking-third tint for the side in possession, fading up from the
+            // goal line it attacks and cross-faded between ends (see stepTint).
+            tint = stepTint(tint, beat.possession, dt, PITCH_RENDER.TINT_TAU);
             tintG.clear();
             if (!reducedMotion) {
-              const yLo = beat.possession === 'home' ? 72 : 0;
-              const yHi = beat.possession === 'home' ? 100 : 28;
-              const ty = Math.min(mapY(yLo), mapY(yHi));
-              tintG.rect(mapX(0), ty, mapX(100) - mapX(0), Math.abs(mapY(yHi) - mapY(yLo)))
-                .fill({ color: beat.possession === 'home' ? homeColorRef.current : awayColorRef.current, alpha: 0.12 });
+              const bands = PITCH_RENDER.TINT_BANDS;
+              for (const side of ['home', 'away'] as const) {
+                if (tint[side] < 0.01) continue;
+                const { from, to } = tintSpan(side);
+                const color = side === 'home' ? homeColorRef.current : awayColorRef.current;
+                for (let i = 0; i < bands; i++) {
+                  const y0 = mapY(from + ((to - from) * i) / bands);
+                  const y1 = mapY(from + ((to - from) * (i + 1)) / bands);
+                  tintG.rect(mapX(0), Math.min(y0, y1), mapX(100) - mapX(0), Math.abs(y1 - y0))
+                    .fill({ color, alpha: PITCH_RENDER.TINT_ALPHA * tint[side] * (1 - (i + 0.5) / bands) });
+                }
+              }
             }
 
             // Trail.
@@ -403,6 +463,14 @@ export default function PixiPitch({
               const teamColor = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
               const color = p.pos === 'GK' ? keeperKit(teamColor) : (teamColor || '#888888');
               chipsG.ellipse(cx, groundY + chipR * 0.48, chipR * 0.78, chipR * 0.34).fill({ color: 0x000000, alpha: 0.42 });
+              if (tokenStyleRef.current === 'cards') {
+                // Cards mode: the standee's foot only (see PitchCanvas).
+                chipsG.ellipse(cx, groundY + chipR * 0.32, chipR * 0.72, chipR * 0.26).fill({ color: p.highlighted ? GOLD : color, alpha: 0.9 });
+                if (labels[li]) labels[li].visible = false;
+                if (nameLabels[li]) nameLabels[li].visible = false;
+                li++;
+                continue;
+              }
               if (p.highlighted) {
                 // Additive bloom ring.
                 glowG.circle(cx, cy, r + chipR * 0.7).fill({ color: GOLD, alpha: 0.18 });
@@ -444,15 +512,29 @@ export default function PixiPitch({
 
             // Ball with additive glow + arc lift.
             const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (fh / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
-            const ballR = Math.max(3, fw * 0.016);
+            const ballR = Math.max(4, fw * PITCH_RENDER.BALL_R_FRAC);
             const bx = mapX(display.ballX);
             const by = mapY(display.ballY);
             ballG.clear();
             ballG.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (fh || 1)), ballR * 0.4).fill({ color: 0x000000, alpha: 0.4 });
-            glowG.circle(bx, by - liftPx, ballR * 2).fill({ color: 0xffffff, alpha: 0.1 });
-            // Lit sphere: soft grey base + white hotspot top-left.
-            ballG.circle(bx, by - liftPx, ballR).fill('#dfe3ea').stroke({ width: Math.max(1, ballR * 0.22), color: 0x000000, alpha: 0.5 });
-            ballG.circle(bx - ballR * 0.3, by - liftPx - ballR * 0.3, ballR * 0.5).fill({ color: 0xffffff, alpha: 0.9 });
+            // Roll it by however far it moved, unless motion is reduced.
+            const spin = ballSpinRef.current;
+            if (!reducedMotion && Number.isFinite(spin.x)) spin.o = rollBall(spin.o, bx - spin.x, by - spin.y, ballR);
+            spin.x = bx; spin.y = by;
+            const rr = ballR * liftScale(liftPx, ballR);
+            const byy = by - liftPx;
+            // Halo (bloomed by the glow layer) so the ball reads against grass and kits.
+            glowG.circle(bx, byy, rr * PITCH_RENDER.BALL_HALO_R).fill({ color: 0xffffff, alpha: PITCH_RENDER.BALL_HALO_ALPHA * 0.6 });
+            // The football: white leather, the patches facing us, shading, rim.
+            ballG.circle(bx, byy, rr).fill('#f7f8fa');
+            for (const pt of visiblePatches(spin.o, rr)) {
+              ballG.poly(pt.pts.flatMap(([px, py]) => [bx + px, byy + py])).fill({ color: 0x14171e, alpha: 0.55 + 0.45 * pt.facing });
+            }
+            ballG.circle(bx + rr * 0.12, byy + rr * 0.14, rr * 0.92).fill({ color: 0x0a0e16, alpha: 0.16 });
+            ballG.circle(bx - rr * 0.36, byy - rr * 0.38, rr * 0.34).fill({ color: 0xffffff, alpha: 0.45 });
+            ballG.circle(bx, byy, rr).stroke({ width: Math.max(1, rr * 0.16), color: 0x080c14, alpha: 0.8 });
+            const br = ballRefRef.current;
+            if (br) br.current = { x: (bx - fsx) * z + cam.anchorX, y: (by - fsy) * z + cam.anchorY, r: ballR * z, lift: liftPx * z, o: spin.o };
           } catch (err) {
             fail(err);
             app?.ticker.stop();
@@ -465,7 +547,10 @@ export default function PixiPitch({
 
     return () => {
       destroyed = true;
-      try { app?.destroy(true, { children: true }); } catch { /* already gone */ }
+      ro?.disconnect();
+      if (ready) {
+        try { app?.destroy(true, { children: true }); } catch { /* already gone */ }
+      }
       app = null;
       const ht = hitTargetsRefRef.current;
       if (ht) ht.current = null;

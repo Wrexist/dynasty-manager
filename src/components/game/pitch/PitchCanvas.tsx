@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState, type DisplayState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
-import { shade, keeperKit } from './pitchColors';
+import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
+import { shade, keeperKit, withAlpha } from './pitchColors';
+import { drawFootball, identityOrientation, liftScale, rollBall, type BallOrientation } from './pitchBall';
 
 // Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
 // and a motion trail. Consumes a MatchTimeline + current minute; eases the
@@ -12,7 +14,21 @@ import { shade, keeperKit } from './pitchColors';
 
 /** A tappable player, published each frame in CSS px relative to the canvas so
  *  the React layer (PitchView) can hit-test taps without knowing the camera. */
-export interface PitchHitTarget { id: string; x: number; y: number; r: number }
+export interface PitchHitTarget {
+  id: string; x: number; y: number; r: number;
+  /** Side and spotlight, so an overlay (the Cards layer) can dress the token. */
+  team?: 'home' | 'away';
+  highlighted?: boolean;
+}
+
+/** How players are drawn: the renderer's kit chips, or (`cards`) only their
+ *  planted base, with PitchCardLayer standing a player card on each one. */
+export type PitchTokenStyle = 'chips' | 'cards';
+
+/** The ball's screen position (CSS px, same space as PitchHitTarget): its spot
+ *  on the ground, radius, and how high the arc has lifted it. Published each
+ *  frame so the Cards layer can draw the ball ABOVE the cards. */
+export interface PitchBallScreen { x: number; y: number; r: number; lift: number; o?: BallOrientation }
 
 interface PitchCanvasProps {
   timeline: MatchTimeline;
@@ -38,6 +54,11 @@ interface PitchCanvasProps {
   hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
   /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
   tacticalWideRef?: React.MutableRefObject<boolean>;
+  /** Screen strips (CSS px) the HUD covers; the camera composes inside the rest. */
+  safeTop?: number;
+  safeBottom?: number;
+  tokenStyle?: PitchTokenStyle;
+  ballRef?: React.MutableRefObject<PitchBallScreen | null>;
   className?: string;
 }
 
@@ -57,19 +78,23 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, safeTop = 0, safeBottom = 0, tokenStyle = 'chips', ballRef, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const msPerMinuteRef = useRef(msPerMinute);
   msPerMinuteRef.current = msPerMinute;
   const playbackRef = useRef<PlaybackState>(createPlayback());
   const viewRef = useRef<View | null>(null);
+  // The ball's 3-D orientation and last spot, so it rolls as it travels.
+  const ballSpinRef = useRef({ o: identityOrientation(), x: NaN, y: NaN });
   const trailRef = useRef<{ x: number; y: number }[]>([]);
   const rafRef = useRef<number>(0);
   const lastTsRef = useRef<number>(0);
   const goalRippleRef = useRef<{ seq: number; t: number; end: number }>({ seq: -1, t: 1, end: 100 });
   const goalImpactRef = useRef<{ seq: number; t: number }>({ seq: -1, t: 1e9 });
   const displayRef = useRef<DisplayState>(createDisplay());
+  const tintRef = useRef<TintState>({ home: 0, away: 0 });
+  const fitBlendRef = useRef(0);
 
   minuteRef.current = minute;
   // Live values read inside the rAF loop via refs, so the effect does NOT re-run
@@ -82,6 +107,12 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
   showOverallRef.current = showOverall;
+  const safeTopRef = useRef(safeTop);
+  const safeBottomRef = useRef(safeBottom);
+  safeTopRef.current = safeTop;
+  safeBottomRef.current = safeBottom;
+  const tokenStyleRef = useRef(tokenStyle);
+  tokenStyleRef.current = tokenStyle;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -93,8 +124,15 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
     let h = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap);
     const land = orientation === 'landscape';
-    // Replays seed the playhead mid-timeline; live view starts at kickoff.
-    playbackRef.current = startMinute != null ? seekPlayback(timelineRef.current.beats, startMinute) : createPlayback();
+    // Replays seed the playhead at their start; the live view at the revealed
+    // minute. Seeding live at kickoff made every mid-match mount (after a key
+    // moment, at half-time, into the second half) fast-forward the whole match
+    // at the catch-up rate before it reached live play.
+    playbackRef.current = seekPlayback(timelineRef.current.beats, startMinute ?? minuteRef.current);
+    // Goals up to the mount minute were already shown (before half-time, or
+    // before switching view); seeking to the start of the minute must not
+    // ripple the net and shake the camera for them again. Replays do show theirs.
+    const goalsAfterMinute = startMinute != null ? -Infinity : minuteRef.current;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -175,10 +213,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.stroke();
       };
       seg(0, 50, 100, 50); // halfway
+      const poly = (pts: MarkPoint[]) => {
+        ctx.beginPath();
+        pts.forEach((pt, i) => {
+          const s = project(pt.x, pt.y);
+          if (i === 0) ctx.moveTo(s.sx, s.sy); else ctx.lineTo(s.sx, s.sy);
+        });
+        ctx.stroke();
+      };
+      poly(centreCirclePoints());
       const c = project(50, 50);
-      ctx.beginPath();
-      ctx.arc(c.sx, c.sy, (9 / 100) * unit, 0, Math.PI * 2);
-      ctx.stroke();
       ctx.fillStyle = LINE;
       ctx.beginPath();
       ctx.arc(c.sx, c.sy, Math.max(1.5, unit * 0.008), 0, Math.PI * 2);
@@ -194,9 +238,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.beginPath();
         ctx.arc(spot.sx, spot.sy, Math.max(1.2, unit * 0.006), 0, Math.PI * 2);
         ctx.fill();
-        ctx.beginPath();
-        ctx.arc(spot.sx, spot.sy, (7 / 100) * unit, 0, Math.PI * 2);
-        ctx.stroke();
+        poly(penaltyArcPoints(goalY, dir));
       };
       box(0, 1);
       box(100, -1);
@@ -259,23 +301,29 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
 
     // Faint tint over the attacking third of the team in possession — shows the
     // pressure direction at a glance.
-    const drawTint = (possession: 'home' | 'away') => {
+    // Attacking-third tint for the side in possession: a gradient fading up
+    // from the goal line it attacks, cross-faded between ends (tintRef).
+    const drawTint = () => {
       const { project } = geom();
-      const yLo = possession === 'home' ? 72 : 0;
-      const yHi = possession === 'home' ? 100 : 28;
-      const a = project(0, yLo);
-      const b = project(100, yHi);
-      ctx.save();
-      ctx.globalAlpha = 0.12;
-      ctx.fillStyle = possession === 'home' ? homeColorRef.current : awayColorRef.current;
-      ctx.fillRect(Math.min(a.sx, b.sx), Math.min(a.sy, b.sy), Math.abs(b.sx - a.sx), Math.abs(b.sy - a.sy));
-      ctx.restore();
+      for (const side of ['home', 'away'] as const) {
+        const strength = tintRef.current[side];
+        if (strength < 0.01) continue;
+        const { from, to } = tintSpan(side);
+        const a = project(0, from);
+        const b = project(100, to);
+        const color = side === 'home' ? homeColorRef.current : awayColorRef.current;
+        const g = ctx.createLinearGradient(a.sx, a.sy, project(0, to).sx, project(0, to).sy);
+        g.addColorStop(0, withAlpha(color, PITCH_RENDER.TINT_ALPHA * strength));
+        g.addColorStop(1, withAlpha(color, 0));
+        ctx.fillStyle = g;
+        ctx.fillRect(Math.min(a.sx, b.sx), Math.min(a.sy, b.sy), Math.abs(b.sx - a.sx), Math.abs(b.sy - a.sy));
+      }
     };
 
     const drawFrame = (display: DisplayState, liftPx: number, showAllNames: boolean, ts: number) => {
       const { innerH, project, unit } = geom();
       const chipR = Math.max(5, unit * 0.028);
-      const ballR = Math.max(3, unit * 0.016);
+      const ballR = Math.max(4, unit * PITCH_RENDER.BALL_R_FRAC);
 
       for (const p of display.players.values()) {
         const base = project(p.x, p.y);
@@ -302,6 +350,18 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.beginPath();
         ctx.ellipse(cx, groundY + chipR * 0.48, chipR * 0.78, chipR * 0.34, 0, 0, Math.PI * 2);
         ctx.fill();
+        if (tokenStyleRef.current === 'cards') {
+          // Cards mode: only the standee's foot — a kit-colour base (gold when
+          // spotlit) under the planted shadow. The card itself is DOM, drawn
+          // by PitchCardLayer at this player's published position.
+          ctx.fillStyle = p.highlighted ? GOLD : color;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.ellipse(cx, groundY + chipR * 0.32, chipR * 0.72, chipR * 0.26, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          continue;
+        }
         if (p.highlighted) {
           ctx.strokeStyle = GOLD;
           ctx.lineWidth = Math.max(2, chipR * 0.28);
@@ -366,18 +426,22 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.beginPath();
       ctx.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (innerH || 1)), ballR * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Ball as a lit sphere: white hotspot top-left → soft grey.
       const byy = by - liftPx;
-      const bg = ctx.createRadialGradient(bx - ballR * 0.35, byy - ballR * 0.35, ballR * 0.1, bx, byy, ballR);
-      bg.addColorStop(0, '#ffffff');
-      bg.addColorStop(1, '#c6ccd6');
-      ctx.fillStyle = bg;
+      // Roll it by however far it moved (world px), unless motion is reduced.
+      const spin = ballSpinRef.current;
+      if (!reducedMotion && Number.isFinite(spin.x)) spin.o = rollBall(spin.o, bx - spin.x, by - spin.y, ballR);
+      spin.x = bx; spin.y = by;
+      const rr = ballR * liftScale(liftPx, ballR);
+      // Halo: a soft white glow so the ball reads against grass and kits.
+      const halo = ctx.createRadialGradient(bx, byy, rr * 0.6, bx, byy, rr * PITCH_RENDER.BALL_HALO_R);
+      halo.addColorStop(0, `rgba(255,255,255,${PITCH_RENDER.BALL_HALO_ALPHA})`);
+      halo.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(bx, byy, ballR, 0, Math.PI * 2);
+      ctx.arc(bx, byy, rr * PITCH_RENDER.BALL_HALO_R, 0, Math.PI * 2);
       ctx.fill();
-      ctx.lineWidth = Math.max(1, ballR * 0.22);
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-      ctx.stroke();
+      // The football itself: patches, shading, rim (see pitchBall).
+      drawFootball(ctx, bx, byy, rr, spin.o);
     };
 
     const tick = (ts: number) => {
@@ -424,7 +488,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const liftT = sample.t;
 
       // Trigger the net ripple + goal impact when a goal beat first becomes active.
-      if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRippleRef.current.seq) {
+      if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRippleRef.current.seq && beat.minute > goalsAfterMinute) {
         goalRippleRef.current = { seq: beat.seq, t: 0, end: beat.possession === 'home' ? 100 : 0 };
         if (!reducedMotion) goalImpactRef.current = { seq: beat.seq, t: 0 };
       }
@@ -448,6 +512,10 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const leadY = clamp(display.ballVY * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
       // Tactical-wide lock pulls back to the whole pitch and pauses the follow.
       const wide = tacticalWideRef?.current && !reducedMotion;
+      // Wide and reduced motion both show the whole pitch, fitted between the
+      // HUD; the blend eases with the camera so toggling Wide glides.
+      const fitTarget = wide || reducedMotion ? 1 : 0;
+      fitBlendRef.current = reducedMotion ? fitTarget : fitBlendRef.current + (fitTarget - fitBlendRef.current) * (1 - Math.exp(-dt / PITCH_RENDER.CAM_TAU));
       const targetZoom = reducedMotion || wide ? PITCH_RENDER.ZOOM_MIN : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
       const targetCx = reducedMotion || wide ? 50 : clamp(display.ballX + leadX, 2, 98);
       const targetCy = reducedMotion || wide ? 50 : clamp(display.ballY + leadY, 2, 98);
@@ -460,13 +528,15 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       }
       const view = viewRef.current;
 
-      const { pad, innerW, innerH, project } = geom();
+      const { innerW, innerH, project } = geom();
       const focus = project(view.cx, view.cy);
-      const z = view.zoom;
-      const halfW = (w / 2) / z;
-      const halfH = (h / 2) / z;
-      const fsx = innerW >= 2 * halfW ? clamp(focus.sx, pad + halfW, pad + innerW - halfW) : pad + innerW / 2;
-      const fsy = innerH >= 2 * halfH ? clamp(focus.sy, pad + halfH, pad + innerH - halfH) : pad + innerH / 2;
+      const cam = frameCamera({
+        w, h, fieldH: innerH, focusX: focus.sx, focusY: focus.sy, zoom: view.zoom,
+        safeTop: safeTopRef.current, safeBottom: safeBottomRef.current, fit: fitBlendRef.current,
+      });
+      const z = cam.zoom;
+      const fsx = cam.pivotX;
+      const fsy = cam.pivotY;
       const shakeX = shake ? Math.sin(ts * 0.08) * shake : 0;
       const shakeY = shake ? Math.cos(ts * 0.07) * shake : 0;
 
@@ -474,15 +544,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.fillStyle = TURF_DARK;
       ctx.fillRect(0, 0, w, h);
       ctx.save();
-      ctx.translate(w / 2 + shakeX, h / 2 + shakeY);
+      ctx.translate(cam.anchorX + shakeX, cam.anchorY + shakeY);
       ctx.scale(z, z);
       ctx.translate(-fsx, -fsy);
 
       drawField(ripple);
-      if (!reducedMotion) drawTint(beat.possession);
+      tintRef.current = stepTint(tintRef.current, beat.possession, dt, PITCH_RENDER.TINT_TAU);
+      if (!reducedMotion) drawTint();
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColorRef.current : awayColorRef.current);
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
-      drawFrame(display, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM, ts);
+      drawFrame(display, liftPx, z >= PITCH_RENDER.NAME_ZOOM, ts);
 
       // Publish tappable chips in CSS px (same camera transform the draw uses),
       // so PitchView can hit-test a tap back to a player without the transform.
@@ -492,9 +563,17 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         for (const p of display.players.values()) {
           if (!p.id) continue;
           const { sx, sy } = project(p.x, p.y);
-          targets.push({ id: p.id, x: (sx - fsx) * z + w / 2, y: (sy - fsy) * z + h / 2, r: chipR * z * 1.4 });
+          targets.push({ id: p.id, x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY, r: chipR * z * 1.4, team: p.team, highlighted: !!p.highlighted });
         }
         hitTargetsRef.current = targets;
+      }
+      if (ballRef) {
+        const { sx, sy } = project(display.ballX, display.ballY);
+        ballRef.current = {
+          x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY,
+          r: Math.max(4, Math.min(innerW, innerH) * PITCH_RENDER.BALL_R_FRAC) * z, lift: liftPx * z,
+          o: ballSpinRef.current.o,
+        };
       }
 
       ctx.restore();

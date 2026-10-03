@@ -12,13 +12,17 @@ import { PenaltyGoalScene, shotTimings, type SceneShot } from '@/components/game
 import { PackConfetti } from '@/components/game/pack/PackConfetti';
 import { ShareMomentButton } from '@/components/game/ShareMomentButton';
 import type { MomentCardData } from '@/utils/shareCard';
-import { getKickStakes, getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
+import { getKickStakes, getPenaltyTakerQuality, getShootoutProgress, onPitchAtFinalWhistle } from '@/utils/penaltyShootout';
 import { getFlag } from '@/utils/nationality';
 import { hapticError, hapticHeavy, hapticLight, hapticMedium, hapticSuccess } from '@/utils/haptics';
 import { resumeSfx, setSfxEnabled, sfxGroan, sfxKick, sfxNet, sfxRoar, sfxWhistle, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
 import { PEN_AIM } from '@/config/gameBalance';
 import { cn } from '@/lib/utils';
 import type { PenaltyKick, Player } from '@/types/game';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+
+/** How long the shootout's Skip stays armed waiting for its confirming tap. */
+const SKIP_CONFIRM_MS = 3000;
 
 /**
  * Interactive penalty shootout — the emotional peak of a cup tie.
@@ -210,7 +214,8 @@ export function PenaltyShootout() {
   const revealOpponentPenalty = useGameStore(s => s.revealOpponentPenalty);
   const rollKeeperTaunt = useGameStore(s => s.rollKeeperTaunt);
   const skipAll = useGameStore(s => s.skipPenaltyShootout);
-  const reducedMotion = useGameStore(s => s.settings.reducedMotion || s.settings.performanceMode);
+  // OS preference included (the store settings alone missed it).
+  const reducedMotion = useReducedMotionPref();
   const isWorldCup = useGameStore(s => s.gameMode === 'world-cup');
 
   const progress = useMemo(() => getShootoutProgress(kicks), [kicks]);
@@ -250,15 +255,25 @@ export function PenaltyShootout() {
     }, tm.arriveMs));
   }, []);
 
+  const [skipArmed, setSkipArmed] = useState(false);
+  useEffect(() => {
+    if (!skipArmed) return;
+    const id = setTimeout(() => setSkipArmed(false), SKIP_CONFIRM_MS);
+    return () => clearTimeout(id);
+  }, [skipArmed]);
+
   // ── Derived clubs / squads ─────────────────────────────────────────────
   const myClubId = ctx?.playerIsHome ? currentMatchResult?.homeClubId : currentMatchResult?.awayClubId;
   const oppClubId = ctx?.playerIsHome ? currentMatchResult?.awayClubId : currentMatchResult?.homeClubId;
   const myClub = myClubId ? clubs[myClubId] : undefined;
   const oppClub = oppClubId ? clubs[oppClubId] : undefined;
 
+  // Only players still on the pitch at the final whistle may take a kick — the
+  // lineup keeps a sent-off (or injured, no subs left) player in it.
   const onPitch = useMemo(
-    () => (myClub?.lineup ?? []).map(id => players[id]).filter(Boolean),
-    [myClub, players],
+    () => (myClub ? onPitchAtFinalWhistle(myClub.lineup ?? [], currentMatchResult?.events ?? [], myClub.id) : [])
+      .map(id => players[id]).filter(Boolean),
+    [myClub, players, currentMatchResult?.events],
   );
   const takerPool = useMemo(() => {
     const used = new Set(ctx?.usedTakerIds ?? []);
@@ -512,12 +527,23 @@ export function PenaltyShootout() {
           )}
         </div>
         {!progress.decided && (
+          // Skipping resolves every remaining kick at once, and this sits next
+          // to the aim area: a stray tap used to throw the shootout away. First
+          // tap arms it for a few seconds; the second confirms. 44pt hit area.
           <button
             type="button"
-            onClick={() => { hapticLight(); skipAll(); }}
-            className="absolute top-9 right-2 flex items-center gap-1 text-micro text-white/60 hover:text-white bg-black/60 border border-white/10 rounded-full px-2 py-0.5 transition-colors"
+            onClick={() => {
+              hapticLight();
+              if (skipArmed) { setSkipArmed(false); skipAll(); return; }
+              setSkipArmed(true);
+            }}
+            aria-label={skipArmed ? 'Confirm: skip the rest of the shootout' : 'Skip the shootout'}
+            className={cn(
+              "absolute top-9 right-2 flex items-center gap-1 text-micro rounded-full px-2 py-0.5 transition-colors border before:absolute before:-inset-3 before:content-['']",
+              skipArmed ? 'text-amber-200 bg-amber-950/80 border-amber-400/50' : 'text-white/60 hover:text-white bg-black/60 border-white/10',
+            )}
           >
-            <SkipForward className="w-2.5 h-2.5" /> Skip
+            <SkipForward className="w-2.5 h-2.5" /> {skipArmed ? 'Skip all?' : 'Skip'}
           </button>
         )}
 

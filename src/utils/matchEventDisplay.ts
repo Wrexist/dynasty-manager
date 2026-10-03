@@ -20,6 +20,7 @@ export const EVENT_LABELS: Partial<Record<MatchEvent['type'], string>> = {
   yellow_card: 'YELLOW',
   red_card: 'RED CARD',
   foul: 'FOUL',
+  offside: 'OFFSIDE',
   injury: 'INJURY',
   substitution: 'SUB',
   var_check: 'VAR',
@@ -73,6 +74,7 @@ const LIVE_TONE: Partial<Record<MatchEvent['type'], MatchHighlightTone>> = {
   shot_saved: 'var',        // blue — defensive action
   shot_missed: 'neutral',
   foul: 'neutral',
+  offside: 'neutral',
 };
 
 /** Resolve an event to its tone, falling back sensibly for live commentary. */
