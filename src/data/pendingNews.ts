@@ -81,6 +81,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Swapped players fly to their new spot; calmer selection.',
     'Pin stoppage-time minute clamp that MatchDay\'s clock relies on.',
     'Pin the world in skipToFullTime and feedbackLoops so CI stops flaking.',
+    'True-to-scale markings, and a camera that frames around the HUD.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
