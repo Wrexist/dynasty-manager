@@ -696,6 +696,11 @@ const MatchDayInner = () => {
     intervalRef.current = setInterval(() => {
       const next = currentMinRef.current + 1;
       const maxMin = phase === 'first_half' ? 45 : phase === 'extra_time' ? 120 : 90;
+      // The events this tick works from. A segment simulated below replaces it
+      // at once: setAllEvents only lands on the next render, so reading the
+      // closure's `allEvents` showed minute M's events — and checked its key
+      // moments — only on the following tick, after M+1 had been simulated.
+      let evts = allEvents;
 
       if (next > maxMin) {
         clearInterval(intervalRef.current!);
@@ -703,9 +708,9 @@ const MatchDayInner = () => {
         // records minutes past the nominal end (45+X / 90+X / 120+X), so a
         // 90+2' winner never rendered and the on-screen score could
         // contradict the final result.
-        if (eventCursorRef.current < allEvents.length) {
-          eventCursorRef.current = allEvents.length;
-          setVisibleEvents(allEvents);
+        if (eventCursorRef.current < evts.length) {
+          eventCursorRef.current = evts.length;
+          setVisibleEvents(evts);
         }
         if (phase === 'first_half') {
           setPhase('half_time');
@@ -737,7 +742,8 @@ const MatchDayInner = () => {
             if (extended) {
               firstHalfFrontierRef.current = nextBoundary;
               setFirstHalfState(extended);
-              setAllEvents(extended.events);
+              evts = extended.events;
+              setAllEvents(evts);
             } else {
               firstHalfFrontierRef.current = 45;
             }
@@ -755,7 +761,8 @@ const MatchDayInner = () => {
             const extended = extendSecondHalfRef.current?.(nextBoundary) ?? null;
             if (extended) {
               secondHalfFrontierRef.current = nextBoundary;
-              setAllEvents(extended.events);
+              evts = extended.events;
+              setAllEvents(evts);
             } else {
               // Nothing came back — stop asking so the clock can't stall here.
               secondHalfFrontierRef.current = 90;
@@ -773,21 +780,21 @@ const MatchDayInner = () => {
       // of O(n). At "Instant" speed (20ms) this matters: the previous filter
       // was 50× n ops/sec — meaningful on low-end Android.
       let cursor = eventCursorRef.current;
-      const total = allEvents.length;
-      while (cursor < total && allEvents[cursor].minute <= next) cursor++;
+      const total = evts.length;
+      while (cursor < total && evts[cursor].minute <= next) cursor++;
       const cursorChanged = cursor !== eventCursorRef.current;
       eventCursorRef.current = cursor;
       currentMinRef.current = next;
       setCurrentMin(next);
       // Only allocate a new visibleEvents slice when the cursor actually
       // moved. Most ticks have no new events, especially on Instant speed.
-      const events = cursorChanged ? allEvents.slice(0, cursor) : null;
+      const events = cursorChanged ? evts.slice(0, cursor) : null;
       if (events) setVisibleEvents(events);
 
       // Check for key moment at this minute. Pass the cursor-truncated slice
       // when we computed one; otherwise re-use the last visibleEvents reference
       // (key-moment heuristics only care about events up to `next`).
-      const moment = checkKeyMomentRef.current(next, events ?? allEvents.slice(0, cursor));
+      const moment = checkKeyMomentRef.current(next, events ?? evts.slice(0, cursor));
       if (moment) {
         clearInterval(intervalRef.current!);
         setKeyMoment(moment);
