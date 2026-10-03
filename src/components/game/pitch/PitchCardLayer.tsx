@@ -7,6 +7,7 @@ import { getPlayerPortrait } from '@/utils/playerPortrait';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import type { PitchBallScreen, PitchHitTarget } from './PitchCanvas';
 import { declutterLabels, pitchCardBox, type PitchLabel } from './pitchGeometry';
+import { drawFootball, identityOrientation, liftScale } from './pitchBall';
 
 // Cards mode for the live pitch: a player card stands on every player's spot.
 //
@@ -32,13 +33,14 @@ interface PitchCardLayerProps {
 /** The card's layout width (CSS px); the frame loop scales it to the zoom. */
 const BASE_W = PITCH_RENDER.CARD_TOKEN_BASE_W;
 const LABEL_H = PITCH_RENDER.CARD_TOKEN_LABEL_H;
+const IDENTITY = identityOrientation();
 
 export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, hiddenId, ballRef }: PitchCardLayerProps) {
   const [ids, setIds] = useState<string[]>([]);
   const nodes = useRef(new Map<string, HTMLDivElement>());
   const hiddenRef = useRef(hiddenId);
   hiddenRef.current = hiddenId;
-  const ballEl = useRef<HTMLDivElement>(null);
+  const ballEl = useRef<HTMLCanvasElement>(null);
   const ballRefRef = useRef(ballRef);
   ballRefRef.current = ballRef;
   // One stable ref callback per player: an inline arrow is a new prop every
@@ -103,11 +105,28 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
       const bEl = ballEl.current;
       if (bEl) {
         if (b) {
-          const d = b.r * 2;
-          bEl.style.width = `${d}px`;
-          bEl.style.height = `${d}px`;
-          bEl.style.transform = `translate3d(${b.x - b.r}px, ${b.y - b.lift - b.r}px, 0)`;
+          // Same football as the renderer, same orientation: drawn on a small
+          // canvas with room for its halo, above every card.
+          const rr = b.r * liftScale(b.lift, b.r);
+          const pad = rr * PITCH_RENDER.BALL_HALO_R;
+          const dpr = Math.min(window.devicePixelRatio || 1, 3);
+          const px = Math.ceil(pad * 2 * dpr);
+          if (bEl.width !== px) { bEl.width = px; bEl.height = px; }
+          bEl.style.width = `${pad * 2}px`;
+          bEl.style.height = `${pad * 2}px`;
+          bEl.style.transform = `translate3d(${b.x - pad}px, ${b.y - b.lift - pad}px, 0)`;
           bEl.style.opacity = '1';
+          const ctx = bEl.getContext?.('2d');
+          if (ctx) {
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, pad * 2, pad * 2);
+            const halo = ctx.createRadialGradient(pad, pad, rr * 0.6, pad, pad, pad);
+            halo.addColorStop(0, `rgba(255,255,255,${PITCH_RENDER.BALL_HALO_ALPHA})`);
+            halo.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = halo;
+            ctx.fillRect(0, 0, pad * 2, pad * 2);
+            drawFootball(ctx, pad, pad, rr, b.o ?? IDENTITY);
+          }
         } else bEl.style.opacity = '0';
       }
       // Bunched players: one readable name beats three overprinted ones.
@@ -128,16 +147,12 @@ export function PitchCardLayer({ hitTargetsRef, players, homeColor, awayColor, h
   if (!players) return null;
   return (
     <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden="true">
-      {/* The ball: a lit white sphere with a dark rim and a soft halo. */}
-      <div
+      {/* The ball, above every card: the renderer's football, rolling. */}
+      <canvas
         ref={ballEl}
-        className="absolute left-0 top-0 rounded-full opacity-0"
-        style={{
-          zIndex: 100000,
-          willChange: 'transform',
-          background: 'radial-gradient(circle at 35% 32%, #ffffff 0%, #ffffff 30%, #c9cfd8 100%)',
-          boxShadow: '0 0 0 1.5px rgba(8,12,20,0.85), 0 0 10px 3px rgba(255,255,255,0.45), 0 2px 3px rgba(0,0,0,0.5)',
-        }}
+        data-testid="pitch-ball"
+        className="absolute left-0 top-0 opacity-0"
+        style={{ zIndex: 100000, willChange: 'transform' }}
       />
       {ids.map(id => {
         const p = players[id];

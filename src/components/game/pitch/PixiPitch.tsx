@@ -4,6 +4,7 @@ import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
+import { identityOrientation, liftScale, rollBall, visiblePatches } from './pitchBall';
 import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
 import type { PitchBallScreen, PitchHitTarget, PitchTokenStyle } from './PitchCanvas';
 
@@ -94,6 +95,8 @@ export default function PixiPitch({
   tokenStyleRef.current = tokenStyle;
   const ballRefRef = useRef(ballRef);
   ballRefRef.current = ballRef;
+  // The ball's 3-D orientation and last spot, so it rolls as it travels.
+  const ballSpinRef = useRef({ o: identityOrientation(), x: NaN, y: NaN });
   timelineRef.current = timeline;
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
@@ -514,13 +517,24 @@ export default function PixiPitch({
             const by = mapY(display.ballY);
             ballG.clear();
             ballG.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (fh || 1)), ballR * 0.4).fill({ color: 0x000000, alpha: 0.4 });
+            // Roll it by however far it moved, unless motion is reduced.
+            const spin = ballSpinRef.current;
+            if (!reducedMotion && Number.isFinite(spin.x)) spin.o = rollBall(spin.o, bx - spin.x, by - spin.y, ballR);
+            spin.x = bx; spin.y = by;
+            const rr = ballR * liftScale(liftPx, ballR);
+            const byy = by - liftPx;
             // Halo (bloomed by the glow layer) so the ball reads against grass and kits.
-            glowG.circle(bx, by - liftPx, ballR * PITCH_RENDER.BALL_HALO_R).fill({ color: 0xffffff, alpha: PITCH_RENDER.BALL_HALO_ALPHA * 0.6 });
-            // Lit sphere with a crisp dark rim: soft grey base + white hotspot.
-            ballG.circle(bx, by - liftPx, ballR).fill('#eef1f5').stroke({ width: Math.max(1.2, ballR * 0.3), color: 0x080c14, alpha: 0.85 });
+            glowG.circle(bx, byy, rr * PITCH_RENDER.BALL_HALO_R).fill({ color: 0xffffff, alpha: PITCH_RENDER.BALL_HALO_ALPHA * 0.6 });
+            // The football: white leather, the patches facing us, shading, rim.
+            ballG.circle(bx, byy, rr).fill('#f7f8fa');
+            for (const pt of visiblePatches(spin.o, rr)) {
+              ballG.poly(pt.pts.flatMap(([px, py]) => [bx + px, byy + py])).fill({ color: 0x14171e, alpha: 0.55 + 0.45 * pt.facing });
+            }
+            ballG.circle(bx + rr * 0.12, byy + rr * 0.14, rr * 0.92).fill({ color: 0x0a0e16, alpha: 0.16 });
+            ballG.circle(bx - rr * 0.36, byy - rr * 0.38, rr * 0.34).fill({ color: 0xffffff, alpha: 0.45 });
+            ballG.circle(bx, byy, rr).stroke({ width: Math.max(1, rr * 0.16), color: 0x080c14, alpha: 0.8 });
             const br = ballRefRef.current;
-            if (br) br.current = { x: (bx - fsx) * z + cam.anchorX, y: (by - fsy) * z + cam.anchorY, r: ballR * z, lift: liftPx * z };
-            ballG.circle(bx - ballR * 0.3, by - liftPx - ballR * 0.3, ballR * 0.5).fill({ color: 0xffffff, alpha: 0.9 });
+            if (br) br.current = { x: (bx - fsx) * z + cam.anchorX, y: (by - fsy) * z + cam.anchorY, r: ballR * z, lift: liftPx * z, o: spin.o };
           } catch (err) {
             fail(err);
             app?.ticker.stop();

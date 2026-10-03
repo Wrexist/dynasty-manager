@@ -7,6 +7,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { PitchCardLayer } from '@/components/game/pitch/PitchCardLayer';
 import type { PitchBallScreen, PitchHitTarget } from '@/components/game/pitch/PitchCanvas';
+import { liftScale } from '@/components/game/pitch/pitchBall';
+import { PITCH_RENDER } from '@/config/pitchChoreography';
 import type { Player } from '@/types/game';
 
 const player = (id: string, overall: number, position = 'CM'): Player => ({ id, overall, position, firstName: id, lastName: id } as unknown as Player);
@@ -54,11 +56,16 @@ describe('PitchCardLayer', () => {
     const { container } = render(<PitchCardLayer hitTargetsRef={ref} ballRef={ballRef} players={{ a: player('a', 80) }} homeColor="#f00" awayColor="#00f" />);
     act(() => { vi.advanceTimersByTime(50); });
     act(() => { vi.advanceTimersByTime(50); });
-    const ball = container.querySelector<HTMLDivElement>('.rounded-full[style*="z-index: 100000"]')!;
+    const ball = container.querySelector<HTMLCanvasElement>('[data-testid="pitch-ball"]')!;
     expect(ball).toBeTruthy();
     expect(ball.style.opacity).toBe('1');
-    expect(ball.style.width).toBe('12px');
-    expect(ball.style.transform).toBe('translate3d(114px, 196px, 0)'); // x - r, y - lift - r
+    // Lifted 8px: drawn a touch bigger, centred on (x, y - lift), with room for its halo.
+    const rr = 6 * liftScale(8, 6);
+    const pad = rr * PITCH_RENDER.BALL_HALO_R;
+    expect(parseFloat(ball.style.width)).toBeCloseTo(pad * 2);
+    const [tx, ty] = ball.style.transform.replace('translate3d(', '').split(',').map(v => parseFloat(v));
+    expect(tx + pad).toBeCloseTo(120);
+    expect(ty + pad).toBeCloseTo(210 - 8);
     const card = container.querySelector<HTMLDivElement>('[data-lit]')!;
     expect(Number(ball.style.zIndex)).toBeGreaterThan(Number(card.style.zIndex));
     ballRef.current = null;

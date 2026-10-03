@@ -4,6 +4,7 @@ import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDi
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { centreCirclePoints, frameCamera, penaltyArcPoints, stepTint, tintSpan, type MarkPoint, type TintState } from './pitchGeometry';
 import { shade, keeperKit, withAlpha } from './pitchColors';
+import { drawFootball, identityOrientation, liftScale, rollBall, type BallOrientation } from './pitchBall';
 
 // Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
 // and a motion trail. Consumes a MatchTimeline + current minute; eases the
@@ -27,7 +28,7 @@ export type PitchTokenStyle = 'chips' | 'cards';
 /** The ball's screen position (CSS px, same space as PitchHitTarget): its spot
  *  on the ground, radius, and how high the arc has lifted it. Published each
  *  frame so the Cards layer can draw the ball ABOVE the cards. */
-export interface PitchBallScreen { x: number; y: number; r: number; lift: number }
+export interface PitchBallScreen { x: number; y: number; r: number; lift: number; o?: BallOrientation }
 
 interface PitchCanvasProps {
   timeline: MatchTimeline;
@@ -84,6 +85,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   msPerMinuteRef.current = msPerMinute;
   const playbackRef = useRef<PlaybackState>(createPlayback());
   const viewRef = useRef<View | null>(null);
+  // The ball's 3-D orientation and last spot, so it rolls as it travels.
+  const ballSpinRef = useRef({ o: identityOrientation(), x: NaN, y: NaN });
   const trailRef = useRef<{ x: number; y: number }[]>([]);
   const rafRef = useRef<number>(0);
   const lastTsRef = useRef<number>(0);
@@ -424,26 +427,21 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (innerH || 1)), ballR * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
       const byy = by - liftPx;
+      // Roll it by however far it moved (world px), unless motion is reduced.
+      const spin = ballSpinRef.current;
+      if (!reducedMotion && Number.isFinite(spin.x)) spin.o = rollBall(spin.o, bx - spin.x, by - spin.y, ballR);
+      spin.x = bx; spin.y = by;
+      const rr = ballR * liftScale(liftPx, ballR);
       // Halo: a soft white glow so the ball reads against grass and kits.
-      const halo = ctx.createRadialGradient(bx, byy, ballR * 0.6, bx, byy, ballR * PITCH_RENDER.BALL_HALO_R);
+      const halo = ctx.createRadialGradient(bx, byy, rr * 0.6, bx, byy, rr * PITCH_RENDER.BALL_HALO_R);
       halo.addColorStop(0, `rgba(255,255,255,${PITCH_RENDER.BALL_HALO_ALPHA})`);
       halo.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(bx, byy, ballR * PITCH_RENDER.BALL_HALO_R, 0, Math.PI * 2);
+      ctx.arc(bx, byy, rr * PITCH_RENDER.BALL_HALO_R, 0, Math.PI * 2);
       ctx.fill();
-      // Ball as a lit sphere: white hotspot top-left → soft grey.
-      const bg = ctx.createRadialGradient(bx - ballR * 0.35, byy - ballR * 0.35, ballR * 0.1, bx, byy, ballR);
-      bg.addColorStop(0, '#ffffff');
-      bg.addColorStop(1, '#c6ccd6');
-      ctx.fillStyle = bg;
-      ctx.beginPath();
-      ctx.arc(bx, byy, ballR, 0, Math.PI * 2);
-      ctx.fill();
-      // A crisp dark rim: the edge is what the eye finds at this size.
-      ctx.lineWidth = Math.max(1.2, ballR * 0.3);
-      ctx.strokeStyle = 'rgba(8,12,20,0.85)';
-      ctx.stroke();
+      // The football itself: patches, shading, rim (see pitchBall).
+      drawFootball(ctx, bx, byy, rr, spin.o);
     };
 
     const tick = (ts: number) => {
@@ -574,6 +572,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ballRef.current = {
           x: (sx - fsx) * z + cam.anchorX, y: (sy - fsy) * z + cam.anchorY,
           r: Math.max(4, Math.min(innerW, innerH) * PITCH_RENDER.BALL_R_FRAC) * z, lift: liftPx * z,
+          o: ballSpinRef.current.o,
         };
       }
 

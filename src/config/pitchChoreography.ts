@@ -284,6 +284,10 @@ export const PITCH_RENDER = {
    *  reads against grass, kit colours and the cards alike. */
   BALL_HALO_R: 2.3,
   BALL_HALO_ALPHA: 0.32,
+  /** A ball in the air looks bigger (nearer the camera): up to +30%, reached
+   *  when the arc has lifted it this many radii. */
+  BALL_LIFT_SCALE_MAX: 0.3,
+  BALL_LIFT_SCALE_DIV: 10,
   /** Height of the name label under a pitch card, in the card's layout px
    *  (scaled with the card). The card stands this much higher so the label
    *  sits just above the player's spot, clear of his base and the ball. */
