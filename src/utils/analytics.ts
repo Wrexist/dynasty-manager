@@ -27,6 +27,9 @@ export type AnalyticsEvent =
   | { name: 'app_open'; data: { daysSinceInstall: number } }
   | { name: 'game_started'; data: { communityPackEnabled: boolean; gameMode: 'sandbox' | 'career' | 'world-cup' | 'sunday'; division: string } }
   | { name: 'season_completed'; data: { season: number; finalPosition: number; division: string } }
+  // How far into a career the player got — fired by GameShell when the week or
+  // the career match count moves. The retention question is WHERE players stop.
+  | { name: 'game_progress'; data: { season: number; week: number; matchesPlayed: number } }
   | { name: 'save_created'; data: { slot: number; bytes: number } }
   | { name: 'save_loaded'; data: { slot: number } }
   | { name: 'save_exported'; data: { slot: number; method: 'share' | 'download' | 'clipboard' } }
@@ -114,22 +117,25 @@ function mkSessionId(): string {
 }
 const SESSION_ID = mkSessionId();
 
-/** Sink abstraction. Default is a LOCAL-ONLY log: product analytics travel
- *  via RevenueCat + App Store Connect instead (decision recorded in
- *  docs/growth-overhaul-plan.md §1.2), so nothing here ever touches the
- *  network. Callers can override (tests, or re-wiring a backend later
- *  without changing call sites). */
+/** Sink abstraction. The default folds every event into device-level totals
+ *  that `utils/playerAttributes.ts` mirrors onto the anonymous RevenueCat
+ *  customer as subscriber attributes — there is still no first-party
+ *  endpoint and no raw event stream leaves the device. Callers can override
+ *  (tests, or a backend later without changing call sites). */
 export type AnalyticsSink = (payload: AnalyticsPayload) => void;
 
 let sink: AnalyticsSink = defaultSink;
 let cachedConsent: AnalyticsConsent | null = null;
 
+// Loaded on the first event, not at startup: the main chunk has a hard size
+// cap. Chained on one promise, so events still fold in the order fired.
+let playerStats: Promise<typeof import('@/utils/playerAttributes')> | null = null;
+
 function defaultSink(payload: AnalyticsPayload): void {
-  // Dev builds log so developers can see what would have been collected.
-  // Production: silent by design — no endpoint exists, no event leaves the
-  // device. The consent-gated pipeline above stays intact so a future
-  // decision to ship an endpoint is a one-function change, not a rewrite.
-  if (import.meta.env.DEV) {
+  playerStats ??= import('@/utils/playerAttributes');
+  void playerStats.then(m => m.recordPlayerStat(payload)).catch(() => { /* stats are best-effort */ });
+  // Dev builds log what is being aggregated; tests stay quiet.
+  if (import.meta.env.DEV && import.meta.env.MODE !== 'test') {
     // eslint-disable-next-line no-console
     console.info('[analytics]', payload.event, payload.data);
   }
@@ -158,13 +164,12 @@ export function getCurrentAnalyticsConsent(): AnalyticsConsent {
 
 type DataFor<N extends AnalyticsEventName> = Extract<AnalyticsEvent, { name: N }>['data'];
 
-/** Fire an analytics event. No-op unless the user has explicitly granted
- *  consent — default state is "unknown" (first launch) and "denied" both
- *  short-circuit the pipeline before the event is built. `data` is narrowed
+/** Fire an analytics event. On by default: only "denied" — the Settings
+ *  opt-out — short-circuits the pipeline before the event is built. `data` is narrowed
  *  to the shape declared for `name` in `AnalyticsEvent`, so a wrong field
  *  at a call site is a compile error, not a runtime privacy leak. */
 export function track<N extends AnalyticsEventName>(name: N, data: DataFor<N>): void {
-  if (getCurrentAnalyticsConsent() !== 'granted') return;
+  if (getCurrentAnalyticsConsent() === 'denied') return;
   const payload: AnalyticsPayload = {
     event: name,
     timestamp: Date.now(),

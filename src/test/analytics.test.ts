@@ -34,10 +34,10 @@ describe('analytics', () => {
       expect(readAnalyticsConsent()).toBe('unknown');
     });
 
-    it('does not fire events when consent is "unknown"', () => {
+    it('fires events when consent is "unknown" (on by default, opt-out only)', () => {
       refreshAnalyticsConsent();
       track('game_started', { communityPackEnabled: false, gameMode: 'sandbox', division: 'eng' });
-      expect(captured).toHaveLength(0);
+      expect(captured).toHaveLength(1);
     });
 
     it('does not fire events when consent is "denied"', () => {
@@ -56,6 +56,7 @@ describe('analytics', () => {
     });
 
     it('picks up consent toggling mid-session via refreshAnalyticsConsent', () => {
+      writeAnalyticsConsent('denied');
       refreshAnalyticsConsent();
       track('save_created', { slot: 1, bytes: 100 });
       expect(captured).toHaveLength(0);

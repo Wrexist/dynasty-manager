@@ -69,9 +69,9 @@ try {
 
 // Install denominator — fire once per session, after the device entitlement
 // hydration above has restored the real first-launch stamp (otherwise every
-// launch would read as day 0). Consent-gated inside track(): a user who has
-// not granted emits nothing. daysSinceInstall is a coarse whole-day bucket,
-// not an identifier.
+// launch would read as day 0). Opt-out-gated inside track(): a user who
+// turned off Share Gameplay Stats emits nothing. daysSinceInstall is a coarse
+// whole-day bucket, not an identifier.
 try {
   refreshAnalyticsConsent();
   trackAppOpen(useGameStore.getState().monetization?.firstLaunchTimestamp ?? 0);

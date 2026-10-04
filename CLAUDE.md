@@ -320,7 +320,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 4.1.11 + jsdom + Testing Library** — 362 test files in `src/test/`
+- **Vitest 4.1.11 + jsdom + Testing Library** — 363 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -406,7 +406,7 @@ src/
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 362 test files incl. longevity/stress suites, adversarial
+├── test/                → 363 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode,
@@ -583,15 +583,21 @@ is confirmed set (GitHub → Settings → Secrets and Variables → Actions — 
 can't be verified from the repo itself). See `marketing/ads/RELEASE-READINESS.md`
 §8 for the setup steps.
 
-`src/utils/analytics.ts` has **no endpoint and no `VITE_ANALYTICS_ENDPOINT`
-anywhere in this repo** — the sink is hardcoded local-only (dev builds
-`console.info`; production is a silent no-op), by deliberate decision:
-product analytics travel via RevenueCat + App Store Connect instead of a
-first-party pipeline (`marketing/ads/RELEASE-READINESS.md` §1.3, decided:
-delete). Don't reintroduce a transport without revisiting that decision, and
-every conversion rate in `marketing/ads/unit-economics.mjs` stays unmeasurable
-— and must be labelled an assumption, never a fact — until RevenueCat/ASC
-data exists.
+`src/utils/analytics.ts` has **no first-party endpoint** (no
+`VITE_ANALYTICS_ENDPOINT`), by deliberate decision
+(`marketing/ads/RELEASE-READINESS.md` §1.3). Its default sink is
+`utils/playerAttributes.ts`: every event folds into device-level totals
+(`STORAGE_KEYS.PLAYER_STATS`) mirrored onto the anonymous RevenueCat customer
+as **subscriber attributes** (sessions, active days, `returned_d1`/`_d7`,
+season/week/matches reached, paywall + pack + purchase-attempt counts) —
+totals, never a raw event stream, never names or save contents. RevenueCat
+keeps one value per key, so add a total or flag, not an event log, and keep
+the attribute keys stable (they are the dashboard contract; cap 50).
+Collection is **on by default, opt-out only**: Settings → Data → *Share
+gameplay stats* writes consent `'denied'`, which stops `track()` and deletes
+the keys from RevenueCat. The privacy policy (`docs/privacy.html` +
+`public/privacy-policy.html`) and the App Store privacy label must describe
+any new attribute before it ships.
 
 ### Ads: disabled in V1
 `@capacitor-community/admob` is fully removed (it crashed TestFlight builds —
@@ -798,7 +804,7 @@ Player identities draw from the **community pack** real-player dataset
 - **Career mode:** `careerSlice` + `utils/managerCareer.ts` — vacancies, board-pitch interviews (`data/boardPitches.ts`), contract negotiation, bonuses, sackings, retirement.
 - **Progression:** manager perks (TalentTree), prestige, achievements, milestones, records, Hall of Managers (one row per career), Dynasty Legacy, Manager Pass (see Monetization › Manager Pass + Legacy).
 - **Narratives:** storyline chains, press conferences, player narratives, random events, weekly digest.
-- **Observability:** Sentry with game breadcrumbs (`utils/sentry.ts`). `utils/analytics.ts` is local-only — no transport (see Monetization › Observability). Its consent gate is still in code, but nothing grants consent: the first-launch consent modal and the Settings toggle were removed with the transport.
+- **Observability:** Sentry with game breadcrumbs (`utils/sentry.ts`). `utils/analytics.ts` feeds RevenueCat subscriber attributes through `utils/playerAttributes.ts` — opt-out in Settings (see Monetization › Observability).
 
 ## Key Gotchas
 - `club.lineup` and `club.subs` are **string arrays of player IDs**, not Player objects.
@@ -820,7 +826,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (362 test files)
+npm run test         # Vitest (363 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)

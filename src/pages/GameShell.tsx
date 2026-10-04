@@ -25,6 +25,7 @@ import { getEntitlementsDefinitive, getCustomerInfo, extractSubscriptionInfo, st
 import { reconcilePendingPackCreditAtLaunch } from '@/utils/packCreditRecovery';
 // ── legacy: Manager Pass ──
 import { attachManagerPassObserver } from '@/utils/managerPassObserver';
+import { track } from '@/utils/analytics';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -290,6 +291,23 @@ const GameShell = () => {
   useEffect(() => attachManagerPassObserver(useGameStore, events => {
     useGameStore.getState().recordManagerPassEvents(events);
   }), []);
+
+  // Player stats: how far into the career the player got (season, week,
+  // career matches), for the RevenueCat attributes in utils/playerAttributes.
+  useEffect(() => {
+    let last = '';
+    const report = (st: ReturnType<typeof useGameStore.getState>) => {
+      if (!st.gameStarted) return;
+      const m = st.managerStats;
+      const matchesPlayed = (m?.totalWins ?? 0) + (m?.totalDraws ?? 0) + (m?.totalLosses ?? 0);
+      const key = `${st.season}:${st.week}:${matchesPlayed}`;
+      if (key === last) return;
+      last = key;
+      track('game_progress', { season: st.season, week: st.week, matchesPlayed });
+    };
+    report(useGameStore.getState());
+    return useGameStore.subscribe(report);
+  }, []);
 
   // Sync monetization state on game load
   useEffect(() => {

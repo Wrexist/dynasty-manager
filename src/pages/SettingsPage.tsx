@@ -21,6 +21,8 @@ import {
   writeCommunityPackSlotPref,
   readNotificationsEnabled,
   writeNotificationsEnabled,
+  readAnalyticsConsent,
+  writeAnalyticsConsent,
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
@@ -28,7 +30,7 @@ import { openSubscriptionManagement } from '@/utils/purchases';
 import { restoreAndSync } from '@/utils/purchaseSync';
 import { isRedeemEnabled } from '@/utils/redeemCodes';
 import { triggerTestError } from '@/utils/sentry';
-import { track } from '@/utils/analytics';
+import { track, refreshAnalyticsConsent } from '@/utils/analytics';
 import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
 import { isPro, hasRecurringSubscription } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
@@ -199,6 +201,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     });
     return () => { cancelled = true; };
   }, []);
+  // Device-global stats opt-out (utils/playerAttributes). On unless turned off;
+  // turning it off also deletes the stats already sent to RevenueCat.
+  const [statsOn, setStatsOn] = useState<boolean>(() => readAnalyticsConsent() !== 'denied');
+  const handleToggleStats = () => {
+    const next = !statsOn;
+    writeAnalyticsConsent(next ? 'granted' : 'denied');
+    refreshAnalyticsConsent();
+    setStatsOn(next);
+    if (!next) void import('@/utils/playerAttributes').then(m => m.clearPlayerStatAttributes());
+  };
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -232,8 +244,6 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   // and Send button stay visible above the on-screen keyboard.
   const keyboardInset = useKeyboardInset();
   const feedbackTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // (Analytics consent toggle removed — no first-party stats leave the device;
-  // see docs/growth-overhaul-plan.md §1.2.)
   const userIsPro = isPro(monetization);
   // Only a store subscription has a renewal date and a Manage button; a
   // Lifetime record in the subscription slot is shown as the Pro badge alone.
@@ -597,6 +607,13 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       {/* ─── Data ─── */}
       <SettingsSection title={t('settings.data')}>
         <div className="space-y-3">
+          <ToggleRow
+            icon={Gauge}
+            label={t('settingsPage.shareGameplayStats')}
+            description={t('settingsPage.shareGameplayStatsDescription')}
+            value={statsOn}
+            onChange={handleToggleStats}
+          />
           {variant === 'in-game' && (
             <>
               <SaveStatusIndicator />

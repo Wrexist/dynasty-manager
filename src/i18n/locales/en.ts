@@ -701,6 +701,8 @@ export const en = {
   'settingsPage.automaticallySaveAfterEachWeek': "Automatically save after each week",
   'settingsPage.autoSave': "Auto-save",
   'settingsPage.notifyMeAboutMyDaily': "Notify me about my daily streak and live events (mobile only)",
+  'settingsPage.shareGameplayStats': "Share gameplay stats",
+  'settingsPage.shareGameplayStatsDescription': "Anonymous totals like seasons played and packs opened help us improve the game",
   'settingsPage.reminders': "Reminders",
   'settingsPage.crowdWhistlesGoalsPacksAnd': "Crowd, whistles, goals, packs and celebrations",
   'settingsPage.soundEffects': "Sound effects",
