@@ -58,6 +58,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Ballon d\'Or Night: the season\'s top 10 is dealt face-down and turned one card at a time, from 10th to the winner, who gets a full walkout.',
     'The Ballon d\'Or page now shows a podium for every season and lets you replay each ceremony.',
     'The season summary and inbox no longer spoil the Ballon d\'Or winner before you have watched the ceremony.',
+    'New Share gameplay stats option in Settings → Data helps us improve the game. You can switch it off anytime.',
   ],
   improved: [
     'Made the free-play option clearer on the Pro welcome screen.',
