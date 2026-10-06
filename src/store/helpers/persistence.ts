@@ -361,10 +361,13 @@ export const STORAGE_KEYS = {
    *  at load time it means the previous write crashed between "stage" and
    *  "promote"; the recovery path inspects it. */
   saveSlotTmp: (slot: number) => `dynasty-save-${slot}-tmp`,
-  /** localStorage: device-level analytics consent. Lives outside the per-slot
-   *  save so the user only answers once. Values: 'granted' | 'denied'. Missing
-   *  key = never asked → show the consent screen. */
+  /** localStorage: device-level analytics opt-out. Lives outside the per-slot
+   *  save. Values: 'granted' | 'denied'. Missing key = never answered, which
+   *  counts as on (Settings → Share Gameplay Stats turns it off). */
   ANALYTICS_CONSENT: 'dynasty-analytics-consent',
+  /** localStorage: device-level gameplay stat totals mirrored to RevenueCat
+   *  subscriber attributes (`utils/playerAttributes.ts`). Not in any save. */
+  PLAYER_STATS: 'dynasty-player-stats',
   /** localStorage: device-scoped purchase record — entitlements, subscription
    *  and the first-launch stamp. Purchases belong to the DEVICE (really to the
    *  Apple ID), not to a save slot, but the only durable copy used to live
@@ -749,6 +752,19 @@ export function writeLiveEventProgress(record: LiveEventProgress): void {
   catch { /* storage unavailable — non-fatal */ }
 }
 
+// ── Player stats (device-global, mirrored to RevenueCat) ──
+
+/** Raw player-stats JSON, or null. Parsing lives in `utils/playerAttributes.ts`. */
+export function readPlayerStatsData(): string | null {
+  try { return localStorage.getItem(STORAGE_KEYS.PLAYER_STATS); }
+  catch { return null; }
+}
+
+export function writePlayerStatsData(json: string): void {
+  try { localStorage.setItem(STORAGE_KEYS.PLAYER_STATS, json); }
+  catch { /* storage unavailable — the in-memory record still holds this session */ }
+}
+
 // ── legacy: Manager Pass (device-global) ──
 
 /** Raw Manager Pass JSON, or null. Parsing and validation live in
@@ -1050,7 +1066,8 @@ export function writeWeeklyPackBonus(record: WeeklyPackBonusRecord): void {
   catch { /* storage unavailable — the in-memory mirror still holds this session */ }
 }
 
-/** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */
+/** Analytics consent state. `'unknown'` (never answered) counts as on; only
+ *  `'denied'` — the Settings opt-out — stops collection. */
 export type AnalyticsConsent = 'unknown' | 'granted' | 'denied';
 
 // IndexedDB mirror of the consent answer. localStorage is evictable under

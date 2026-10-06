@@ -108,6 +108,24 @@ export async function initPurchases(): Promise<boolean> {
   return initPromise;
 }
 
+/** Write RevenueCat subscriber attributes — the player stats built by
+ *  `utils/playerAttributes.ts` (a value of null deletes that key). Fire and
+ *  forget: never throws and never blocks a purchase or a restore. Configures
+ *  through the same memoized `initPurchases`, so an early call cannot race a
+ *  second configure. Off-device it is a no-op. */
+export async function setSubscriberAttributes(attributes: Record<string, string | null>): Promise<boolean> {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return false;
+  try {
+    if (!(await initPurchases())) return false;
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    await Purchases.setAttributes(attributes);
+    return true;
+  } catch (err) {
+    Sentry.addBreadcrumb({ category: 'purchases', level: 'warning', message: `setAttributes failed: ${String(err)}` });
+    return false;
+  }
+}
+
 /** Ensure the SDK is configured before issuing a call. Throws on failure
  *  so user-triggered flows surface a real error instead of a silent no-op. */
 async function ensureConfigured(): Promise<void> {
