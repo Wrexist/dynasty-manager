@@ -43,7 +43,8 @@ tester account — nothing to declare.
 ## Data safety
 
 **Does your app collect or share any of the required user data types?** **Yes**
-(purchase records go to RevenueCat).
+(purchase records and anonymous gameplay totals go to RevenueCat as
+subscriber attributes — `utils/playerAttributes.ts`, on by default since #640).
 
 **Is all collected data encrypted in transit?** **Yes** (HTTPS only).
 
@@ -55,8 +56,9 @@ the privacy policy URL.
 | Data type | Collected | Shared | Optional? | Purpose |
 |---|---|---|---|---|
 | Financial info → **Purchase history** | Yes | No (RevenueCat is a service provider processing on our behalf — not "sharing" under Play's definition) | Required to buy | App functionality (deliver and restore purchases) |
+| App activity → **App interactions** | Yes — gameplay totals (sessions, active days, season/week/matches reached, paywall/store/pack/purchase-attempt counts) | No (same service-provider basis as above) | **Yes** — Settings → Data → *Share gameplay stats* turns it off and deletes the sent keys | Analytics |
 | App info and performance → **Crash logs / Diagnostics** | **No** while `SENTRY_ENABLED` is not `true` | — | — | — |
-| Device or other IDs | **Yes** — RevenueCat's randomly generated app user ID | No | Required to buy | App functionality |
+| Device or other IDs | **Yes** — RevenueCat's randomly generated app user ID | No | Required to buy | App functionality, Analytics (the gameplay totals above are keyed to it) |
 | Location, personal info, contacts, messages, photos, audio, files, calendar, health, web history | No | — | — | — |
 
 Game saves never leave the device (IndexedDB/localStorage) — not collected.
