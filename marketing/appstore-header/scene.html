@@ -1,0 +1,250 @@
+<!doctype html>
+<!--
+  Dynasty Manager — App Store "Header and Search Results" creative asset.
+
+  One 16:9 stage (2622 x 1475 CSS px) that render.mjs scales to "cover" each
+  export size. Everything that matters sits in the centre safe area (middle
+  ~76% of the height, ~84% of the width) so the 2.33:1 header crop and the 3:2
+  search crop keep the whole card fan. Artwork is the game's own: card frames
+  (public/player-cards), portrait cut-outs (public/player-portraits), pack
+  covers (public/packs) and the walkout floodlight + plinth (public/walkout).
+  The stadium, pitch, light and confetti are drawn here.
+
+  Ratings are pack VERSIONS from the shipped pool: base overall + versionBoost
+  (Legends +4, World Class +3, Elite +2) — see CLAUDE.md "Card versions".
+  No prices, URLs, (c) or award claims (Apple creative-asset rules).
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Oswald; font-weight: 700; src: url(../../node_modules/@fontsource/oswald/files/oswald-latin-700-normal.woff2); }
+  @font-face { font-family: Oswald; font-weight: 600; src: url(../../node_modules/@fontsource/oswald/files/oswald-latin-600-normal.woff2); }
+  @font-face { font-family: 'DM Sans'; font-weight: 700; src: url(../../node_modules/@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff2); }
+
+  html, body { margin: 0; height: 100%; background: #05070b; overflow: hidden; }
+  #stage {
+    position: absolute; left: 50%; top: 50%;
+    width: 2622px; height: 1475px; margin: -737.5px 0 0 -1311px;
+    overflow: hidden; transform-origin: 50% 50%;
+    background:
+      radial-gradient(ellipse 60% 45% at 50% 38%, rgba(255,196,64,.22), transparent 70%),
+      radial-gradient(ellipse 80% 50% at 50% 100%, rgba(16,185,129,.28), transparent 70%),
+      linear-gradient(#04060a 0%, #0a1018 45%, #07120f 100%);
+  }
+  .abs { position: absolute; }
+
+  /* ── Stadium bowl ─────────────────────────────────────────── */
+  #bowl { left: 0; top: 0; width: 2622px; height: 1475px; }
+
+  /* ── Floodlights and beams ────────────────────────────────── */
+  .tower { width: 230px; opacity: .92; filter: drop-shadow(0 0 40px rgba(255,255,255,.55)) drop-shadow(0 0 120px rgba(255,236,180,.45)); }
+  .flare { width: 520px; height: 520px; margin: -260px 0 0 -260px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,244,210,.55) 12%, rgba(255,220,150,.18) 35%, transparent 65%);
+    mix-blend-mode: screen; }
+  .boards { left: -40px; width: 2702px; height: 54px; top: 948px;
+    background: linear-gradient(90deg, #0b3d2a, #10b981 20%, #0b3d2a 40%, #f5b82e 50%, #0b3d2a 60%, #10b981 80%, #0b3d2a);
+    box-shadow: 0 0 60px rgba(16,185,129,.55), 0 0 18px rgba(245,184,46,.5); border-top: 3px solid rgba(255,255,255,.35);
+    display: flex; justify-content: space-around; align-items: center;
+    font: 700 30px/1 Oswald, sans-serif; letter-spacing: .5em; color: rgba(255,255,255,.92); text-shadow: 0 0 12px rgba(255,255,255,.8); }
+  .beam {
+    width: 1500px; height: 2200px; transform-origin: 50% 0;
+    background: conic-gradient(from 166deg at 50% 0%, transparent 0deg, rgba(255,246,214,.30) 9deg, rgba(255,246,214,.12) 19deg, transparent 28deg);
+    filter: blur(14px); mix-blend-mode: screen;
+  }
+
+  /* ── Pitch ────────────────────────────────────────────────── */
+  #pitchWrap { left: -1200px; top: 960px; width: 5022px; height: 1400px; perspective: 900px; perspective-origin: 50% 0%; }
+  #pitch {
+    width: 100%; height: 100%; transform: rotateX(64deg); transform-origin: 50% 0%;
+    background:
+      repeating-linear-gradient(90deg, #0d5a33 0 180px, #0b4d2c 180px 360px);
+    box-shadow: inset 0 260px 220px -40px rgba(4,6,10,.95);
+  }
+  #pitch::before { /* halfway line + centre circle */
+    content: ''; position: absolute; left: 50%; top: 18%; width: 760px; height: 760px; margin-left: -380px;
+    border: 10px solid rgba(255,255,255,.55); border-radius: 50%;
+  }
+  #pitch::after { content: ''; position: absolute; left: 0; right: 0; top: calc(18% + 380px); height: 10px; background: rgba(255,255,255,.5); }
+  #haze { left: 0; top: 820px; width: 2622px; height: 360px; background: linear-gradient(transparent, rgba(190,220,210,.10) 45%, transparent); filter: blur(10px); }
+
+  /* ── Hero burst ───────────────────────────────────────────── */
+  #burst {
+    left: 1311px; top: 560px; width: 2600px; height: 2600px; margin: -1300px 0 0 -1300px;
+    background: repeating-conic-gradient(from 0deg, rgba(255,214,120,.16) 0deg 3deg, transparent 3deg 12deg);
+    -webkit-mask-image: radial-gradient(circle, black 0%, transparent 52%);
+    mix-blend-mode: screen;
+  }
+  #halo { left: 1311px; top: 620px; width: 1500px; height: 1100px; margin: -550px 0 0 -750px;
+    background: radial-gradient(ellipse, rgba(255,205,90,.55), rgba(255,170,40,.18) 40%, transparent 68%); filter: blur(20px); mix-blend-mode: screen; }
+  #pool { left: 1311px; top: 1010px; width: 1500px; height: 260px; margin-left: -750px;
+    background: radial-gradient(ellipse, rgba(255,214,120,.65), rgba(255,180,60,.15) 45%, transparent 70%); filter: blur(8px); }
+  #plinth { left: 1311px; top: 985px; width: 860px; margin-left: -430px; filter: drop-shadow(0 0 60px rgba(255,200,90,.5)); }
+
+  /* ── Cards ────────────────────────────────────────────────── */
+  .card { position: absolute; aspect-ratio: 2 / 3; transform-origin: 50% 100%; }
+  .card > .frame { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .card > .face {
+    position: absolute; left: 17%; width: 66%; top: 11%; height: 52%;
+    -webkit-mask-image: linear-gradient(to bottom, black 62%, transparent 98%);
+  }
+  .card > .face img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; }
+  .card .ovr {
+    position: absolute; left: 16%; top: 13.5%; text-align: center;
+    font: 700 calc(var(--w) * .17) / .9 Oswald, sans-serif; color: var(--ink);
+    text-shadow: 0 2px 0 rgba(0,0,0,.6), 0 0 calc(var(--w) * .05) rgba(0,0,0,.65);
+  }
+  .card .ovr span { display: block; font-size: .36em; letter-spacing: .06em; margin-top: .25em; }
+  .card .name {
+    position: absolute; left: 10%; right: 10%; top: 63%; text-align: center;
+    font: 700 calc(var(--w) * .095) / 1 Oswald, sans-serif; letter-spacing: .04em; color: var(--ink);
+    text-shadow: 0 3px 0 rgba(0,0,0,.65), 0 0 calc(var(--w) * .04) rgba(0,0,0,.8);
+  }
+  .card .shine {
+    position: absolute; inset: 0;
+    background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.28) 47%, transparent 58%);
+    -webkit-mask-image: var(--mask); -webkit-mask-size: 100% 100%; mix-blend-mode: screen;
+  }
+  .glowcard { filter: drop-shadow(0 0 50px rgba(255,200,90,.75)) drop-shadow(0 30px 40px rgba(0,0,0,.7)); }
+  .sidecard { filter: drop-shadow(0 0 26px rgba(120,170,255,.45)) drop-shadow(0 26px 34px rgba(0,0,0,.75)); }
+  .farcard  { filter: brightness(.88) drop-shadow(0 0 20px rgba(255,200,90,.35)) drop-shadow(0 24px 30px rgba(0,0,0,.8)); }
+
+  .pack { position: absolute; aspect-ratio: 2 / 3; filter: drop-shadow(0 0 40px rgba(255,200,90,.45)) drop-shadow(0 30px 40px rgba(0,0,0,.8)); }
+  .pack img { width: 100%; height: 100%; }
+
+  /* ── Confetti and sparks ──────────────────────────────────── */
+  .spark { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
+  .confetti { position: absolute; border-radius: 2px; }
+  #vignette { left: 0; top: 0; width: 2622px; height: 1475px;
+    background: radial-gradient(ellipse 75% 70% at 50% 48%, transparent 55%, rgba(2,3,6,.75) 100%); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="bowl" class="abs" viewBox="0 0 2622 1475"></svg>
+  <div id="haze" class="abs"></div>
+  <div id="pitchWrap" class="abs"><div id="pitch"></div></div>
+
+  <div class="abs boards"><span>DYNASTY</span><span>MANAGER</span><span>DYNASTY</span><span>MANAGER</span><span>DYNASTY</span><span>MANAGER</span></div>
+  <img class="abs tower" src="../../public/walkout/floodlight.webp" style="left:150px; top:40px; transform: rotate(-8deg)">
+  <img class="abs tower" src="../../public/walkout/floodlight.webp" style="right:150px; top:40px; transform: scaleX(-1) rotate(-8deg)">
+  <div class="abs beam" style="left:-460px; top:110px; transform: rotate(-36deg)"></div>
+  <div class="abs beam" style="right:-460px; top:110px; transform: rotate(36deg) scaleX(-1)"></div>
+  <div class="abs flare" style="left:262px; top:140px"></div>
+  <div class="abs flare" style="left:2360px; top:140px"></div>
+
+  <div id="burst" class="abs"></div>
+  <div id="halo" class="abs"></div>
+  <div id="pool" class="abs"></div>
+  <img id="plinth" class="abs" src="../../public/walkout/plinth.webp">
+
+  <div id="cards"></div>
+  <div id="fx"></div>
+  <div id="vignette" class="abs"></div>
+</div>
+
+<script>
+  // Seeded RNG so every render is identical.
+  let seed = 7;
+  const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let r = Math.imul(seed ^ (seed >>> 15), 1 | seed); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; };
+  const W = 2622;
+
+  // Stadium bowl: tiers of stands with a crowd of camera flashes.
+  const bowl = document.getElementById('bowl');
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const defs = el('defs', {});
+  defs.innerHTML = `
+    <linearGradient id="stand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2532"/><stop offset="1" stop-color="#080c12"/></linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2633"/><stop offset="1" stop-color="#0b1118"/></linearGradient>`;
+  bowl.appendChild(defs);
+  const tiers = [ { top: 470, bottom: 760, bulge: 120 }, { top: 700, bottom: 980, bulge: 90 } ];
+  bowl.appendChild(el('path', { d: `M -50 470 Q 1311 300 2672 470 L 2672 430 Q 1311 250 -50 430 Z`, fill: 'url(#roof)' }));
+  for (const t of tiers) {
+    bowl.appendChild(el('path', { d: `M -50 ${t.top} Q 1311 ${t.top - t.bulge} 2672 ${t.top} L 2672 ${t.bottom} Q 1311 ${t.bottom - t.bulge} -50 ${t.bottom} Z`, fill: 'url(#stand)' }));
+  }
+  // Crowd: dim heads, coloured scarves, and flashes.
+  for (let i = 0; i < 2600; i++) {
+    const x = rnd() * W;
+    const tier = tiers[i % 2];
+    const u = (x - 1311) / 1311;
+    const curve = tier.bulge * (1 - u * u);
+    const y = tier.top - curve + 14 + rnd() * (tier.bottom - tier.top - 28);
+    const r = rnd();
+    const fill = r < .04 ? '#fff6d8' : r < .12 ? '#10b981' : r < .2 ? '#f5b82e' : r < .26 ? '#e5484d' : '#2a3644';
+    const op = r < .04 ? .95 : r < .26 ? .55 : .45;
+    bowl.appendChild(el('circle', { cx: x, cy: y, r: r < .04 ? 3.2 : 2.4 + rnd() * 1.6, fill, opacity: op }));
+  }
+  // Roof lights.
+  for (let x = 40; x < W; x += 54) {
+    const u = (x - 1311) / 1311;
+    bowl.appendChild(el('circle', { cx: x, cy: 452 - 170 * (1 - u * u), r: 3.5, fill: '#fff8e6', opacity: .9 }));
+  }
+
+  // Cards: [frame, portrait, name, pos, ovr, x-offset, y, width, rotation, class, ink]
+  const P = '../../public/player-portraits/cutout-v1/';
+  const F = '../../public/player-cards/';
+  const cards = [
+    ['elite', 'vinicius-junior', 'VINÍCIUS JR', 'LW', 91, -800, 430, 400, -15, 'farcard', '#eef3ff'],
+    ['elite', 'mohamed-salah', 'SALAH', 'RM', 93, 800, 430, 400, 15, 'farcard', '#eef3ff'],
+    ['world-class', 'kylian-mbappe', 'MBAPPÉ', 'ST', 94, -455, 330, 470, -9, 'sidecard', '#f7e7b0'],
+    ['world-class', 'jude-bellingham', 'BELLINGHAM', 'CAM', 93, 455, 330, 470, 9, 'sidecard', '#f7e7b0'],
+    ['legends', 'erling-haaland', 'HAALAND', 'ST', 94, 0, 215, 600, 0, 'glowcard', '#ffe9a8'],
+  ];
+  const host = document.getElementById('cards');
+  // Packs float at the wings, behind the card fan.
+  const packs = [ ['legends', 40, 560, 330, -22], ['dynasty', 2252, 560, 330, 22] ];
+  for (const [p, x, y, w, rot] of packs) {
+    const d = document.createElement('div');
+    d.className = 'pack';
+    d.style.cssText = `left:${x}px; top:${y}px; width:${w}px; transform: rotate(${rot}deg);`;
+    d.innerHTML = `<img src="../../public/packs/${p}.webp">`;
+    host.appendChild(d);
+  }
+  for (const [frame, face, name, pos, ovr, dx, y, w, rot, cls, ink] of cards) {
+    const c = document.createElement('div');
+    c.className = `card ${cls}`;
+    c.style.cssText = `left:${1311 + dx - w / 2}px; top:${y}px; width:${w}px; --w:${w}px; --ink:${ink}; --mask:url(${F}${frame}.webp); transform: rotate(${rot}deg);`;
+    c.innerHTML = `<img class="frame" src="${F}${frame}.webp"><div class="face"><img src="${P}${face}.webp"></div>
+      <div class="ovr">${ovr}<span>${pos}</span></div><div class="name">${name}</div><div class="shine"></div>`;
+    host.appendChild(c);
+  }
+
+  // Sparks and confetti.
+  const fx = document.getElementById('fx');
+  for (let i = 0; i < 260; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const big = rnd() < .12;
+    const size = big ? 10 + rnd() * 16 : 3 + rnd() * 6;
+    const ang = rnd() * Math.PI * 2, rad = 250 + Math.pow(rnd(), .7) * 1200;
+    const x = 1311 + Math.cos(ang) * rad * 1.2, y = 600 + Math.sin(ang) * rad * .55;
+    s.style.cssText = `left:${x}px; top:${y}px; width:${size}px; height:${size}px;
+      background: radial-gradient(circle, rgba(255,246,214,1), rgba(255,196,64,.8) 40%, transparent 70%);
+      filter: blur(${big ? 3 : 0.5}px); opacity:${.45 + rnd() * .55}`;
+    fx.appendChild(s);
+  }
+  const colours = ['#f5b82e', '#ffd66b', '#10b981', '#34d399', '#ffffff', '#e8c15a'];
+  for (let i = 0; i < 320; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    const x = rnd() * W, y = rnd() * 1000 - 40;
+    const w = 14 + rnd() * 18, h = 6 + rnd() * 10;
+    const onCards = x > 330 && x < 2290 && y > 190 && y < 1130;
+    if (onCards) continue; // keep every face, rating and name clear
+    c.style.cssText = `left:${x}px; top:${y}px; width:${w}px; height:${h}px; background:${colours[i % colours.length]};
+      transform: rotate(${rnd() * 360}deg) skewX(${rnd() * 40 - 20}deg); opacity:${.55 + rnd() * .45};
+      filter: blur(${rnd() < .3 ? 2 : 0}px)`;
+    fx.appendChild(c);
+  }
+
+  // Cover-fit the stage into whatever viewport render.mjs opens.
+  const fit = () => {
+    const s = Math.max(innerWidth / 2622, innerHeight / 1475);
+    document.getElementById('stage').style.transform = `scale(${s})`;
+  };
+  fit();
+  addEventListener('resize', fit);
+</script>
+</body>
+</html>
