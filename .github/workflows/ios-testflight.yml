@@ -25,6 +25,12 @@ jobs:
   build:
     runs-on: macos-latest
     timeout-minutes: 75
+    env:
+      # The macOS arm64 runner sizes Node's default heap at ~2 GB, and
+      # `vite build` ran out of it at "rendering chunks" (run #194). The
+      # Ubuntu runners in pr-checks get a larger default, which is why the
+      # same commit built there.
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
 
