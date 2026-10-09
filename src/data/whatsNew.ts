@@ -65,6 +65,17 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.6.1',
+    build: 193,
+    date: '2026-09-24',
+    headline: 'Real faces on your player cards.',
+    summary: 'Player cards now show real portraits for 844 players, and the Pro welcome screen makes it clear you can keep playing for free.',
+    highlights: [],
+    new: ['Player cards show real portraits for 844 players.'],
+    improved: ['Made the free-play option clearer on the Pro welcome screen.'],
+    fixed: ['Limited deal cards now show their pack covers.'],
+  },
+  {
     version: '1.6.0',
     build: null,
     date: '2026-09-20',

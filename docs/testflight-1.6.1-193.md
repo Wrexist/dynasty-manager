@@ -12,7 +12,10 @@ Marketing version: 1.6.1 via the workflow override. Developer tools: off.
 - macOS full release validation, signed archive and upload: passed. Workflow 193 completed successfully; upload confirmed at 20:30 UTC on September 24.
 - Apple processing: Complete. Build 1.6.1 (193) is assigned to the existing `Iternal` internal group with one tester; verified in the build detail page. It is ready for internal TestFlight installation. The `Ready to Submit` label does not mean it has been submitted for external testing or App Review.
 - Real-device testing: not performed by the agent; no iOS device host is available in this Windows environment.
-- App Review and screenshot experiment: not submitted. Do not submit until device testing passes.
+- Owner acceptance: on September 24, the owner confirmed “it works you can use it” after the TestFlight handoff. This clears the requested device-test gate; individual scenarios below were not separately reported and are not marked as passed.
+- App Review: submitted September 24, 2026 at 22:52 Europe/Stockholm; verified **Waiting for Review**, version **1.6.1 (193)**. [Submission receipt](https://appstoreconnect.apple.com/apps/6760918006/distribution/reviewsubmissions/details/8e3dbd6f-07f5-4839-9a2d-fcb3e8c077db). Automatic release after approval, seven-day phased updates, existing rating retained.
+- Both English listings now have revised descriptions qualifying optional purchases and eligible trials, removing dated season openings and ad-removal claims, plus release notes for Continue Free and player portraits. Saved values were verified in a fresh page before submission.
+- Screenshot experiment remains saved but unsubmitted. Apple blocked Start Test because the app version was added for review, and explicitly requires removing that version from review or waiting until it is published. Preserve the submitted app update; resume the gameplay-first experiment after publication.
 
 ## What changed in this candidate
 
@@ -22,7 +25,7 @@ Marketing version: 1.6.1 via the workflow override. Developer tools: off.
 
 ## Device checks
 
-Record the device model, iOS version, build number and result for each scenario. Keep an existing save safe; use a separate device or spare save slot for clean-start testing.
+The owner accepted the candidate, but did not report results per scenario. The pending entries below mean unreported, not a failed acceptance gate. Record specific results when available. Keep an existing save safe; use a separate device or spare save slot for clean-start testing.
 
 | Scenario | Pass condition | Result |
 |---|---|---|

@@ -45,6 +45,7 @@ export const PENDING_NEWS: PendingRelease = {
   highlights: [
     'Manager Pass: a season-long reward track with a free row and a Pro row of cosmetic rewards.',
     'A cleaner Home screen: one Continue button, then only what needs your attention.',
+    'The live match is rebuilt around the pitch: player cards stand on the grass, a real ball rolls between them, and the commentary names who is on it.',
     'Skip to full time from half-time, free for everyone.',
     'Pack walkouts are rebuilt: stadium floodlights ignite, the card lands on a lit stage, and nation, position and rating are revealed one by one before the flip names the player.',
     'Open packs by tearing the seal off with your finger: the foil crackles and curls as you swipe, and the light inside shows the colour of your best card.',
@@ -59,9 +60,10 @@ export const PENDING_NEWS: PendingRelease = {
     'The Ballon d\'Or page now shows a podium for every season and lets you replay each ceremony.',
     'The season summary and inbox no longer spoil the Ballon d\'Or winner before you have watched the ceremony.',
     'New Share gameplay stats option in Settings → Data helps us improve the game. You can switch it off anytime.',
+    'Offside is now called in matches, with the flag shown on the pitch and counted in the match stats.',
+    'Train one secondary position per player; listed secondary positions now count as natural in your formation.',
   ],
   improved: [
-    'Made the free-play option clearer on the Pro welcome screen.',
     'More realistic results across every league: more goals and fewer draws.',
     'Veterans at your club now age at the same pace as everywhere else.',
     'Back always returns to where you came from, and Android\'s back button works.',
@@ -75,14 +77,10 @@ export const PENDING_NEWS: PendingRelease = {
     'Share your best pack pull as a story card.',
     'New managers are guided to open their free pack in the first session.',
     'Shared best-pull cards now show the player\'s portrait.',
-    'Release unconfirmed purchase markers instead of locking the Market.',
     'Pack opening is cleaner: the foil shimmer and glow now follow the pack\'s shape, and the pack turns gently in the light before you open it.',
-    'Name pack.gold "Gold Pack" to match its card; pin catalogue names to pack labels.',
-    'Train one secondary position per player (save v95).',
-    'Swapped players fly to their new spot; calmer selection.',
-    'Pin stoppage-time minute clamp that MatchDay\'s clock relies on.',
-    'Pin the world in skipToFullTime and feedbackLoops so CI stops flaking.',
-    'True-to-scale markings, and a camera that frames around the HUD.',
+    'Swapping two players in your lineup is now a true exchange, with an Undo button.',
+    'A simpler live touchline: three team choices plus Pause, Subs, Shout and Speed, with animated substitutions.',
+    'The Youth Academy and Staff screens are redesigned with clearer rows and bigger buttons.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
@@ -96,7 +94,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed reloading mid-match giving a different result.',
     'Fixed unattached players being listed with transfer fees.',
   ],
-  headline: 'Manager Pass, a cleaner Home screen, and free Skip to full time.',
+  headline: 'A rebuilt live match, Manager Pass and a cleaner Home screen.',
   summary: null,
 };
 

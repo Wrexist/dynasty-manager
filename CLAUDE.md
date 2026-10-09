@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-09-25 (latest shipped v1.6.0, save schema v95).
+> Last verified against the codebase 2026-09-25 (latest shipped v1.6.1, save schema v95).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema and shipped versions,
 > file counts, LOC of the named files, Tech Stack versions) at EVERY occurrence and
@@ -817,7 +817,7 @@ Player identities draw from the **community pack** real-player dataset
 - **Never check subscription SKUs against `monetization.entitlements`** — see Entitlement invariants above.
 - **Generated data is not source code:** `src/data/communityPack/*`, `src/data/squads/*`, `src/data/nationalPlayerPool.ts` and `src/data/playerPortraits.ts` are tool-generated. Never hand-edit; regenerate via the fc26/scrape scripts (portraits: `scripts/portrait-batch.mjs`).
 - HashRouter: deep links are `#/route`; route changes don't hit the server.
-- `package.json.version` must never regress below the top `whatsNew.ts` entry (latest shipped v1.6.0) — the guard fails the TestFlight and Android builds.
+- `package.json.version` must never regress below the top `whatsNew.ts` entry (latest shipped v1.6.1) — the guard fails the TestFlight and Android builds.
 
 ## Commands
 ```bash
