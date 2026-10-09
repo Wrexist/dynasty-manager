@@ -9,13 +9,26 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useGameStore } from '@/store/gameStore';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 
+function mulberry32(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t = (t + 0x6D2B79F5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 describe('substitution sheet flow', () => {
   beforeEach(() => {
+    // Pin the world: unpinned, CI sometimes rolled a bench with no one who can
+    // cover the first outfield slot, so nothing was marked Recommended.
+    vi.spyOn(Math, 'random').mockImplementation(mulberry32(1));
     useGameStore.getState().resetGame();
     useGameStore.getState().initGame('arsenal');
     useGameStore.setState({ matchSubsUsed: 0 });
   });
-  afterEach(() => { cleanup(); vi.useRealTimers(); });
+  afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
   it('pre-picked player: the bench is a ranked choice with fit tags, best first', () => {
     const s = useGameStore.getState();

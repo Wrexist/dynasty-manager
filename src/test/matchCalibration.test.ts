@@ -34,7 +34,7 @@
  * SLOW: ~60 s. Listed in SLOW_SUITES (vitest.config.ts); the per-commit gate
  * runs `matchCalibrationSmoke.test.ts` instead.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { LEAGUES } from '@/data/league';
 import { tick } from './helpers/eventLoop';
@@ -112,7 +112,16 @@ describe('match calibration on a real save (3 seasons, community pack)', () => {
   const originalRandom = Math.random;
 
   beforeAll(async () => {
+    // Pin the whole world, not just Math.random: with ids and the clock free,
+    // CI simulated different seasons from a laptop (the player's matches at
+    // 4.09 goals on CI against 3.40 locally, same seed) and tripped the 0.6 band.
     Math.random = mulberry32(SEED);
+    let uuids = 0;
+    vi.spyOn(crypto, 'randomUUID').mockImplementation(
+      () => `00000000-0000-4000-8000-${(++uuids).toString(16).padStart(12, '0')}` as `${string}-${string}-${string}-${string}-${string}`,
+    );
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-01T12:00:00Z'));
     await useGameStore.getState().initGame(CLUB_ID, { communityPackEnabled: true });
     expect(useGameStore.getState().communityPackEnabled).toBe(true);
     for (let s = 0; s < SEASONS; s++) {
@@ -137,7 +146,7 @@ describe('match calibration on a real save (3 seasons, community pack)', () => {
     }
   }, 900_000);
 
-  afterAll(() => { Math.random = originalRandom; });
+  afterAll(() => { Math.random = originalRandom; vi.useRealTimers(); vi.restoreAllMocks(); });
 
   it('lands in the real-football envelope, over the three seasons and in each', () => {
     // Real league football: ~2.6-2.9 goals, ~24-27% draws, ~43-46% home wins.
