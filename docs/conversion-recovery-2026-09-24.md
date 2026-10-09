@@ -36,6 +36,10 @@ Apple Ads account inspection did not identify a verified Dynasty campaign. The i
 
 ## Changes and release status
 
+September 24 release follow-up: the owner accepted TestFlight 1.6.1 (193), saying “it works you can use it”. Version 1.6.1 (193) was submitted at 22:52 Europe/Stockholm and verified **Waiting for Review**. It uses automatic release after approval with seven-day phased updates and preserves the existing rating. Both English descriptions now qualify optional purchases and eligible trials and remove dated season openings and ad-removal claims. See the [device acceptance and submission receipt](testflight-1.6.1-193.md).
+
+The screenshot experiment below remains a draft: Apple refused Start Test once the app version was added for review, requiring removal from review or waiting until publication. Resume it after 1.6.1 is published; it has not started or been submitted for review.
+
 - **Saved in App Store Connect:** both English promotional texts now read: “Manage your club, shape your tactics and scout future stars. Play a football management career at your own pace. Free to download; optional Pro and player packs.” (161/170 characters).
 - **Draft, not submitted:** Product Page Optimization test “Gameplay first — September 2026”, one treatment, 50% traffic allocation, both English localizations. Move `03-match-day.jpg` first on iPhone 6.9-inch, iPhone 6.5-inch and iPad 13-inch; retain the relative order of all other images. UK inherits the US assets. Default product page is unchanged. Apple requested App Review; that dialog was cancelled per the owner's instruction to build and test through TestFlight first.
 - **Local app change:** make the existing paywall dismissal visibly say “Continue Free” and increase its target from 36px to at least 44px. Purchase, restore, entitlement, and skip handlers are unchanged. This addresses post-install clarity; it is not a direct repair to Apple's impression-to-download metric.
