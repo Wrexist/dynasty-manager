@@ -403,6 +403,10 @@ export function preferredPaywallPlan(
  *      cannot read is never trusted.
  *   2. Otherwise Intl with `currencyDisplay: 'narrowSymbol'` ("$", not "US$"),
  *      falling back to the default display where a runtime lacks narrowSymbol.
+ *
+ * `storePriceAmount` is the value `storePrice` itself says, when that is not
+ * `total` — e.g. the bundle's discounted price used as the template for its
+ * higher "bought separately" sum. The round-trip is checked against it.
  */
 export function formatPerPeriodPrice(
   total: number | null | undefined,
@@ -410,6 +414,7 @@ export function formatPerPeriodPrice(
   currencyCode: string | undefined,
   locale?: string,
   storePrice?: string,
+  storePriceAmount?: number,
 ): string | null {
   if (total == null || !Number.isFinite(total) || total <= 0 || !(periods > 0) || !currencyCode) return null;
   let fractionDigits: number;
@@ -420,7 +425,7 @@ export function formatPerPeriodPrice(
     return null;
   }
   const amount = total / periods;
-  const likeStore = storePrice ? formatLikeStorePrice(amount, total, storePrice, fractionDigits) : null;
+  const likeStore = storePrice ? formatLikeStorePrice(amount, storePriceAmount ?? total, storePrice, fractionDigits) : null;
   if (likeStore) return likeStore;
   for (const currencyDisplay of ['narrowSymbol', 'symbol'] as const) {
     try {

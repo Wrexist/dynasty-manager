@@ -214,9 +214,13 @@ const ShopPage = () => {
 
   /** The bundle's "bought separately" total, in the storefront's currency.
    *  `formatPrice` is a USD formatter: fed a SEK or JPY sum it struck through
-   *  "$549.00". Omitted when the currency is unknown, like `perPeriod`. */
+   *  "$549.00". Omitted when the currency is unknown, like `perPeriod`. The
+   *  bundle's own price string is the template, checked against the bundle's
+   *  own amount (it never says the higher total), so "24,99 €" yields
+   *  "39,99 €" rather than the device locale's "€39.99". */
   const bundleIndividualPrice = formatPerPeriodPrice(
-    bundleIndividualTotal, 1, storeCurrency ?? (storeAnswered ? undefined : 'USD'), undefined, priceFor('com.dynastymanager.bundle.all'),
+    bundleIndividualTotal, 1, storeCurrency ?? (storeAnswered ? undefined : 'USD'), undefined,
+    priceFor('com.dynastymanager.bundle.all'), amountFor('com.dynastymanager.bundle.all') ?? undefined,
   );
 
   const handlePurchase = (productId: ProductId) => {
