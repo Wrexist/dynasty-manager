@@ -543,6 +543,10 @@ export const en = {
   'onboardingChecklist.freePack.success': 'Your new players appear in your squad and this row ticks. Come back tomorrow for the next free pack.',
   'optimizeLineupButton.dynastyProFeature': 'Dynasty Pro feature',
   'optimizeLineupButton.locked': 'Unlock Smart Optimize',
+  'optimizeLineupButton.freeTry': 'Try Smart Optimize free',
+  'optimizeLineupButton.freeTryUsedTitle': 'Best XI picked',
+  'optimizeLineupButton.freeTryUsedBody': 'That was your free try. Dynasty Pro does this before every match.',
+  'optimizeLineupButton.seePro': 'See Pro',
   'optimizeLineupButton.lockedAria': 'Smart Optimize Lineup — a Dynasty Pro feature. Opens the upgrade screen.',
 
   'pageHint.dismissHint': 'Dismiss hint',

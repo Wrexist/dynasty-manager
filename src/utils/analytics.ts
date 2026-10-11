@@ -15,8 +15,9 @@ function getAppVersion(): string {
  *  uncomputable. */
 /** Where a purchase journey started. For the paywall: `onboarding` is the
  *  cold-open before the first game, `upsell` an in-game Pro banner or locked
- *  button, `shop` the Shop's View Plans, `settings` Settings > Dynasty Pro. */
-export type PurchaseSurface = 'shop' | 'onboarding' | 'packs' | 'upsell' | 'settings';
+ *  button, `shop` the Shop's View Plans, `settings` Settings > Dynasty Pro,
+ *  `reoffer` the re-offer at a high point (utils/proReoffer.ts). */
+export type PurchaseSurface = 'shop' | 'onboarding' | 'packs' | 'upsell' | 'settings' | 'reoffer';
 
 /** Allowed analytics events. Adding a new event? Extend this union and the
  *  matching `EventData` entry — the narrow shape is the whole privacy story.

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -22,6 +23,7 @@ import { gamePlanDebriefLine } from '@/config/gamePlan';
 import { ClubCrest } from '@/components/game/ClubCrest';
 import { isReviewWorthyMatchWin, maybeRequestReview } from '@/utils/appReview';
 import { isFirstWinPromptPending } from '@/utils/notifications';
+import { canReofferPro, grantFreeOptimizeTry, isWinStreak, recordProReoffer } from '@/utils/proReoffer';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
@@ -48,6 +50,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
     }))
   );
   const rewindMatch = useGameStore(s => s.rewindMatch);
+  const navigate = useNavigate();
   const totalWins = useGameStore(s => s.managerStats?.totalWins ?? 0);
 
   useScrollLock(!!currentMatchResult);
@@ -291,11 +294,22 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
             onClick={() => {
               hapticLight();
               onContinue();
+              const monetization = useGameStore.getState().monetization;
+              // After a loss: one free Optimize Lineup try, never a paywall.
+              // Pro does not change results, so selling it to a frustrated
+              // player implies a promise it cannot keep (utils/proReoffer.ts).
+              if (lost) grantFreeOptimizeTry(monetization);
+              // One ask per match. The reminder offer owns any win it shows on.
+              if (isFirstWinPromptPending()) return;
+              // A league win streak is the high point to re-offer Pro.
+              if (won && isLeagueMatch && isWinStreak(currentEntry?.form) && canReofferPro(monetization)) {
+                recordProReoffer();
+                navigate('/subscribe', { state: { returnTo: '/game', surface: 'reoffer' } });
+                return;
+              }
               // Ask for a rating on the way out of a win, not over the score.
               // Self-throttled inside `maybeRequestReview`; no-op off-device.
-              // Not on a win that is also showing the reminder offer: two
-              // system-style asks after one match reads as nagging.
-              if (!isFirstWinPromptPending() && isReviewWorthyMatchWin({ won, totalWins, margin: goalsFor - goalsAgainst, isCupMatch: !!lastMatchCompetition })) {
+              if (isReviewWorthyMatchWin({ won, totalWins, margin: goalsFor - goalsAgainst, isCupMatch: !!lastMatchCompetition })) {
                 void maybeRequestReview('match-win');
               }
             }}
