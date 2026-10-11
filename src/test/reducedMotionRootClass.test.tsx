@@ -25,7 +25,8 @@ vi.mock('@/components/SaveRecoveryDialog', () => ({ SaveRecoveryDialog: () => nu
 import App from '@/App';
 import { useGameStore } from '@/store/gameStore';
 
-const css = readFileSync(join(process.cwd(), 'src/index.css'), 'utf8');
+// CRLF-normalised so the `\n}\n` block scan also works on a Windows checkout.
+const css = readFileSync(join(process.cwd(), 'src/index.css'), 'utf8').replace(/\r\n/g, '\n');
 
 function setMotion(reducedMotion: boolean, performanceMode: boolean) {
   act(() => {
