@@ -47,7 +47,14 @@ export function DailyRewardModal() {
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<number | null>(null);
-  const close = () => setOpen(false);
+  // Closing claims. The reward is not a choice, and the modal stamps itself
+  // shown for the day on open, so a backdrop tap or the X used to forfeit the
+  // day's claim (and the streak with it) until the next cold launch. The claim
+  // is idempotent, so closing after the Claim button pays nothing twice.
+  const close = () => {
+    if (!claimed) claimDailyStreakReward();
+    setOpen(false);
+  };
   // Presentation queue (G3): defer to higher-priority overlays (digest,
   // celebrations, decisions) — the daily reward shows last.
   const active = usePresentationSlot('dailyReward', open);
