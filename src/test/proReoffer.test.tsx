@@ -104,19 +104,57 @@ describe('free Optimize Lineup try after a loss', () => {
     expect(hasFreeOptimizeTry()).toBe(false);
   });
 
-  it('the locked button runs Optimize once, then locks again', () => {
-    grantFreeOptimizeTry(freePlayer());
-    const onOptimize = vi.fn();
+  // Codex review: the button spent the try, then the store's Pro guard
+  // refused the run, so the player lost the try and got no lineup change.
+  it('the store fills the XI for a free try, and only then spends it', () => {
+    useGameStore.getState().initGame('manchester-city');
+    useGameStore.setState(s => ({ monetization: { ...s.monetization, entitlements: [], subscription: null } }));
+    grantFreeOptimizeTry(useGameStore.getState().monetization);
+
+    // Without the opt-in the guard still refuses, and the try is kept.
+    expect(useGameStore.getState().autoFillTeam().proRequired).toBe(true);
+    expect(hasFreeOptimizeTry()).toBe(true);
+
+    const out = useGameStore.getState().autoFillTeam({ useFreeTry: true });
+    expect(out.proRequired).toBeFalsy();
+    expect(out.usedFreeTry).toBe(true);
+    expect(useGameStore.getState().clubs['manchester-city'].lineup).toHaveLength(11);
+    expect(hasFreeOptimizeTry()).toBe(false);
+
+    // Spent: a second free run is refused.
+    expect(useGameStore.getState().autoFillTeam({ useFreeTry: true }).proRequired).toBe(true);
+  });
+
+  it('the locked button runs Optimize through the store once, then locks again', () => {
+    useGameStore.getState().initGame('manchester-city');
+    useGameStore.setState(s => ({ monetization: { ...s.monetization, entitlements: [], subscription: null } }));
+    grantFreeOptimizeTry(useGameStore.getState().monetization);
+    const onOptimize = vi.fn((opts?: { useFreeTry?: boolean }) => {
+      const r = useGameStore.getState().autoFillTeam(opts);
+      return !r.proRequired && !r.undersized;
+    });
     render(
       <MemoryRouter>
         <OptimizeLineupButton potentialGain={3} autoFilling={false} onOptimize={onOptimize} locked />
       </MemoryRouter>,
     );
-    const button = screen.getByRole('button', { name: /try smart optimize free/i });
-    fireEvent.click(button);
-    expect(onOptimize).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: /try smart optimize free/i }));
+    expect(onOptimize).toHaveBeenCalledWith({ useFreeTry: true });
     expect(hasFreeOptimizeTry()).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: /dynasty pro feature/i }));
     expect(onOptimize).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed run keeps the try and the button', () => {
+    grantFreeOptimizeTry(freePlayer());
+    const onOptimize = vi.fn(() => false);
+    render(
+      <MemoryRouter>
+        <OptimizeLineupButton potentialGain={3} autoFilling={false} onOptimize={onOptimize} locked />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /try smart optimize free/i }));
+    expect(hasFreeOptimizeTry()).toBe(true);
+    expect(screen.getByRole('button', { name: /try smart optimize free/i })).toBeTruthy();
   });
 });

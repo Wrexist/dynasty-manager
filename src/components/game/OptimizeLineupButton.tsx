@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
-import { consumeFreeOptimizeTry, hasFreeOptimizeTry } from '@/utils/proReoffer';
+import { hasFreeOptimizeTry } from '@/utils/proReoffer';
 import { infoToast } from '@/utils/gameToast';
 
 interface OptimizeLineupButtonProps {
   potentialGain: number;
   autoFilling: boolean;
-  onOptimize: () => void;
+  /** Returns true when the XI was filled. `useFreeTry` spends the free try. */
+  onOptimize: (opts?: { useFreeTry?: boolean }) => boolean | void;
   /** True for a player without Dynasty Pro. The button stays on screen —
    *  showing the feature and what it would be worth converts better than
    *  hiding it — but it opens the in-app paywall instead of running.
@@ -36,9 +37,11 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize, l
     navigate('/subscribe', { state: { returnTo: '/game', surface: 'upsell', feature: 'Optimize Lineup' } });
   const handleClick = () => {
     if (locked && freeTry) {
-      consumeFreeOptimizeTry();
+      // The store spends the try, and only when the XI is filled; a failed
+      // run (an undersized squad) keeps it for later.
+      const filled = onOptimize({ useFreeTry: true }) === true;
+      if (!filled || hasFreeOptimizeTry()) return;
       setFreeTry(false);
-      onOptimize();
       infoToast(t('optimizeLineupButton.freeTryUsedTitle'), t('optimizeLineupButton.freeTryUsedBody'), {
         action: { label: t('optimizeLineupButton.seePro'), onClick: openPaywall },
         duration: 6000,

@@ -51,20 +51,22 @@ export function useLineupOptimizer() {
     return Math.max(0, Math.round(bestAvg - lineupAvg));
   }, [club, players, week, lineupPlayers]);
 
-  const optimizeLineup = useCallback(() => {
-    if (!club) return;
+  /** Returns true when the optimizer filled the XI. `useFreeTry` lets a
+   *  non-Pro player spend the free try granted after a loss. */
+  const optimizeLineup = useCallback((opts?: { useFreeTry?: boolean }): boolean => {
+    if (!club) return false;
     setAutoFilling(true);
     try {
-      const fillOutcome = autoFillTeam();
+      const fillOutcome = autoFillTeam(opts);
 
       if (fillOutcome.proRequired) {
         toast.warning('Smart Optimizer is a Dynasty Pro feature.');
-        return;
+        return false;
       }
 
       if (fillOutcome.undersized) {
         toast.warning(fillOutcome.undersizedDetail);
-        return;
+        return false;
       }
 
       const oldLineup = [...club.lineup];
@@ -88,9 +90,11 @@ export function useLineupOptimizer() {
         chemistryLabel: fillOutcome.chemistryLabel,
         chemistryBonus: fillOutcome.chemistryBonus,
       });
+      return true;
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'autoFillLineup' } });
       toast.error('Failed to optimize lineup');
+      return false;
     } finally {
       setAutoFilling(false);
     }
