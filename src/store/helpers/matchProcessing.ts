@@ -356,11 +356,12 @@ export function processMatchResult(
   const totalMatches = ms.totalWins + ms.totalDraws + ms.totalLosses;
   if (won && ms.totalWins === 1) {
     newMilestones.push(createMilestone('first_win', 'First Victory', `Won ${result.homeGoals}-${result.awayGoals} against ${oppName}.`, season, week, 'trophy'));
-    // First win is the emotional peak to ask for notification permission —
-    // flag the one-time value-framed prompt (routed through the presentation
-    // queue by NotifPermissionModal). Side-effect only; never throws.
-    signalFirstWinForNotifications();
   }
+  // A win is the emotional peak to ask for notification permission: the first
+  // win, and once more on a later win if the player said "Not now" (gated in
+  // `isFirstWinPromptEligible`). Routed through the presentation queue by
+  // NotifPermissionModal. Side-effect only; never throws.
+  if (won) signalFirstWinForNotifications();
   const matchMilestone = checkMatchMilestones(totalMatches, state.careerTimeline, season, week);
   if (matchMilestone) newMilestones.push(matchMilestone);
   // Biggest win milestone (5+ goal margin)

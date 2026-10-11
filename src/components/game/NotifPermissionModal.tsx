@@ -65,7 +65,7 @@ export function NotifPermissionModal() {
   const handleDismiss = useCallback(() => {
     hapticLight();
     track('notif_permission_prompt', { action: 'dismiss', granted: false });
-    resolveFirstWinPrompt();
+    resolveFirstWinPrompt(true);
   }, []);
 
   // Escape is "Not now", same as the backdrop and the X: the opt-in stays

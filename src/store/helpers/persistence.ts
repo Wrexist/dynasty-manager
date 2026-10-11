@@ -479,6 +479,11 @@ export const STORAGE_KEYS = {
    *  already answered it on a previous career isn't re-prompted on each new
    *  save. Independent of NOTIFICATIONS_ENABLED (which records the answer). */
   NOTIF_FIRST_WIN_PROMPTED: 'dynasty-notif-first-win-prompted',
+  /** localStorage: epoch ms the win-time reminder prompt was last dismissed
+   *  with "Not now" (absent = never dismissed). Opens the one re-ask. */
+  NOTIF_PROMPT_DISMISSED_AT: 'dynasty-notif-prompt-dismissed-at',
+  /** localStorage flag: the one re-ask has been shown. Never asked again. */
+  NOTIF_PROMPT_REASKED: 'dynasty-notif-prompt-reasked',
   /** localStorage: device-global set of completed challenge-scenario ids (JSON
    *  array). Challenge completion is a device-level achievement, not part of
    *  any career save — deliberately NOT save-scoped, so it persists across new
@@ -844,6 +849,19 @@ export function readNotificationsEnabled(): boolean | null {
 
 export function writeNotificationsEnabled(enabled: boolean): void {
   try { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS_ENABLED, enabled ? '1' : '0'); }
+  catch { /* storage unavailable — non-fatal */ }
+}
+
+/** When the reminder prompt was last dismissed with "Not now" (0 = never). */
+export function readNotifPromptDismissedAt(): number {
+  try {
+    const v = Number(localStorage.getItem(STORAGE_KEYS.NOTIF_PROMPT_DISMISSED_AT));
+    return Number.isFinite(v) && v > 0 ? v : 0;
+  } catch { return 0; }
+}
+
+export function writeNotifPromptDismissedAt(ms: number): void {
+  try { localStorage.setItem(STORAGE_KEYS.NOTIF_PROMPT_DISMISSED_AT, String(ms)); }
   catch { /* storage unavailable — non-fatal */ }
 }
 

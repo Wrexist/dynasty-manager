@@ -13,7 +13,11 @@
  * pause. Reminders only exist while the app is backgrounded and always reflect
  * the latest streak/event state captured at background time.
  */
-import { readNotificationsEnabled, readDailyStreak, getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
+import {
+  readNotificationsEnabled, readDailyStreak, getFlag, setFlag, STORAGE_KEYS,
+  readNotifPromptDismissedAt, writeNotifPromptDismissedAt,
+} from '@/store/helpers/persistence';
+import { NOTIF_REASK_AFTER_DAYS } from '@/config/ui';
 import { getActiveLiveEvent, getEventDaysRemaining } from '@/utils/liveEvents';
 import type { GameState } from '@/store/storeTypes';
 
@@ -171,14 +175,23 @@ function emitFirstWin(): void {
   firstWinListeners.forEach(l => { try { l(); } catch { /* listener errors are non-fatal */ } });
 }
 
-/** Sync eligibility: the user has never answered the notification opt-in AND we
- *  haven't already shown this one-time prompt on this device. */
-export function isFirstWinPromptEligible(): boolean {
-  return readNotificationsEnabled() === null && !getFlag(STORAGE_KEYS.NOTIF_FIRST_WIN_PROMPTED);
+/** Sync eligibility: the user has never answered the notification opt-in, and
+ *  either the prompt has never been shown on this device, or it was put off
+ *  with "Not now" at least `NOTIF_REASK_AFTER_DAYS` ago and the one re-ask is
+ *  still unspent. "Not now" never reaches the iOS system prompt, so asking a
+ *  second time costs the player nothing; anyone who answered the system prompt
+ *  (granted or denied) is never asked again. */
+export function isFirstWinPromptEligible(now: number = Date.now()): boolean {
+  if (readNotificationsEnabled() !== null) return false;
+  if (!getFlag(STORAGE_KEYS.NOTIF_FIRST_WIN_PROMPTED)) return true;
+  if (getFlag(STORAGE_KEYS.NOTIF_PROMPT_REASKED)) return false;
+  const dismissedAt = readNotifPromptDismissedAt();
+  return dismissedAt > 0 && now - dismissedAt >= NOTIF_REASK_AFTER_DAYS * 86_400_000;
 }
 
-/** Side-effect fired at the first-win moment. Flags the prompt pending when
- *  eligible; no-op otherwise. Never throws — must never break a match. */
+/** Side-effect fired on a win. Flags the prompt pending when eligible (the
+ *  first win, or the one re-ask); no-op otherwise. Never throws — must never
+ *  break a match. */
 export function signalFirstWinForNotifications(): void {
   try {
     if (firstWinPromptPending) return;
@@ -197,11 +210,16 @@ export function subscribeFirstWinPrompt(cb: () => void): () => void {
   return () => { firstWinListeners.delete(cb); };
 }
 
-/** Clear the pending prompt and mark it shown so it never re-appears, whatever
- *  the user chose. Idempotent. */
-export function resolveFirstWinPrompt(): void {
+/** Clear the pending prompt and record how it was answered. A "Not now"
+ *  (`dismissed`) on the first showing opens the one re-ask; the re-ask itself
+ *  spends it. Idempotent. */
+export function resolveFirstWinPrompt(dismissed = false): void {
+  if (!firstWinPromptPending && getFlag(STORAGE_KEYS.NOTIF_FIRST_WIN_PROMPTED)) return;
+  const wasReask = getFlag(STORAGE_KEYS.NOTIF_FIRST_WIN_PROMPTED);
   firstWinPromptPending = false;
   setFlag(STORAGE_KEYS.NOTIF_FIRST_WIN_PROMPTED);
+  if (wasReask) setFlag(STORAGE_KEYS.NOTIF_PROMPT_REASKED);
+  else if (dismissed) writeNotifPromptDismissedAt(Date.now());
   emitFirstWin();
 }
 

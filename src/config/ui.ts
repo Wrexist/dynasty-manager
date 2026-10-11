@@ -543,3 +543,8 @@ export const BALLON_DOR_CEREMONY = {
   /** "And the Ballon d'Or goes to…" — the held breath before the walkout. */
   drumrollMs: 1800,
 } as const;
+
+/** Days after a "Not now" on the win-time reminder prompt before the one
+ *  re-ask may appear (on a later win). Long enough to not read as nagging,
+ *  short enough to land inside the first week, when most players churn. */
+export const NOTIF_REASK_AFTER_DAYS = 3;
