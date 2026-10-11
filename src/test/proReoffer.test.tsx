@@ -51,7 +51,12 @@ describe('canReofferPro', () => {
   it('never before the cold-open, on day one, or to Pro or trial users', () => {
     expect(canReofferPro(freePlayer((PRO_REOFFER_MIN_ACCOUNT_AGE_HOURS - 1) * HOUR))).toBe(false);
     expect(canReofferPro({ ...freePlayer(), entitlements: ['com.dynastymanager.pro'] })).toBe(false);
-    expect(canReofferPro({ ...freePlayer(), subscription: { tier: 'annual', expiresAt: Date.now() - DAY } as MonetizationState['subscription'] })).toBe(false);
+    // A lapsed subscription: the intro trial is spent, so no re-offer.
+    const lapsed = {
+      tier: 'annual', productId: 'com.dynastymanager.pro.yearly',
+      expiresAt: new Date(Date.now() - DAY).toISOString(), isInGracePeriod: false, willRenew: false,
+    } as unknown as MonetizationState['subscription'];
+    expect(canReofferPro({ ...freePlayer(), subscription: lapsed })).toBe(false);
     localStorage.removeItem(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
     expect(canReofferPro(freePlayer())).toBe(false);
   });
