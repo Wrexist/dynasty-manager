@@ -14,7 +14,9 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 /** Workflow source with comment lines dropped, so a rationale comment that
  *  names a command is never mistaken for the step that runs it. */
 function workflow(rel: string): string {
+  // CRLF-normalised: a Windows checkout (core.autocrlf) must read what CI reads.
   return readFileSync(resolve(REPO_ROOT, rel), 'utf8')
+    .replace(/\r\n/g, '\n')
     .split('\n')
     .filter(line => !/^\s*#/.test(line))
     .join('\n');
