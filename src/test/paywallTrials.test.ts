@@ -95,6 +95,17 @@ describe('formatPerPeriodPrice ("Works out at X/month")', () => {
     expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-CA')).toBe('$2.08');
   });
 
+  // Codex review on the Shop bundle: the template is the bundle's discounted
+  // price while the printed figure is the higher "bought separately" sum, so
+  // the round-trip against `total` always failed and fell back to the device
+  // locale ("€39.99" beside "24,99 €").
+  it('uses a store price that says a different amount as the template', () => {
+    expect(formatPerPeriodPrice(39.99, 1, 'EUR', 'en-US', '24,99 €', 24.99)).toBe('39,99 €');
+    expect(formatPerPeriodPrice(2199.5, 1, 'SEK', 'en-US', '1 299,00 kr', 1299)).toBe('2 199,50 kr');
+    // The template must still say the amount it is checked against.
+    expect(formatPerPeriodPrice(39.99, 1, 'EUR', 'en-US', '24,99 €', 30)).toBe('€39.99');
+  });
+
   it('takes the shape of the store price it sits beside', () => {
     expect(formatPerPeriodPrice(24.99, 12, 'USD', 'en-GB', '$24.99')).toBe('$2.08');
     // The store string is authoritative, even where it says "US$".
