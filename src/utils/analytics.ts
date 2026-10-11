@@ -193,6 +193,13 @@ export function _getSessionIdForTests(): string {
 // The install denominator. Without it, every conversion rate in the growth
 // model is uncomputable — there is no way to divide purchases by installs.
 let appOpenFired = false;
+/** Day bucket of the last `app_open` this process emitted (null = none yet). */
+let lastAppOpenDay: number | null = null;
+
+function daysSince(firstLaunchTimestamp: number): number {
+  const ts = firstLaunchTimestamp > 0 ? firstLaunchTimestamp : Date.now();
+  return Math.max(0, Math.floor((Date.now() - ts) / 86_400_000));
+}
 
 /** Fire the once-per-session `app_open` event. `firstLaunchTimestamp` is the
  *  device-level monetization anchor (0 = unknown → treat as first launch).
@@ -200,8 +207,21 @@ let appOpenFired = false;
 export function trackAppOpen(firstLaunchTimestamp: number): void {
   if (appOpenFired) return;
   appOpenFired = true;
-  const ts = firstLaunchTimestamp > 0 ? firstLaunchTimestamp : Date.now();
-  const daysSinceInstall = Math.max(0, Math.floor((Date.now() - ts) / 86_400_000));
+  const daysSinceInstall = daysSince(firstLaunchTimestamp);
+  lastAppOpenDay = daysSinceInstall;
+  track('app_open', { daysSinceInstall });
+}
+
+/** A warm resume (the OS kept the app in memory) is a return too. iOS keeps a
+ *  game alive for hours, so a player who comes back the next day often never
+ *  cold-launches — and `returned_d1`/`_d7` only ever saw cold launches. Emits
+ *  `app_open` again when the day bucket has moved on since the last one; a
+ *  resume within the same day is the same session and emits nothing. */
+export function trackAppResume(firstLaunchTimestamp: number): void {
+  if (lastAppOpenDay === null) { trackAppOpen(firstLaunchTimestamp); return; }
+  const daysSinceInstall = daysSince(firstLaunchTimestamp);
+  if (daysSinceInstall <= lastAppOpenDay) return;
+  lastAppOpenDay = daysSinceInstall;
   track('app_open', { daysSinceInstall });
 }
 
@@ -211,5 +231,6 @@ export function _resetAnalyticsCacheForTests(): void {
   cachedConsent = null;
   sink = defaultSink;
   appOpenFired = false;
+  lastAppOpenDay = null;
   __resetAnalyticsConsentForTests();
 }

@@ -12,7 +12,7 @@ import { scheduleEngagementReminders, cancelAllEngagementReminders, derivePerson
 import { useGameStore } from '@/store/gameStore';
 import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
-import { track, trackAppOpen, refreshAnalyticsConsent } from '@/utils/analytics';
+import { track, trackAppOpen, trackAppResume, refreshAnalyticsConsent } from '@/utils/analytics';
 import { hydrateSaveStorage, readDeviceEntitlements } from '@/store/helpers/persistence';
 import { setSfxEnabled, sfxRoar, sfxChime, sfxWhoosh, sfxBurst, sfxRipGrain, sfxRipFinish } from '@/utils/sfx';
 import { setPackSfxHandler } from '@/utils/packAudio';
@@ -271,6 +271,10 @@ async function initNative() {
       // reschedules them fresh.
       CapApp.addListener('resume', () => {
         void cancelAllEngagementReminders();
+        // A next-day return to an app iOS kept alive is still a return.
+        try {
+          trackAppResume(useGameStore.getState().monetization?.firstLaunchTimestamp ?? 0);
+        } catch { /* analytics must never break resume */ }
       });
       // Same on a cold launch (no 'resume' fires) — the player is active now,
       // so drop any reminders left over from the last session's pause.

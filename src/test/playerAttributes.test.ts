@@ -58,6 +58,17 @@ describe('playerAttributes', () => {
       expect(r).toMatchObject({ sessions: 4, activeDays: 3, lastOpenDay: 8, returnedD1: true, returnedD7: true });
     });
 
+    it('sets the D30 return flag from day 30', () => {
+      expect(fold([ev('app_open', { daysSinceInstall: 29 })]).returnedD30).toBeUndefined();
+      expect(fold([ev('app_open', { daysSinceInstall: 30 })]).returnedD30).toBe(true);
+    });
+
+    it('counts reminders granted from the first-win prompt, not a dismissal', () => {
+      expect(fold([ev('notif_permission_prompt', { action: 'enable', granted: true })]).remindersOn).toBe(true);
+      expect(fold([ev('notif_permission_prompt', { action: 'enable', granted: false })]).remindersOn).toBeUndefined();
+      expect(fold([ev('notif_permission_prompt', { action: 'dismiss', granted: false })]).remindersOn).toBeUndefined();
+    });
+
     it('does not set the return flags for a day-0-only player', () => {
       const r = fold([ev('app_open', { daysSinceInstall: 0 })]);
       expect(r.returnedD1).toBeUndefined();

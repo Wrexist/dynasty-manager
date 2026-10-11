@@ -26,6 +26,7 @@ export interface PlayerStatsRecord {
   lastOpenDay?: number;
   returnedD1?: boolean;
   returnedD7?: boolean;
+  returnedD30?: boolean;
   gamesStarted?: number;
   gameMode?: string;
   division?: string;
@@ -62,6 +63,7 @@ const ATTRIBUTE_KEYS: Record<keyof PlayerStatsRecord, string> = {
   lastOpenDay: 'last_open_day',
   returnedD1: 'returned_d1',
   returnedD7: 'returned_d7',
+  returnedD30: 'returned_d30',
   gamesStarted: 'games_started',
   gameMode: 'game_mode',
   division: 'division',
@@ -108,6 +110,7 @@ export function foldEvent(prev: PlayerStatsRecord, p: AnalyticsPayload): PlayerS
       r.lastOpenDay = Math.max(r.lastOpenDay ?? 0, day);
       if (day === 1) r.returnedD1 = true;
       if (day >= 7) r.returnedD7 = true;
+      if (day >= 30) r.returnedD30 = true;
       break;
     }
     case 'game_started':
@@ -150,6 +153,12 @@ export function foldEvent(prev: PlayerStatsRecord, p: AnalyticsPayload): PlayerS
     case 'world_cup_started': r.worldCupsStarted = inc(r.worldCupsStarted); break;
     case 'challenge_completed': r.challengesCompleted = inc(r.challengesCompleted); break;
     case 'reminders_enabled': r.remindersOn = true; break;
+    // The first-win prompt turns reminders on without passing through the
+    // Settings toggle, so a grant there counts too.
+    case 'notif_permission_prompt':
+      if (d.granted === true) r.remindersOn = true;
+      else return prev;
+      break;
     case 'reminders_disabled': r.remindersOn = false; break;
     case 'moment_shared': r.momentsShared = inc(r.momentsShared); break;
     default: return prev;

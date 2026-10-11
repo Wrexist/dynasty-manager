@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   track,
   trackAppOpen,
+  trackAppResume,
   setAnalyticsSink,
   refreshAnalyticsConsent,
   _resetAnalyticsCacheForTests,
@@ -163,6 +164,28 @@ describe('analytics', () => {
       expect(captured).toHaveLength(1);
       expect(captured[0].event).toBe('app_open');
       expect(captured[0].data.daysSinceInstall).toBe(3);
+    });
+
+    it('a resume on a later day emits app_open again; a same-day resume does not', () => {
+      vi.useFakeTimers();
+      const installed = Date.now();
+      trackAppOpen(installed);
+      vi.setSystemTime(Date.now() + 2 * 3_600_000);
+      trackAppResume(installed); // same day: same session
+      expect(captured).toHaveLength(1);
+      vi.setSystemTime(installed + 30 * 3_600_000);
+      trackAppResume(installed); // next day: a D1 return without a cold launch
+      expect(captured).toHaveLength(2);
+      expect(captured[1].data.daysSinceInstall).toBe(1);
+      trackAppResume(installed); // still day 1
+      expect(captured).toHaveLength(2);
+      vi.useRealTimers();
+    });
+
+    it('a resume before any cold-launch app_open counts as the open', () => {
+      trackAppResume(Date.now());
+      expect(captured).toHaveLength(1);
+      expect(captured[0].event).toBe('app_open');
     });
 
     it('app_open treats an unknown first-launch stamp as day 0', () => {
