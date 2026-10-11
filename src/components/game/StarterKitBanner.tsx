@@ -1,7 +1,7 @@
 import { Star, X, ChevronRight } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { isStarterKitAvailable, getStarterKitRemainingMs } from '@/utils/monetization';
+import { isStarterKitAvailable } from '@/utils/monetization';
 import { STARTER_KIT } from '@/config/monetization';
 import { hapticLight } from '@/utils/haptics';
 
@@ -22,8 +22,6 @@ export function StarterKitBanner() {
 
   if (!isStarterKitAvailable(monetization)) return null;
 
-  const daysLeft = Math.max(1, Math.ceil(getStarterKitRemainingMs(monetization) / 86_400_000));
-
   return (
     // The dismiss X is a 44px sibling of the Shop link, not an absolutely
     // positioned 30px glyph over its corner: a hit area that big overlapping the
@@ -41,9 +39,8 @@ export function StarterKitBanner() {
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-foreground">
             {STARTER_KIT.name}
-            <span className="ml-2 text-micro font-semibold uppercase tracking-wider text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] px-1.5 py-0.5 rounded-full">
-              {daysLeft} day{daysLeft === 1 ? '' : 's'} left
-            </span>
+            {/* No "N days left" badge: the kit is always on sale at this price
+                (config/monetization.ts), so a countdown is fake scarcity. */}
           </p>
           <p className="text-micro text-muted-foreground leading-snug truncate">
             Manager identity cosmetics for new managers — view in Shop

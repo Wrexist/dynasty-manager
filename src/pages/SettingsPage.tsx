@@ -5,7 +5,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper, Star } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -35,7 +35,7 @@ import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
 import { isPro, hasRecurringSubscription } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
-import { PRIVACY_URL, termsUrlFor } from '@/config/legal';
+import { PRIVACY_URL, termsUrlFor, writeReviewUrlFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
@@ -437,7 +437,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                     onClick={() => {
                       if (locked) {
                         if (variant === 'in-game') setScreen('shop');
-                        else navigate('/subscribe', { state: { returnTo: '/' } });
+                        else navigate('/subscribe', { state: { returnTo: '/', surface: 'settings' } });
                         return;
                       }
                       updateSettings({ matchSpeed: s.value });
@@ -893,6 +893,12 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             <span className="flex items-center justify-start gap-3 px-3">
               <MessageSquare className="w-4 h-4" />
               Send Feedback
+            </span>
+          </LiquidButton>
+          <LiquidButton onClick={() => { void openExternalUrl(writeReviewUrlFor(Capacitor.getPlatform())); }}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <Star className="w-4 h-4" />
+              Rate Dynasty Manager
             </span>
           </LiquidButton>
         </div>

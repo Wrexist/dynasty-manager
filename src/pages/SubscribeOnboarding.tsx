@@ -32,7 +32,7 @@ import { addGameBreadcrumb } from '@/utils/sentry';
 import { PRIVACY_URL, termsUrlFor, subscriptionSettingsPathFor } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
-import { track } from '@/utils/analytics';
+import { track, type PurchaseSurface } from '@/utils/analytics';
 import { subscribeSlotContextMissing } from '@/utils/paywallTiming';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { NATIVE_ADS_READY } from '@/utils/ads';
@@ -63,7 +63,10 @@ const PRO_FEATURE_BULLETS: { title: string; description: string }[] = [
   ...(NATIVE_ADS_READY
     ? [{ title: 'Ad-Free Experience', description: 'No banners, no video pre-rolls. Ever.' }]
     : []),
-  { title: 'Instant Match Sim', description: 'Long-press to fast-forward a match in under a second.' },
+  // Describes the real control: the Sim button beside Ready to Play
+  // (MatchPrep). There is no long-press — the old line promised one.
+  { title: 'Instant Match Sim', description: 'One tap on Sim plays any match straight to full time.' },
+  { title: 'Optimize Lineup', description: 'Pick your strongest XI for the opponent in one tap.' },
   { title: 'Advanced Analytics', description: 'Possession, conversion, and per-match performance reads.' },
   { title: 'Custom Tactics Creator', description: 'Save up to 5 tactical presets and switch mid-season.' },
   { title: 'Expanded Press Conferences', description: 'More tones, deeper questions, dynamic fan reactions.' },
@@ -73,6 +76,21 @@ const PRO_FEATURE_BULLETS: { title: string; description: string }[] = [
   // gameplay advantage: the Pro row pays titles, celebrations and banners.
   { title: 'Manager Pass Pro Track', description: '30 Pro-only rewards: titles, celebrations and banners.' },
 ];
+
+/** Upsell labels that name a bullet differently. */
+const FEATURE_ALIASES: Record<string, string> = {
+  'Advanced Match Insights': 'Advanced Analytics',
+};
+
+/** The bullet list with the feature the player tapped moved first and flagged,
+ *  so the paywall answers "does Pro do the thing I just tried?" before anything
+ *  else. An unknown or absent feature leaves the list as it is. */
+function bulletsLeadingWith(feature: string | undefined): { title: string; description: string; requested: boolean }[] {
+  const wanted = feature ? (FEATURE_ALIASES[feature] ?? feature) : undefined;
+  const hit = wanted ? PRO_FEATURE_BULLETS.find(b => b.title === wanted) : undefined;
+  const rest = PRO_FEATURE_BULLETS.filter(b => b !== hit).map(b => ({ ...b, requested: false }));
+  return hit ? [{ ...hit, requested: true }, ...rest] : rest;
+}
 
 interface PlanRow {
   productId: ProductId;
@@ -132,7 +150,15 @@ const SubscribeOnboarding = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
+  const navState = (location.state as {
+    slot?: number; communityPackEnabled?: boolean; returnTo?: string;
+    /** Where the player came from (analytics). Absent = the cold-open. */
+    surface?: PurchaseSurface;
+    /** The Pro feature the player tapped to get here, if any. */
+    feature?: string;
+  }) || {};
+  const surface: PurchaseSurface = navState.surface ?? 'onboarding';
+  const featureBullets = useMemo(() => bulletsLeadingWith(navState.feature), [navState.feature]);
   // A webview reload / deep link on #/subscribe loses nav state. Without a slot
   // AND without an explicit in-app return context, `slot ?? 1` used to default
   // to 1 and the onboarding continuation could silently overwrite save slot 1.
@@ -257,8 +283,8 @@ const SubscribeOnboarding = () => {
   useEffect(() => {
     if (storeStatus !== 'ready' || paywallViewedRef.current) return;
     paywallViewedRef.current = true;
-    track('paywall_viewed', { surface: 'onboarding', trialEligible });
-  }, [storeStatus, trialEligible]);
+    track('paywall_viewed', { surface, trialEligible });
+  }, [storeStatus, trialEligible, surface]);
 
   const priceFor = (productId: ProductId) =>
     storePrices[productId] || `$${PRODUCTS[productId].priceUsd.toFixed(2)}`;
@@ -304,7 +330,7 @@ const SubscribeOnboarding = () => {
     // success) — record how long the paywall held the user. Per-surface CVR
     // is completed/viewed; dismissed is the complement detail.
     track('paywall_dismissed', {
-      surface: 'onboarding',
+      surface,
       secondsOnScreen: Math.round((Date.now() - paywallMountedAtRef.current) / 1000),
     });
     setFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
@@ -315,8 +341,8 @@ const SubscribeOnboarding = () => {
     if (purchasing || storeStatus !== 'ready') return;
     hapticMedium();
     setPurchasing(true);
-    track('purchase_initiated', { productId: selected, surface: 'onboarding' });
-    addGameBreadcrumb('purchase', 'subscribe initiated', { surface: 'onboarding', productId: selected });
+    track('purchase_initiated', { productId: selected, surface });
+    addGameBreadcrumb('purchase', 'subscribe initiated', { surface, productId: selected });
     try {
       // The trial length this row advertised. The store's own record wins
       // wherever it answers; this only seeds the local fallback record when
@@ -328,7 +354,7 @@ const SubscribeOnboarding = () => {
         // User cancelled the StoreKit dialog — the only outcome that means
         // "no charge". (A completed subscription legitimately grants no
         // entitlement ID; its status lives in subscription.expiresAt.)
-        track('purchase_cancelled', { productId: selected, surface: 'onboarding' });
+        track('purchase_cancelled', { productId: selected, surface });
         infoToast('Purchase Cancelled', 'No charge was made.');
         return;
       }
@@ -343,8 +369,8 @@ const SubscribeOnboarding = () => {
       }
 
       if (outcome.status === 'failed') {
-        track('purchase_failed', { productId: selected, surface: 'onboarding' });
-        addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });
+        track('purchase_failed', { productId: selected, surface });
+        addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface, productId: selected });
         Sentry.captureException(outcome.error, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
         errorToast(
           'Purchase Could Not Complete',
@@ -358,7 +384,7 @@ const SubscribeOnboarding = () => {
 
       if (outcome.recovered) {
         // The SDK threw AFTER the charge; the re-sync proved it landed.
-        track('purchase_completed', { productId: selected, surface: 'onboarding' });
+        track('purchase_completed', { productId: selected, surface });
         successToast('Welcome to Dynasty Pro!', 'Your purchase was confirmed.');
         finish();
         return;
@@ -368,8 +394,8 @@ const SubscribeOnboarding = () => {
       // `trialEligible` flag on paywall_viewed is advisory only. It follows
       // what the store actually recorded, not what the row advertised.
       const isTrial = outcome.isTrial === true;
-      if (isTrial) track('trial_started', { productId: selected, surface: 'onboarding' });
-      track('purchase_completed', { productId: selected, surface: 'onboarding' });
+      if (isTrial) track('trial_started', { productId: selected, surface });
+      track('purchase_completed', { productId: selected, surface });
 
       const product = PRODUCTS[selected];
       const shownTrialDays = trialDays ?? getFreeTrialDaysRemaining(useGameStore.getState().monetization);
@@ -505,13 +531,16 @@ const SubscribeOnboarding = () => {
 
         {/* Feature bullets — two columns so they take half the vertical space. */}
         <ul className="grid grid-cols-2 gap-x-3 gap-y-2 pb-2">
-          {PRO_FEATURE_BULLETS.map(({ title, description }) => (
-            <li key={title} className="flex items-start gap-2">
+          {featureBullets.map(({ title, description, requested }) => (
+            <li key={title} className={cn('flex items-start gap-2', requested && 'col-span-2 rounded-lg bg-primary/10 border border-primary/30 px-2 py-1.5')}>
               <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center">
                 <Check className="w-2.5 h-2.5 text-emerald-300" strokeWidth={3} />
               </span>
               <div className="min-w-0 leading-snug">
-                <p className="text-[12px] font-semibold text-foreground leading-tight">{title}</p>
+                <p className="text-[12px] font-semibold text-foreground leading-tight">
+                  {title}
+                  {requested && <span className="ml-1.5 text-micro font-semibold uppercase tracking-wider text-primary">You tapped this</span>}
+                </p>
                 <p className="text-micro text-muted-foreground leading-snug mt-0.5">{description}</p>
               </div>
             </li>

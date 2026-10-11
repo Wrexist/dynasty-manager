@@ -30,7 +30,8 @@ const HEIGHT_44 = /(^|\s)(min-h-11|h-11|min-h-\[44px\]|h-\[44px\]|h-12|min-h-12)
 const WIDTH_44 = /(^|\s)(min-w-11|w-11|min-w-\[44px\]|w-\[44px\]|w-full|flex-1)(\s|$)/;
 
 function source(rel: string): string {
-  return readFileSync(resolve(__dirname, '..', rel), 'utf8');
+  // CRLF-normalised: some anchors ('Terms of Use\n  </button>') span a line break.
+  return readFileSync(resolve(__dirname, '..', rel), 'utf8').replace(/\r\n/g, '\n');
 }
 
 /** The className text of the element whose opening tag precedes `index`. */

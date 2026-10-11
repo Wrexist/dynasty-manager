@@ -70,3 +70,24 @@ Per-commit preflight passed with Git Bash as npm's script shell (the existing `V
 Read on 24 September 2026: [ASC metrics](https://appstoreconnect.apple.com/apps/6760918006/analytics/metrics), [version history](https://appstoreconnect.apple.com/apps/6760918006/distribution/activity/ios/versions), published v1.6.0 locale fields and screenshot media manager. Analytics windows end September 21; they do not include the effect of today's edits. Daily tables were inspected in the UI; these figures are transcribed, not an attached raw export.
 
 Apple defines [conversion and impressions](https://developer.apple.com/help/app-store-connect-analytics/reference/metrics-definitions). [Acquisition guidance](https://developer.apple.com/help/app-store-connect-analytics/acquisition/acquisition) includes Apple Ads within App Store Search. [Product-page guidance](https://developer.apple.com/app-store/product-page/) says promotional text is editable without a new submission and does not affect search ranking; subtitle and description updates accompany a new version. Do not follow older repository claims that subtitle/keywords can always be edited on an already released version, that title terms have a proven 5x weight, or that screenshot OCR has a documented ranking weight. Those claims are not established by the Apple sources checked here. Google keyword volumes also do not measure App Store query volume.
+
+## 11 October 2026 — 1.7.0 promotional text restored
+
+Found in App Store Connect while 1.7.0 (build 195) was **In Review** with automatic release: both English localizations of 1.7.0 carried an **empty** promotional text, while the live 1.6.1 still showed the 24 September copy. Approval would have published the product page with no promotional text.
+
+- **Saved in App Store Connect (en-US + en-GB, 1.7.0):** “New: matches rebuilt around the pitch, with offside calls and animated subs. Manage any club at your own pace. Free to download; optional Pro and player packs.” (159/170). Claims mirror the 1.7.0 What's New. Verified after a page reload in both locales.
+- **Rollback:** the 1.6.1 text above (“Manage your club, shape your tactics…”), editable any time without review.
+- **Not changed:** name, subtitle, keywords and description are locked while 1.7.0 is in review; they ride with the next version. The running Product Page Optimization test “Gameplay first — September 2026” (started 10 October) was left untouched.
+- **State observed:** 0 of 70 custom product pages, 0 in-app events, 5 ratings, accessibility labels not declared. Screenshot 01 and the new 1.7.0 header art show real players' names and likenesses, while App Information declares no third-party content — an open owner decision, not changed here.
+
+### Custom product pages drafted (11 October 2026)
+
+Three en-US custom product pages, each copied from the live 1.6.1 page, given its own keywords from the current version's set, its own promotional text and a re-ordered iPhone 6.9" + 6.5" screenshot set (iPad left in the default order). All three are **Ready to Submit**; adding them for review is an owner action and has not been done. `football` is left unassigned so the head term keeps the default page and the running screenshot test.
+
+| Page | Assigned keywords | Lead screenshots | Promotional text |
+|---|---|---|---|
+| Career - Manager Career | club, league, coach, youth, wonderkid, team | Build more than a team → Talent is the start | “Start unknown, earn your first job and build a dynasty across 756 real clubs: promotion, relegation and a youth academy. Free to download; optional Pro and packs.” (162) |
+| Match Day - Tactics | squad, sim, lineup, penalty, offline, cup | Eleven players → The big moments | “Pick your XI, set the tactics and call every substitution as matches play out minute by minute. Free to download; optional Pro and player packs.” (144) |
+| Transfers - Scouting | scout, pack, gm | Find the missing piece → Your next star | “Scout wonderkids, work the transfer window and open player packs to build your squad. Free to download; optional Pro and player packs.” (134) |
+
+Measure each page against the default page in App Analytics (source: App Store Search, by product page) after two full weeks live. A page whose conversion trails the default loses its keywords back to the default page.

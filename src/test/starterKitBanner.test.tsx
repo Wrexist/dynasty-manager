@@ -23,7 +23,8 @@ describe('StarterKitBanner', () => {
   it('renders for a fresh non-Pro career inside the window', () => {
     render(<StarterKitBanner />);
     expect(screen.getByLabelText(/view in Shop/i)).toBeTruthy();
-    expect(screen.getByText(/day(s)? left/i)).toBeTruthy();
+    // Never a countdown: the same product is always on sale at the same price.
+    expect(screen.queryByText(/day(s)? left/i)).toBeNull();
   });
 
   it('hides once the offer is dismissed', () => {

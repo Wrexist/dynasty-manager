@@ -3,7 +3,11 @@ import {
   isReviewWorthyPackTier,
   isCelebratorySeason,
   pickSeasonReviewTrigger,
+  isReviewWorthyMatchWin,
+  canRequestReview,
+  MIN_DAYS_BETWEEN_PROMPTS,
 } from '@/utils/appReview';
+import { writeReviewUrlFor } from '@/config/legal';
 import { PACK_TIERS } from '@/config/packs';
 
 describe('isReviewWorthyPackTier', () => {
@@ -55,5 +59,69 @@ describe('pickSeasonReviewTrigger', () => {
 
   it('falls back to the trophy trigger', () => {
     expect(pickSeasonReviewTrigger({ position: 8, cupResult: 'Winner' })).toBe('season-end-trophy');
+  });
+});
+
+describe('isReviewWorthyMatchWin', () => {
+  const win = { won: true, margin: 1, isCupMatch: false };
+
+  it('never asks on the first win, which belongs to the notification ask', () => {
+    expect(isReviewWorthyMatchWin({ ...win, totalWins: 1, margin: 5, isCupMatch: true })).toBe(false);
+  });
+
+  it('asks on a standout second win: a big margin or a cup tie', () => {
+    expect(isReviewWorthyMatchWin({ ...win, totalWins: 2, margin: 2 })).toBe(true);
+    expect(isReviewWorthyMatchWin({ ...win, totalWins: 2, isCupMatch: true })).toBe(true);
+    expect(isReviewWorthyMatchWin({ ...win, totalWins: 2 })).toBe(false);
+  });
+
+  it('asks on any win from the third on', () => {
+    expect(isReviewWorthyMatchWin({ ...win, totalWins: 3 })).toBe(true);
+    expect(isReviewWorthyMatchWin({ ...win, totalWins: 40 })).toBe(true);
+  });
+
+  it('never asks after a draw or a loss', () => {
+    expect(isReviewWorthyMatchWin({ won: false, totalWins: 50, margin: 0, isCupMatch: true })).toBe(false);
+  });
+});
+
+describe('canRequestReview', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = 1_000 * DAY;
+
+  it('allows the first request', () => {
+    expect(canRequestReview({ count: 0, lastShownAt: 0 }, now)).toBe(true);
+  });
+
+  it('waits the minimum gap between requests', () => {
+    const last = now - (MIN_DAYS_BETWEEN_PROMPTS - 1) * DAY;
+    expect(canRequestReview({ count: 1, lastShownAt: last, shownAt: [last] }, now)).toBe(false);
+    const older = now - MIN_DAYS_BETWEEN_PROMPTS * DAY;
+    expect(canRequestReview({ count: 1, lastShownAt: older, shownAt: [older] }, now)).toBe(true);
+  });
+
+  it('spends at most three requests in any rolling year', () => {
+    const shownAt = [now - 300 * DAY, now - 200 * DAY, now - 100 * DAY];
+    expect(canRequestReview({ count: 3, lastShownAt: shownAt[2], shownAt }, now)).toBe(false);
+  });
+
+  it('has no lifetime cap: the yearly budget renews', () => {
+    const shownAt = [now - 900 * DAY, now - 700 * DAY, now - 500 * DAY, now - 400 * DAY];
+    expect(canRequestReview({ count: 9, lastShownAt: shownAt[3], shownAt }, now)).toBe(true);
+  });
+
+  it('reads a pre-window state through lastShownAt', () => {
+    expect(canRequestReview({ count: 4, lastShownAt: now - 10 * DAY }, now)).toBe(false);
+    expect(canRequestReview({ count: 4, lastShownAt: now - 40 * DAY }, now)).toBe(true);
+  });
+});
+
+describe('writeReviewUrlFor', () => {
+  it('opens the App Store write-review sheet on iOS', () => {
+    expect(writeReviewUrlFor('ios')).toBe('https://apps.apple.com/app/id6760918006?action=write-review');
+  });
+
+  it('sends Android players to the Play listing', () => {
+    expect(writeReviewUrlFor('android')).toContain('play.google.com');
   });
 });

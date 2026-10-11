@@ -212,6 +212,17 @@ const ShopPage = () => {
   const perPeriod = (id: ProductId, divisor: number): string | null =>
     formatPerPeriodPrice(amountFor(id), divisor, storeCurrency ?? (storeAnswered ? undefined : 'USD'), undefined, priceFor(id));
 
+  /** The bundle's "bought separately" total, in the storefront's currency.
+   *  `formatPrice` is a USD formatter: fed a SEK or JPY sum it struck through
+   *  "$549.00". Omitted when the currency is unknown, like `perPeriod`. The
+   *  bundle's own price string is the template, checked against the bundle's
+   *  own amount (it never says the higher total), so "24,99 €" yields
+   *  "39,99 €" rather than the device locale's "€39.99". */
+  const bundleIndividualPrice = formatPerPeriodPrice(
+    bundleIndividualTotal, 1, storeCurrency ?? (storeAnswered ? undefined : 'USD'), undefined,
+    priceFor('com.dynastymanager.bundle.all'), amountFor('com.dynastymanager.bundle.all') ?? undefined,
+  );
+
   const handlePurchase = (productId: ProductId) => {
     setPurchaseError(null);
     setPurchaseProduct(productId);
@@ -301,7 +312,7 @@ const ShopPage = () => {
 
   const handlePresentPaywall = () => {
     setPurchaseError(null);
-    navigate('/subscribe', { state: { returnTo: '/game' } });
+    navigate('/subscribe', { state: { returnTo: '/game', surface: 'shop' } });
   };
 
   const handleManageSubscription = async () => {
@@ -359,15 +370,15 @@ const ShopPage = () => {
               <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Dynasty Pro</span>
               <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Manager Pack</span>
               <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Stadium Pack</span>
-              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Legends Pack</span>
+              <span className="text-micro bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Legacy Pack</span>
             </div>
             <div className="flex items-baseline gap-2 mt-3 mb-3">
               <span className="text-lg font-bold text-[hsl(var(--gold))]">
                 {priceFor('com.dynastymanager.bundle.all')}
               </span>
-              {bundleIndividualTotal != null && (
+              {bundleIndividualPrice && (
                 <span className="text-xs text-muted-foreground/60 line-through">
-                  {formatPrice(bundleIndividualTotal)}
+                  {bundleIndividualPrice}
                 </span>
               )}
             </div>
@@ -701,8 +712,8 @@ const ShopPage = () => {
             {PRODUCTS['com.dynastymanager.bundle.all'].description}
           </p>
           <p className="text-micro text-muted-foreground/60 mb-3">
-            {bundleIndividualTotal != null && (
-              <><span className="line-through">{formatPrice(bundleIndividualTotal)}</span> individually</>
+            {bundleIndividualPrice && (
+              <><span className="line-through">{bundleIndividualPrice}</span> individually</>
             )}
           </p>
           <button

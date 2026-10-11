@@ -871,6 +871,10 @@ export interface AppReviewState {
   /** Free-form tag identifying which moment triggered the most recent call —
    *  useful for analytics / debugging. */
   lastReason?: string;
+  /** Epoch ms of every call inside the last year — the rolling window Apple's
+   *  3-per-365-days cap is counted over. Absent in states written before
+   *  2026-10; `lastShownAt` stands in for it then. */
+  shownAt?: number[];
 }
 
 export function readAppReviewState(): AppReviewState {
@@ -882,6 +886,7 @@ export function readAppReviewState(): AppReviewState {
       count: typeof parsed.count === 'number' ? parsed.count : 0,
       lastShownAt: typeof parsed.lastShownAt === 'number' ? parsed.lastShownAt : 0,
       lastReason: typeof parsed.lastReason === 'string' ? parsed.lastReason : undefined,
+      shownAt: Array.isArray(parsed.shownAt) ? parsed.shownAt.filter((n: unknown) => typeof n === 'number') : undefined,
     };
   } catch { return { count: 0, lastShownAt: 0 }; }
 }

@@ -27,7 +27,7 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize, l
   // must not come back. Same destination and return path as `ProUpsell`.
   const handleClick = () => {
     if (locked) {
-      navigate('/subscribe', { state: { returnTo: '/game' } });
+      navigate('/subscribe', { state: { returnTo: '/game', surface: 'upsell', feature: 'Optimize Lineup' } });
       return;
     }
     onOptimize();
