@@ -55,6 +55,34 @@ export function recordProReoffer(now: number = Date.now()): void {
   writeProReofferState({ count: state.count + 1, lastAt: now });
 }
 
+// ── Navigation request ──
+// The moments that re-offer (the post-match popup, Season Summary) render
+// outside any router in tests and must not need one. They record the re-offer
+// and raise this request; GameShell, which lives inside the router, opens the
+// paywall. A tiny external store, like the first-win reminder signal.
+
+let reofferRequested = false;
+const reofferListeners = new Set<() => void>();
+
+/** Record the re-offer and ask GameShell to open the paywall. */
+export function requestProReoffer(now: number = Date.now()): void {
+  recordProReoffer(now);
+  reofferRequested = true;
+  reofferListeners.forEach(l => { try { l(); } catch { /* listener errors are non-fatal */ } });
+}
+
+/** Take (and clear) a pending request. */
+export function takeProReofferRequest(): boolean {
+  const was = reofferRequested;
+  reofferRequested = false;
+  return was;
+}
+
+export function subscribeProReoffer(cb: () => void): () => void {
+  reofferListeners.add(cb);
+  return () => { reofferListeners.delete(cb); };
+}
+
 // ── Free Optimize Lineup after a loss ──
 
 /** Grant the one free Optimize Lineup try, after a loss, to a non-Pro player

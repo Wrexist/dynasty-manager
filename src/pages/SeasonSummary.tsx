@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
@@ -16,7 +15,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { isCelebratorySeason, maybeRequestReview, pickSeasonReviewTrigger } from '@/utils/appReview';
-import { canReofferPro, recordProReoffer } from '@/utils/proReoffer';
+import { canReofferPro, requestProReoffer } from '@/utils/proReoffer';
 import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 import { CardBack } from '@/components/game/pack/CardBack';
 import { BallonDorCeremony } from '@/components/game/ballonDor/BallonDorCeremony';
@@ -52,7 +51,6 @@ const SeasonSummary = () => {
     careerManager: s.careerManager,
   })));
   const setScreen = useGameStore((s) => s.setScreen);
-  const navigate = useNavigate();
   const recordCelebrationKeys = useGameStore((s) => s.recordCelebrationKeys);
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
@@ -743,8 +741,7 @@ const SeasonSummary = () => {
               // (capped in utils/proReoffer.ts); otherwise, or once spent, it
               // is the moment to ask for a rating. One ask, never both.
               if (celebrated && canReofferPro(useGameStore.getState().monetization)) {
-                recordProReoffer();
-                navigate('/subscribe', { state: { returnTo: '/game', surface: 'reoffer' } });
+                requestProReoffer();
               } else if (celebrated) {
                 void maybeRequestReview(pickSeasonReviewTrigger(latest));
               }

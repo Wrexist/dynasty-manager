@@ -5,7 +5,6 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import type { Match } from '@/types/game';
@@ -26,20 +25,20 @@ describe('post-match card after a shootout', () => {
 
   it('a shootout win is a win', () => {
     stageResult({ home: 5, away: 4 });
-    render(<MemoryRouter><PostMatchPopup onContinue={() => {}} /></MemoryRouter>);
+    render(<PostMatchPopup onContinue={() => {}} />);
     expect(screen.getByText('Won on penalties')).toBeTruthy();
     expect(screen.getByText('5 - 4 pens')).toBeTruthy();
   });
 
   it('a shootout exit is a loss', () => {
     stageResult({ home: 3, away: 4 });
-    render(<MemoryRouter><PostMatchPopup onContinue={() => {}} /></MemoryRouter>);
+    render(<PostMatchPopup onContinue={() => {}} />);
     expect(screen.getByText('Lost on penalties')).toBeTruthy();
   });
 
   it('a level league match is still a draw', () => {
     stageResult(undefined);
-    render(<MemoryRouter><PostMatchPopup onContinue={() => {}} /></MemoryRouter>);
+    render(<PostMatchPopup onContinue={() => {}} />);
     expect(screen.getByText('Draw')).toBeTruthy();
   });
 });

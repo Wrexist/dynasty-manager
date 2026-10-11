@@ -11,6 +11,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { MonetizationState } from '@/types/game';
 import {
   canReofferPro, recordProReoffer, isWinStreak,
+  requestProReoffer, takeProReofferRequest, subscribeProReoffer,
   grantFreeOptimizeTry, hasFreeOptimizeTry, consumeFreeOptimizeTry,
 } from '@/utils/proReoffer';
 import { setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
@@ -68,6 +69,21 @@ describe('canReofferPro', () => {
     expect(canReofferPro(freePlayer(), now + PRO_REOFFER_MIN_GAP_DAYS * DAY)).toBe(true);
     for (let i = 1; i < PRO_REOFFER_MAX_TOTAL; i++) recordProReoffer(now);
     expect(canReofferPro(freePlayer(), now + 365 * DAY)).toBe(false);
+  });
+});
+
+describe('re-offer request', () => {
+  beforeEach(() => { localStorage.clear(); takeProReofferRequest(); });
+
+  it('records the re-offer, notifies the shell once, and clears when taken', () => {
+    const seen = vi.fn();
+    const off = subscribeProReoffer(seen);
+    requestProReoffer();
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(takeProReofferRequest()).toBe(true);
+    expect(takeProReofferRequest()).toBe(false);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.PRO_REOFFER_STATE)!).count).toBe(1);
+    off();
   });
 });
 
