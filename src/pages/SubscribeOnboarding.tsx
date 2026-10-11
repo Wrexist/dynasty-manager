@@ -63,7 +63,10 @@ const PRO_FEATURE_BULLETS: { title: string; description: string }[] = [
   ...(NATIVE_ADS_READY
     ? [{ title: 'Ad-Free Experience', description: 'No banners, no video pre-rolls. Ever.' }]
     : []),
-  { title: 'Instant Match Sim', description: 'Long-press to fast-forward a match in under a second.' },
+  // Describes the real control: the Sim button beside Ready to Play
+  // (MatchPrep). There is no long-press — the old line promised one.
+  { title: 'Instant Match Sim', description: 'One tap on Sim plays any match straight to full time.' },
+  { title: 'Optimize Lineup', description: 'Pick your strongest XI for the opponent in one tap.' },
   { title: 'Advanced Analytics', description: 'Possession, conversion, and per-match performance reads.' },
   { title: 'Custom Tactics Creator', description: 'Save up to 5 tactical presets and switch mid-season.' },
   { title: 'Expanded Press Conferences', description: 'More tones, deeper questions, dynamic fan reactions.' },
