@@ -81,6 +81,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Swapping two players in your lineup is now a true exchange, with an Undo button.',
     'A simpler live touchline: three team choices plus Pause, Subs, Shout and Speed, with animated substitutions.',
     'The Youth Academy and Staff screens are redesigned with clearer rows and bigger buttons.',
+    'Read files CRLF-normalised so Windows checkouts match CI.',
   ],
   fixed: [
     'Fixed an interrupted pack purchase that could block later pack purchases.',
