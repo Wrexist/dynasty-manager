@@ -220,6 +220,8 @@ describe('the paywall shows each plan\'s own trial', () => {
     await waitFor(() => expect(screen.getAllByText('7-day free trial included')).toHaveLength(1));
     const monthlyRow = screen.getByText('Pro Monthly').closest('button')!;
     expect(within(monthlyRow).getByText('7-day free trial included')).toBeTruthy();
-    expect(monthlyRow.getAttribute('aria-pressed')).toBe('true');
+    // The preselection lands in an effect after the trial copy renders; under a
+    // loaded parallel run the bare check raced it.
+    await waitFor(() => expect(screen.getByText('Pro Monthly').closest('button')!.getAttribute('aria-pressed')).toBe('true'));
   });
 });
