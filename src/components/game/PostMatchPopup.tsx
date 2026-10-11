@@ -21,6 +21,7 @@ import { extractMatchDebrief } from '@/utils/matchDebrief';
 import { gamePlanDebriefLine } from '@/config/gamePlan';
 import { ClubCrest } from '@/components/game/ClubCrest';
 import { isReviewWorthyMatchWin, maybeRequestReview } from '@/utils/appReview';
+import { isFirstWinPromptPending } from '@/utils/notifications';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
@@ -292,7 +293,9 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               onContinue();
               // Ask for a rating on the way out of a win, not over the score.
               // Self-throttled inside `maybeRequestReview`; no-op off-device.
-              if (isReviewWorthyMatchWin({ won, totalWins, margin: goalsFor - goalsAgainst, isCupMatch: !!lastMatchCompetition })) {
+              // Not on a win that is also showing the reminder offer: two
+              // system-style asks after one match reads as nagging.
+              if (!isFirstWinPromptPending() && isReviewWorthyMatchWin({ won, totalWins, margin: goalsFor - goalsAgainst, isCupMatch: !!lastMatchCompetition })) {
                 void maybeRequestReview('match-win');
               }
             }}
