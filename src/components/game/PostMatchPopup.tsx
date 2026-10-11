@@ -20,6 +20,7 @@ import { hapticHeavy, hapticLight } from '@/utils/haptics';
 import { extractMatchDebrief } from '@/utils/matchDebrief';
 import { gamePlanDebriefLine } from '@/config/gamePlan';
 import { ClubCrest } from '@/components/game/ClubCrest';
+import { isReviewWorthyMatchWin, maybeRequestReview } from '@/utils/appReview';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
@@ -46,6 +47,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
     }))
   );
   const rewindMatch = useGameStore(s => s.rewindMatch);
+  const totalWins = useGameStore(s => s.managerStats?.totalWins ?? 0);
 
   useScrollLock(!!currentMatchResult);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -283,7 +285,18 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               <RotateCcw className="w-4 h-4" /> Rewind Match (1 per season)
             </button>
           )}
-          <Button className="w-full h-11 text-sm font-bold" onClick={() => { hapticLight(); onContinue(); }}>
+          <Button
+            className="w-full h-11 text-sm font-bold"
+            onClick={() => {
+              hapticLight();
+              onContinue();
+              // Ask for a rating on the way out of a win, not over the score.
+              // Self-throttled inside `maybeRequestReview`; no-op off-device.
+              if (isReviewWorthyMatchWin({ won, totalWins, margin: goalsFor - goalsAgainst, isCupMatch: !!lastMatchCompetition })) {
+                void maybeRequestReview('match-win');
+              }
+            }}
+          >
             Continue
           </Button>
         </GlassPanel>

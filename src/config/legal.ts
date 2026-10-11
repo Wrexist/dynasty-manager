@@ -48,3 +48,11 @@ export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com
 export function storeUrlFor(platform: string): string {
   return platform === 'android' ? PLAY_STORE_URL : APP_STORE_URL;
 }
+
+/** Where Settings → Rate sends a player who wants to leave a review: the App
+ *  Store's write-review sheet directly (`action=write-review`), or the Play
+ *  listing. Unlike the in-app prompt this is never throttled by the OS — it is
+ *  the player asking, so Guideline 5.6.1 allows a plain link. */
+export function writeReviewUrlFor(platform: string): string {
+  return platform === 'android' ? PLAY_STORE_URL : `${APP_STORE_URL}?action=write-review`;
+}
