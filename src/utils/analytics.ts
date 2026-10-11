@@ -13,7 +13,10 @@ function getAppVersion(): string {
 /** Where a commerce event originated. Without it, shop vs paywall vs packs
  *  purchases are indistinguishable post-hoc and per-surface CVR is
  *  uncomputable. */
-export type PurchaseSurface = 'shop' | 'onboarding' | 'packs';
+/** Where a purchase journey started. For the paywall: `onboarding` is the
+ *  cold-open before the first game, `upsell` an in-game Pro banner or locked
+ *  button, `shop` the Shop's View Plans, `settings` Settings > Dynasty Pro. */
+export type PurchaseSurface = 'shop' | 'onboarding' | 'packs' | 'upsell' | 'settings';
 
 /** Allowed analytics events. Adding a new event? Extend this union and the
  *  matching `EventData` entry — the narrow shape is the whole privacy story.

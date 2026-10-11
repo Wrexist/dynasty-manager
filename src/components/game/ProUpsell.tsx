@@ -40,7 +40,7 @@ export function ProUpsell({ feature, className }: ProUpsellProps) {
 
   return (
     <button
-      onClick={() => navigate('/subscribe', { state: { returnTo: '/game' } })}
+      onClick={() => navigate('/subscribe', { state: { returnTo: '/game', surface: 'upsell', feature } })}
       className={cn(
         'w-full flex items-center gap-2.5 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 transition-colors hover:bg-primary/10 active:scale-[0.99]',
         className,

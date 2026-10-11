@@ -308,7 +308,7 @@ const ShopPage = () => {
 
   const handlePresentPaywall = () => {
     setPurchaseError(null);
-    navigate('/subscribe', { state: { returnTo: '/game' } });
+    navigate('/subscribe', { state: { returnTo: '/game', surface: 'shop' } });
   };
 
   const handleManageSubscription = async () => {
