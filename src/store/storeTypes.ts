@@ -408,7 +408,10 @@ export interface GameState {
   setFormation: (f: FormationType) => void;
   setDefensiveFormation: (f: FormationType | null) => void;
   updateLineup: (lineup: string[], subs: string[]) => void;
-  autoFillTeam: () => { changes: number; chemistryLabel: string; chemistryBonus: number; undersized: boolean; undersizedDetail?: string; proRequired?: boolean };
+  /** `useFreeTry`: a non-Pro caller may spend the one free Smart Optimize try
+   *  granted after a loss (utils/proReoffer.ts). The store checks the try
+   *  exists and spends it only on a full lineup; the flag alone grants nothing. */
+  autoFillTeam: (opts?: { useFreeTry?: boolean }) => { changes: number; chemistryLabel: string; chemistryBonus: number; undersized: boolean; undersizedDetail?: string; proRequired?: boolean; usedFreeTry?: boolean };
   setTrainingFocus: (f: 'fitness' | 'attacking' | 'defending' | 'mentality') => void;
   setSetPieceTaker: (playerId: string | undefined) => void;
   setPenaltyTaker: (playerId: string | undefined) => void;

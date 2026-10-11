@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { subscribeProReoffer, takeProReofferRequest } from '@/utils/proReoffer';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { TopBar } from '@/components/game/TopBar';
@@ -255,6 +256,16 @@ const GameShell = () => {
   useEffect(() => {
     if (!gameStarted) navigate('/');
   }, [gameStarted, navigate]);
+
+  // Pro re-offer at a high point (utils/proReoffer.ts): the post-match popup
+  // and Season Summary raise the request; the shell owns the router.
+  useEffect(() => {
+    const open = () => {
+      if (takeProReofferRequest()) navigate('/subscribe', { state: { returnTo: '/game', surface: 'reoffer' } });
+    };
+    open();
+    return subscribeProReoffer(open);
+  }, [navigate]);
 
   // Prefetch the hot main-tab chunks at idle so the first tap on each is instant.
   useEffect(() => {

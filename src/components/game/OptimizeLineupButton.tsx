@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { Crown, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
+import { hasFreeOptimizeTry } from '@/utils/proReoffer';
+import { infoToast } from '@/utils/gameToast';
 
 interface OptimizeLineupButtonProps {
   potentialGain: number;
   autoFilling: boolean;
-  onOptimize: () => void;
+  /** Returns true when the XI was filled. `useFreeTry` spends the free try. */
+  onOptimize: (opts?: { useFreeTry?: boolean }) => boolean | void;
   /** True for a player without Dynasty Pro. The button stays on screen —
    *  showing the feature and what it would be worth converts better than
    *  hiding it — but it opens the in-app paywall instead of running.
@@ -15,7 +19,8 @@ interface OptimizeLineupButtonProps {
    *  THE GATE IS REAL, NOT COSMETIC. `optimize_lineup` has been a listed Pro
    *  feature and this button has worn a Pro badge all along, while calling
    *  `onOptimize` for everybody: paid on the badge, free in the handler.
-   *  `onOptimize` is now unreachable when locked. */
+   *  `onOptimize` is unreachable when locked, except for the one free try
+   *  granted after a loss (utils/proReoffer.ts). */
   locked?: boolean;
 }
 
@@ -25,9 +30,26 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize, l
   // The in-app SubscribeOnboarding page, never RevenueCat's hosted paywall —
   // that was removed after an App Store rejection (Guideline 3.1.2(c)) and
   // must not come back. Same destination and return path as `ProUpsell`.
+  // One free use, granted after a loss (utils/proReoffer.ts): the player sees
+  // what Pro does instead of being sold it while frustrated.
+  const [freeTry, setFreeTry] = useState(() => locked && hasFreeOptimizeTry());
+  const openPaywall = () =>
+    navigate('/subscribe', { state: { returnTo: '/game', surface: 'upsell', feature: 'Optimize Lineup' } });
   const handleClick = () => {
+    if (locked && freeTry) {
+      // The store spends the try, and only when the XI is filled; a failed
+      // run (an undersized squad) keeps it for later.
+      const filled = onOptimize({ useFreeTry: true }) === true;
+      if (!filled || hasFreeOptimizeTry()) return;
+      setFreeTry(false);
+      infoToast(t('optimizeLineupButton.freeTryUsedTitle'), t('optimizeLineupButton.freeTryUsedBody'), {
+        action: { label: t('optimizeLineupButton.seePro'), onClick: openPaywall },
+        duration: 6000,
+      });
+      return;
+    }
     if (locked) {
-      navigate('/subscribe', { state: { returnTo: '/game', surface: 'upsell', feature: 'Optimize Lineup' } });
+      openPaywall();
       return;
     }
     onOptimize();
@@ -44,7 +66,7 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize, l
         // Not `disabled` when locked: a disabled button cannot be tapped, and
         // the tap is the whole point — it is how the player reaches the offer.
         disabled={autoFilling && !locked}
-        aria-label={locked ? t('optimizeLineupButton.lockedAria') : undefined}
+        aria-label={locked && !freeTry ? t('optimizeLineupButton.lockedAria') : undefined}
         className={cn(
           // Liquid-glass CTA — tinted primary, specular crescent, rim + inset
           // highlight/shadow, soft outer glow. Matches GlassPanel effect stack
@@ -73,13 +95,13 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize, l
             mixBlendMode: 'screen',
           }}
         />
-        {locked ? (
+        {locked && !freeTry ? (
           <Lock className="relative w-4 h-4 shrink-0" aria-hidden />
         ) : (
           <PremiumSparkle className={cn('relative w-4 h-4', autoFilling && 'animate-spin')} withSatellite={false} />
         )}
         <span className="relative">
-          {locked ? t('optimizeLineupButton.locked') : autoFilling ? 'Optimizing...' : 'Smart Optimize Lineup'}
+          {locked && freeTry ? t('optimizeLineupButton.freeTry') : locked ? t('optimizeLineupButton.locked') : autoFilling ? 'Optimizing...' : 'Smart Optimize Lineup'}
         </span>
         {/* PRO badge — signals that this is a paid Dynasty Pro feature */}
         <span

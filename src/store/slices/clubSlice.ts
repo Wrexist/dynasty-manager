@@ -4,6 +4,7 @@ import { selectBestLineup } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { buildAutoFillContext } from '@/utils/autoFillContext';
 import { isPro } from '@/utils/monetization';
+import { consumeFreeOptimizeTry, hasFreeOptimizeTry } from '@/utils/proReoffer';
 import { isAwayOnLoan } from '@/utils/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -65,13 +66,18 @@ export const createClubSlice = (set: Set, get: Get) => ({
     set({ clubs: { ...state.clubs, [club.id]: club } });
   },
 
-  autoFillTeam: () => {
+  autoFillTeam: (opts) => {
     const state = get();
 
     // Pro entitlement guard — the Smart Optimizer is a Pro feature. UI is
     // already gated, but we re-check here so any non-UI caller (devtools,
-    // future shortcuts, plug-in code) can't bypass the paywall.
-    if (!isPro(state.monetization)) {
+    // future shortcuts, plug-in code) can't bypass the paywall. The one
+    // exception is the free try granted after a loss: it must exist in device
+    // storage, the caller must ask for it, and it is spent below only when the
+    // optimizer fills the XI.
+    const pro = isPro(state.monetization);
+    const freeTry = !pro && opts?.useFreeTry === true && hasFreeOptimizeTry();
+    if (!pro && !freeTry) {
       return {
         changes: 0,
         chemistryLabel: 'Low',
@@ -115,12 +121,17 @@ export const createClubSlice = (set: Set, get: Get) => ({
       undersizedDetail = `Only ${result.lineup.length}/11 spots filled (${injuredCount} injured, ${suspendedCount} suspended, ${onLoanCount} on loan)`;
     }
 
+    // An undersized XI is a warning, not a result: the free try survives it.
+    const usedFreeTry = freeTry && !undersized;
+    if (usedFreeTry) consumeFreeOptimizeTry();
+
     return {
       changes,
       chemistryLabel: result.chemistryLabel,
       chemistryBonus: result.chemistryBonus,
       undersized,
       undersizedDetail,
+      usedFreeTry,
     };
   },
 

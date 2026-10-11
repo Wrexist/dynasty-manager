@@ -15,6 +15,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { isCelebratorySeason, maybeRequestReview, pickSeasonReviewTrigger } from '@/utils/appReview';
+import { canReofferPro, requestProReoffer } from '@/utils/proReoffer';
 import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 import { CardBack } from '@/components/game/pack/CardBack';
 import { BallonDorCeremony } from '@/components/game/ballonDor/BallonDorCeremony';
@@ -732,12 +733,18 @@ const SeasonSummary = () => {
               // Highest-emotion calm moment: the user has just scrolled their
               // own trophies and is voluntarily tapping forward. If they had a
               // celebratory season, fire the native one-tap App Store review
-              // sheet. Self-throttled inside `maybeRequestReview` (60-day gap,
-              // 4-lifetime cap) so we don't burn Apple's 3/365 quota.
-              if (isCelebratorySeason(latest)) {
+              // sheet. Self-throttled inside `maybeRequestReview` (30-day gap,
+              // 3 per rolling year) so we don't burn Apple's 3/365 quota.
+              const celebrated = isCelebratorySeason(latest);
+              setScreen(gameMode === 'career' && careerManager && !careerManager.contract ? 'job-market' : 'dashboard');
+              // A season worth celebrating is the high point to re-offer Pro
+              // (capped in utils/proReoffer.ts); otherwise, or once spent, it
+              // is the moment to ask for a rating. One ask, never both.
+              if (celebrated && canReofferPro(useGameStore.getState().monetization)) {
+                requestProReoffer();
+              } else if (celebrated) {
                 void maybeRequestReview(pickSeasonReviewTrigger(latest));
               }
-              setScreen(gameMode === 'career' && careerManager && !careerManager.contract ? 'job-market' : 'dashboard');
             }}
           >
             {gameMode === 'career' && careerManager && !careerManager.contract ? 'Find a New Club' : `Start Season ${season}`}

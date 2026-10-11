@@ -466,6 +466,22 @@ export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.yearly
 /** How long after first launch the Starter Kit is recommended to new managers. */
 export const STARTER_KIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// ── Pro re-offer at high points (utils/proReoffer.ts) ──
+//
+// The in-app paywall again, at a win streak or a celebrated season — never
+// after a loss (Pro does not change results, so that would imply a promise it
+// cannot keep). These caps only decide WHEN it is shown; nothing here touches
+// the simulation.
+
+/** Consecutive league wins that count as a high point. */
+export const PRO_REOFFER_WIN_STREAK = 3;
+/** Minimum days between two re-offers. */
+export const PRO_REOFFER_MIN_GAP_DAYS = 3;
+/** Re-offers per device, ever. Past this the player has answered. */
+export const PRO_REOFFER_MAX_TOTAL = 4;
+/** Hours after first launch before the first re-offer (not on day one). */
+export const PRO_REOFFER_MIN_ACCOUNT_AGE_HOURS = 24;
+
 // ── Unconfirmed pack purchases ──
 //
 // A pack purchase writes an un-charged marker before StoreKit is asked, and

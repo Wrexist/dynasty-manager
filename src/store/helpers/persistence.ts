@@ -432,6 +432,13 @@ export const STORAGE_KEYS = {
    *  showing on every subsequent New Game tap. Returning Pro users skip
    *  the check entirely. */
   SUBSCRIBE_ONBOARDING_SEEN: 'dynasty-subscribe-onboarding-seen',
+  /** localStorage JSON `{ count, lastAt }`: Dynasty Pro paywall re-offers at
+   *  high points (utils/proReoffer.ts). Device-level, not in any save. */
+  PRO_REOFFER_STATE: 'dynasty-pro-reoffer-state',
+  /** localStorage flags: the one free Optimize Lineup try granted after a
+   *  loss, and whether it has been used. Device-level, not in any save. */
+  FREE_OPTIMIZE_GRANTED: 'dynasty-free-optimize-granted',
+  FREE_OPTIMIZE_USED: 'dynasty-free-optimize-used',
   /** localStorage flag: the first-week welcome tutorial has been shown
    *  (Dashboard). Removed by Settings → Replay Tutorial. */
   WELCOME_SHOWN: 'dynasty-welcome-shown',
@@ -875,6 +882,28 @@ export interface AppReviewState {
    *  3-per-365-days cap is counted over. Absent in states written before
    *  2026-10; `lastShownAt` stands in for it then. */
   shownAt?: number[];
+}
+
+export interface ProReofferState {
+  /** Re-offers shown on this device, ever. */
+  count: number;
+  /** Epoch ms of the latest (0 = never). */
+  lastAt: number;
+}
+
+export function readProReofferState(): ProReofferState {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRO_REOFFER_STATE) || 'null');
+    return {
+      count: typeof parsed?.count === 'number' ? parsed.count : 0,
+      lastAt: typeof parsed?.lastAt === 'number' ? parsed.lastAt : 0,
+    };
+  } catch { return { count: 0, lastAt: 0 }; }
+}
+
+export function writeProReofferState(state: ProReofferState): void {
+  try { localStorage.setItem(STORAGE_KEYS.PRO_REOFFER_STATE, JSON.stringify(state)); }
+  catch { /* storage unavailable — non-fatal */ }
 }
 
 export function readAppReviewState(): AppReviewState {
