@@ -386,7 +386,7 @@ src/
 │                          WhatsNewPage, SettingsPage, HelpPage, ClubSelection, …
 ├── store/
 │   ├── gameStore.ts     → Zustand composition of 17 slices
-│   ├── storeTypes.ts    → GameState interface (755 LOC)
+│   ├── storeTypes.ts    → GameState interface (758 LOC)
 │   ├── slices/          → core, club, transfer, match, systems, orchestration,
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs, sunday, managerPass
@@ -416,7 +416,7 @@ src/
 
 ## Critical Files (read these first)
 1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,231 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
-2. **`src/store/storeTypes.ts`** — complete `GameState` interface (755 LOC).
+2. **`src/store/storeTypes.ts`** — complete `GameState` interface (758 LOC).
 3. **`src/types/game.ts`** — all types (3,900 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
 5. **`src/engine/match.ts`** — match simulation (2318 LOC).
